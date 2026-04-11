@@ -28,7 +28,7 @@ void main() {
       }
 
       expect(game.taskCount, HomeSceneGame.maxTaskCount);
-      expect(game.taskPageCount, 2);
+      expect(game.taskPageCount, 3);
       expect(game.addTaskItem('Task overflow'), isFalse);
     });
 
@@ -43,7 +43,7 @@ void main() {
       );
 
       expect(game.taskCount, HomeSceneGame.maxTaskCount);
-      expect(game.taskPageCount, 2);
+      expect(game.taskPageCount, 3);
     });
   });
 }

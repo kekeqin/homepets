@@ -8,6 +8,9 @@ import 'package:flame/game.dart';
 import 'package:flame_riverpod/flame_riverpod.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/ui/sprite_atlas_flame.dart';
+import '../task_panel_sprite_catalog.dart';
+
 enum HomeSceneDevice { mobile, tablet }
 
 class HomeSceneTaskSeed {
@@ -1433,17 +1436,11 @@ class _TaskPanelOverlay extends PositionComponent
          priority: 88,
        );
 
-  static const String _taskBoardAsset = 'images/ui/task.png';
+  static const String _taskBoardAsset = 'images/ui/sprites/task.png';
   static const String _taskStickerAsset = 'images/ui/task_add_sticker.png';
   static const String _taskRowFieldAsset = 'images/ui/task_row_field_idle.png';
   static const String _taskCheckboxEmptyAsset =
       'images/ui/task_checkbox_empty.png';
-  static const _RectFactor _taskBoardRect = _RectFactor(
-    0.421,
-    0.212,
-    0.481,
-    0.516,
-  );
   static const Color _taskBoardWarmTint = Color(0xFFE3CAA2);
   static const double _taskBoardWarmTintOpacity = 0.16;
 
@@ -1457,9 +1454,9 @@ class _TaskPanelOverlay extends PositionComponent
   Vector2 _sceneSize;
 
   static const int _maxTaskCount = 12;
-  static const int _pageSize = 6;
+  static const int _pageSize = 4;
   static const double _rowWidthFactor = 0.84;
-  static const double _rowHeightFactor = 0.092;
+  static const double _rowHeightFactor = 0.108;
   static const double _addButtonWidthFactor = 0.58;
   static const double _addButtonHeightFactor = 0.078;
   static const double _firstRowTopPaddingFactor = 0.24;
@@ -1538,12 +1535,10 @@ class _TaskPanelOverlay extends PositionComponent
       ),
     );
 
-    final boardImage = await game.images.load(_taskBoardAsset);
-    final boardSize = Vector2(
-      boardImage.width.toDouble(),
-      boardImage.height.toDouble(),
-    );
-    final boardSprite = _spriteFromSheet(boardImage, boardSize, _taskBoardRect);
+    final boardAtlas = await TaskPanelSpriteCatalog.atlasAsset.load();
+    final boardSprite = TaskPanelSpriteCatalog(
+      boardAtlas,
+    ).board.toFlameSprite(await game.images.load(_taskBoardAsset));
     final stickerImage = await game.images.load(_taskStickerAsset);
     final stickerSprite = Sprite(stickerImage);
 
@@ -2319,19 +2314,6 @@ class _TaskPanelOverlay extends PositionComponent
     return Vector2(width, width * 1.61);
   }
 
-  Sprite _spriteFromSheet(
-    ui.Image image,
-    Vector2 sourceSize,
-    _RectFactor factor,
-  ) {
-    final rect = factor.resolve(sourceSize);
-    return Sprite(
-      image,
-      srcPosition: Vector2(rect.left, rect.top),
-      srcSize: Vector2(rect.width, rect.height),
-    );
-  }
-
   @override
   void onRemove() {
     onRemoved();
@@ -2458,14 +2440,14 @@ class _TaskPanelItem extends PositionComponent
     final rowFieldSprite = Sprite(
       await game.images.load(_TaskPanelOverlay._taskRowFieldAsset),
     );
-    final checkboxSize = size.y * 0.54;
+    final checkboxSize = size.y * 0.58;
     final fieldWidth = size.x - checkboxSize - (size.x * 0.08);
-    final fieldHeight = size.y * 0.72;
+    final fieldHeight = size.y * 0.90;
 
     add(
       SpriteComponent(
         sprite: checkboxSprite,
-        position: Vector2(size.x * 0.07, size.y * 0.52),
+        position: Vector2(size.x * 0.07, size.y * 0.50),
         size: Vector2.all(checkboxSize),
         anchor: Anchor.centerLeft,
       ),
@@ -2473,7 +2455,7 @@ class _TaskPanelItem extends PositionComponent
     add(
       SpriteComponent(
         sprite: rowFieldSprite,
-        position: Vector2(size.x * 0.16 + (fieldWidth * 0.5), size.y * 0.52),
+        position: Vector2(size.x * 0.16 + (fieldWidth * 0.5), size.y * 0.50),
         size: Vector2(fieldWidth, fieldHeight),
         anchor: Anchor.center,
       )..opacity = highlighted ? 0.94 : 0.84,
@@ -2481,12 +2463,12 @@ class _TaskPanelItem extends PositionComponent
     add(
       TextComponent(
         text: label,
-        position: Vector2(size.x * 0.18, size.y * 0.52),
+        position: Vector2(size.x * 0.18, size.y * 0.50),
         anchor: Anchor.centerLeft,
         textRenderer: TextPaint(
           style: TextStyle(
             color: const Color(0xFF5A4228),
-            fontSize: size.y * 0.28,
+            fontSize: size.y * 0.34,
             fontWeight: FontWeight.w700,
           ),
         ),
