@@ -1,0 +1,23 @@
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: homepets
+      POSTGRES_PASSWORD: homepets
+      POSTGRES_DB: homepets
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://homepets:homepets@db:5432/homepets
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:

@@ -1,0 +1,67 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+*.orig
+
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+local.properties
+key.properties
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.jks
+*.keystore
+
+# Python / FastAPI
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+dist/
+*.egg-info/
+backend/postgres_data/
+backend/run/
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub/
+.pub-cache/
+build/
+coverage/
+**/doc/api/
+.gradle/
+.kotlin/
+.cxx/
+**/Flutter/ephemeral/
+**/.plugin_symlinks/
+
+# Logs / runtime
+*.log
+*.pid
+
+# Local debug artifacts
+checkbox_debug.png

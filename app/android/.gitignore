@@ -1,0 +1,12 @@
+# Android / Gradle local state
+/.gradle
+/.kotlin
+/captures/
+/local.properties
+GeneratedPluginRegistrant.java
+.cxx/
+
+# Never commit signing material
+key.properties
+**/*.keystore
+**/*.jks
