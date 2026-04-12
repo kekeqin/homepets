@@ -749,102 +749,115 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                               ),
                               child: SizedBox(
                                 height: rowHeight,
-                                child: GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onLongPressStart: (details) {
-                                    _showTaskPanelRowActionsFromGlobalPosition(
-                                      taskTitle,
-                                      details.globalPosition,
-                                    );
-                                  },
-                                  child: Stack(
-                                    children: [
-                                      Positioned(
-                                        left: 0,
-                                        top: rowHeight * 0.18,
-                                        child: SizedBox(
-                                          width: rowHeight * 0.58,
-                                          height: rowHeight * 0.58,
-                                          child: taskPanelSprites == null
-                                              ? Image.asset(
-                                                  completed
-                                                      ? _taskPanelCheckboxCheckedAsset
-                                                      : _taskPanelCheckboxEmptyAsset,
-                                                )
-                                              : Opacity(
-                                                  opacity: completed ? 0.70 : 1,
-                                                  child: SpriteFrameImage(
-                                                    imageAsset:
-                                                        taskPanelSprites.imageAsset,
-                                                    sheetSize:
-                                                        taskPanelSprites.sheetSize,
-                                                    frame: completed
-                                                        ? taskPanelSprites
-                                                              .checkboxChecked
-                                                        : taskPanelSprites
-                                                              .checkboxEmpty,
-                                                    fit: BoxFit.contain,
-                                                  ),
-                                                ),
-                                        ),
-                                      ),
-                                      Positioned(
-                                        left: rowHeight * 0.78,
-                                        right: 0,
-                                        top: rowFieldInset,
-                                        bottom: rowFieldInset,
+                                child: Stack(
+                                  children: [
+                                    Positioned(
+                                      left: 0,
+                                      top: rowHeight * 0.18,
+                                      child: SizedBox(
+                                        width: rowHeight * 0.58,
+                                        height: rowHeight * 0.58,
                                         child: taskPanelSprites == null
-                                            ? Opacity(
-                                                opacity: completed ? 0.76 : 1,
-                                                child: Image.asset(
-                                                  _taskPanelRowFieldAsset,
-                                                  fit: BoxFit.fill,
-                                                ),
+                                            ? Image.asset(
+                                                completed
+                                                    ? _taskPanelCheckboxCheckedAsset
+                                                    : _taskPanelCheckboxEmptyAsset,
                                               )
                                             : Opacity(
-                                                opacity: rowFieldOpacity,
+                                                opacity: completed ? 0.70 : 1,
                                                 child: SpriteFrameImage(
                                                   imageAsset:
                                                       taskPanelSprites.imageAsset,
                                                   sheetSize:
                                                       taskPanelSprites.sheetSize,
-                                                  frame: taskPanelSprites.rowField,
-                                                  fit: BoxFit.fill,
+                                                  frame: completed
+                                                      ? taskPanelSprites
+                                                            .checkboxChecked
+                                                      : taskPanelSprites
+                                                            .checkboxEmpty,
+                                                  fit: BoxFit.contain,
                                                 ),
                                               ),
                                       ),
-                                      Positioned(
-                                        left: rowHeight * 1.06,
-                                        right: pointsLabelWidth + rowHeight * 0.30,
-                                        top: 0,
-                                        bottom: 0,
-                                        child: Align(
-                                          alignment: Alignment.centerLeft,
-                                          child: Text(
-                                            taskTitle,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              color: titleColor,
-                                              fontSize: rowTextSize,
-                                              fontWeight: FontWeight.w700,
+                                    ),
+                                    Positioned(
+                                      left: rowHeight * 0.78,
+                                      right: 0,
+                                      top: rowFieldInset,
+                                      bottom: rowFieldInset,
+                                      child: taskPanelSprites == null
+                                          ? Opacity(
+                                              opacity: completed ? 0.76 : 1,
+                                              child: Image.asset(
+                                                _taskPanelRowFieldAsset,
+                                                fit: BoxFit.fill,
+                                              ),
+                                            )
+                                          : Opacity(
+                                              opacity: rowFieldOpacity,
+                                              child: SpriteFrameImage(
+                                                imageAsset:
+                                                    taskPanelSprites.imageAsset,
+                                                sheetSize:
+                                                    taskPanelSprites.sheetSize,
+                                                frame: taskPanelSprites.rowField,
+                                                fit: BoxFit.fill,
+                                              ),
                                             ),
+                                    ),
+                                    Positioned(
+                                      left: rowHeight * 1.06,
+                                      right: pointsLabelWidth + rowHeight * 0.30,
+                                      top: 0,
+                                      bottom: 0,
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          taskTitle,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: titleColor,
+                                            fontSize: rowTextSize,
+                                            fontWeight: FontWeight.w700,
                                           ),
                                         ),
                                       ),
-                                      Positioned(
-                                        right: rowHeight * 0.16,
-                                        top: 0,
-                                        bottom: 0,
-                                        child: _buildTaskPanelPointsText(
-                                          label: taskPointsLabel,
-                                          width: pointsLabelWidth,
-                                          fontSize: pointsLabelTextSize,
-                                          completed: completed,
-                                        ),
+                                    ),
+                                    Positioned(
+                                      right: rowHeight * 0.16,
+                                      top: 0,
+                                      bottom: 0,
+                                      child: _buildTaskPanelPointsText(
+                                        label: taskPointsLabel,
+                                        width: pointsLabelWidth,
+                                        fontSize: pointsLabelTextSize,
+                                        completed: completed,
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                    Positioned(
+                                      left: 0,
+                                      top: rowHeight * 0.08,
+                                      width: rowHeight * 0.74,
+                                      height: rowHeight * 0.84,
+                                      child: GestureDetector(
+                                        behavior: HitTestBehavior.opaque,
+                                        onTap: () => _completeTaskByLabel(taskTitle),
+                                        child: const SizedBox.expand(),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      left: rowHeight * 0.78,
+                                      right: 0,
+                                      top: rowFieldInset,
+                                      bottom: rowFieldInset,
+                                      child: GestureDetector(
+                                        behavior: HitTestBehavior.opaque,
+                                        onTap: () => _editTaskByLabel(taskTitle),
+                                        child: const SizedBox.expand(),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             );
@@ -1220,6 +1233,15 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   }
 
   Future<void> _editTaskByLabel(String taskLabel) async {
+    if (!_isAdmin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('\u4ec5\u7ba1\u7406\u5458\u53ef\u7f16\u8f91\u4efb\u52a1'),
+        ),
+      );
+      return;
+    }
+
     var targetTask = _findHomeTaskByLabel(taskLabel);
 
     if (targetTask == null) {
@@ -1242,13 +1264,16 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
     final editedTask = await _showTaskEditorDialog(
       initialTaskLabel: (targetTask['title'] ?? taskLabel).toString(),
-
       initialTaskPoints: _asInt(targetTask['points'], fallback: 10),
-
       isEditing: true,
     );
 
     if (!mounted || editedTask == null) {
+      return;
+    }
+
+    if (editedTask.deleteRequested) {
+      await _deleteTaskByLabel(taskLabel);
       return;
     }
 
@@ -1273,15 +1298,12 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
       await dio.put(
         '/api/tasks/$taskId',
-
         data: {'title': editedTask.taskLabel, 'points': editedTask.points},
       );
 
       _game.updateTaskItem(
         oldTaskLabel: oldTaskLabel,
-
         newTaskLabel: editedTask.taskLabel,
-
         points: editedTask.points,
       );
 
@@ -1290,17 +1312,23 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       if (mounted) {
         showFriendlyApiErrorSnackBar(
           context,
-
           error,
-
           fallbackMessage:
               '\u4fdd\u5b58\u4efb\u52a1\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5',
         );
       }
     }
   }
-
   Future<void> _deleteTaskByLabel(String taskLabel) async {
+    if (!_isAdmin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('\u4ec5\u7ba1\u7406\u5458\u53ef\u5220\u9664\u4efb\u52a1'),
+        ),
+      );
+      return;
+    }
+
     final shouldDelete = await _confirmDeleteTask(taskLabel);
 
     if (!mounted || !shouldDelete) {
@@ -1353,16 +1381,13 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       if (mounted) {
         showFriendlyApiErrorSnackBar(
           context,
-
           error,
-
           fallbackMessage:
               '\u5220\u9664\u4efb\u52a1\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5',
         );
       }
     }
   }
-
   Future<void> _completeTaskByLabel(String taskLabel) async {
     var targetTask = _findHomeTaskByLabel(taskLabel);
 
@@ -2279,11 +2304,21 @@ class _TaskContextSpriteButtonState extends State<_TaskContextSpriteButton> {
 }
 
 class _TaskEditorResult {
-  const _TaskEditorResult({required this.taskLabel, required this.points});
+  const _TaskEditorResult({
+    required this.taskLabel,
+    required this.points,
+  }) : deleteRequested = false;
+
+  const _TaskEditorResult.delete()
+    : taskLabel = '',
+      points = 0,
+      deleteRequested = true;
 
   final String taskLabel;
 
   final int points;
+
+  final bool deleteRequested;
 }
 
 class _TaskEditorSpriteDialog extends StatefulWidget {
@@ -2351,6 +2386,10 @@ class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
     Navigator.of(
       context,
     ).pop(_TaskEditorResult(taskLabel: trimmedName, points: points!));
+  }
+
+  void _requestDelete() {
+    Navigator.of(context).pop(const _TaskEditorResult.delete());
   }
 
   String? _validateTaskInput({required String taskName, required int? points}) {
@@ -2528,6 +2567,33 @@ class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
                                       ),
                                     ),
                                   ),
+                                if (widget.isEditing)
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: TextButton.icon(
+                                      onPressed: _requestDelete,
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: const Color(0xFF9C5F4F),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 4,
+                                          vertical: 2,
+                                        ),
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      icon: const Icon(
+                                        Icons.delete_outline_rounded,
+                                        size: 18,
+                                      ),
+                                      label: const Text(
+                                        '\u5220\u9664\u4efb\u52a1',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                if (widget.isEditing) const SizedBox(height: 6),
                                 Row(
                                   children: [
                                     Expanded(
