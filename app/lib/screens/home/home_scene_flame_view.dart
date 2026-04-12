@@ -54,6 +54,7 @@ const int _taskPointsMin = 1;
 const int _taskPointsMax = 1000;
 
 const String _taskPanelBoardAsset = 'assets/images/ui/task.png';
+const String _taskPanelNoteAsset = 'assets/images/ui/task_note.png';
 const String _taskPanelStickerAsset = 'assets/images/ui/task_add_sticker.png';
 const String _taskPanelRowFieldAsset =
     'assets/images/ui/task_row_field_idle.png';
@@ -63,8 +64,7 @@ const Rect _taskPanelBoardCropRect = Rect.fromLTWH(431, 326, 492, 792);
 const Size _taskPanelBoardSourceSize = Size(1024, 1536);
 const double _taskPanelBoardAspectRatio = 492 / 792;
 const double _taskPanelBoardHeightRatio = 792 / 492;
-const Duration _taskPanelTransitionDuration = Duration(milliseconds: 460);
-const Duration _taskPanelContentFadeDuration = Duration(milliseconds: 220);
+const Duration _taskPanelTransitionDuration = Duration(milliseconds: 320);
 const String _taskPanelAddButtonLabel = '+ \u6dfb\u52a0\u4efb\u52a1';
 
 class HomeSceneFlameView extends ConsumerStatefulWidget {
@@ -83,10 +83,12 @@ class HomeSceneFlameView extends ConsumerStatefulWidget {
   ConsumerState<HomeSceneFlameView> createState() => _HomeSceneFlameViewState();
 }
 
-class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView> {
+class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
+    with SingleTickerProviderStateMixin {
   late HomeSceneGame _game;
 
   late GlobalKey<RiverpodAwareGameWidgetState<HomeSceneGame>> _gameKey;
+  late final AnimationController _taskPanelController;
 
   SpriteAtlas? _taskPanelSpriteAtlas;
   List<Pet> _pets = const <Pet>[];
@@ -102,6 +104,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView> {
   bool _clearTaskRouteAfterClose = false;
   int _taskPanelPageIndex = 0;
   Rect? _taskPanelOriginRect;
+  bool _didPrecacheTaskPanelAssets = false;
 
   static const int _taskPanelPageSize = 4;
 
@@ -118,6 +121,11 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView> {
     _game = _createGame();
 
     _gameKey = GlobalKey<RiverpodAwareGameWidgetState<HomeSceneGame>>();
+    _taskPanelController = AnimationController(
+      vsync: this,
+      duration: _taskPanelTransitionDuration,
+      reverseDuration: _taskPanelTransitionDuration,
+    );
 
     _preloadTaskPanelSpriteAtlas();
     _loadFamilyPets();
@@ -125,6 +133,30 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView> {
     _loadHomeTasks();
     _maybeOpenInitialTaskPanel();
     _maybeOpenInitialShopPanel();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _precacheTaskPanelAssets();
+  }
+
+  void _precacheTaskPanelAssets() {
+    if (_didPrecacheTaskPanelAssets) {
+      return;
+    }
+
+    _didPrecacheTaskPanelAssets = true;
+    for (final assetPath in <String>[
+      _taskPanelNoteAsset,
+      _taskPanelBoardAsset,
+      _taskPanelStickerAsset,
+      _taskPanelRowFieldAsset,
+      _taskPanelCheckboxEmptyAsset,
+      TaskPanelSpriteCatalog.atlasAsset.imageAsset,
+    ]) {
+      precacheImage(AssetImage(assetPath), context);
+    }
   }
 
   void _preloadTaskPanelSpriteAtlas() {
@@ -365,7 +397,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView> {
     setState(() {
       _taskPanelOriginRect = originRect;
       _taskPanelVisible = true;
-      _taskPanelExpanded = false;
+      _taskPanelExpanded = true;
       _taskPanelClosing = false;
       _taskPanelBackdropInteractive = false;
       _clearTaskRouteAfterClose = clearRouteAfterClose;
@@ -375,21 +407,13 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView> {
       );
     });
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _taskPanelExpanded = true);
-    });
+    await _taskPanelController.forward(from: 0);
+    if (!mounted || !_taskPanelVisible || !_taskPanelExpanded) {
+      return;
+    }
 
-    Future<void>.delayed(const Duration(milliseconds: 220), () {
-      if (!mounted || !_taskPanelVisible) {
-        return;
-      }
-      setState(() => _taskPanelBackdropInteractive = true);
-    });
+    setState(() => _taskPanelBackdropInteractive = true);
   }
-
   Future<void> _hideTaskPanel() async {
     if (!_taskPanelVisible || _taskPanelClosing) {
       return;
@@ -399,9 +423,12 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView> {
     setState(() {
       _taskPanelClosing = true;
       _taskPanelExpanded = false;
+      _taskPanelBackdropInteractive = false;
     });
 
-    await Future<void>.delayed(_taskPanelTransitionDuration);
+    await _taskPanelController.reverse(
+      from: _taskPanelController.value == 0 ? 1 : _taskPanelController.value,
+    );
     if (!mounted) {
       return;
     }
@@ -488,107 +515,232 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView> {
     }
   }
 
-  Widget _buildAnimatedTaskPanelOverlay(Size size) {
-    final collapsedRect = _clampPanelRect(
-      _taskPanelOriginRect ?? _defaultTaskPanelOriginRect(size),
-      size,
-    );
-    final expandedRect = _expandedTaskPanelRect(size);
-    final panelRect = _taskPanelExpanded ? expandedRect : collapsedRect;
-    final borderRadius = BorderRadius.circular(_taskPanelExpanded ? 0 : 12);
-    final panelShadowOpacity = _taskPanelExpanded ? 0.20 : 0.08;
-    final taskPanelSprites = _taskPanelSpriteAtlas == null
-        ? null
-        : TaskPanelSpriteCatalog(_taskPanelSpriteAtlas!);
+  double _taskPanelIntervalValue(
+    double value, {
+    required double begin,
+    required double end,
+    Curve curve = Curves.linear,
+  }) {
+    if (value <= begin) {
+      return 0;
+    }
+    if (value >= end) {
+      return 1;
+    }
 
-    return Positioned.fill(
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _taskPanelBackdropInteractive ? _hideTaskPanel : null,
-              child: TweenAnimationBuilder<double>(
-                tween: Tween<double>(begin: 0, end: _taskPanelExpanded ? 1 : 0),
-                duration: _taskPanelTransitionDuration,
-                curve: Curves.easeOutCubic,
-                builder: (context, value, child) {
-                  return ColoredBox(
-                    color: Colors.black.withValues(alpha: 0.45 * value),
-                    child: ClipRect(
-                      child: BackdropFilter(
-                        filter: ui.ImageFilter.blur(
-                          sigmaX: 6 * value,
-                          sigmaY: 6 * value,
-                        ),
-                        child: const SizedBox.expand(),
-                      ),
-                    ),
-                  );
-                },
-              ),
+    final normalized = ((value - begin) / (end - begin)).clamp(0.0, 1.0);
+    return curve.transform(normalized.toDouble());
+  }
+
+  Widget _buildTaskPanelBoardLayer() {
+    return Center(
+      child: AspectRatio(
+        aspectRatio: _taskPanelBoardAspectRatio,
+        child: FittedBox(
+          fit: BoxFit.fill,
+          child: SizedBox(
+            width: _taskPanelBoardCropRect.width,
+            height: _taskPanelBoardCropRect.height,
+            child: Stack(
+              children: [
+                Positioned(
+                  left: -_taskPanelBoardCropRect.left,
+                  top: -_taskPanelBoardCropRect.top,
+                  child: Image.asset(
+                    _taskPanelBoardAsset,
+                    width: _taskPanelBoardSourceSize.width,
+                    height: _taskPanelBoardSourceSize.height,
+                    fit: BoxFit.fill,
+                  ),
+                ),
+              ],
             ),
           ),
-          AnimatedPositioned(
-            duration: _taskPanelTransitionDuration,
-            curve: Curves.fastLinearToSlowEaseIn,
-            left: panelRect.left,
-            top: panelRect.top,
-            width: panelRect.width,
-            height: panelRect.height,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {},
-              child: AnimatedContainer(
-                duration: _taskPanelTransitionDuration,
-                curve: Curves.easeOutBack,
-                clipBehavior: Clip.none,
-                decoration: BoxDecoration(
-                  borderRadius: borderRadius,
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(
-                        0xFF3A2514,
-                      ).withValues(alpha: panelShadowOpacity),
-                      blurRadius: _taskPanelExpanded ? 24 : 8,
-                      offset: Offset(0, _taskPanelExpanded ? 10 : 4),
-                    ),
-                  ],
-                ),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    AnimatedOpacity(
-                      duration: _taskPanelTransitionDuration,
-                      curve: Curves.easeOut,
-                      opacity: _taskPanelExpanded ? 0 : 1,
-                      child: Image.asset(
-                        _taskPanelStickerAsset,
-                        fit: BoxFit.fill,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTaskPanelExpandedContent(
+    TaskPanelSpriteCatalog? taskPanelSprites,
+  ) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final panelSize = constraints.biggest;
+        final rowHeight = panelSize.height * 0.106;
+        final rowFieldInset = rowHeight * 0.05;
+        final rowTextSize = panelSize.width * 0.045;
+        final titleWidth =
+            panelSize.width * (taskPanelSprites == null ? 0.42 : 0.46);
+        final titleAspectRatio =
+            taskPanelSprites?.titleBanner.aspectRatio ?? (648 / 262);
+        final actionButtonAspectRatio =
+            taskPanelSprites?.primaryButton.aspectRatio ?? (648 / 262);
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            panelSize.width * 0.12,
+            panelSize.height * 0.07,
+            panelSize.width * 0.12,
+            panelSize.height * 0.08,
+          ),
+          child: Column(
+            children: [
+              SizedBox(
+                width: titleWidth,
+                child: AspectRatio(
+                  aspectRatio: titleAspectRatio,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Positioned.fill(
+                        child: taskPanelSprites == null
+                            ? Image.asset(
+                                _taskPanelStickerAsset,
+                                fit: BoxFit.fill,
+                              )
+                            : SpriteFrameImage(
+                                imageAsset: taskPanelSprites.imageAsset,
+                                sheetSize: taskPanelSprites.sheetSize,
+                                frame: taskPanelSprites.titleBanner,
+                                fit: BoxFit.fill,
+                              ),
                       ),
-                    ),
-                    AnimatedOpacity(
-                      duration: _taskPanelTransitionDuration,
-                      curve: Curves.easeOut,
-                      opacity: _taskPanelExpanded ? 1 : 0,
-                      child: Center(
-                        child: AspectRatio(
-                          aspectRatio: _taskPanelBoardAspectRatio,
-                          child: FittedBox(
-                            fit: BoxFit.fill,
-                            child: SizedBox(
-                              width: _taskPanelBoardCropRect.width,
-                              height: _taskPanelBoardCropRect.height,
+                      Positioned(
+                        top: -panelSize.height * 0.022,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: taskPanelSprites == null
+                              ? Container(
+                                  width: panelSize.height * 0.038,
+                                  height: panelSize.height * 0.038,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: const LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        Color(0xFFF3C97D),
+                                        Color(0xFFC78E49),
+                                      ],
+                                    ),
+                                    border: Border.all(
+                                      color: const Color(0xB87A5330),
+                                      width: 1.1,
+                                    ),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Color(0x22000000),
+                                        blurRadius: 4,
+                                        offset: Offset(0, 1.5),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : SizedBox(
+                                  width: panelSize.height * 0.065,
+                                  height: panelSize.height * 0.078,
+                                  child: SpriteFrameImage(
+                                    imageAsset: taskPanelSprites.imageAsset,
+                                    sheetSize: taskPanelSprites.sheetSize,
+                                    frame: taskPanelSprites.pushPin,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                        ),
+                      ),
+                      if (taskPanelSprites == null)
+                        Center(
+                          child: Text(
+                            '任务清单',
+                            style: TextStyle(
+                              color: const Color(0xFF5B4327),
+                              fontSize: panelSize.width * 0.062,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: panelSize.height * 0.026),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.only(bottom: panelSize.height * 0.018),
+                  child: Column(
+                    children: [
+                      for (var index = 0; index < _visibleTaskPanelTasks.length; index++)
+                        Padding(
+                          padding: EdgeInsets.only(bottom: panelSize.height * 0.012),
+                          child: SizedBox(
+                            height: rowHeight,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onLongPressStart: (details) {
+                                _showTaskPanelRowActionsFromGlobalPosition(
+                                  (_visibleTaskPanelTasks[index]['title'] ?? '未命名任务')
+                                      .toString(),
+                                  details.globalPosition,
+                                );
+                              },
                               child: Stack(
                                 children: [
                                   Positioned(
-                                    left: -_taskPanelBoardCropRect.left,
-                                    top: -_taskPanelBoardCropRect.top,
-                                    child: Image.asset(
-                                      _taskPanelBoardAsset,
-                                      width: _taskPanelBoardSourceSize.width,
-                                      height: _taskPanelBoardSourceSize.height,
-                                      fit: BoxFit.fill,
+                                    left: 0,
+                                    top: rowHeight * 0.18,
+                                    child: SizedBox(
+                                      width: rowHeight * 0.58,
+                                      height: rowHeight * 0.58,
+                                      child: taskPanelSprites == null
+                                          ? Image.asset(_taskPanelCheckboxEmptyAsset)
+                                          : SpriteFrameImage(
+                                              imageAsset: taskPanelSprites.imageAsset,
+                                              sheetSize: taskPanelSprites.sheetSize,
+                                              frame: taskPanelSprites.checkboxEmpty,
+                                              fit: BoxFit.contain,
+                                            ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    left: rowHeight * 0.78,
+                                    right: 0,
+                                    top: rowFieldInset,
+                                    bottom: rowFieldInset,
+                                    child: taskPanelSprites == null
+                                        ? Image.asset(
+                                            _taskPanelRowFieldAsset,
+                                            fit: BoxFit.fill,
+                                          )
+                                        : Opacity(
+                                            opacity: index.isEven ? 0.96 : 0.88,
+                                            child: SpriteFrameImage(
+                                              imageAsset: taskPanelSprites.imageAsset,
+                                              sheetSize: taskPanelSprites.sheetSize,
+                                              frame: taskPanelSprites.rowField,
+                                              fit: BoxFit.fill,
+                                            ),
+                                          ),
+                                  ),
+                                  Positioned(
+                                    left: rowHeight * 1.06,
+                                    right: rowHeight * 0.30,
+                                    top: 0,
+                                    bottom: 0,
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        (_visibleTaskPanelTasks[index]['title'] ?? '未命名任务')
+                                            .toString(),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: const Color(0xFF5A4228),
+                                          fontSize: rowTextSize,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -596,455 +748,278 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView> {
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                    IgnorePointer(
-                      ignoring: !_taskPanelExpanded,
-                      child: AnimatedOpacity(
-                        duration: _taskPanelContentFadeDuration,
-                        curve: Curves.easeOut,
-                        opacity: _taskPanelExpanded ? 1 : 0,
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            final panelSize = constraints.biggest;
-                            final rowHeight = panelSize.height * 0.106;
-                            final rowFieldInset = rowHeight * 0.05;
-                            final rowTextSize = panelSize.width * 0.045;
-                            final titleWidth =
-                                panelSize.width *
-                                (taskPanelSprites == null ? 0.42 : 0.46);
-                            final titleAspectRatio =
-                                taskPanelSprites?.titleBanner.aspectRatio ??
-                                (648 / 262);
-                            final actionButtonAspectRatio =
-                                taskPanelSprites?.primaryButton.aspectRatio ??
-                                (648 / 262);
-                            return Padding(
-                              padding: EdgeInsets.fromLTRB(
-                                panelSize.width * 0.12,
-                                panelSize.height * 0.07,
-                                panelSize.width * 0.12,
-                                panelSize.height * 0.08,
-                              ),
-                              child: Column(
-                                children: [
-                                  SizedBox(
-                                    width: titleWidth,
-                                    child: AspectRatio(
-                                      aspectRatio: titleAspectRatio,
-                                      child: Stack(
-                                        clipBehavior: Clip.none,
-                                        children: [
-                                          Positioned.fill(
-                                            child: taskPanelSprites == null
-                                                ? Image.asset(
-                                                    _taskPanelStickerAsset,
-                                                    fit: BoxFit.fill,
-                                                  )
-                                                : SpriteFrameImage(
-                                                    imageAsset: taskPanelSprites
-                                                        .imageAsset,
-                                                    sheetSize: taskPanelSprites
-                                                        .sheetSize,
-                                                    frame: taskPanelSprites
-                                                        .titleBanner,
-                                                    fit: BoxFit.fill,
-                                                  ),
-                                          ),
-                                          Positioned(
-                                            top: -panelSize.height * 0.022,
-                                            left: 0,
-                                            right: 0,
-                                            child: Center(
-                                              child: taskPanelSprites == null
-                                                  ? Container(
-                                                      width:
-                                                          panelSize.height *
-                                                          0.038,
-                                                      height:
-                                                          panelSize.height *
-                                                          0.038,
-                                                      decoration: BoxDecoration(
-                                                        shape: BoxShape.circle,
-                                                        gradient:
-                                                            const LinearGradient(
-                                                              begin: Alignment
-                                                                  .topLeft,
-                                                              end: Alignment
-                                                                  .bottomRight,
-                                                              colors: [
-                                                                Color(
-                                                                  0xFFF3C97D,
-                                                                ),
-                                                                Color(
-                                                                  0xFFC78E49,
-                                                                ),
-                                                              ],
-                                                            ),
-                                                        border: Border.all(
-                                                          color: const Color(
-                                                            0xB87A5330,
-                                                          ),
-                                                          width: 1.1,
-                                                        ),
-                                                        boxShadow: const [
-                                                          BoxShadow(
-                                                            color: Color(
-                                                              0x22000000,
-                                                            ),
-                                                            blurRadius: 4,
-                                                            offset: Offset(
-                                                              0,
-                                                              1.5,
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    )
-                                                  : SizedBox(
-                                                      width:
-                                                          panelSize.height *
-                                                          0.065,
-                                                      height:
-                                                          panelSize.height *
-                                                          0.078,
-                                                      child: SpriteFrameImage(
-                                                        imageAsset:
-                                                            taskPanelSprites
-                                                                .imageAsset,
-                                                        sheetSize:
-                                                            taskPanelSprites
-                                                                .sheetSize,
-                                                        frame: taskPanelSprites
-                                                            .pushPin,
-                                                        fit: BoxFit.contain,
-                                                      ),
-                                                    ),
-                                            ),
-                                          ),
-                                          if (taskPanelSprites == null)
-                                            Center(
-                                              child: Text(
-                                                '任务清单',
-                                                style: TextStyle(
-                                                  color: const Color(
-                                                    0xFF5B4327,
-                                                  ),
-                                                  fontSize:
-                                                      panelSize.width * 0.062,
-                                                  fontWeight: FontWeight.w800,
-                                                  letterSpacing: 0.2,
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
+                      if (_visibleTaskPanelTasks.isEmpty)
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: panelSize.height * 0.04),
+                          child: taskPanelSprites == null
+                              ? Text(
+                                  '今天还没有任务',
+                                  style: TextStyle(
+                                    color: const Color(0xFF7A624A),
+                                    fontSize: panelSize.width * 0.05,
+                                    fontWeight: FontWeight.w700,
                                   ),
-                                  SizedBox(height: panelSize.height * 0.026),
-                                  Expanded(
-                                    child: SingleChildScrollView(
-                                      padding: EdgeInsets.only(
-                                        bottom: panelSize.height * 0.018,
-                                      ),
-                                      child: Column(
-                                        children: [
-                                          for (
-                                            var index = 0;
-                                            index <
-                                                _visibleTaskPanelTasks.length;
-                                            index++
-                                          )
-                                            Padding(
-                                              padding: EdgeInsets.only(
-                                                bottom:
-                                                    panelSize.height * 0.012,
-                                              ),
-                                              child: SizedBox(
-                                                height: rowHeight,
-                                                child: GestureDetector(
-                                                  behavior:
-                                                      HitTestBehavior.opaque,
-                                                  onLongPressStart: (details) {
-                                                    _showTaskPanelRowActionsFromGlobalPosition(
-                                                      (_visibleTaskPanelTasks[index]['title'] ??
-                                                              '\u672a\u547d\u540d\u4efb\u52a1')
-                                                          .toString(),
-                                                      details.globalPosition,
-                                                    );
-                                                  },
-                                                  child: Stack(
-                                                    children: [
-                                                      Positioned(
-                                                        left: 0,
-                                                        top: rowHeight * 0.18,
-                                                        child: SizedBox(
-                                                          width:
-                                                              rowHeight * 0.58,
-                                                          height:
-                                                              rowHeight * 0.58,
-                                                          child:
-                                                              taskPanelSprites ==
-                                                                  null
-                                                              ? Image.asset(
-                                                                  _taskPanelCheckboxEmptyAsset,
-                                                                )
-                                                              : SpriteFrameImage(
-                                                                  imageAsset:
-                                                                      taskPanelSprites
-                                                                          .imageAsset,
-                                                                  sheetSize:
-                                                                      taskPanelSprites
-                                                                          .sheetSize,
-                                                                  frame: taskPanelSprites
-                                                                      .checkboxEmpty,
-                                                                  fit: BoxFit
-                                                                      .contain,
-                                                                ),
-                                                        ),
-                                                      ),
-                                                      Positioned(
-                                                        left: rowHeight * 0.78,
-                                                        right: 0,
-                                                        top: rowFieldInset,
-                                                        bottom: rowFieldInset,
-                                                        child:
-                                                            taskPanelSprites ==
-                                                                null
-                                                            ? Image.asset(
-                                                                _taskPanelRowFieldAsset,
-                                                                fit:
-                                                                    BoxFit.fill,
-                                                              )
-                                                            : Opacity(
-                                                                opacity:
-                                                                    index.isEven
-                                                                    ? 0.96
-                                                                    : 0.88,
-                                                                child: SpriteFrameImage(
-                                                                  imageAsset:
-                                                                      taskPanelSprites
-                                                                          .imageAsset,
-                                                                  sheetSize:
-                                                                      taskPanelSprites
-                                                                          .sheetSize,
-                                                                  frame: taskPanelSprites
-                                                                      .rowField,
-                                                                  fit: BoxFit
-                                                                      .fill,
-                                                                ),
-                                                              ),
-                                                      ),
-                                                      Positioned(
-                                                        left: rowHeight * 1.06,
-                                                        right: rowHeight * 0.30,
-                                                        top: 0,
-                                                        bottom: 0,
-                                                        child: Align(
-                                                          alignment: Alignment
-                                                              .centerLeft,
-                                                          child: Text(
-                                                            (_visibleTaskPanelTasks[index]['title'] ??
-                                                                    '\u672a\u547d\u540d\u4efb\u52a1')
-                                                                .toString(),
-                                                            maxLines: 1,
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .ellipsis,
-                                                            style: TextStyle(
-                                                              color:
-                                                                  const Color(
-                                                                    0xFF5A4228,
-                                                                  ),
-                                                              fontSize:
-                                                                  rowTextSize,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w700,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          if (_visibleTaskPanelTasks.isEmpty)
-                                            Padding(
-                                              padding: EdgeInsets.symmetric(
-                                                vertical:
-                                                    panelSize.height * 0.04,
-                                              ),
-                                              child: taskPanelSprites == null
-                                                  ? Text(
-                                                      '\u4eca\u5929\u8fd8\u6ca1\u6709\u4efb\u52a1',
-                                                      style: TextStyle(
-                                                        color: const Color(
-                                                          0xFF7A624A,
-                                                        ),
-                                                        fontSize:
-                                                            panelSize.width *
-                                                            0.05,
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                      ),
-                                                    )
-                                                  : SizedBox(
-                                                      width:
-                                                          panelSize.width *
-                                                          0.58,
-                                                      child: AspectRatio(
-                                                        aspectRatio:
-                                                            taskPanelSprites
-                                                                .emptyState
-                                                                .aspectRatio,
-                                                        child: Stack(
-                                                          children: [
-                                                            Positioned.fill(
-                                                              child: Opacity(
-                                                                opacity: 0.84,
-                                                                child: SpriteFrameImage(
-                                                                  imageAsset:
-                                                                      taskPanelSprites
-                                                                          .imageAsset,
-                                                                  sheetSize:
-                                                                      taskPanelSprites
-                                                                          .sheetSize,
-                                                                  frame: taskPanelSprites
-                                                                      .emptyState,
-                                                                  fit: BoxFit
-                                                                      .fill,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            Center(
-                                                              child: Text(
-                                                                '\u4eca\u5929\u8fd8\u6ca1\u6709\u4efb\u52a1',
-                                                                style: TextStyle(
-                                                                  color: const Color(
-                                                                    0xFF7A624A,
-                                                                  ),
-                                                                  fontSize:
-                                                                      panelSize
-                                                                          .width *
-                                                                      0.048,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w700,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(height: panelSize.height * 0.010),
-                                  if (_taskPanelPageCount > 1)
-                                    Padding(
-                                      padding: EdgeInsets.only(
-                                        bottom: panelSize.height * 0.010,
-                                      ),
-                                      child: Text(
-                                        _taskPanelPageIndicatorLabel,
-                                        style: TextStyle(
-                                          color: const Color(0xFF6A5237),
-                                          fontSize: panelSize.width * 0.040,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ),
-                                  SizedBox(
-                                    width: panelSize.width * 0.86,
-                                    height: panelSize.width * 0.16,
-                                    child: Row(
+                                )
+                              : SizedBox(
+                                  width: panelSize.width * 0.58,
+                                  child: AspectRatio(
+                                    aspectRatio: taskPanelSprites.emptyState.aspectRatio,
+                                    child: Stack(
                                       children: [
-                                        _buildTaskPanelArrowButton(
-                                          icon: Icons.chevron_left_rounded,
-                                          size: panelSize.width * 0.095,
-                                          visible: _taskPanelPageCount > 1,
-                                          enabled: _canGoToPreviousTaskPage,
-                                          onTap: _goToPreviousTaskPage,
-                                        ),
-                                        const Spacer(),
-                                        GestureDetector(
-                                          behavior: HitTestBehavior.opaque,
-                                          onTap: _handleTaskAddTap,
-                                          child: SizedBox(
-                                            width: panelSize.width * 0.56,
-                                            child: AspectRatio(
-                                              aspectRatio:
-                                                  actionButtonAspectRatio,
-                                              child: Stack(
-                                                children: [
-                                                  Positioned.fill(
-                                                    child:
-                                                        taskPanelSprites == null
-                                                        ? Image.asset(
-                                                            _taskPanelStickerAsset,
-                                                            fit: BoxFit.fill,
-                                                          )
-                                                        : SpriteFrameImage(
-                                                            imageAsset:
-                                                                taskPanelSprites
-                                                                    .imageAsset,
-                                                            sheetSize:
-                                                                taskPanelSprites
-                                                                    .sheetSize,
-                                                            frame: taskPanelSprites
-                                                                .primaryButton,
-                                                            fit: BoxFit.fill,
-                                                          ),
-                                                  ),
-                                                  Center(
-                                                    child: Text(
-                                                      _taskPanelAddButtonLabel,
-                                                      style: TextStyle(
-                                                        color: const Color(
-                                                          0xFF5A4228,
-                                                        ),
-                                                        fontSize:
-                                                            panelSize.width *
-                                                            0.045,
-                                                        fontWeight:
-                                                            FontWeight.w800,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
+                                        Positioned.fill(
+                                          child: Opacity(
+                                            opacity: 0.84,
+                                            child: SpriteFrameImage(
+                                              imageAsset: taskPanelSprites.imageAsset,
+                                              sheetSize: taskPanelSprites.sheetSize,
+                                              frame: taskPanelSprites.emptyState,
+                                              fit: BoxFit.fill,
                                             ),
                                           ),
                                         ),
-                                        const Spacer(),
-                                        _buildTaskPanelArrowButton(
-                                          icon: Icons.chevron_right_rounded,
-                                          size: panelSize.width * 0.095,
-                                          visible: _taskPanelPageCount > 1,
-                                          enabled: _canGoToNextTaskPage,
-                                          onTap: _goToNextTaskPage,
+                                        Center(
+                                          child: Text(
+                                            '今天还没有任务',
+                                            style: TextStyle(
+                                              color: const Color(0xFF7A624A),
+                                              fontSize: panelSize.width * 0.048,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                ],
+                                ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: panelSize.height * 0.010),
+              if (_taskPanelPageCount > 1)
+                Padding(
+                  padding: EdgeInsets.only(bottom: panelSize.height * 0.010),
+                  child: Text(
+                    _taskPanelPageIndicatorLabel,
+                    style: TextStyle(
+                      color: const Color(0xFF6A5237),
+                      fontSize: panelSize.width * 0.040,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              SizedBox(
+                width: panelSize.width * 0.86,
+                height: panelSize.width * 0.16,
+                child: Row(
+                  children: [
+                    _buildTaskPanelArrowButton(
+                      icon: Icons.chevron_left_rounded,
+                      size: panelSize.width * 0.095,
+                      visible: _taskPanelPageCount > 1,
+                      enabled: _canGoToPreviousTaskPage,
+                      onTap: _goToPreviousTaskPage,
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _handleTaskAddTap,
+                      child: SizedBox(
+                        width: panelSize.width * 0.56,
+                        child: AspectRatio(
+                          aspectRatio: actionButtonAspectRatio,
+                          child: Stack(
+                            children: [
+                              Positioned.fill(
+                                child: taskPanelSprites == null
+                                    ? Image.asset(
+                                        _taskPanelStickerAsset,
+                                        fit: BoxFit.fill,
+                                      )
+                                    : SpriteFrameImage(
+                                        imageAsset: taskPanelSprites.imageAsset,
+                                        sheetSize: taskPanelSprites.sheetSize,
+                                        frame: taskPanelSprites.primaryButton,
+                                        fit: BoxFit.fill,
+                                      ),
                               ),
-                            );
-                          },
+                              Center(
+                                child: Text(
+                                  _taskPanelAddButtonLabel,
+                                  style: TextStyle(
+                                    color: const Color(0xFF5A4228),
+                                    fontSize: panelSize.width * 0.045,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
+                    ),
+                    const Spacer(),
+                    _buildTaskPanelArrowButton(
+                      icon: Icons.chevron_right_rounded,
+                      size: panelSize.width * 0.095,
+                      visible: _taskPanelPageCount > 1,
+                      enabled: _canGoToNextTaskPage,
+                      onTap: _goToNextTaskPage,
                     ),
                   ],
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        );
+      },
+    );
+  }
+
+  Widget _buildAnimatedTaskPanelOverlay(Size size) {
+    final collapsedRect = _clampPanelRect(
+      _taskPanelOriginRect ?? _defaultTaskPanelOriginRect(size),
+      size,
+    );
+    final expandedRect = _expandedTaskPanelRect(size);
+    final taskPanelSprites = _taskPanelSpriteAtlas == null
+        ? null
+        : TaskPanelSpriteCatalog(_taskPanelSpriteAtlas!);
+
+    return Positioned.fill(
+      child: AnimatedBuilder(
+        animation: _taskPanelController,
+        child: RepaintBoundary(
+          child: _buildTaskPanelExpandedContent(taskPanelSprites),
+        ),
+        builder: (context, panelContent) {
+          final animationValue = _taskPanelController.value;
+          final panelProgress = Curves.easeInOutCubicEmphasized.transform(
+            animationValue,
+          );
+          final backdropOpacity = _taskPanelIntervalValue(
+            animationValue,
+            begin: 0.04,
+            end: 1,
+            curve: Curves.easeOutCubic,
+          );
+          final stickerOpacity =
+              1 - _taskPanelIntervalValue(
+                animationValue,
+                begin: 0,
+                end: 0.56,
+                curve: Curves.easeOutCubic,
+              );
+          final boardOpacity = _taskPanelIntervalValue(
+            animationValue,
+            begin: 0.12,
+            end: 0.72,
+            curve: Curves.easeOutCubic,
+          );
+          final contentOpacity = _taskPanelIntervalValue(
+            animationValue,
+            begin: 0.40,
+            end: 1,
+            curve: Curves.easeOutCubic,
+          );
+          final panelRect = Rect.lerp(collapsedRect, expandedRect, panelProgress)!;
+          final panelShadowOpacity = ui.lerpDouble(0.10, 0.22, panelProgress)!;
+          final panelShadowBlur = ui.lerpDouble(10, 24, panelProgress)!;
+          final panelShadowOffset = ui.lerpDouble(4, 10, panelProgress)!;
+          final panelScale = ui.lerpDouble(0.985, 1.0, panelProgress)!;
+          final panelRotation = ui.lerpDouble(-0.035, 0, panelProgress)!;
+          final boardSlide = ui.lerpDouble(12, 0, boardOpacity)!;
+          final contentSlide = ui.lerpDouble(18, 0, contentOpacity)!;
+
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _taskPanelBackdropInteractive ? _hideTaskPanel : null,
+                  child: ColoredBox(
+                    color: Colors.black.withValues(alpha: 0.42 * backdropOpacity),
+                    child: ClipRect(
+                      child: BackdropFilter(
+                        filter: ui.ImageFilter.blur(
+                          sigmaX: 5.5 * backdropOpacity,
+                          sigmaY: 5.5 * backdropOpacity,
+                        ),
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: panelRect.left,
+                top: panelRect.top,
+                width: panelRect.width,
+                height: panelRect.height,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {},
+                  child: RepaintBoundary(
+                    child: Transform.rotate(
+                      angle: panelRotation,
+                      child: Transform.scale(
+                        scale: panelScale,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(
+                              ui.lerpDouble(18, 28, panelProgress)!,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF3A2514).withValues(
+                                  alpha: panelShadowOpacity,
+                                ),
+                                blurRadius: panelShadowBlur,
+                                offset: Offset(0, panelShadowOffset),
+                              ),
+                            ],
+                          ),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            clipBehavior: Clip.none,
+                            children: [
+                              Opacity(
+                                opacity: stickerOpacity,
+                                child: Image.asset(
+                                  _taskPanelNoteAsset,
+                                  fit: BoxFit.fill,
+                                ),
+                              ),
+                              Transform.translate(
+                                offset: Offset(0, boardSlide),
+                                child: Opacity(
+                                  opacity: boardOpacity,
+                                  child: _buildTaskPanelBoardLayer(),
+                                ),
+                              ),
+                              IgnorePointer(
+                                ignoring: !_taskPanelBackdropInteractive,
+                                child: Transform.translate(
+                                  offset: Offset(0, contentSlide),
+                                  child: Opacity(
+                                    opacity: contentOpacity,
+                                    child: panelContent!,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -1912,6 +1887,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView> {
 
   @override
   void dispose() {
+    _taskPanelController.dispose();
     _game.startExitAnimation();
 
     super.dispose();
