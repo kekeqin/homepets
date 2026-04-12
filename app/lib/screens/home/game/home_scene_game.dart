@@ -1441,8 +1441,6 @@ class _TaskPanelOverlay extends PositionComponent
   static const String _taskRowFieldAsset = 'images/ui/task_row_field_idle.png';
   static const String _taskCheckboxEmptyAsset =
       'images/ui/task_checkbox_empty.png';
-  static const Color _taskBoardWarmTint = Color(0xFFE3CAA2);
-  static const double _taskBoardWarmTintOpacity = 0.16;
 
   final bool isTablet;
   final Rect? Function() panelOriginRectProvider;
@@ -1562,22 +1560,8 @@ class _TaskPanelOverlay extends PositionComponent
       anchor: Anchor.center,
       priority: 0,
     );
-    boardComponent.paint.colorFilter = const ColorFilter.mode(
-      Color(0xFFF4E3C4),
-      BlendMode.modulate,
-    );
     _panelBoard = boardComponent;
     _panelRoot.add(boardComponent);
-    _panelRoot.add(
-      RectangleComponent(
-        position: _panelRoot.size / 2,
-        size: _panelRoot.size,
-        anchor: Anchor.center,
-        priority: 1,
-        paint: Paint()..color = _taskBoardWarmTint,
-      )..opacity = _taskBoardWarmTintOpacity,
-    );
-
     _panelRoot.add(
       MoveEffect.to(
         panelTargetPosition,
@@ -2311,7 +2295,7 @@ class _TaskPanelOverlay extends PositionComponent
       _sceneSize.x * (isTablet ? 0.44 : 0.70),
       _sceneSize.y * (isTablet ? 0.31 : 0.44),
     );
-    return Vector2(width, width * 1.61);
+    return Vector2(width, width * (812 / 510));
   }
 
   @override

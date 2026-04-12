@@ -61,10 +61,11 @@ const String _taskPanelCheckboxEmptyAsset =
     'assets/images/ui/task_checkbox_empty.png';
 const Rect _taskPanelBoardCropRect = Rect.fromLTWH(431, 326, 492, 792);
 const Size _taskPanelBoardSourceSize = Size(1024, 1536);
-const Color _taskPanelWarmTint = Color(0xFFE3CAA2);
-const double _taskPanelWarmTintOpacity = 0.16;
+const double _taskPanelBoardAspectRatio = 492 / 792;
+const double _taskPanelBoardHeightRatio = 792 / 492;
 const Duration _taskPanelTransitionDuration = Duration(milliseconds: 460);
 const Duration _taskPanelContentFadeDuration = Duration(milliseconds: 220);
+const String _taskPanelAddButtonLabel = '+ \u6dfb\u52a0\u4efb\u52a1';
 
 class HomeSceneFlameView extends ConsumerStatefulWidget {
   const HomeSceneFlameView({
@@ -292,26 +293,30 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView> {
     (_activeHomeTasks.length + _taskPanelPageSize - 1) ~/ _taskPanelPageSize,
   );
 
+  int get _taskPanelCurrentPageIndex => _taskPanelPageIndex
+      .clamp(0, math.max(0, _taskPanelPageCount - 1))
+      .toInt();
+
+  int get _taskPanelCurrentPageNumber => _taskPanelCurrentPageIndex + 1;
+
+  bool get _canGoToPreviousTaskPage =>
+      _taskPanelPageCount > 1 && _taskPanelCurrentPageIndex > 0;
+
+  bool get _canGoToNextTaskPage =>
+      _taskPanelPageCount > 1 &&
+      _taskPanelCurrentPageIndex < _taskPanelPageCount - 1;
+
+  String get _taskPanelPageIndicatorLabel =>
+      '$_taskPanelCurrentPageNumber/$_taskPanelPageCount';
+
   List<Map<String, dynamic>> get _visibleTaskPanelTasks {
     final tasks = _activeHomeTasks;
-    final clampedPageIndex = _taskPanelPageIndex
-        .clamp(0, math.max(0, _taskPanelPageCount - 1))
-        .toInt();
-    final start = clampedPageIndex * _taskPanelPageSize;
+    final start = _taskPanelCurrentPageIndex * _taskPanelPageSize;
     if (start >= tasks.length) {
       return const <Map<String, dynamic>>[];
     }
     final end = math.min(start + _taskPanelPageSize, tasks.length);
     return tasks.sublist(start, end);
-  }
-
-  String get _taskPanelPageButtonLabel {
-    if (_taskPanelPageIndex > 0) {
-      return '\u4e0a\u4e00\u9875 $_taskPanelPageIndex/$_taskPanelPageCount';
-    }
-
-    final nextPageNumber = _taskPanelPageIndex + 2;
-    return '\u4e0b\u4e00\u9875 $nextPageNumber/$_taskPanelPageCount';
   }
 
   Rect _defaultTaskPanelOriginRect(Size size) {
@@ -332,8 +337,10 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView> {
   }
 
   Rect _expandedTaskPanelRect(Size size) {
-    final width = math.min(size.width * 0.76, 388.0);
-    final height = math.min(size.height * 0.72, width * 1.61);
+    final maxWidth = math.min(size.width * 0.76, 388.0);
+    final maxHeight = size.height * 0.72;
+    final height = math.min(maxHeight, maxWidth * _taskPanelBoardHeightRatio);
+    final width = height / _taskPanelBoardHeightRatio;
     return Rect.fromCenter(
       center: Offset(size.width * 0.5, size.height * 0.52),
       width: width,
@@ -418,18 +425,20 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView> {
     }
   }
 
-  void _goToNextTaskPage() {
-    if (_taskPanelPageCount <= 1) {
+  void _goToPreviousTaskPage() {
+    if (!_canGoToPreviousTaskPage) {
       return;
     }
 
-    setState(() {
-      if (_taskPanelPageIndex > 0) {
-        _taskPanelPageIndex -= 1;
-      } else if (_taskPanelPageIndex < _taskPanelPageCount - 1) {
-        _taskPanelPageIndex += 1;
-      }
-    });
+    setState(() => _taskPanelPageIndex = _taskPanelCurrentPageIndex - 1);
+  }
+
+  void _goToNextTaskPage() {
+    if (!_canGoToNextTaskPage) {
+      return;
+    }
+
+    setState(() => _taskPanelPageIndex = _taskPanelCurrentPageIndex + 1);
   }
 
   Future<void> _showTaskPanelRowActionsFromGlobalPosition(
@@ -486,7 +495,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView> {
     );
     final expandedRect = _expandedTaskPanelRect(size);
     final panelRect = _taskPanelExpanded ? expandedRect : collapsedRect;
-    final borderRadius = BorderRadius.circular(_taskPanelExpanded ? 18 : 12);
+    final borderRadius = BorderRadius.circular(_taskPanelExpanded ? 0 : 12);
     final panelShadowOpacity = _taskPanelExpanded ? 0.20 : 0.08;
     final taskPanelSprites = _taskPanelSpriteAtlas == null
         ? null
@@ -533,7 +542,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView> {
               child: AnimatedContainer(
                 duration: _taskPanelTransitionDuration,
                 curve: Curves.easeOutBack,
-                clipBehavior: Clip.antiAlias,
+                clipBehavior: Clip.none,
                 decoration: BoxDecoration(
                   borderRadius: borderRadius,
                   boxShadow: [
@@ -562,70 +571,32 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView> {
                       duration: _taskPanelTransitionDuration,
                       curve: Curves.easeOut,
                       opacity: _taskPanelExpanded ? 1 : 0,
-                      child: taskPanelSprites == null
-                          ? Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                FittedBox(
-                                  fit: BoxFit.fill,
-                                  child: SizedBox(
-                                    width: _taskPanelBoardCropRect.width,
-                                    height: _taskPanelBoardCropRect.height,
-                                    child: Stack(
-                                      children: [
-                                        Positioned(
-                                          left: -_taskPanelBoardCropRect.left,
-                                          top: -_taskPanelBoardCropRect.top,
-                                          child: ColorFiltered(
-                                            colorFilter: const ColorFilter.mode(
-                                              Color(0xFFF4E3C4),
-                                              BlendMode.modulate,
-                                            ),
-                                            child: Image.asset(
-                                              _taskPanelBoardAsset,
-                                              width: _taskPanelBoardSourceSize
-                                                  .width,
-                                              height: _taskPanelBoardSourceSize
-                                                  .height,
-                                              fit: BoxFit.fill,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                      child: Center(
+                        child: AspectRatio(
+                          aspectRatio: _taskPanelBoardAspectRatio,
+                          child: FittedBox(
+                            fit: BoxFit.fill,
+                            child: SizedBox(
+                              width: _taskPanelBoardCropRect.width,
+                              height: _taskPanelBoardCropRect.height,
+                              child: Stack(
+                                children: [
+                                  Positioned(
+                                    left: -_taskPanelBoardCropRect.left,
+                                    top: -_taskPanelBoardCropRect.top,
+                                    child: Image.asset(
+                                      _taskPanelBoardAsset,
+                                      width: _taskPanelBoardSourceSize.width,
+                                      height: _taskPanelBoardSourceSize.height,
+                                      fit: BoxFit.fill,
                                     ),
                                   ),
-                                ),
-                                ColoredBox(
-                                  color: _taskPanelWarmTint.withValues(
-                                    alpha: _taskPanelWarmTintOpacity,
-                                  ),
-                                ),
-                              ],
-                            )
-                          : LayoutBuilder(
-                              builder: (context, constraints) {
-                                return Stack(
-                                  fit: StackFit.expand,
-                                  children: [
-                                    Positioned.fill(
-                                      child: SpriteFrameImage(
-                                        imageAsset: taskPanelSprites.imageAsset,
-                                        sheetSize: taskPanelSprites.sheetSize,
-                                        frame: taskPanelSprites.board,
-                                        fit: BoxFit.fill,
-                                        color: const Color(0xFFF8EAD0),
-                                        colorBlendMode: BlendMode.modulate,
-                                      ),
-                                    ),
-                                    ColoredBox(
-                                      color: const Color(
-                                        0xFFF8E9CF,
-                                      ).withValues(alpha: 0.08),
-                                    ),
-                                  ],
-                                );
-                              },
+                                ],
+                              ),
                             ),
+                          ),
+                        ),
+                      ),
                     ),
                     IgnorePointer(
                       ignoring: !_taskPanelExpanded,
@@ -977,105 +948,88 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView> {
                                   if (_taskPanelPageCount > 1)
                                     Padding(
                                       padding: EdgeInsets.only(
-                                        bottom: panelSize.height * 0.012,
+                                        bottom: panelSize.height * 0.010,
                                       ),
-                                      child: GestureDetector(
-                                        onTap: _goToNextTaskPage,
-                                        child: taskPanelSprites == null
-                                            ? SizedBox(
-                                                width: panelSize.width * 0.56,
-                                                child: AspectRatio(
-                                                  aspectRatio:
-                                                      actionButtonAspectRatio,
-                                                  child: Stack(
-                                                    children: [
-                                                      Positioned.fill(
-                                                        child: Image.asset(
-                                                          _taskPanelStickerAsset,
-                                                          fit: BoxFit.fill,
-                                                        ),
-                                                      ),
-                                                      Center(
-                                                        child: Text(
-                                                          _taskPanelPageButtonLabel,
-                                                          style: TextStyle(
-                                                            color: const Color(
-                                                              0xFF5A4228,
-                                                            ),
-                                                            fontSize:
-                                                                panelSize
-                                                                    .width *
-                                                                0.045,
-                                                            fontWeight:
-                                                                FontWeight.w800,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              )
-                                            : Padding(
-                                                padding: EdgeInsets.symmetric(
-                                                  vertical:
-                                                      panelSize.height * 0.006,
-                                                ),
-                                                child: Text(
-                                                  _taskPanelPageButtonLabel,
-                                                  style: TextStyle(
-                                                    color: const Color(
-                                                      0xFF6A5237,
-                                                    ),
-                                                    fontSize:
-                                                        panelSize.width * 0.044,
-                                                    fontWeight: FontWeight.w700,
-                                                  ),
-                                                ),
-                                              ),
-                                      ),
-                                    ),
-                                  GestureDetector(
-                                    onTap: _handleTaskAddTap,
-                                    child: SizedBox(
-                                      width: panelSize.width * 0.56,
-                                      child: AspectRatio(
-                                        aspectRatio: actionButtonAspectRatio,
-                                        child: Stack(
-                                          children: [
-                                            Positioned.fill(
-                                              child: taskPanelSprites == null
-                                                  ? Image.asset(
-                                                      _taskPanelStickerAsset,
-                                                      fit: BoxFit.fill,
-                                                    )
-                                                  : SpriteFrameImage(
-                                                      imageAsset:
-                                                          taskPanelSprites
-                                                              .imageAsset,
-                                                      sheetSize:
-                                                          taskPanelSprites
-                                                              .sheetSize,
-                                                      frame: taskPanelSprites
-                                                          .primaryButton,
-                                                      fit: BoxFit.fill,
-                                                    ),
-                                            ),
-                                            Center(
-                                              child: Text(
-                                                '+ \u6dfb\u52a0\u4efb\u52a1',
-                                                style: TextStyle(
-                                                  color: const Color(
-                                                    0xFF5A4228,
-                                                  ),
-                                                  fontSize:
-                                                      panelSize.width * 0.045,
-                                                  fontWeight: FontWeight.w800,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
+                                      child: Text(
+                                        _taskPanelPageIndicatorLabel,
+                                        style: TextStyle(
+                                          color: const Color(0xFF6A5237),
+                                          fontSize: panelSize.width * 0.040,
+                                          fontWeight: FontWeight.w700,
                                         ),
                                       ),
+                                    ),
+                                  SizedBox(
+                                    width: panelSize.width * 0.86,
+                                    height: panelSize.width * 0.16,
+                                    child: Row(
+                                      children: [
+                                        _buildTaskPanelArrowButton(
+                                          icon: Icons.chevron_left_rounded,
+                                          size: panelSize.width * 0.095,
+                                          visible: _taskPanelPageCount > 1,
+                                          enabled: _canGoToPreviousTaskPage,
+                                          onTap: _goToPreviousTaskPage,
+                                        ),
+                                        const Spacer(),
+                                        GestureDetector(
+                                          behavior: HitTestBehavior.opaque,
+                                          onTap: _handleTaskAddTap,
+                                          child: SizedBox(
+                                            width: panelSize.width * 0.56,
+                                            child: AspectRatio(
+                                              aspectRatio:
+                                                  actionButtonAspectRatio,
+                                              child: Stack(
+                                                children: [
+                                                  Positioned.fill(
+                                                    child:
+                                                        taskPanelSprites == null
+                                                        ? Image.asset(
+                                                            _taskPanelStickerAsset,
+                                                            fit: BoxFit.fill,
+                                                          )
+                                                        : SpriteFrameImage(
+                                                            imageAsset:
+                                                                taskPanelSprites
+                                                                    .imageAsset,
+                                                            sheetSize:
+                                                                taskPanelSprites
+                                                                    .sheetSize,
+                                                            frame: taskPanelSprites
+                                                                .primaryButton,
+                                                            fit: BoxFit.fill,
+                                                          ),
+                                                  ),
+                                                  Center(
+                                                    child: Text(
+                                                      _taskPanelAddButtonLabel,
+                                                      style: TextStyle(
+                                                        color: const Color(
+                                                          0xFF5A4228,
+                                                        ),
+                                                        fontSize:
+                                                            panelSize.width *
+                                                            0.045,
+                                                        fontWeight:
+                                                            FontWeight.w800,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        _buildTaskPanelArrowButton(
+                                          icon: Icons.chevron_right_rounded,
+                                          size: panelSize.width * 0.095,
+                                          visible: _taskPanelPageCount > 1,
+                                          enabled: _canGoToNextTaskPage,
+                                          onTap: _goToNextTaskPage,
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
@@ -1091,6 +1045,57 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTaskPanelArrowButton({
+    required IconData icon,
+    required double size,
+    required bool visible,
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
+    if (!visible) {
+      return SizedBox.square(dimension: size);
+    }
+
+    final radius = BorderRadius.circular(size * 0.28);
+    return SizedBox.square(
+      dimension: size,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 120),
+        opacity: enabled ? 1 : 0.34,
+        child: Material(
+          color: Colors.transparent,
+          child: Ink(
+            decoration: BoxDecoration(
+              color: const Color(0xFFF7EAD2),
+              borderRadius: radius,
+              border: Border.all(color: const Color(0xFFB59A7C), width: 1.2),
+              boxShadow: enabled
+                  ? const [
+                      BoxShadow(
+                        color: Color(0x14000000),
+                        blurRadius: 4,
+                        offset: Offset(0, 1.5),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: InkWell(
+              borderRadius: radius,
+              onTap: enabled ? onTap : null,
+              child: Center(
+                child: Icon(
+                  icon,
+                  size: size * 0.62,
+                  color: const Color(0xFF6A5237),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
