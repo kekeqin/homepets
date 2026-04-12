@@ -60,6 +60,8 @@ const String _taskPanelRowFieldAsset =
     'assets/images/ui/task_row_field_idle.png';
 const String _taskPanelCheckboxEmptyAsset =
     'assets/images/ui/task_checkbox_empty.png';
+const String _taskPanelCheckboxCheckedAsset =
+    'assets/images/ui/task_checkbox_checked.png';
 const Rect _taskPanelBoardCropRect = Rect.fromLTWH(431, 326, 492, 792);
 const Size _taskPanelBoardSourceSize = Size(1024, 1536);
 const double _taskPanelBoardAspectRatio = 492 / 792;
@@ -153,6 +155,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       _taskPanelStickerAsset,
       _taskPanelRowFieldAsset,
       _taskPanelCheckboxEmptyAsset,
+      _taskPanelCheckboxCheckedAsset,
       TaskPanelSpriteCatalog.atlasAsset.imageAsset,
     ]) {
       precacheImage(AssetImage(assetPath), context);
@@ -561,6 +564,53 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     );
   }
 
+  String _taskPanelTaskTitle(Map<String, dynamic> task) {
+    return (task['title'] ?? '\u672a\u547d\u540d\u4efb\u52a1').toString();
+  }
+
+  String _taskPanelTaskPointsLabel(Map<String, dynamic> task) {
+    final points = _asInt(task['points'], fallback: 10);
+    return '$points\u5206';
+  }
+
+  bool _taskPanelTaskCompleted(Map<String, dynamic> task) {
+    return task['is_completed'] == true ||
+        task['completed'] == true ||
+        task['done'] == true;
+  }
+
+  Widget _buildTaskPanelPointsText({
+    required String label,
+    required double width,
+    required double fontSize,
+    required bool completed,
+  }) {
+    final textColor = const Color(
+      0xFF846F59,
+    ).withValues(alpha: completed ? 0.56 : 0.82);
+    return Align(
+      alignment: Alignment.centerRight,
+      child: SizedBox(
+        width: width,
+        child: Padding(
+          padding: EdgeInsets.only(right: width * 0.04),
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              color: textColor,
+              fontSize: fontSize,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.1,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTaskPanelExpandedContent(
     TaskPanelSpriteCatalog? taskPanelSprites,
   ) {
@@ -570,6 +620,11 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         final rowHeight = panelSize.height * 0.106;
         final rowFieldInset = rowHeight * 0.05;
         final rowTextSize = panelSize.width * 0.045;
+        final pointsLabelWidth = math.max(
+          54.0,
+          math.min(panelSize.width * 0.16, 68.0),
+        );
+        final pointsLabelTextSize = panelSize.width * 0.033;
         final titleWidth =
             panelSize.width * (taskPanelSprites == null ? 0.42 : 0.46);
         final titleAspectRatio =
@@ -652,7 +707,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                       if (taskPanelSprites == null)
                         Center(
                           child: Text(
-                            '任务清单',
+                            '\u4efb\u52a1\u6e05\u5355',
                             style: TextStyle(
                               color: const Color(0xFF5B4327),
                               fontSize: panelSize.width * 0.062,
@@ -671,89 +726,138 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                   padding: EdgeInsets.only(bottom: panelSize.height * 0.018),
                   child: Column(
                     children: [
-                      for (var index = 0; index < _visibleTaskPanelTasks.length; index++)
-                        Padding(
-                          padding: EdgeInsets.only(bottom: panelSize.height * 0.012),
-                          child: SizedBox(
-                            height: rowHeight,
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onLongPressStart: (details) {
-                                _showTaskPanelRowActionsFromGlobalPosition(
-                                  (_visibleTaskPanelTasks[index]['title'] ?? '未命名任务')
-                                      .toString(),
-                                  details.globalPosition,
-                                );
-                              },
-                              child: Stack(
-                                children: [
-                                  Positioned(
-                                    left: 0,
-                                    top: rowHeight * 0.18,
-                                    child: SizedBox(
-                                      width: rowHeight * 0.58,
-                                      height: rowHeight * 0.58,
-                                      child: taskPanelSprites == null
-                                          ? Image.asset(_taskPanelCheckboxEmptyAsset)
-                                          : SpriteFrameImage(
-                                              imageAsset: taskPanelSprites.imageAsset,
-                                              sheetSize: taskPanelSprites.sheetSize,
-                                              frame: taskPanelSprites.checkboxEmpty,
-                                              fit: BoxFit.contain,
-                                            ),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    left: rowHeight * 0.78,
-                                    right: 0,
-                                    top: rowFieldInset,
-                                    bottom: rowFieldInset,
-                                    child: taskPanelSprites == null
-                                        ? Image.asset(
-                                            _taskPanelRowFieldAsset,
-                                            fit: BoxFit.fill,
-                                          )
-                                        : Opacity(
-                                            opacity: index.isEven ? 0.96 : 0.88,
-                                            child: SpriteFrameImage(
-                                              imageAsset: taskPanelSprites.imageAsset,
-                                              sheetSize: taskPanelSprites.sheetSize,
-                                              frame: taskPanelSprites.rowField,
-                                              fit: BoxFit.fill,
-                                            ),
-                                          ),
-                                  ),
-                                  Positioned(
-                                    left: rowHeight * 1.06,
-                                    right: rowHeight * 0.30,
-                                    top: 0,
-                                    bottom: 0,
-                                    child: Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: Text(
-                                        (_visibleTaskPanelTasks[index]['title'] ?? '未命名任务')
-                                            .toString(),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: const Color(0xFF5A4228),
-                                          fontSize: rowTextSize,
-                                          fontWeight: FontWeight.w700,
+                      for (
+                        var index = 0;
+                        index < _visibleTaskPanelTasks.length;
+                        index++
+                      )
+                        Builder(
+                          builder: (context) {
+                            final task = _visibleTaskPanelTasks[index];
+                            final taskTitle = _taskPanelTaskTitle(task);
+                            final taskPointsLabel = _taskPanelTaskPointsLabel(task);
+                            final completed = _taskPanelTaskCompleted(task);
+                            final titleColor = const Color(0xFF5A4228).withValues(
+                              alpha: completed ? 0.66 : 1,
+                            );
+                            final rowFieldOpacity =
+                                (index.isEven ? 0.96 : 0.88) *
+                                (completed ? 0.76 : 1);
+                            return Padding(
+                              padding: EdgeInsets.only(
+                                bottom: panelSize.height * 0.012,
+                              ),
+                              child: SizedBox(
+                                height: rowHeight,
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onLongPressStart: (details) {
+                                    _showTaskPanelRowActionsFromGlobalPosition(
+                                      taskTitle,
+                                      details.globalPosition,
+                                    );
+                                  },
+                                  child: Stack(
+                                    children: [
+                                      Positioned(
+                                        left: 0,
+                                        top: rowHeight * 0.18,
+                                        child: SizedBox(
+                                          width: rowHeight * 0.58,
+                                          height: rowHeight * 0.58,
+                                          child: taskPanelSprites == null
+                                              ? Image.asset(
+                                                  completed
+                                                      ? _taskPanelCheckboxCheckedAsset
+                                                      : _taskPanelCheckboxEmptyAsset,
+                                                )
+                                              : Opacity(
+                                                  opacity: completed ? 0.70 : 1,
+                                                  child: SpriteFrameImage(
+                                                    imageAsset:
+                                                        taskPanelSprites.imageAsset,
+                                                    sheetSize:
+                                                        taskPanelSprites.sheetSize,
+                                                    frame: completed
+                                                        ? taskPanelSprites
+                                                              .checkboxChecked
+                                                        : taskPanelSprites
+                                                              .checkboxEmpty,
+                                                    fit: BoxFit.contain,
+                                                  ),
+                                                ),
                                         ),
                                       ),
-                                    ),
+                                      Positioned(
+                                        left: rowHeight * 0.78,
+                                        right: 0,
+                                        top: rowFieldInset,
+                                        bottom: rowFieldInset,
+                                        child: taskPanelSprites == null
+                                            ? Opacity(
+                                                opacity: completed ? 0.76 : 1,
+                                                child: Image.asset(
+                                                  _taskPanelRowFieldAsset,
+                                                  fit: BoxFit.fill,
+                                                ),
+                                              )
+                                            : Opacity(
+                                                opacity: rowFieldOpacity,
+                                                child: SpriteFrameImage(
+                                                  imageAsset:
+                                                      taskPanelSprites.imageAsset,
+                                                  sheetSize:
+                                                      taskPanelSprites.sheetSize,
+                                                  frame: taskPanelSprites.rowField,
+                                                  fit: BoxFit.fill,
+                                                ),
+                                              ),
+                                      ),
+                                      Positioned(
+                                        left: rowHeight * 1.06,
+                                        right: pointsLabelWidth + rowHeight * 0.30,
+                                        top: 0,
+                                        bottom: 0,
+                                        child: Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: Text(
+                                            taskTitle,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: titleColor,
+                                              fontSize: rowTextSize,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        right: rowHeight * 0.16,
+                                        top: 0,
+                                        bottom: 0,
+                                        child: _buildTaskPanelPointsText(
+                                          label: taskPointsLabel,
+                                          width: pointsLabelWidth,
+                                          fontSize: pointsLabelTextSize,
+                                          completed: completed,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
-                            ),
-                          ),
+                            );
+                          },
                         ),
                       if (_visibleTaskPanelTasks.isEmpty)
                         Padding(
-                          padding: EdgeInsets.symmetric(vertical: panelSize.height * 0.04),
+                          padding: EdgeInsets.symmetric(
+                            vertical: panelSize.height * 0.04,
+                          ),
                           child: taskPanelSprites == null
                               ? Text(
-                                  '今天还没有任务',
+                                  '\u4eca\u5929\u8fd8\u6ca1\u6709\u4efb\u52a1',
                                   style: TextStyle(
                                     color: const Color(0xFF7A624A),
                                     fontSize: panelSize.width * 0.05,
@@ -763,15 +867,18 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                               : SizedBox(
                                   width: panelSize.width * 0.58,
                                   child: AspectRatio(
-                                    aspectRatio: taskPanelSprites.emptyState.aspectRatio,
+                                    aspectRatio:
+                                        taskPanelSprites.emptyState.aspectRatio,
                                     child: Stack(
                                       children: [
                                         Positioned.fill(
                                           child: Opacity(
                                             opacity: 0.84,
                                             child: SpriteFrameImage(
-                                              imageAsset: taskPanelSprites.imageAsset,
-                                              sheetSize: taskPanelSprites.sheetSize,
+                                              imageAsset:
+                                                  taskPanelSprites.imageAsset,
+                                              sheetSize:
+                                                  taskPanelSprites.sheetSize,
                                               frame: taskPanelSprites.emptyState,
                                               fit: BoxFit.fill,
                                             ),
@@ -779,7 +886,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                                         ),
                                         Center(
                                           child: Text(
-                                            '今天还没有任务',
+                                            '\u4eca\u5929\u8fd8\u6ca1\u6709\u4efb\u52a1',
                                             style: TextStyle(
                                               color: const Color(0xFF7A624A),
                                               fontSize: panelSize.width * 0.048,
@@ -1864,7 +1971,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       if (refreshedPet == null) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('当前家庭还没有宠物，先去创建一个吧')));
+        ).showSnackBar(const SnackBar(content: Text('\u5f53\u524d\u5bb6\u5ead\u8fd8\u6ca1\u6709\u5ba0\u7269\uff0c\u5148\u53bb\u521b\u5efa\u4e00\u4e2a\u5427')));
 
         return;
       }
