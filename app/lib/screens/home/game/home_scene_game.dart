@@ -14,26 +14,22 @@ import '../task_panel_sprite_catalog.dart';
 enum HomeSceneDevice { mobile, tablet }
 
 const List<_PetCandidatePoint> _homePetCandidatePoints = <_PetCandidatePoint>[
-  // Couch center.
+  // 1. Couch center.
   _PetCandidatePoint(centerX: 0.31, centerY: 0.60),
-  // Fully on top of the bookshelf.
-  _PetCandidatePoint(centerX: 0.62, centerY: 0.43),
-  // Bottom-left floor, a bit lower.
-  _PetCandidatePoint(centerX: 0.11, centerY: 0.88),
-  // Left side of the rug.
-  _PetCandidatePoint(centerX: 0.20, centerY: 0.79),
-  // Lower middle floor.
-  _PetCandidatePoint(centerX: 0.47, centerY: 0.83),
-  // Right side of the rug.
-  _PetCandidatePoint(centerX: 0.73, centerY: 0.74),
-  // Mid-right floor, slightly lower.
-  _PetCandidatePoint(centerX: 0.58, centerY: 0.95),
-  // Bottom-right floor, slightly down-left but kept on screen.
-  _PetCandidatePoint(centerX: 0.85, centerY: 0.88),
-  // Lower mid-left floor.
-  _PetCandidatePoint(centerX: 0.33, centerY: 0.95),
-  // Lower mid-right floor.
-  _PetCandidatePoint(centerX: 0.80, centerY: 0.94),
+  // 2. Upper-right floor by the chair.
+  _PetCandidatePoint(centerX: 0.65, centerY: 0.72),
+  // 3. Left floor near the book stack.
+  _PetCandidatePoint(centerX: 0.14, centerY: 0.83),
+  // 4. Bottom-left open floor.
+  _PetCandidatePoint(centerX: 0.06, centerY: 0.95),
+  // 5. Center-left rug edge.
+  _PetCandidatePoint(centerX: 0.30, centerY: 0.88),
+  // 6. Bottom-center floor.
+  _PetCandidatePoint(centerX: 0.55, centerY: 0.95),
+  // 7. Right floor near the plant.
+  _PetCandidatePoint(centerX: 0.67, centerY: 0.87),
+  // 8. Bottom-right floor.
+  _PetCandidatePoint(centerX: 0.87, centerY: 0.92),
 ];
 
 class _PetCandidatePoint {
