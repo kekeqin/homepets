@@ -13,6 +13,62 @@ import '../task_panel_sprite_catalog.dart';
 
 enum HomeSceneDevice { mobile, tablet }
 
+const List<_PetCandidatePoint> _homePetCandidatePoints = <_PetCandidatePoint>[
+  // Couch center.
+  _PetCandidatePoint(centerX: 0.31, centerY: 0.60),
+  // Fully on top of the bookshelf.
+  _PetCandidatePoint(centerX: 0.62, centerY: 0.43),
+  // Bottom-left floor, a bit lower.
+  _PetCandidatePoint(centerX: 0.11, centerY: 0.88),
+  // Left side of the rug.
+  _PetCandidatePoint(centerX: 0.20, centerY: 0.79),
+  // Lower middle floor.
+  _PetCandidatePoint(centerX: 0.47, centerY: 0.83),
+  // Right side of the rug.
+  _PetCandidatePoint(centerX: 0.73, centerY: 0.74),
+  // Mid-right floor, slightly lower.
+  _PetCandidatePoint(centerX: 0.58, centerY: 0.95),
+  // Bottom-right floor, slightly down-left but kept on screen.
+  _PetCandidatePoint(centerX: 0.85, centerY: 0.88),
+  // Lower mid-left floor.
+  _PetCandidatePoint(centerX: 0.33, centerY: 0.95),
+  // Lower mid-right floor.
+  _PetCandidatePoint(centerX: 0.80, centerY: 0.94),
+];
+
+class _PetCandidatePoint {
+  const _PetCandidatePoint({required this.centerX, required this.centerY});
+
+  final double centerX;
+  final double centerY;
+}
+
+class _PetLayoutProfile {
+  const _PetLayoutProfile({
+    required this.widthFactor,
+    required this.heightFactor,
+    required this.overflowJitterX,
+    required this.overflowJitterY,
+  });
+
+  final double widthFactor;
+  final double heightFactor;
+  final double overflowJitterX;
+  final double overflowJitterY;
+}
+
+class _AssignedPetPlacement {
+  const _AssignedPetPlacement({
+    required this.candidateIndex,
+    this.offsetX = 0,
+    this.offsetY = 0,
+  });
+
+  final int candidateIndex;
+  final double offsetX;
+  final double offsetY;
+}
+
 class HomeSceneTaskSeed {
   const HomeSceneTaskSeed({required this.title, required this.points});
 
@@ -63,6 +119,9 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   _TaskPanelOverlay? _taskPanelOverlay;
   final List<_TaskPanelEntry> _taskEntries = <_TaskPanelEntry>[];
   final List<HomeScenePetSeed> _petEntries = <HomeScenePetSeed>[];
+  final Map<int, _AssignedPetPlacement> _petPlacements =
+      <int, _AssignedPetPlacement>{};
+  final math.Random _petPlacementRandom = math.Random();
   Vector2? _lastUiLayoutSize;
 
   bool _ready = false;
@@ -190,10 +249,30 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     _petEntries
       ..clear()
       ..addAll(pets.where((item) => item.petId > 0));
+    _syncPetPlacements();
 
     if (_ready) {
       _rebuildUiFromProfile();
     }
+  }
+
+  int get debugPetCandidateCount => _homePetCandidatePoints.length;
+
+  Map<int, int> debugPetCandidateAssignments() {
+    return Map<int, int>.unmodifiable(
+      _petPlacements.map(
+        (petId, placement) => MapEntry(petId, placement.candidateIndex),
+      ),
+    );
+  }
+
+  Map<int, Offset> debugPetPlacementOffsets() {
+    return Map<int, Offset>.unmodifiable(
+      _petPlacements.map(
+        (petId, placement) =>
+            MapEntry(petId, Offset(placement.offsetX, placement.offsetY)),
+      ),
+    );
   }
 
   List<_PetSpriteSpec> _buildPetSpecs() {
@@ -201,70 +280,147 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       return const <_PetSpriteSpec>[];
     }
 
+    _syncPetPlacements();
+    final layout = _petLayoutProfile();
+
+    return List<_PetSpriteSpec>.generate(_petEntries.length, (index) {
+      final pet = _petEntries[index];
+      final petType = _normalizedPetType(pet.petType, index: index);
+      final placement = _petPlacements[pet.petId]!;
+      return _PetSpriteSpec(
+        rect: _petRectForPlacement(placement, layout),
+        referenceSpace: _UiReferenceSpace.background,
+        assetPath: _petAssetPathForType(petType),
+        cropRect: _petCropRectForType(petType),
+        entryDelay: _petEntryDelayFor(index),
+        entryOffset: _petEntryOffsetFor(device),
+        onTap: () => onOpenPetDetail?.call(pet.petId),
+      );
+    });
+  }
+
+  void _syncPetPlacements() {
+    final activePetIds = _petEntries.map((item) => item.petId).toSet();
+    _petPlacements.removeWhere((petId, _) => !activePetIds.contains(petId));
+
+    if (activePetIds.isEmpty) {
+      return;
+    }
+
+    final occupancyCounts = List<int>.filled(_homePetCandidatePoints.length, 0);
+    for (final petId in activePetIds) {
+      final placement = _petPlacements[petId];
+      if (placement == null) {
+        continue;
+      }
+      occupancyCounts[placement.candidateIndex] += 1;
+    }
+
+    final availableIndices = List<int>.generate(
+      _homePetCandidatePoints.length,
+      (index) => index,
+    )..removeWhere((index) => occupancyCounts[index] > 0);
+
+    final layout = _petLayoutProfile();
+    for (final pet in _petEntries) {
+      if (_petPlacements.containsKey(pet.petId)) {
+        continue;
+      }
+
+      final placement = _createPetPlacement(
+        availableIndices: availableIndices,
+        occupancyCounts: occupancyCounts,
+        layout: layout,
+      );
+      _petPlacements[pet.petId] = placement;
+      occupancyCounts[placement.candidateIndex] += 1;
+    }
+  }
+
+  _AssignedPetPlacement _createPetPlacement({
+    required List<int> availableIndices,
+    required List<int> occupancyCounts,
+    required _PetLayoutProfile layout,
+  }) {
+    if (availableIndices.isNotEmpty) {
+      final randomIndex = _petPlacementRandom.nextInt(availableIndices.length);
+      final candidateIndex = availableIndices.removeAt(randomIndex);
+      return _AssignedPetPlacement(candidateIndex: candidateIndex);
+    }
+
+    final minimumOccupancy = occupancyCounts.reduce(math.min);
+    final leastCrowdedIndices = <int>[];
+    for (var index = 0; index < occupancyCounts.length; index++) {
+      if (occupancyCounts[index] == minimumOccupancy) {
+        leastCrowdedIndices.add(index);
+      }
+    }
+
+    final candidateIndex =
+        leastCrowdedIndices[_petPlacementRandom.nextInt(
+          leastCrowdedIndices.length,
+        )];
+    final occupantCount = occupancyCounts[candidateIndex];
+    final spreadMultiplier = math.min(occupantCount + 1, 3).toDouble();
+    final angle = _petPlacementRandom.nextDouble() * math.pi * 2;
+    return _AssignedPetPlacement(
+      candidateIndex: candidateIndex,
+      offsetX: math.cos(angle) * layout.overflowJitterX * spreadMultiplier,
+      offsetY: math.sin(angle) * layout.overflowJitterY * spreadMultiplier,
+    );
+  }
+
+  _RectFactor _petRectForPlacement(
+    _AssignedPetPlacement placement,
+    _PetLayoutProfile layout,
+  ) {
+    final candidate = _homePetCandidatePoints[placement.candidateIndex];
+    final halfWidth = layout.widthFactor / 2;
+    final halfHeight = layout.heightFactor / 2;
+    final centerX = (candidate.centerX + placement.offsetX)
+        .clamp(halfWidth, 1 - halfWidth)
+        .toDouble();
+    final centerY = (candidate.centerY + placement.offsetY)
+        .clamp(halfHeight, 1 - halfHeight)
+        .toDouble();
+
+    return _RectFactor(
+      centerX - halfWidth,
+      centerY - halfHeight,
+      layout.widthFactor,
+      layout.heightFactor,
+    );
+  }
+
+  _PetLayoutProfile _petLayoutProfile() {
     return switch (device) {
-      HomeSceneDevice.mobile => _buildMobilePetSpecs(),
-      HomeSceneDevice.tablet => _buildTabletPetSpecs(),
+      HomeSceneDevice.mobile => const _PetLayoutProfile(
+        widthFactor: 0.17,
+        heightFactor: 0.11,
+        overflowJitterX: 0.028,
+        overflowJitterY: 0.020,
+      ),
+      HomeSceneDevice.tablet => const _PetLayoutProfile(
+        widthFactor: 0.11,
+        heightFactor: 0.15,
+        overflowJitterX: 0.022,
+        overflowJitterY: 0.024,
+      ),
     };
   }
 
-  List<_PetSpriteSpec> _buildMobilePetSpecs() {
-    const maxColumns = 4;
-    const centerXStart = 0.26;
-    const centerXEnd = 0.74;
-    const topStart = 0.69;
-    const rowStep = 0.085;
-    const width = 0.17;
-    const height = 0.11;
-
-    return List<_PetSpriteSpec>.generate(_petEntries.length, (index) {
-      final pet = _petEntries[index];
-      final column = index % maxColumns;
-      final row = index ~/ maxColumns;
-      final columnProgress = maxColumns == 1 ? 0.5 : column / (maxColumns - 1);
-      final centerX =
-          centerXStart + ((centerXEnd - centerXStart) * columnProgress);
-      final top = topStart + (row * rowStep) + (column.isOdd ? 0.012 : 0);
-      final petType = _normalizedPetType(pet.petType, index: index);
-      return _PetSpriteSpec(
-        rect: _RectFactor(centerX - (width * 0.5), top, width, height),
-        referenceSpace: _UiReferenceSpace.background,
-        assetPath: _petAssetPathForType(petType),
-        cropRect: _petCropRectForType(petType),
-        entryDelay: 0.68 + (index * 0.04),
-        entryOffset: 44,
-        onTap: () => onOpenPetDetail?.call(pet.petId),
-      );
-    });
+  double _petEntryDelayFor(int index) {
+    return switch (device) {
+      HomeSceneDevice.mobile => 0.68 + (index * 0.04),
+      HomeSceneDevice.tablet => 0.58 + (index * 0.035),
+    };
   }
 
-  List<_PetSpriteSpec> _buildTabletPetSpecs() {
-    const maxColumns = 5;
-    const centerXStart = 0.34;
-    const centerXEnd = 0.70;
-    const topStart = 0.73;
-    const rowStep = 0.12;
-    const width = 0.11;
-    const height = 0.15;
-
-    return List<_PetSpriteSpec>.generate(_petEntries.length, (index) {
-      final pet = _petEntries[index];
-      final column = index % maxColumns;
-      final row = index ~/ maxColumns;
-      final columnProgress = maxColumns == 1 ? 0.5 : column / (maxColumns - 1);
-      final centerX =
-          centerXStart + ((centerXEnd - centerXStart) * columnProgress);
-      final top = topStart + (row * rowStep) + (column.isOdd ? 0.010 : 0);
-      final petType = _normalizedPetType(pet.petType, index: index);
-      return _PetSpriteSpec(
-        rect: _RectFactor(centerX - (width * 0.5), top, width, height),
-        referenceSpace: _UiReferenceSpace.background,
-        assetPath: _petAssetPathForType(petType),
-        cropRect: _petCropRectForType(petType),
-        entryDelay: 0.58 + (index * 0.035),
-        entryOffset: 34,
-        onTap: () => onOpenPetDetail?.call(pet.petId),
-      );
-    });
+  double _petEntryOffsetFor(HomeSceneDevice device) {
+    return switch (device) {
+      HomeSceneDevice.mobile => 44,
+      HomeSceneDevice.tablet => 34,
+    };
   }
 
   String _normalizedPetType(String petType, {required int index}) {
@@ -466,7 +622,6 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     );
     await world.add(_background);
 
-    _addAmbientDust();
     if (_sceneSize.x > 0 && _sceneSize.y > 0) {
       _rebuildUiFromProfile();
     }
@@ -489,55 +644,6 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
 
     for (var i = 0; i < _animatedComponents.length; i++) {
       _animatedComponents[i].playExit(delay: 0.018 * i);
-    }
-  }
-
-  void _addAmbientDust() {
-    final dustSpecs = <({double x, double y, double radius, double delay})>[
-      (x: 0.18, y: 0.22, radius: 7, delay: 0.10),
-      (x: 0.32, y: 0.18, radius: 6, delay: 0.22),
-      (x: 0.52, y: 0.28, radius: 5, delay: 0.28),
-      (x: 0.66, y: 0.20, radius: 7, delay: 0.34),
-      (x: 0.76, y: 0.36, radius: 6, delay: 0.42),
-      (x: 0.24, y: 0.64, radius: 8, delay: 0.48),
-      (x: 0.56, y: 0.70, radius: 7, delay: 0.56),
-      (x: 0.82, y: 0.80, radius: 6, delay: 0.64),
-    ];
-
-    for (final spec in dustSpecs) {
-      final dust = CircleComponent(
-        radius: spec.radius,
-        position: Vector2(_sceneSize.x * spec.x, _sceneSize.y * spec.y),
-        anchor: Anchor.center,
-        paint: Paint()..color = const Color(0xFFDDB980).withValues(alpha: 0),
-        priority: 2,
-      );
-
-      dust.add(
-        OpacityEffect.to(
-          0.36,
-          EffectController(
-            duration: 0.7,
-            startDelay: 0.35 + spec.delay,
-            curve: Curves.easeOut,
-          ),
-        ),
-      );
-
-      dust.add(
-        MoveEffect.by(
-          Vector2(0, -(10 + (spec.radius * 1.4))),
-          EffectController(
-            duration: 2.8 + spec.delay,
-            alternate: true,
-            infinite: true,
-            startDelay: 0.9 + spec.delay,
-            curve: Curves.easeInOutSine,
-          ),
-        ),
-      );
-
-      world.add(dust);
     }
   }
 
