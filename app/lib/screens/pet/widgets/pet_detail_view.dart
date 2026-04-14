@@ -62,30 +62,62 @@ class _PetDetailViewState extends ConsumerState<PetDetailView> {
   @override
   Widget build(BuildContext context) {
     final pet = widget.pet;
-    final body = LayoutBuilder(
-      builder: (context, constraints) {
-        final horizontalPadding = widget.embedded ? 18.0 : 20.0;
-        return SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-            horizontalPadding,
-            widget.embedded ? 18 : 20,
-            horizontalPadding,
-            widget.embedded ? 18 : 28,
+    final content = SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        widget.embedded ? 18 : 20,
+        widget.embedded ? 18 : 20,
+        widget.embedded ? 18 : 20,
+        widget.embedded ? 20 : 28,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _PetHeader(
+            pet: pet,
+            moodLabel: _moodLabel(pet),
+            stageLabel: _stageLabel(pet),
+            onClose: widget.onClose,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(pet),
-              const SizedBox(height: 16),
-              _buildSummaryCards(pet, constraints.maxWidth),
-              const SizedBox(height: 16),
-              _buildProgressCard(pet),
-              const SizedBox(height: 16),
-              _buildHistorySection(),
-            ],
+          const SizedBox(height: 16),
+          _buildSummaryCards(pet),
+          const SizedBox(height: 16),
+          _GrowthProgressCard(
+            pet: pet,
+            typeLabel: _petTypeName(pet),
+            stageLabel: _stageLabel(pet),
+            moodLabel: _moodLabel(pet),
           ),
-        );
-      },
+          const SizedBox(height: 16),
+          _SectionCard(
+            title: '最近成长记录',
+            subtitle: '会展示喂养、任务与成长变化',
+            child: _loading
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : _history.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Text(
+                      '暂时还没有新的成长记录，先去完成一项任务吧。',
+                      style: TextStyle(color: Color(0xFF816447), height: 1.5),
+                    ),
+                  )
+                : Column(
+                    children: _history
+                        .take(widget.embedded ? 5 : 8)
+                        .map(
+                          (entry) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _HistoryTile(entry: entry),
+                          ),
+                        )
+                        .toList(),
+                  ),
+          ),
+        ],
+      ),
     );
 
     if (widget.embedded) {
@@ -97,17 +129,125 @@ class _PetDetailViewState extends ConsumerState<PetDetailView> {
             color: const Color(0xFF7A5733).withValues(alpha: 0.28),
           ),
         ),
-        child: body,
+        child: content,
       );
     }
 
     return ColoredBox(
       color: const Color(0xFFF5F1E8),
-      child: SafeArea(bottom: false, child: body),
+      child: SafeArea(bottom: false, child: content),
     );
   }
 
-  Widget _buildHeader(Pet pet) {
+  Widget _buildSummaryCards(Pet pet) {
+    final cards = <_InfoCardData>[
+      _InfoCardData(
+        title: '当前成长',
+        value: '${pet.experience}',
+        caption: '已获得成长值',
+        icon: Icons.bolt_rounded,
+        accent: const Color(0xFF3A8E36),
+        background: const Color(0xFFE2F0D7),
+      ),
+      _InfoCardData(
+        title: '下一目标',
+        value: _nextGoalValue(pet),
+        caption: _nextGoalCaption(pet),
+        icon: Icons.flag_rounded,
+        accent: const Color(0xFF8B5E16),
+        background: const Color(0xFFF7E5BC),
+      ),
+      _InfoCardData(
+        title: '关键状态',
+        value: '成长中',
+        caption: pet.levelThreshold == null ? '当前已满级' : '继续完成任务可提升',
+        icon: Icons.insights_rounded,
+        accent: const Color(0xFF4A6E9C),
+        background: const Color(0xFFDCEAF8),
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const spacing = 10.0;
+        final cardWidth = math.max(
+          120.0,
+          (constraints.maxWidth - spacing * 2) / 3,
+        );
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: cards
+              .map(
+                (card) => SizedBox(
+                  width: cardWidth,
+                  child: _InfoCard(data: card),
+                ),
+              )
+              .toList(),
+        );
+      },
+    );
+  }
+
+  String _petTypeName(Pet pet) => petTypeLabel(pet.petType);
+
+  String _stageLabel(Pet pet) {
+    return switch (pet.level) {
+      1 => '幼崽期',
+      2 => '成长期',
+      3 => '活力期',
+      4 => '闪耀期',
+      _ => '传奇期',
+    };
+  }
+
+  String _moodLabel(Pet pet) {
+    final progress = pet.progress;
+    if (progress >= 0.85) {
+      return '活力满满';
+    }
+    if (progress >= 0.55) {
+      return '开心玩耍';
+    }
+    if (progress >= 0.25) {
+      return '认真成长';
+    }
+    return '需要鼓励';
+  }
+
+  String _nextGoalValue(Pet pet) {
+    final threshold = pet.levelThreshold;
+    if (threshold == null || threshold == 0) {
+      return '已满级';
+    }
+    return '${math.max(threshold - pet.experience, 0)}';
+  }
+
+  String _nextGoalCaption(Pet pet) {
+    final threshold = pet.levelThreshold;
+    if (threshold == null || threshold == 0) {
+      return '当前阶段已毕业';
+    }
+    return '距离下一等级';
+  }
+}
+
+class _PetHeader extends StatelessWidget {
+  const _PetHeader({
+    required this.pet,
+    required this.moodLabel,
+    required this.stageLabel,
+    this.onClose,
+  });
+
+  final Pet pet;
+  final String moodLabel;
+  final String stageLabel;
+  final VoidCallback? onClose;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
@@ -141,9 +281,9 @@ class _PetDetailViewState extends ConsumerState<PetDetailView> {
                   ),
                 ),
               ),
-              if (widget.onClose != null)
+              if (onClose != null)
                 IconButton(
-                  onPressed: widget.onClose,
+                  onPressed: onClose,
                   tooltip: '关闭',
                   icon: const Icon(
                     Icons.close_rounded,
@@ -184,7 +324,7 @@ class _PetDetailViewState extends ConsumerState<PetDetailView> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '${_petTypeName(pet)} · ${_stageLabel(pet)}',
+                      '${petTypeLabel(pet.petType)} · $stageLabel',
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -202,7 +342,7 @@ class _PetDetailViewState extends ConsumerState<PetDetailView> {
                         ),
                         _HeaderChip(
                           icon: Icons.favorite_rounded,
-                          label: _moodLabel(pet),
+                          label: moodLabel,
                         ),
                         if ((pet.ownerNickname ?? '').trim().isNotEmpty)
                           _HeaderChip(
@@ -220,53 +360,23 @@ class _PetDetailViewState extends ConsumerState<PetDetailView> {
       ),
     );
   }
+}
 
-  Widget _buildSummaryCards(Pet pet, double width) {
-    const spacing = 10.0;
-    final cardWidth = math.max(120.0, (width - 20 - spacing * 2) / 3);
+class _GrowthProgressCard extends StatelessWidget {
+  const _GrowthProgressCard({
+    required this.pet,
+    required this.typeLabel,
+    required this.stageLabel,
+    required this.moodLabel,
+  });
 
-    return Wrap(
-      spacing: spacing,
-      runSpacing: spacing,
-      children: [
-        SizedBox(
-          width: cardWidth,
-          child: _InfoCard(
-            title: '当前成长',
-            value: '${pet.experience}',
-            caption: '已获得成长值',
-            icon: Icons.bolt_rounded,
-            accent: const Color(0xFF3A8E36),
-            background: const Color(0xFFE2F0D7),
-          ),
-        ),
-        SizedBox(
-          width: cardWidth,
-          child: _InfoCard(
-            title: '下一目标',
-            value: _nextGoalValue(pet),
-            caption: _nextGoalCaption(pet),
-            icon: Icons.flag_rounded,
-            accent: const Color(0xFF8B5E16),
-            background: const Color(0xFFF7E5BC),
-          ),
-        ),
-        SizedBox(
-          width: cardWidth,
-          child: _InfoCard(
-            title: '关键状态',
-            value: pet.isEgg ? '等待孵化' : '成长中',
-            caption: pet.levelThreshold == null ? '当前已满级' : '继续完成任务可提升',
-            icon: Icons.insights_rounded,
-            accent: const Color(0xFF4A6E9C),
-            background: const Color(0xFFDCEAF8),
-          ),
-        ),
-      ],
-    );
-  }
+  final Pet pet;
+  final String typeLabel;
+  final String stageLabel;
+  final String moodLabel;
 
-  Widget _buildProgressCard(Pet pet) {
+  @override
+  Widget build(BuildContext context) {
     final threshold = pet.levelThreshold;
     final nextLabel = threshold == null || threshold == 0
         ? '已经达到当前形态的最高等级'
@@ -311,124 +421,10 @@ class _PetDetailViewState extends ConsumerState<PetDetailView> {
             spacing: 10,
             runSpacing: 10,
             children: [
-              _StatePill(label: '类型：${_petTypeName(pet)}'),
-              _StatePill(label: '阶段：${_stageLabel(pet)}'),
-              _StatePill(label: '心情：${_moodLabel(pet)}'),
+              _StatePill(label: '类型：$typeLabel'),
+              _StatePill(label: '阶段：$stageLabel'),
+              _StatePill(label: '心情：$moodLabel'),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHistorySection() {
-    return _SectionCard(
-      title: '最近成长记录',
-      subtitle: '这里会展示喂养、任务和成长变化',
-      child: _loading
-          ? const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          : _history.isEmpty
-          ? const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: Text(
-                '暂时还没有新的成长记录，先去完成一项任务吧。',
-                style: TextStyle(color: Color(0xFF816447), height: 1.5),
-              ),
-            )
-          : Column(
-              children: _history.take(widget.embedded ? 5 : 8).map((entry) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _HistoryTile(entry: entry),
-                );
-              }).toList(),
-            ),
-    );
-  }
-
-  String _petTypeName(Pet pet) {
-    if (pet.isEgg) {
-      return '宠物蛋';
-    }
-    return petTypeLabel(pet.petType);
-  }
-
-  String _stageLabel(Pet pet) {
-    if (pet.isEgg) {
-      return '孵化前';
-    }
-    return switch (pet.level) {
-      1 => '幼崽期',
-      2 => '成长期',
-      3 => '活力期',
-      4 => '闪耀期',
-      _ => '传奇期',
-    };
-  }
-
-  String _moodLabel(Pet pet) {
-    if (pet.isEgg) {
-      return '静待孵化';
-    }
-    final progress = pet.progress;
-    if (progress >= 0.85) {
-      return '活力满满';
-    }
-    if (progress >= 0.55) {
-      return '开心玩耍';
-    }
-    if (progress >= 0.25) {
-      return '认真成长';
-    }
-    return '需要鼓励';
-  }
-
-  String _nextGoalValue(Pet pet) {
-    final threshold = pet.levelThreshold;
-    if (threshold == null || threshold == 0) {
-      return '已满级';
-    }
-    return '${math.max(threshold - pet.experience, 0)}';
-  }
-
-  String _nextGoalCaption(Pet pet) {
-    final threshold = pet.levelThreshold;
-    if (threshold == null || threshold == 0) {
-      return '当前阶段已毕业';
-    }
-    return '距离下一等级';
-  }
-}
-
-class _HeaderChip extends StatelessWidget {
-  const _HeaderChip({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.76),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: const Color(0xFF6A4A31)),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF6A4A31),
-            ),
           ),
         ],
       ),
@@ -491,8 +487,8 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
-class _InfoCard extends StatelessWidget {
-  const _InfoCard({
+class _InfoCardData {
+  const _InfoCardData({
     required this.title,
     required this.value,
     required this.caption,
@@ -507,41 +503,80 @@ class _InfoCard extends StatelessWidget {
   final IconData icon;
   final Color accent;
   final Color background;
+}
+
+class _InfoCard extends StatelessWidget {
+  const _InfoCard({required this.data});
+
+  final _InfoCardData data;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: background,
+        color: data.background,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: accent),
+          Icon(data.icon, size: 18, color: data.accent),
           const SizedBox(height: 12),
           Text(
-            value,
+            data.value,
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w900,
-              color: accent,
+              color: data.accent,
             ),
           ),
           const SizedBox(height: 4),
           Text(
-            title,
+            data.title,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w800,
-              color: accent,
+              color: data.accent,
             ),
           ),
           const SizedBox(height: 4),
           Text(
-            caption,
+            data.caption,
             style: const TextStyle(fontSize: 11, color: Color(0xFF6A4A31)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeaderChip extends StatelessWidget {
+  const _HeaderChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.76),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: const Color(0xFF6A4A31)),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF6A4A31),
+            ),
           ),
         ],
       ),
@@ -645,7 +680,6 @@ class _HistoryTile extends StatelessWidget {
   IconData _iconFor(String eventType) {
     return switch (eventType) {
       'feed' => Icons.restaurant_rounded,
-      'hatch' => Icons.egg_alt_rounded,
       'task' => Icons.task_alt_rounded,
       _ => Icons.auto_awesome_rounded,
     };

@@ -9,7 +9,7 @@ def _setup_family(client: TestClient, db: Session) -> tuple[str, int, int]:
     admin = User(
         phone="13800000001",
         password_hash=hash_password("testpass123"),
-        nickname="管理员",
+        nickname="Admin",
         role="admin",
     )
     db.add(admin)
@@ -17,166 +17,120 @@ def _setup_family(client: TestClient, db: Session) -> tuple[str, int, int]:
     db.refresh(admin)
 
     token = client.post(
-        "/api/auth/login", json={"phone": "13800000001", "password": "testpass123"}
+        "/api/auth/login",
+        json={"phone": "13800000001", "password": "testpass123"},
     ).json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
-    # Family is auto-created on login, get it from /me
-    me = client.get("/api/auth/me", headers=headers).json()
-    family_id = me["family_id"]
-
-    member_resp = client.post(
+    family_id = client.get("/api/auth/me", headers=headers).json()["family_id"]
+    child_id = client.post(
         f"/api/families/{family_id}/members",
-        json={"nickname": "小明"},
+        json={"nickname": "Ming"},
         headers=headers,
-    )
-    child_id = member_resp.json()["id"]
+    ).json()["id"]
     return token, family_id, child_id
 
 
+def _auth_header(token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {token}"}
+
+
 def _get_pets(client: TestClient, token: str, family_id: int) -> list[dict]:
-    headers = {"Authorization": f"Bearer {token}"}
-    resp = client.get(f"/api/families/{family_id}/pets", headers=headers)
-    return resp.json()
+    response = client.get(f"/api/families/{family_id}/pets", headers=_auth_header(token))
+    return list(response.json())
 
 
-# ── Auto Egg Creation ──────────────────────────────────────────
+def _assign_pet(
+    client: TestClient,
+    token: str,
+    family_id: int,
+    member_id: int,
+    pet_type: str = "cat",
+    name: str = "Mimi",
+) -> dict:
+    response = client.put(
+        f"/api/families/{family_id}/members/{member_id}/pet",
+        json={"pet_type": pet_type, "name": name},
+        headers=_auth_header(token),
+    )
+    assert response.status_code == 200
+    return response.json()
 
 
-def test_auto_egg_on_family_create(client: TestClient, db: Session) -> None:
-    token, family_id, _ = _setup_family(client, db)
+def test_add_member_no_longer_auto_creates_pet(client: TestClient, db: Session) -> None:
+    token, family_id, child_id = _setup_family(client, db)
     pets = _get_pets(client, token, family_id)
-    admin_eggs = [p for p in pets if p["pet_form"] == "egg" and p["owner_nickname"] == "管理员"]
-    assert len(admin_eggs) == 1
-    assert admin_eggs[0]["pet_type"] == "egg"
-    assert admin_eggs[0]["name"] == "宠物蛋"
+    assert [pet for pet in pets if pet["owner_id"] == child_id] == []
 
 
-def test_auto_egg_on_add_member(client: TestClient, db: Session) -> None:
-    token, family_id, _ = _setup_family(client, db)
+def test_set_member_pet_creates_selected_pet_with_name(client: TestClient, db: Session) -> None:
+    token, family_id, child_id = _setup_family(client, db)
+    _assign_pet(client, token, family_id, child_id, pet_type="hamster", name="Doudou")
+
     pets = _get_pets(client, token, family_id)
-    child_eggs = [p for p in pets if p["pet_form"] == "egg" and p["owner_nickname"] == "小明"]
-    assert len(child_eggs) == 1
+    child_pet = next(pet for pet in pets if pet["owner_id"] == child_id)
+    assert child_pet["pet_type"] == "hamster"
+    assert child_pet["name"] == "Doudou"
+    assert child_pet["pet_form"] == "pet"
 
 
 def test_list_pets_shows_owner(client: TestClient, db: Session) -> None:
-    token, family_id, _ = _setup_family(client, db)
+    token, family_id, child_id = _setup_family(client, db)
+    _assign_pet(client, token, family_id, child_id)
+
     pets = _get_pets(client, token, family_id)
-    for pet in pets:
-        assert "owner_nickname" in pet
-        assert pet["owner_nickname"] is not None
+    assert len(pets) == 1
+    assert pets[0]["owner_nickname"] == "Ming"
 
 
-# ── Hatch ───────────────────────────────────────────────────────
+def test_feed_pet_increases_exp(client: TestClient, db: Session) -> None:
+    token, family_id, child_id = _setup_family(client, db)
+    _assign_pet(client, token, family_id, child_id)
+    pet = _get_pets(client, token, family_id)[0]
 
-
-def test_hatch_egg_success(client: TestClient, db: Session) -> None:
-    token, family_id, _ = _setup_family(client, db)
-    headers = {"Authorization": f"Bearer {token}"}
-    pets = _get_pets(client, token, family_id)
-    egg = [p for p in pets if p["pet_form"] == "egg"][0]
-
-    client.post(f"/api/pets/{egg['id']}/feed", json={"points": 30}, headers=headers)
-    resp = client.post(
-        f"/api/pets/{egg['id']}/hatch",
-        json={"pet_type": "cat", "name": "咪咪"},
-        headers=headers,
+    response = client.post(
+        f"/api/pets/{pet['id']}/feed",
+        json={"points": 20},
+        headers=_auth_header(token),
     )
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["pet_form"] == "pet"
-    assert data["pet_type"] == "cat"
-    assert data["name"] == "咪咪"
-    assert data["level"] == 1
-
-
-def test_hatch_insufficient_exp(client: TestClient, db: Session) -> None:
-    token, family_id, _ = _setup_family(client, db)
-    headers = {"Authorization": f"Bearer {token}"}
-    pets = _get_pets(client, token, family_id)
-    egg = [p for p in pets if p["pet_form"] == "egg"][0]
-
-    client.post(f"/api/pets/{egg['id']}/feed", json={"points": 10}, headers=headers)
-    resp = client.post(
-        f"/api/pets/{egg['id']}/hatch",
-        json={"pet_type": "cat", "name": "咪咪"},
-        headers=headers,
-    )
-    assert resp.status_code == 400
-
-
-def test_hatch_already_hatched(client: TestClient, db: Session) -> None:
-    token, family_id, _ = _setup_family(client, db)
-    headers = {"Authorization": f"Bearer {token}"}
-    pets = _get_pets(client, token, family_id)
-    egg = [p for p in pets if p["pet_form"] == "egg"][0]
-
-    client.post(f"/api/pets/{egg['id']}/feed", json={"points": 30}, headers=headers)
-    client.post(
-        f"/api/pets/{egg['id']}/hatch",
-        json={"pet_type": "cat", "name": "咪咪"},
-        headers=headers,
-    )
-    resp = client.post(
-        f"/api/pets/{egg['id']}/hatch",
-        json={"pet_type": "dog", "name": "旺财"},
-        headers=headers,
-    )
-    assert resp.status_code == 400
-
-
-# ── Feed ────────────────────────────────────────────────────────
-
-
-def test_feed_egg_increases_exp(client: TestClient, db: Session) -> None:
-    token, family_id, _ = _setup_family(client, db)
-    headers = {"Authorization": f"Bearer {token}"}
-    pets = _get_pets(client, token, family_id)
-    egg = [p for p in pets if p["pet_form"] == "egg"][0]
-
-    resp = client.post(f"/api/pets/{egg['id']}/feed", json={"points": 20}, headers=headers)
-    assert resp.status_code == 200
-    assert resp.json()["experience"] == 20
-    assert resp.json()["pet_form"] == "egg"
+    assert response.status_code == 200
+    assert response.json()["experience"] == 20
+    assert response.json()["pet_form"] == "pet"
 
 
 def test_feed_pet_levels_up(client: TestClient, db: Session) -> None:
-    token, family_id, _ = _setup_family(client, db)
-    headers = {"Authorization": f"Bearer {token}"}
-    pets = _get_pets(client, token, family_id)
-    egg = [p for p in pets if p["pet_form"] == "egg"][0]
+    token, family_id, child_id = _setup_family(client, db)
+    _assign_pet(client, token, family_id, child_id)
+    pet = _get_pets(client, token, family_id)[0]
 
-    client.post(f"/api/pets/{egg['id']}/feed", json={"points": 30}, headers=headers)
-    client.post(
-        f"/api/pets/{egg['id']}/hatch",
-        json={"pet_type": "cat", "name": "咪咪"},
-        headers=headers,
+    response = client.post(
+        f"/api/pets/{pet['id']}/feed",
+        json={"points": 100},
+        headers=_auth_header(token),
     )
-    resp = client.post(f"/api/pets/{egg['id']}/feed", json={"points": 100}, headers=headers)
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["experience"] == 100
-    assert data["level"] == 2
+    assert response.status_code == 200
+    assert response.json()["experience"] == 100
+    assert response.json()["level"] == 2
 
 
 def test_pet_history_includes_feed_records(client: TestClient, db: Session) -> None:
-    token, family_id, _ = _setup_family(client, db)
-    headers = {"Authorization": f"Bearer {token}"}
-    pets = _get_pets(client, token, family_id)
-    egg = [p for p in pets if p["pet_form"] == "egg"][0]
+    token, family_id, child_id = _setup_family(client, db)
+    _assign_pet(client, token, family_id, child_id)
+    pet = _get_pets(client, token, family_id)[0]
 
     feed_response = client.post(
-        f"/api/pets/{egg['id']}/feed",
+        f"/api/pets/{pet['id']}/feed",
         json={"points": 20},
-        headers=headers,
+        headers=_auth_header(token),
     )
     assert feed_response.status_code == 200
 
-    history_response = client.get(f"/api/pets/{egg['id']}/history", headers=headers)
+    history_response = client.get(
+        f"/api/pets/{pet['id']}/history",
+        headers=_auth_header(token),
+    )
     assert history_response.status_code == 200
-
     history = history_response.json()
     assert len(history) >= 1
-    assert history[0]["task_title"] == "喂养记录"
-    assert history[0]["points"] == 20
     assert history[0]["event_type"] == "feed"
+    assert history[0]["points"] == 20

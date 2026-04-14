@@ -8,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/family_provider.dart';
 import '../member/member_detail_screen.dart';
 import 'dialogs/add_member_dialog.dart';
+import 'dialogs/pet_name_dialog.dart';
 import 'dialogs/pet_selection_dialog.dart';
 import 'models/family_member_view_data.dart';
 import 'models/family_screen_state.dart';
@@ -71,8 +72,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
       showFriendlyApiErrorSnackBar(
         context,
         error,
-        fallbackMessage:
-            '\u52a0\u8f7d\u5bb6\u5ead\u4fe1\u606f\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5',
+        fallbackMessage: '加载家庭信息失败，请稍后重试',
       );
     }
   }
@@ -110,6 +110,17 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
     return showPetSelectionDialog(context, nickname: nickname);
   }
 
+  Future<String?> _showPetNameDialog({
+    required String memberNickname,
+    required String petType,
+  }) async {
+    return showPetNameDialog(
+      context,
+      memberNickname: memberNickname,
+      petType: petType,
+    );
+  }
+
   Future<void> _onAddMemberTap(
     AuthState authState,
     FamilyScreenState familyState,
@@ -121,24 +132,16 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
     final user = authState.user;
     final canManageMembers = user?.isAdmin == true && !authState.viewOnly;
     if (!canManageMembers || user?.familyId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            '\u53ea\u6709\u5bb6\u957f\u53ef\u4ee5\u6dfb\u52a0\u6210\u5458',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('只有家长可以添加成员')));
       return;
     }
 
     if (familyState.members.length >= FamilyMemberGrid.maxDisplayMembers) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            '\u5f53\u524d\u5bb6\u5ead\u6700\u591a\u652f\u6301 8 \u4f4d\u6210\u5458',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('当前家庭最多支持 8 位成员')));
       return;
     }
 
@@ -158,14 +161,22 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
         return;
       }
 
-      String? selectedPetType;
       while (true) {
         if (!mounted) {
           return;
         }
 
-        selectedPetType = await _showPetSelectionDialog(member.nickname);
+        final selectedPetType = await _showPetSelectionDialog(member.nickname);
         if (selectedPetType == null) {
+          await _loadFamily();
+          return;
+        }
+
+        final petName = await _showPetNameDialog(
+          memberNickname: member.nickname,
+          petType: selectedPetType,
+        );
+        if (petName == null) {
           await _loadFamily();
           return;
         }
@@ -174,8 +185,20 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
           await notifier.assignMemberPet(
             memberId: member.id,
             petType: selectedPetType,
+            petName: petName,
           );
-          break;
+          if (!mounted) {
+            return;
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '已添加成员：${member.nickname}，并领养了${petTypeLabel(selectedPetType)}“$petName”',
+              ),
+            ),
+          );
+          await _loadFamily();
+          return;
         } catch (error) {
           if (!mounted) {
             return;
@@ -183,26 +206,10 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
           showFriendlyApiErrorSnackBar(
             context,
             error,
-            fallbackMessage:
-                '\u9009\u62e9\u5ba0\u7269\u5931\u8d25\uff0c\u8bf7\u91cd\u8bd5',
+            fallbackMessage: '选择宠物失败，请重试',
           );
         }
       }
-
-      if (!mounted) {
-        return;
-      }
-      final confirmedPetType = selectedPetType;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '\u5df2\u6dfb\u52a0\u6210\u5458\uff1a${member.nickname}\uff0c\u5e76\u9009\u62e9\u4e86${petTypeLabel(confirmedPetType)}',
-          ),
-        ),
-      );
-
-      await _loadFamily();
     } catch (error) {
       if (!mounted) {
         return;
@@ -210,8 +217,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
       showFriendlyApiErrorSnackBar(
         context,
         error,
-        fallbackMessage:
-            '\u6dfb\u52a0\u6210\u5458\u6216\u9009\u62e9\u5ba0\u7269\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5',
+        fallbackMessage: '添加成员或选择宠物失败，请稍后重试',
       );
     } finally {
       if (mounted) {
@@ -297,9 +303,8 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
   Widget _buildBody(AuthState authState, FamilyScreenState familyState) {
     if (!authState.isAuthenticated) {
       return const FamilyHintCard(
-        title: '\u8bf7\u5148\u767b\u5f55',
-        message:
-            '\u767b\u5f55\u540e\u53ef\u67e5\u770b\u5bb6\u5ead\u6210\u5458\u5e76\u8fdb\u5165\u4eba\u5458\u8be6\u60c5\u9875\u3002',
+        title: '请先登录',
+        message: '登录后可查看家庭成员并进入人员详情页。',
       );
     }
 
@@ -311,9 +316,8 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
 
     if (!familyState.hasFamily) {
       return const FamilyHintCard(
-        title: '\u6682\u672a\u52a0\u5165\u5bb6\u5ead',
-        message:
-            '\u8bf7\u5148\u521b\u5efa\u5bb6\u5ead\u6216\u901a\u8fc7\u9080\u8bf7\u7801\u52a0\u5165\u5bb6\u5ead\u3002',
+        title: '暂未加入家庭',
+        message: '请先创建家庭或通过邀请码加入家庭。',
       );
     }
 

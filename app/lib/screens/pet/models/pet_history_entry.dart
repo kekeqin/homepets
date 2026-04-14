@@ -35,7 +35,6 @@ class PetHistoryEntry {
     }
     return switch (eventType) {
       'feed' => '喂养记录',
-      'hatch' => '孵化记录',
       'task' => '任务成长',
       _ => '成长记录',
     };
@@ -44,7 +43,6 @@ class PetHistoryEntry {
   static String _defaultTitleFor(String eventType) {
     return switch (eventType) {
       'feed' => '喂养完成',
-      'hatch' => '孵化成功',
       'task' => '完成任务',
       _ => '成长记录',
     };

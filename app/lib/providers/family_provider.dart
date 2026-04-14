@@ -69,11 +69,13 @@ class FamilyNotifier extends StateNotifier<FamilyScreenState> {
   Future<void> assignMemberPet({
     required int memberId,
     required String petType,
+    required String petName,
   }) async {
     await _familyService.assignMemberPet(
       familyId: _requireFamilyId(),
       memberId: memberId,
       petType: petType,
+      petName: petName,
     );
   }
 

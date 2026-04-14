@@ -11,12 +11,21 @@ class MemberCreate(BaseModel):
     nickname: str = Field(min_length=1, max_length=50)
 
 
+class MemberPetSelection(BaseModel):
+    pet_type: str = Field(min_length=1, max_length=50)
+    name: str = Field(min_length=1, max_length=50)
+
+
 class MemberResponse(BaseModel):
     id: int
     nickname: str
     role: str
     avatar_url: str | None
     points: int = 0
+    pet_id: int | None = None
+    pet_type: str | None = None
+    pet_form: str | None = None
+    needs_pet_selection: bool = False
 
 
 class FamilyResponse(BaseModel):

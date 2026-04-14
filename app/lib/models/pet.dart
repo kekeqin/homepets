@@ -47,8 +47,6 @@ class Pet {
     );
   }
 
-  bool get isEgg => petForm == 'egg';
-
   String get displayName {
     if (ownerNickname != null && ownerNickname!.isNotEmpty) {
       return '$ownerNickname的$name';
@@ -57,30 +55,91 @@ class Pet {
   }
 
   double get progress {
-    if (levelThreshold == null || levelThreshold == 0) return 1.0;
+    if (levelThreshold == null || levelThreshold == 0) {
+      return 1.0;
+    }
     return (experience / levelThreshold!).clamp(0.0, 1.0);
   }
 
   String get levelName {
-    const names = {0: '蛋蛋期', 1: '跑跑怪', 2: '捣蛋鬼', 3: '大魔王', 4: '大魔王', 5: '大魔王'};
-    return names[level] ?? '大魔王';
+    const names = {1: '成长初期', 2: '活力成长', 3: '稳定进阶', 4: '闪耀阶段', 5: '满级伙伴'};
+    return names[level] ?? '成长伙伴';
   }
 
   String get displayEmoji {
-    if (isEgg || level == 0) return '🥚';
     const petEmojis = {
-      'cat': {1: '🐱', 2: '😺', 3: '😼', 4: '😸', 5: '🐱'},
-      'dog': {1: '🐶', 2: '🐕', 3: '🦮', 4: '🐺', 5: '🐶'},
-      'rabbit': {1: '🐰', 2: '🐇', 3: '🐹', 4: '🦔', 5: '🐰'},
-      'bird': {1: '🐤', 2: '🐦', 3: '🦅', 4: '🦜', 5: '🐦'},
-      'turtle': {1: '🐢', 2: '🐢', 3: '🦕', 4: '🐉', 5: '🐢'},
-      'hamster': {1: '🐹', 2: '🐹', 3: '🐿️', 4: '🦡', 5: '🐹'},
-      'fish': {1: '🐟', 2: '🐠', 3: '🐡', 4: '🦈', 5: '🐟'},
-      'fox': {1: '🦊', 2: '🦊', 3: '🐺', 4: '🦁', 5: '🦊'},
-      'panda': {1: '🐼', 2: '🐼', 3: '🐻', 4: '🐻‍❄️', 5: '🐼'},
-      'dragon': {1: '🦎', 2: '🐍', 3: '🐲', 4: '🐉', 5: '🐉'},
+      'cat': {
+        1: '\u{1F431}',
+        2: '\u{1F63A}',
+        3: '\u{1F638}',
+        4: '\u{1F63B}',
+        5: '\u{1F431}',
+      },
+      'dog': {
+        1: '\u{1F436}',
+        2: '\u{1F415}',
+        3: '\u{1F9AE}',
+        4: '\u{1F415}\u200D\u{1F9BA}',
+        5: '\u{1F436}',
+      },
+      'rabbit': {
+        1: '\u{1F430}',
+        2: '\u{1F407}',
+        3: '\u{1F955}',
+        4: '\u2728',
+        5: '\u{1F430}',
+      },
+      'bird': {
+        1: '\u{1F426}',
+        2: '\u{1F54A}\uFE0F',
+        3: '\u{1FAB6}',
+        4: '\u2728',
+        5: '\u{1F426}',
+      },
+      'turtle': {
+        1: '\u{1F422}',
+        2: '\u{1F422}',
+        3: '\u{1F30A}',
+        4: '\u2728',
+        5: '\u{1F422}',
+      },
+      'hamster': {
+        1: '\u{1F439}',
+        2: '\u{1F439}',
+        3: '\u{1F330}',
+        4: '\u2728',
+        5: '\u{1F439}',
+      },
+      'fish': {
+        1: '\u{1F41F}',
+        2: '\u{1F420}',
+        3: '\u{1F421}',
+        4: '\u2728',
+        5: '\u{1F41F}',
+      },
+      'fox': {
+        1: '\u{1F98A}',
+        2: '\u{1F98A}',
+        3: '\u2728',
+        4: '\u2728',
+        5: '\u{1F98A}',
+      },
+      'panda': {
+        1: '\u{1F43C}',
+        2: '\u{1F43C}',
+        3: '\u2728',
+        4: '\u2728',
+        5: '\u{1F43C}',
+      },
+      'dragon': {
+        1: '\u{1F432}',
+        2: '\u{1F409}',
+        3: '\u2728',
+        4: '\u2728',
+        5: '\u{1F409}',
+      },
     };
-    return petEmojis[petType]?[level] ?? '🐾';
+    return petEmojis[petType]?[level] ?? '\u{1F43E}';
   }
 
   bool get hasCrown => level >= 5;

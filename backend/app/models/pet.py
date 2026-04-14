@@ -8,9 +8,9 @@ class Pet(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     name: str = Field(min_length=1, max_length=50)
-    pet_type: str = Field(max_length=50, default="egg")  # egg, cat, dog, rabbit, etc.
-    pet_form: str = Field(default="egg")  # "egg" or "pet"
-    level: int = Field(default=0)
+    pet_type: str = Field(max_length=50, default="cat")
+    pet_form: str = Field(default="pet")
+    level: int = Field(default=1)
     experience: int = Field(default=0)
     image_url: str | None = Field(default=None)
     owner_id: int = Field(foreign_key="users.id", index=True)

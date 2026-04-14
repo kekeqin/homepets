@@ -23,7 +23,7 @@ class FamilyMemberCard extends StatelessWidget {
 
   String? get _petPreviewAssetPath {
     final petType = member.petType;
-    if (petType == null || petType == 'egg') {
+    if (petType == null) {
       return null;
     }
 
@@ -34,8 +34,8 @@ class FamilyMemberCard extends StatelessWidget {
 
   String get _petBadgeLabel {
     final petType = member.petType;
-    if (petType == null || petType == 'egg') {
-      return member.needsPetSelection ? '待选宠物' : '宠物蛋';
+    if (petType == null) {
+      return member.needsPetSelection ? '待选宠物' : '暂无宠物';
     }
     return petTypeLabel(petType);
   }
@@ -118,7 +118,7 @@ class FamilyMemberCard extends StatelessWidget {
                           child: Icon(
                             member.needsPetSelection
                                 ? Icons.pets_outlined
-                                : Icons.egg_alt_rounded,
+                                : Icons.pets_rounded,
                             color: const Color(0xFF7A5733),
                           ),
                         ),

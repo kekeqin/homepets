@@ -39,10 +39,11 @@ class FamilyService {
     required int familyId,
     required int memberId,
     required String petType,
+    required String petName,
   }) async {
     await _apiClient.dio.put(
       '/api/families/$familyId/members/$memberId/pet',
-      data: {'pet_type': petType},
+      data: {'pet_type': petType, 'name': petName},
     );
   }
 

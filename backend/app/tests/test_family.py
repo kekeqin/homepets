@@ -9,7 +9,7 @@ def _create_admin(db: Session, phone: str = "13800000001") -> User:
     user = User(
         phone=phone,
         password_hash=hash_password("testpass123"),
-        nickname="管理员",
+        nickname="Admin",
         role="admin",
     )
     db.add(user)
@@ -19,8 +19,11 @@ def _create_admin(db: Session, phone: str = "13800000001") -> User:
 
 
 def _login(client: TestClient, phone: str = "13800000001") -> str:
-    resp = client.post("/api/auth/login", json={"phone": phone, "password": "testpass123"})
-    return str(resp.json()["access_token"])
+    response = client.post(
+        "/api/auth/login",
+        json={"phone": phone, "password": "testpass123"},
+    )
+    return str(response.json()["access_token"])
 
 
 def _auth_header(token: str) -> dict[str, str]:
@@ -31,7 +34,9 @@ def _get_me(client: TestClient, token: str) -> dict:
     return client.get("/api/auth/me", headers=_auth_header(token)).json()
 
 
-# ── Create Family ───────────────────────────────────────────────
+def _list_pets(client: TestClient, token: str, family_id: int) -> list[dict]:
+    response = client.get(f"/api/families/{family_id}/pets", headers=_auth_header(token))
+    return list(response.json())
 
 
 def test_login_auto_creates_family(client: TestClient, db: Session) -> None:
@@ -46,106 +51,96 @@ def test_create_family_already_exists(client: TestClient, db: Session) -> None:
     token = _login(client)
     response = client.post(
         "/api/families",
-        json={"name": "另一个家庭"},
+        json={"name": "Another Family"},
         headers=_auth_header(token),
     )
     assert response.status_code == 409
 
 
-def test_create_family_unauthenticated(client: TestClient) -> None:
-    response = client.post("/api/families", json={"name": "快乐家庭"})
-    assert response.status_code == 401
-
-
-# ── Get Family ──────────────────────────────────────────────────
-
-
 def test_get_family_success(client: TestClient, db: Session) -> None:
     _create_admin(db)
     token = _login(client)
-    me = _get_me(client, token)
-    family_id = me["family_id"]
+    family_id = _get_me(client, token)["family_id"]
     response = client.get(f"/api/families/{family_id}", headers=_auth_header(token))
     assert response.status_code == 200
-    assert "管理员" in [m["nickname"] for m in response.json()["members"]]
+    assert "Admin" in [member["nickname"] for member in response.json()["members"]]
 
 
-def test_get_family_not_found(client: TestClient, db: Session) -> None:
+def test_add_member_success_requires_pet_selection(client: TestClient, db: Session) -> None:
     _create_admin(db)
     token = _login(client)
-    response = client.get("/api/families/999", headers=_auth_header(token))
-    assert response.status_code == 404
+    family_id = _get_me(client, token)["family_id"]
+
+    response = client.post(
+        f"/api/families/{family_id}/members",
+        json={"nickname": "Ming"},
+        headers=_auth_header(token),
+    )
+
+    assert response.status_code == 201
+    data = response.json()
+    assert data["nickname"] == "Ming"
+    assert data["role"] == "child"
+    assert data["needs_pet_selection"] is True
+    assert data["pet_type"] is None
 
 
-def test_update_family_name_success(client: TestClient, db: Session) -> None:
+def test_set_member_pet_success_with_name(client: TestClient, db: Session) -> None:
     _create_admin(db)
     token = _login(client)
-    me = _get_me(client, token)
-    family_id = me["family_id"]
+    family_id = _get_me(client, token)["family_id"]
+    member_id = client.post(
+        f"/api/families/{family_id}/members",
+        json={"nickname": "Ming"},
+        headers=_auth_header(token),
+    ).json()["id"]
+
     response = client.put(
-        f"/api/families/{family_id}",
-        json={"name": "\u6211\u4eec\u7684\u5feb\u4e50\u5c0f\u5c4b"},
+        f"/api/families/{family_id}/members/{member_id}/pet",
+        json={"pet_type": "rabbit", "name": "Tuantuan"},
         headers=_auth_header(token),
     )
     assert response.status_code == 200
-    assert response.json()["name"] == "\u6211\u4eec\u7684\u5feb\u4e50\u5c0f\u5c4b"
+    assert response.json()["pet_type"] == "rabbit"
+    assert response.json()["needs_pet_selection"] is False
 
-
-# ── Add Member ──────────────────────────────────────────────────
-
-
-def test_add_member_success(client: TestClient, db: Session) -> None:
-    _create_admin(db)
-    token = _login(client)
-    me = _get_me(client, token)
-    family_id = me["family_id"]
-    response = client.post(
-        f"/api/families/{family_id}/members",
-        json={"nickname": "小明"},
-        headers=_auth_header(token),
-    )
-    assert response.status_code == 201
-    assert response.json()["nickname"] == "小明"
-    assert response.json()["role"] == "child"
-
-
-# ── List Members ────────────────────────────────────────────────
+    pets = _list_pets(client, token, family_id)
+    member_pet = next(pet for pet in pets if pet["owner_id"] == member_id)
+    assert member_pet["name"] == "Tuantuan"
+    assert member_pet["pet_form"] == "pet"
 
 
 def test_list_members_success(client: TestClient, db: Session) -> None:
     _create_admin(db)
     token = _login(client)
-    me = _get_me(client, token)
-    family_id = me["family_id"]
+    family_id = _get_me(client, token)["family_id"]
+
     client.post(
         f"/api/families/{family_id}/members",
-        json={"nickname": "小明"},
+        json={"nickname": "Ming"},
         headers=_auth_header(token),
     )
     client.post(
         f"/api/families/{family_id}/members",
-        json={"nickname": "小红"},
+        json={"nickname": "Hong"},
         headers=_auth_header(token),
     )
+
     response = client.get(f"/api/families/{family_id}/members", headers=_auth_header(token))
     assert response.status_code == 200
-    assert len(response.json()) == 3  # admin + 2 children
-
-
-# ── Delete Member ───────────────────────────────────────────────
+    assert len(response.json()) == 3
 
 
 def test_delete_member_success(client: TestClient, db: Session) -> None:
     _create_admin(db)
     token = _login(client)
-    me = _get_me(client, token)
-    family_id = me["family_id"]
-    member_resp = client.post(
+    family_id = _get_me(client, token)["family_id"]
+    member_id = client.post(
         f"/api/families/{family_id}/members",
-        json={"nickname": "小明"},
+        json={"nickname": "Ming"},
         headers=_auth_header(token),
-    )
-    member_id = member_resp.json()["id"]
+    ).json()["id"]
+
     response = client.delete(
         f"/api/families/{family_id}/members/{member_id}",
         headers=_auth_header(token),

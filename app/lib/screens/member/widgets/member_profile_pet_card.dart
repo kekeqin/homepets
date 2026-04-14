@@ -190,9 +190,6 @@ class _MetricBar extends StatelessWidget {
 }
 
 String _petStage(Pet pet) {
-  if (pet.isEgg) {
-    return '宠物蛋';
-  }
   return switch (pet.level) {
     1 => '幼崽期',
     2 => '少年期',

@@ -7,11 +7,6 @@ class PetFeed(BaseModel):
     points: int = Field(ge=1, le=10000)
 
 
-class PetHatch(BaseModel):
-    pet_type: str = Field(min_length=1, max_length=50)
-    name: str = Field(min_length=1, max_length=50)
-
-
 class PetResponse(BaseModel):
     id: int
     name: str
