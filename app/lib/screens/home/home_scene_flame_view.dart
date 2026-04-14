@@ -18,10 +18,11 @@ import '../../core/api_error_helper.dart';
 import '../../core/ui/sprite_atlas.dart';
 
 import '../../models/pet.dart';
+import '../../models/pet_artwork.dart';
 
 import '../../providers/auth_provider.dart';
 
-import '../pet/pet_detail_screen.dart';
+import '../pet/widgets/pet_detail_view.dart';
 import '../shop/shop_screen.dart';
 
 import 'game/home_scene_game.dart';
@@ -67,6 +68,7 @@ const Size _taskPanelBoardSourceSize = Size(1024, 1536);
 const double _taskPanelBoardAspectRatio = 492 / 792;
 const double _taskPanelBoardHeightRatio = 792 / 492;
 const Duration _taskPanelTransitionDuration = Duration(milliseconds: 320);
+const Duration _petDetailOverlayDuration = Duration(milliseconds: 260);
 const String _taskPanelAddButtonLabel = '+ \u6dfb\u52a0\u4efb\u52a1';
 
 class HomeSceneFlameView extends ConsumerStatefulWidget {
@@ -86,11 +88,12 @@ class HomeSceneFlameView extends ConsumerStatefulWidget {
 }
 
 class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late HomeSceneGame _game;
 
   late GlobalKey<RiverpodAwareGameWidgetState<HomeSceneGame>> _gameKey;
   late final AnimationController _taskPanelController;
+  late final AnimationController _petDetailOverlayController;
 
   SpriteAtlas? _taskPanelSpriteAtlas;
   List<Pet> _pets = const <Pet>[];
@@ -108,6 +111,10 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   Rect? _taskPanelOriginRect;
   bool _didPrecacheTaskPanelAssets = false;
   String? _taskPanelPressedInteractionKey;
+  bool _petDetailVisible = false;
+  bool _petDetailClosing = false;
+  bool _petDetailBackdropInteractive = false;
+  Pet? _activePetDetail;
 
   static const int _taskPanelPageSize = 4;
 
@@ -128,6 +135,11 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       vsync: this,
       duration: _taskPanelTransitionDuration,
       reverseDuration: _taskPanelTransitionDuration,
+    );
+    _petDetailOverlayController = AnimationController(
+      vsync: this,
+      duration: _petDetailOverlayDuration,
+      reverseDuration: _petDetailOverlayDuration,
     );
 
     _preloadTaskPanelSpriteAtlas();
@@ -419,6 +431,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
     setState(() => _taskPanelBackdropInteractive = true);
   }
+
   Future<void> _hideTaskPanel() async {
     if (!_taskPanelVisible || _taskPanelClosing) {
       return;
@@ -604,10 +617,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     setState(() => _taskPanelPressedInteractionKey = key);
   }
 
-  void _clearTaskPanelInteractionPressed(
-    String key, {
-    bool delayed = false,
-  }) {
+  void _clearTaskPanelInteractionPressed(String key, {bool delayed = false}) {
     if (delayed) {
       Future<void>.delayed(const Duration(milliseconds: 85), () {
         if (!mounted || _taskPanelPressedInteractionKey != key) {
@@ -780,7 +790,9 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                           builder: (context) {
                             final task = _visibleTaskPanelTasks[index];
                             final taskTitle = _taskPanelTaskTitle(task);
-                            final taskPointsLabel = _taskPanelTaskPointsLabel(task);
+                            final taskPointsLabel = _taskPanelTaskPointsLabel(
+                              task,
+                            );
                             final completed = _taskPanelTaskCompleted(task);
                             final checkboxPressKey = _taskPanelInteractionKey(
                               task,
@@ -793,12 +805,14 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                               area: 'body',
                             );
                             final isCheckboxPressed =
-                                _isTaskPanelInteractionPressed(checkboxPressKey);
+                                _isTaskPanelInteractionPressed(
+                                  checkboxPressKey,
+                                );
                             final isBodyPressed =
                                 _isTaskPanelInteractionPressed(bodyPressKey);
-                            final titleColor = const Color(0xFF5A4228).withValues(
-                              alpha: completed ? 0.66 : 1,
-                            );
+                            final titleColor = const Color(
+                              0xFF5A4228,
+                            ).withValues(alpha: completed ? 0.66 : 1);
                             final rowFieldOpacity =
                                 (index.isEven ? 0.96 : 0.88) *
                                 (completed ? 0.76 : 1);
@@ -817,13 +831,17 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                                       left: 0,
                                       top: rowHeight * 0.18,
                                       child: AnimatedSlide(
-                                        duration: const Duration(milliseconds: 90),
+                                        duration: const Duration(
+                                          milliseconds: 90,
+                                        ),
                                         curve: Curves.easeOutCubic,
                                         offset: isCheckboxPressed
                                             ? const Offset(0, 0.05)
                                             : Offset.zero,
                                         child: AnimatedScale(
-                                          duration: const Duration(milliseconds: 90),
+                                          duration: const Duration(
+                                            milliseconds: 90,
+                                          ),
                                           curve: Curves.easeOutCubic,
                                           scale: isCheckboxPressed ? 0.92 : 1,
                                           child: SizedBox(
@@ -842,9 +860,11 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                                                     opacity: checkboxOpacity,
                                                     child: SpriteFrameImage(
                                                       imageAsset:
-                                                          taskPanelSprites.imageAsset,
+                                                          taskPanelSprites
+                                                              .imageAsset,
                                                       sheetSize:
-                                                          taskPanelSprites.sheetSize,
+                                                          taskPanelSprites
+                                                              .sheetSize,
                                                       frame: completed
                                                           ? taskPanelSprites
                                                                 .checkboxChecked
@@ -863,13 +883,17 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                                       top: rowFieldInset,
                                       bottom: rowFieldInset,
                                       child: AnimatedSlide(
-                                        duration: const Duration(milliseconds: 90),
+                                        duration: const Duration(
+                                          milliseconds: 90,
+                                        ),
                                         curve: Curves.easeOutCubic,
                                         offset: isBodyPressed
                                             ? const Offset(0, 0.02)
                                             : Offset.zero,
                                         child: AnimatedScale(
-                                          duration: const Duration(milliseconds: 90),
+                                          duration: const Duration(
+                                            milliseconds: 90,
+                                          ),
                                           curve: Curves.easeOutCubic,
                                           alignment: Alignment.centerLeft,
                                           scale: isBodyPressed ? 0.992 : 1,
@@ -878,21 +902,27 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                                               Positioned.fill(
                                                 child: taskPanelSprites == null
                                                     ? Opacity(
-                                                        opacity: completed ? 0.76 : 1,
+                                                        opacity: completed
+                                                            ? 0.76
+                                                            : 1,
                                                         child: Image.asset(
                                                           _taskPanelRowFieldAsset,
                                                           fit: BoxFit.fill,
                                                         ),
                                                       )
                                                     : Opacity(
-                                                        opacity: rowFieldOpacity,
+                                                        opacity:
+                                                            rowFieldOpacity,
                                                         child: SpriteFrameImage(
                                                           imageAsset:
-                                                              taskPanelSprites.imageAsset,
+                                                              taskPanelSprites
+                                                                  .imageAsset,
                                                           sheetSize:
-                                                              taskPanelSprites.sheetSize,
+                                                              taskPanelSprites
+                                                                  .sheetSize,
                                                           frame:
-                                                              taskPanelSprites.rowField,
+                                                              taskPanelSprites
+                                                                  .rowField,
                                                           fit: BoxFit.fill,
                                                         ),
                                                       ),
@@ -900,19 +930,23 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                                               Positioned(
                                                 left: rowHeight * 0.28,
                                                 right:
-                                                    pointsLabelWidth + rowHeight * 0.30,
+                                                    pointsLabelWidth +
+                                                    rowHeight * 0.30,
                                                 top: 0,
                                                 bottom: 0,
                                                 child: Align(
-                                                  alignment: Alignment.centerLeft,
+                                                  alignment:
+                                                      Alignment.centerLeft,
                                                   child: Text(
                                                     taskTitle,
                                                     maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                     style: TextStyle(
                                                       color: titleColor,
                                                       fontSize: rowTextSize,
-                                                      fontWeight: FontWeight.w700,
+                                                      fontWeight:
+                                                          FontWeight.w700,
                                                     ),
                                                   ),
                                                 ),
@@ -921,27 +955,37 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                                                 right: rowHeight * 0.16,
                                                 top: 0,
                                                 bottom: 0,
-                                                child: _buildTaskPanelPointsText(
-                                                  label: taskPointsLabel,
-                                                  width: pointsLabelWidth,
-                                                  fontSize: pointsLabelTextSize,
-                                                  completed: completed,
-                                                ),
+                                                child:
+                                                    _buildTaskPanelPointsText(
+                                                      label: taskPointsLabel,
+                                                      width: pointsLabelWidth,
+                                                      fontSize:
+                                                          pointsLabelTextSize,
+                                                      completed: completed,
+                                                    ),
                                               ),
                                               Positioned.fill(
                                                 child: IgnorePointer(
                                                   child: AnimatedOpacity(
-                                                    duration: const Duration(milliseconds: 90),
+                                                    duration: const Duration(
+                                                      milliseconds: 90,
+                                                    ),
                                                     curve: Curves.easeOutCubic,
-                                                    opacity: isBodyPressed ? 1 : 0,
+                                                    opacity: isBodyPressed
+                                                        ? 1
+                                                        : 0,
                                                     child: DecoratedBox(
                                                       decoration: BoxDecoration(
-                                                        color: const Color(0xFF765A3C)
-                                                            .withValues(alpha: 0.05),
+                                                        color:
+                                                            const Color(
+                                                              0xFF765A3C,
+                                                            ).withValues(
+                                                              alpha: 0.05,
+                                                            ),
                                                         borderRadius:
                                                             BorderRadius.circular(
-                                                          rowHeight * 0.20,
-                                                        ),
+                                                              rowHeight * 0.20,
+                                                            ),
                                                       ),
                                                     ),
                                                   ),
@@ -961,18 +1005,19 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                                         behavior: HitTestBehavior.opaque,
                                         onTapDown: (_) =>
                                             _setTaskPanelInteractionPressed(
-                                          checkboxPressKey,
-                                        ),
+                                              checkboxPressKey,
+                                            ),
                                         onTapCancel: () =>
                                             _clearTaskPanelInteractionPressed(
-                                          checkboxPressKey,
-                                        ),
+                                              checkboxPressKey,
+                                            ),
                                         onTapUp: (_) =>
                                             _clearTaskPanelInteractionPressed(
-                                          checkboxPressKey,
-                                          delayed: true,
-                                        ),
-                                        onTap: () => _completeTaskByLabel(taskTitle),
+                                              checkboxPressKey,
+                                              delayed: true,
+                                            ),
+                                        onTap: () =>
+                                            _completeTaskByLabel(taskTitle),
                                         child: const SizedBox.expand(),
                                       ),
                                     ),
@@ -985,18 +1030,19 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                                         behavior: HitTestBehavior.opaque,
                                         onTapDown: (_) =>
                                             _setTaskPanelInteractionPressed(
-                                          bodyPressKey,
-                                        ),
+                                              bodyPressKey,
+                                            ),
                                         onTapCancel: () =>
                                             _clearTaskPanelInteractionPressed(
-                                          bodyPressKey,
-                                        ),
+                                              bodyPressKey,
+                                            ),
                                         onTapUp: (_) =>
                                             _clearTaskPanelInteractionPressed(
-                                          bodyPressKey,
-                                          delayed: true,
-                                        ),
-                                        onTap: () => _editTaskByLabel(taskTitle),
+                                              bodyPressKey,
+                                              delayed: true,
+                                            ),
+                                        onTap: () =>
+                                            _editTaskByLabel(taskTitle),
                                         child: const SizedBox.expand(),
                                       ),
                                     ),
@@ -1035,7 +1081,8 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                                                   taskPanelSprites.imageAsset,
                                               sheetSize:
                                                   taskPanelSprites.sheetSize,
-                                              frame: taskPanelSprites.emptyState,
+                                              frame:
+                                                  taskPanelSprites.emptyState,
                                               fit: BoxFit.fill,
                                             ),
                                           ),
@@ -1168,7 +1215,8 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
             curve: Curves.easeOutCubic,
           );
           final stickerOpacity =
-              1 - _taskPanelIntervalValue(
+              1 -
+              _taskPanelIntervalValue(
                 animationValue,
                 begin: 0,
                 end: 0.56,
@@ -1186,7 +1234,11 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
             end: 1,
             curve: Curves.easeOutCubic,
           );
-          final panelRect = Rect.lerp(collapsedRect, expandedRect, panelProgress)!;
+          final panelRect = Rect.lerp(
+            collapsedRect,
+            expandedRect,
+            panelProgress,
+          )!;
           final panelShadowOpacity = ui.lerpDouble(0.10, 0.22, panelProgress)!;
           final panelShadowBlur = ui.lerpDouble(10, 24, panelProgress)!;
           final panelShadowOffset = ui.lerpDouble(4, 10, panelProgress)!;
@@ -1203,7 +1255,9 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                   behavior: HitTestBehavior.opaque,
                   onTap: _taskPanelBackdropInteractive ? _hideTaskPanel : null,
                   child: ColoredBox(
-                    color: Colors.black.withValues(alpha: 0.42 * backdropOpacity),
+                    color: Colors.black.withValues(
+                      alpha: 0.42 * backdropOpacity,
+                    ),
                     child: ClipRect(
                       child: BackdropFilter(
                         filter: ui.ImageFilter.blur(
@@ -1236,9 +1290,9 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF3A2514).withValues(
-                                  alpha: panelShadowOpacity,
-                                ),
+                                color: const Color(
+                                  0xFF3A2514,
+                                ).withValues(alpha: panelShadowOpacity),
                                 blurRadius: panelShadowBlur,
                                 offset: Offset(0, panelShadowOffset),
                               ),
@@ -1379,7 +1433,9 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     if (!_isAdmin) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('\u4ec5\u7ba1\u7406\u5458\u53ef\u7f16\u8f91\u4efb\u52a1'),
+          content: Text(
+            '\u4ec5\u7ba1\u7406\u5458\u53ef\u7f16\u8f91\u4efb\u52a1',
+          ),
         ),
       );
       return;
@@ -1462,11 +1518,14 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       }
     }
   }
+
   Future<void> _deleteTaskByLabel(String taskLabel) async {
     if (!_isAdmin) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('\u4ec5\u7ba1\u7406\u5458\u53ef\u5220\u9664\u4efb\u52a1'),
+          content: Text(
+            '\u4ec5\u7ba1\u7406\u5458\u53ef\u5220\u9664\u4efb\u52a1',
+          ),
         ),
       );
       return;
@@ -1531,6 +1590,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       }
     }
   }
+
   Future<void> _completeTaskByLabel(String taskLabel) async {
     var targetTask = _findHomeTaskByLabel(taskLabel);
 
@@ -2029,20 +2089,16 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       seeds.add(
         HomeScenePetSeed(
           petId: pet.id,
-          petType: _normalizeHomePetType(pet.petType, index: seeds.length),
+          petType: normalizePetType(
+            pet.petType,
+            fallback:
+                selectablePetTypes[seeds.length % selectablePetTypes.length],
+          ),
         ),
       );
     }
 
     _game.replacePetEntries(seeds);
-  }
-
-  String _normalizeHomePetType(String petType, {required int index}) {
-    final normalized = petType.trim().toLowerCase();
-    if (normalized == 'dog' || normalized == 'cat') {
-      return normalized;
-    }
-    return index.isEven ? 'dog' : 'cat';
   }
 
   Map<String, dynamic>? _findHomeTaskByLabel(String taskLabel) {
@@ -2124,8 +2180,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     final selectedPet = _findPetById(petId);
 
     if (selectedPet != null) {
-      _pushPetDetail(selectedPet);
-
+      _showPetDetailOverlay(selectedPet);
       return;
     }
 
@@ -2135,34 +2190,177 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       }
 
       final refreshedPet = _findPetById(petId);
-
       if (refreshedPet == null) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('\u5f53\u524d\u5bb6\u5ead\u8fd8\u6ca1\u6709\u5ba0\u7269\uff0c\u5148\u53bb\u521b\u5efa\u4e00\u4e2a\u5427')));
-
+        ).showSnackBar(const SnackBar(content: Text('当前家庭还没有宠物，先去创建一个吧')));
         return;
       }
 
-      _pushPetDetail(refreshedPet);
+      _showPetDetailOverlay(refreshedPet);
     });
   }
 
-  void _pushPetDetail(Pet pet) {
-    Navigator.of(context, rootNavigator: true)
-        .push(MaterialPageRoute(builder: (_) => PetDetailScreen(pet: pet)))
-        .then((_) {
-          if (!mounted) {
-            return;
-          }
+  Future<void> _showPetDetailOverlay(Pet pet) async {
+    if (!mounted) {
+      return;
+    }
 
-          _loadFamilyPets();
-        });
+    if (_petDetailVisible) {
+      setState(() => _activePetDetail = pet);
+      return;
+    }
+
+    setState(() {
+      _activePetDetail = pet;
+      _petDetailVisible = true;
+      _petDetailClosing = false;
+      _petDetailBackdropInteractive = false;
+    });
+
+    await _petDetailOverlayController.forward(from: 0);
+    if (!mounted || !_petDetailVisible) {
+      return;
+    }
+
+    setState(() => _petDetailBackdropInteractive = true);
+  }
+
+  Future<void> _hidePetDetailOverlay() async {
+    if (!_petDetailVisible || _petDetailClosing) {
+      return;
+    }
+
+    setState(() {
+      _petDetailClosing = true;
+      _petDetailBackdropInteractive = false;
+    });
+
+    await _petDetailOverlayController.reverse(
+      from: _petDetailOverlayController.value == 0
+          ? 1
+          : _petDetailOverlayController.value,
+    );
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _petDetailVisible = false;
+      _petDetailClosing = false;
+      _petDetailBackdropInteractive = false;
+      _activePetDetail = null;
+    });
+  }
+
+  Widget _buildPetDetailOverlay(Size size) {
+    final pet = _activePetDetail!;
+    final panelWidth = math.min(
+      size.width * (widget.device == HomeSceneDevice.tablet ? 0.58 : 0.92),
+      620.0,
+    );
+    final panelHeight = math.min(
+      size.height * 0.82,
+      widget.device == HomeSceneDevice.tablet ? 760.0 : 680.0,
+    );
+    final panelLeft = (size.width - panelWidth) / 2;
+    final panelTop = math.max(24.0, (size.height - panelHeight) / 2);
+
+    return Positioned.fill(
+      child: AnimatedBuilder(
+        animation: _petDetailOverlayController,
+        child: RepaintBoundary(
+          child: PetDetailView(
+            pet: pet,
+            embedded: true,
+            onClose: _hidePetDetailOverlay,
+          ),
+        ),
+        builder: (context, child) {
+          final progress = Curves.easeInOutCubicEmphasized.transform(
+            _petDetailOverlayController.value,
+          );
+          final backdropOpacity = Curves.easeOutCubic.transform(
+            _petDetailOverlayController.value,
+          );
+          final panelOpacity = _taskPanelIntervalValue(
+            _petDetailOverlayController.value,
+            begin: 0.12,
+            end: 1,
+            curve: Curves.easeOutCubic,
+          );
+          final panelScale = ui.lerpDouble(0.92, 1.0, progress)!;
+          final panelTranslateY = ui.lerpDouble(22, 0, progress)!;
+
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _petDetailBackdropInteractive
+                      ? _hidePetDetailOverlay
+                      : null,
+                  child: ColoredBox(
+                    color: Colors.black.withValues(
+                      alpha: 0.36 * backdropOpacity,
+                    ),
+                    child: ClipRect(
+                      child: BackdropFilter(
+                        filter: ui.ImageFilter.blur(
+                          sigmaX: 5.0 * backdropOpacity,
+                          sigmaY: 5.0 * backdropOpacity,
+                        ),
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: panelLeft,
+                top: panelTop + panelTranslateY,
+                width: panelWidth,
+                height: panelHeight,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {},
+                  child: Opacity(
+                    opacity: panelOpacity,
+                    child: Transform.scale(
+                      scale: panelScale,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(
+                                0xFF3A2514,
+                              ).withValues(alpha: 0.22),
+                              blurRadius: 24,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: IgnorePointer(
+                          ignoring: !_petDetailBackdropInteractive,
+                          child: child,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   @override
   void dispose() {
     _taskPanelController.dispose();
+    _petDetailOverlayController.dispose();
     _game.startExitAnimation();
 
     super.dispose();
@@ -2201,6 +2399,8 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                 },
               ),
               if (_taskPanelVisible) _buildAnimatedTaskPanelOverlay(size),
+              if (_petDetailVisible && _activePetDetail != null)
+                _buildPetDetailOverlay(size),
             ],
           ),
         );
@@ -2447,10 +2647,8 @@ class _TaskContextSpriteButtonState extends State<_TaskContextSpriteButton> {
 }
 
 class _TaskEditorResult {
-  const _TaskEditorResult({
-    required this.taskLabel,
-    required this.points,
-  }) : deleteRequested = false;
+  const _TaskEditorResult({required this.taskLabel, required this.points})
+    : deleteRequested = false;
 
   const _TaskEditorResult.delete()
     : taskLabel = '',
@@ -2646,7 +2844,9 @@ class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
                                           ),
                                           decoration: BoxDecoration(
                                             color: const Color(0x1AF8F1E6),
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
                                             border: Border.all(
                                               color: const Color(0xFF2F2218),
                                               width: 1.2,
@@ -2674,7 +2874,9 @@ class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
                                           ),
                                           decoration: BoxDecoration(
                                             color: const Color(0x1AF8F1E6),
-                                            borderRadius: BorderRadius.circular(10),
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
                                             border: Border.all(
                                               color: const Color(0xFF2F2218),
                                               width: 1.1,
@@ -2686,7 +2888,8 @@ class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
                                               _TaskEditorField(
                                                 label: '\u4efb\u52a1\u540d',
                                                 controller: _taskNameController,
-                                                hintText: '\u4f8b\u5982\uff1a\u6574\u7406\u73a9\u5177',
+                                                hintText:
+                                                    '\u4f8b\u5982\uff1a\u6574\u7406\u73a9\u5177',
                                                 maxLength: _taskTitleMaxLength,
                                                 textInputAction:
                                                     TextInputAction.next,
@@ -2700,15 +2903,19 @@ class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
                                               const SizedBox(height: 6),
                                               _TaskEditorField(
                                                 label: '\u79ef\u5206',
-                                                controller: _taskPointsController,
-                                                hintText: '\u4f8b\u5982\uff1a10',
+                                                controller:
+                                                    _taskPointsController,
+                                                hintText:
+                                                    '\u4f8b\u5982\uff1a10',
                                                 keyboardType:
                                                     TextInputType.number,
                                                 maxLength: 4,
                                                 inputFormatters: [
                                                   FilteringTextInputFormatter
                                                       .digitsOnly,
-                                                  LengthLimitingTextInputFormatter(4),
+                                                  LengthLimitingTextInputFormatter(
+                                                    4,
+                                                  ),
                                                 ],
                                                 textInputAction:
                                                     TextInputAction.done,
@@ -2737,8 +2944,9 @@ class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
                                             child: TextButton.icon(
                                               onPressed: _requestDelete,
                                               style: TextButton.styleFrom(
-                                                foregroundColor:
-                                                    const Color(0xFF9C5F4F),
+                                                foregroundColor: const Color(
+                                                  0xFF9C5F4F,
+                                                ),
                                                 padding:
                                                     const EdgeInsets.symmetric(
                                                       horizontal: 4,
@@ -2782,14 +2990,17 @@ class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
                                                           12,
                                                         ),
                                                   ),
-                                                  backgroundColor:
-                                                      const Color(0xFFF0E6D3),
+                                                  backgroundColor: const Color(
+                                                    0xFFF0E6D3,
+                                                  ),
                                                   padding:
                                                       const EdgeInsets.symmetric(
                                                         vertical: 9,
                                                       ),
                                                 ),
-                                                child: const Text('\u53d6\u6d88'),
+                                                child: const Text(
+                                                  '\u53d6\u6d88',
+                                                ),
                                               ),
                                             ),
                                             const SizedBox(width: 10),
@@ -2951,4 +3162,3 @@ class _TaskEditorField extends StatelessWidget {
     );
   }
 }
-
