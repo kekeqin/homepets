@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/ui/sprite_atlas_flame.dart';
 import '../task_panel_sprite_catalog.dart';
+import '../../../models/pet_artwork.dart';
 
 enum HomeSceneDevice { mobile, tablet }
 
@@ -31,6 +32,10 @@ const List<_PetCandidatePoint> _homePetCandidatePoints = <_PetCandidatePoint>[
   // 8. Bottom-right floor.
   _PetCandidatePoint(centerX: 0.87, centerY: 0.92),
 ];
+
+const double _homePetTargetFillFactor = 0.56;
+const double _homeSceneBackgroundAspectRatio = 1376 / 3076;
+const double _homePetSceneInsetFactor = 0.012;
 
 class _PetCandidatePoint {
   const _PetCandidatePoint({required this.centerX, required this.centerY});
@@ -271,6 +276,49 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     );
   }
 
+  Map<int, Rect> debugPetRects() {
+    _syncPetPlacements();
+    final layout = _petLayoutProfile();
+
+    return Map<int, Rect>.unmodifiable(<int, Rect>{
+      for (var index = 0; index < _petEntries.length; index++)
+        _petEntries[index].petId: () {
+          final pet = _petEntries[index];
+          final petType = _normalizedPetType(pet.petType, index: index);
+          final assetPath = _petAssetPathForType(petType, pet.petId);
+          final rect = _petRectForPlacement(
+            _petPlacements[pet.petId]!,
+            layout,
+            cropRect: _petCropRectForAsset(assetPath),
+          );
+          return Rect.fromLTWH(rect.left, rect.top, rect.width, rect.height);
+        }(),
+    });
+  }
+
+  static Rect? debugPetCropRectForAssetPath(String assetPath) {
+    final cropRect = _homePetCropRects[assetPath];
+    if (cropRect == null) {
+      return null;
+    }
+    return Rect.fromLTWH(
+      cropRect.left,
+      cropRect.top,
+      cropRect.width,
+      cropRect.height,
+    );
+  }
+
+  static Size debugPetRenderSize({
+    required Size slotSize,
+    required Size sourceSize,
+  }) {
+    return _resolveHomePetRenderSize(
+      slotSize: slotSize,
+      sourceSize: sourceSize,
+    );
+  }
+
   List<_PetSpriteSpec> _buildPetSpecs() {
     if (_petEntries.isEmpty) {
       return const <_PetSpriteSpec>[];
@@ -283,11 +331,13 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       final pet = _petEntries[index];
       final petType = _normalizedPetType(pet.petType, index: index);
       final placement = _petPlacements[pet.petId]!;
+      final assetPath = _petAssetPathForType(petType, pet.petId);
+      final cropRect = _petCropRectForAsset(assetPath);
       return _PetSpriteSpec(
-        rect: _petRectForPlacement(placement, layout),
+        rect: _petRectForPlacement(placement, layout, cropRect: cropRect),
         referenceSpace: _UiReferenceSpace.background,
-        assetPath: _petAssetPathForType(petType),
-        cropRect: _petCropRectForType(petType),
+        assetPath: assetPath,
+        cropRect: cropRect,
         entryDelay: _petEntryDelayFor(index),
         entryOffset: _petEntryOffsetFor(device),
         onTap: () => onOpenPetDetail?.call(pet.petId),
@@ -368,23 +418,59 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
 
   _RectFactor _petRectForPlacement(
     _AssignedPetPlacement placement,
-    _PetLayoutProfile layout,
-  ) {
+    _PetLayoutProfile layout, {
+    _RectFactor? cropRect,
+  }) {
     final candidate = _homePetCandidatePoints[placement.candidateIndex];
-    final halfWidth = layout.widthFactor / 2;
-    final halfHeight = layout.heightFactor / 2;
+    final renderSize = _petRenderSizeFactors(
+      layout: layout,
+      cropRect: cropRect,
+    );
+    final halfWidth = renderSize.width / 2;
     final centerX = (candidate.centerX + placement.offsetX)
-        .clamp(halfWidth, 1 - halfWidth)
+        .clamp(
+          halfWidth + _homePetSceneInsetFactor,
+          1 - halfWidth - _homePetSceneInsetFactor,
+        )
         .toDouble();
-    final centerY = (candidate.centerY + placement.offsetY)
-        .clamp(halfHeight, 1 - halfHeight)
-        .toDouble();
+    final bottom =
+        (candidate.centerY + placement.offsetY + (layout.heightFactor / 2))
+            .clamp(
+              renderSize.height + _homePetSceneInsetFactor,
+              1 - _homePetSceneInsetFactor,
+            )
+            .toDouble();
 
     return _RectFactor(
       centerX - halfWidth,
-      centerY - halfHeight,
-      layout.widthFactor,
-      layout.heightFactor,
+      bottom - renderSize.height,
+      renderSize.width,
+      renderSize.height,
+    );
+  }
+
+  Size _petRenderSizeFactors({
+    required _PetLayoutProfile layout,
+    required _RectFactor? cropRect,
+  }) {
+    if (cropRect == null) {
+      return Size(layout.widthFactor, layout.heightFactor);
+    }
+
+    final normalizedRenderSize = _resolveHomePetRenderSize(
+      slotSize: Size(
+        layout.widthFactor * _homeSceneBackgroundAspectRatio,
+        layout.heightFactor,
+      ),
+      sourceSize: Size(cropRect.width, cropRect.height),
+    );
+    if (normalizedRenderSize.isEmpty) {
+      return Size(layout.widthFactor, layout.heightFactor);
+    }
+
+    return Size(
+      normalizedRenderSize.width / _homeSceneBackgroundAspectRatio,
+      normalizedRenderSize.height,
     );
   }
 
@@ -420,25 +506,19 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   }
 
   String _normalizedPetType(String petType, {required int index}) {
-    final normalized = petType.trim().toLowerCase();
-    if (normalized == 'cat' || normalized == 'dog') {
-      return normalized;
-    }
-    return index.isEven ? 'dog' : 'cat';
+    return normalizePetType(
+      petType,
+      fallback: selectablePetTypes[index % selectablePetTypes.length],
+    );
   }
 
-  String _petAssetPathForType(String petType) {
-    return switch (petType) {
-      'cat' => 'images/pets/cat_lie.png',
-      _ => 'images/pets/dog_sleep_clean.png',
-    };
+  String _petAssetPathForType(String petType, int petId) {
+    final poseIndex = deterministicPetPoseIndex(petType, petId);
+    return petHomeAssetPath(petType, poseIndex);
   }
 
-  _RectFactor _petCropRectForType(String petType) {
-    return switch (petType) {
-      'cat' => const _RectFactor(0.140, 0.340, 0.740, 0.400),
-      _ => const _RectFactor(0.220, 0.300, 0.560, 0.420),
-    };
+  _RectFactor? _petCropRectForAsset(String assetPath) {
+    return _homePetCropRects[assetPath];
   }
 
   @override
@@ -735,6 +815,56 @@ class _RectFactor {
       referenceRect.height * height,
     );
   }
+}
+
+const Map<String, _RectFactor> _homePetCropRects = <String, _RectFactor>{
+  'images/pets/cat_lie.png': _RectFactor(0.1399, 0.3372, 0.7495, 0.3412),
+  'images/pets/cat_sit.png': _RectFactor(0.1697, 0.0369, 0.6621, 0.9272),
+  'images/pets/cat_sleep_clean.png': _RectFactor(
+    0.0662,
+    0.2805,
+    0.8744,
+    0.5488,
+  ),
+  'images/pets/dog_lie.png': _RectFactor(0.1682, 0.3186, 0.7602, 0.3305),
+  'images/pets/dog_sit.png': _RectFactor(0.2649, 0.2434, 0.4077, 0.4917),
+  'images/pets/dog_sleep_clean.png': _RectFactor(
+    0.2044,
+    0.2893,
+    0.5727,
+    0.3784,
+  ),
+  'images/pets/hamster_lie_.png': _RectFactor(0.1687, 0.3084, 0.6699, 0.3515),
+  'images/pets/hamster_sit.png': _RectFactor(0.2151, 0.1780, 0.5742, 0.6606),
+  'images/pets/hamster_sleep.png': _RectFactor(0.1023, 0.1780, 0.8198, 0.6411),
+  'images/pets/rabbit_sit.png': _RectFactor(0.2127, 0.0442, 0.6191, 0.9038),
+  'images/pets/rabbit_sleep.png': _RectFactor(0.0662, 0.2122, 0.9106, 0.6171),
+  'images/pets/turtle_sleep.png': _RectFactor(0.0642, 0.2263, 0.8779, 0.6113),
+};
+
+Size _resolveHomePetRenderSize({
+  required Size slotSize,
+  required Size sourceSize,
+}) {
+  if (slotSize.width <= 0 ||
+      slotSize.height <= 0 ||
+      sourceSize.width <= 0 ||
+      sourceSize.height <= 0) {
+    return Size.zero;
+  }
+
+  final fitted = applyBoxFit(BoxFit.contain, sourceSize, slotSize);
+  final destination = fitted.destination;
+  final destinationArea = destination.width * destination.height;
+  if (destinationArea <= 0) {
+    return Size.zero;
+  }
+
+  final targetArea =
+      slotSize.width * slotSize.height * _homePetTargetFillFactor;
+  final scale = math.sqrt(targetArea / destinationArea);
+
+  return Size(destination.width * scale, destination.height * scale);
 }
 
 enum _UiReferenceSpace { viewport, background }

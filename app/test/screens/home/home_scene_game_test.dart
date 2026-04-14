@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+import 'dart:ui';
+
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:homepets/screens/home/game/home_scene_game.dart';
@@ -105,6 +108,70 @@ void main() {
         offsets.values.where((offset) => offset.dx != 0 || offset.dy != 0),
         isNotEmpty,
       );
+    });
+
+    test(
+      'normalizes home pet render areas after trimming asset whitespace',
+      () {
+        const slotSize = Size(69, 100);
+        const assetPaths = <String>[
+          'images/pets/cat_lie.png',
+          'images/pets/cat_sit.png',
+          'images/pets/cat_sleep_clean.png',
+          'images/pets/dog_lie.png',
+          'images/pets/dog_sit.png',
+          'images/pets/dog_sleep_clean.png',
+          'images/pets/hamster_lie_.png',
+          'images/pets/hamster_sit.png',
+          'images/pets/hamster_sleep.png',
+          'images/pets/rabbit_sit.png',
+          'images/pets/rabbit_sleep.png',
+          'images/pets/turtle_sleep.png',
+        ];
+
+        final renderAreas = assetPaths.map((assetPath) {
+          final cropRect = HomeSceneGame.debugPetCropRectForAssetPath(
+            assetPath,
+          );
+          expect(
+            cropRect,
+            isNotNull,
+            reason: 'Missing crop rect for $assetPath',
+          );
+
+          final renderSize = HomeSceneGame.debugPetRenderSize(
+            slotSize: slotSize,
+            sourceSize: cropRect!.size,
+          );
+          return renderSize.width * renderSize.height;
+        }).toList();
+
+        final minArea = renderAreas.reduce(math.min);
+        final maxArea = renderAreas.reduce(math.max);
+        expect(maxArea / minArea, lessThan(1.01));
+      },
+    );
+
+    test('keeps edge pets fully inside the home scene bounds', () {
+      final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+      final petCount = game.debugPetCandidateCount;
+
+      game.replacePetEntries(
+        List<HomeScenePetSeed>.generate(
+          petCount,
+          (index) => HomeScenePetSeed(petId: index + 1, petType: 'turtle'),
+        ),
+      );
+
+      final rects = game.debugPetRects();
+      expect(rects.length, petCount);
+
+      for (final rect in rects.values) {
+        expect(rect.left, greaterThanOrEqualTo(-0.0001));
+        expect(rect.top, greaterThanOrEqualTo(-0.0001));
+        expect(rect.right, lessThanOrEqualTo(1.0001));
+        expect(rect.bottom, lessThanOrEqualTo(1.0001));
+      }
     });
   });
 }
