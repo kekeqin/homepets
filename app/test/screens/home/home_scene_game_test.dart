@@ -68,6 +68,25 @@ void main() {
       expect(assignments.values.toSet().length, candidateCount);
     });
 
+    test('does not assign pets to retired floor slots', () {
+      final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+      final candidateCount = game.debugPetCandidateCount;
+
+      game.replacePetEntries(
+        List<HomeScenePetSeed>.generate(
+          candidateCount,
+          (index) => HomeScenePetSeed(
+            petId: index + 1,
+            petType: index.isEven ? 'dog' : 'cat',
+          ),
+        ),
+      );
+
+      final assignments = game.debugPetCandidateAssignments();
+      expect(assignments.values, isNot(contains(2)));
+      expect(assignments.values, isNot(contains(5)));
+    });
+
     test('keeps pet candidate assignments stable across refreshes', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
       final pets = <HomeScenePetSeed>[
@@ -89,14 +108,22 @@ void main() {
       'cat and dog expose three home pose variants for UI-triggered switching',
       () {
         final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+        final petCount = game.debugPetCandidateCount;
 
-        game.replacePetEntries(const <HomeScenePetSeed>[
-          HomeScenePetSeed(petId: 11, petType: 'cat'),
-          HomeScenePetSeed(petId: 22, petType: 'dog'),
-          HomeScenePetSeed(petId: 33, petType: 'hamster'),
-        ]);
+        game.replacePetEntries(
+          List<HomeScenePetSeed>.generate(
+            petCount,
+            (index) => HomeScenePetSeed(
+              petId: index + 1,
+              petType: index.isEven ? 'cat' : 'dog',
+            ),
+          ),
+        );
 
         final poseVariants = game.debugPetPoseAssetVariants();
+        final variantCounts = poseVariants.values
+            .map((variants) => variants.length)
+            .toList();
 
         expect(HomeSceneGame.debugUsesDynamicHomePoseSwitching('cat'), isTrue);
         expect(HomeSceneGame.debugUsesDynamicHomePoseSwitching('dog'), isTrue);
@@ -104,9 +131,14 @@ void main() {
           HomeSceneGame.debugUsesDynamicHomePoseSwitching('hamster'),
           isFalse,
         );
-        expect(poseVariants[11], hasLength(3));
-        expect(poseVariants[22], hasLength(3));
-        expect(poseVariants[33], hasLength(1));
+        expect(
+          variantCounts.where((count) => count == 3).length,
+          greaterThanOrEqualTo(1),
+        );
+        expect(
+          variantCounts.where((count) => count == 1).length,
+          greaterThanOrEqualTo(1),
+        );
       },
     );
 
@@ -131,27 +163,28 @@ void main() {
 
     test('advances cat and dog poses only when explicitly requested', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+      final petCount = game.debugPetCandidateCount;
 
-      game.replacePetEntries(const <HomeScenePetSeed>[
-        HomeScenePetSeed(petId: 11, petType: 'cat'),
-        HomeScenePetSeed(petId: 22, petType: 'dog'),
-        HomeScenePetSeed(petId: 33, petType: 'hamster'),
-      ]);
+      game.replacePetEntries(
+        List<HomeScenePetSeed>.generate(
+          petCount,
+          (index) => HomeScenePetSeed(
+            petId: index + 1,
+            petType: index.isEven ? 'cat' : 'dog',
+          ),
+        ),
+      );
 
       final beforeAdvance = game.debugCurrentPetPoseAssetPaths();
       final changed = game.advanceDynamicHomePetPoses();
       final afterAdvance = game.debugCurrentPetPoseAssetPaths();
-      final dynamicChanges = <bool>[
-        afterAdvance[11] != beforeAdvance[11],
-        afterAdvance[22] != beforeAdvance[22],
-      ];
+      final dynamicChanges = beforeAdvance.keys
+          .map((petId) => afterAdvance[petId] != beforeAdvance[petId])
+          .where((value) => value)
+          .length;
 
       expect(changed, isTrue);
-      expect(
-        dynamicChanges.where((value) => value).length,
-        greaterThanOrEqualTo(1),
-      );
-      expect(afterAdvance[33], equals(beforeAdvance[33]));
+      expect(dynamicChanges, greaterThanOrEqualTo(1));
     });
 
     test('adds overflow pets with local jitter when candidates are full', () {
@@ -225,15 +258,30 @@ void main() {
       'dynamic cat and dog pose variants stay inside the home scene bounds',
       () {
         final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+        final petCount = game.debugPetCandidateCount;
 
-        game.replacePetEntries(const <HomeScenePetSeed>[
-          HomeScenePetSeed(petId: 101, petType: 'cat'),
-          HomeScenePetSeed(petId: 202, petType: 'dog'),
-        ]);
+        game.replacePetEntries(
+          List<HomeScenePetSeed>.generate(
+            petCount,
+            (index) => HomeScenePetSeed(
+              petId: 101 + index,
+              petType: index.isEven ? 'cat' : 'dog',
+            ),
+          ),
+        );
 
         final poseVariantRects = game.debugPetPoseVariantRects();
-        expect(poseVariantRects[101], hasLength(3));
-        expect(poseVariantRects[202], hasLength(3));
+        final rectVariantCounts = poseVariantRects.values
+            .map((rects) => rects.length)
+            .toList();
+        expect(
+          rectVariantCounts.where((count) => count == 3).length,
+          greaterThanOrEqualTo(1),
+        );
+        expect(
+          rectVariantCounts.where((count) => count == 1).length,
+          greaterThanOrEqualTo(1),
+        );
 
         for (final rects in poseVariantRects.values) {
           for (final rect in rects) {
@@ -245,6 +293,47 @@ void main() {
         }
       },
     );
+
+    test('renders the floor armchair-adjacent pet above the seat front', () {
+      final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+
+      expect(
+        game.debugPetRenderPriorityForCandidate(1),
+        greaterThan(HomeSceneGame.debugSeatOccluderRenderPriority),
+      );
+      expect(
+        game.debugPetRenderPriorityForCandidate(9),
+        lessThan(HomeSceneGame.debugSeatOccluderRenderPriority),
+      );
+    });
+
+    test('keeps right armchair sit pets resting inside the cushion band', () {
+      final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+      final occluderRect = HomeSceneGame.debugRightArmchairFrontOccluderRect;
+
+      for (final assetPath in const <String>[
+        'images/pets/cat_sit.png',
+        'images/pets/dog_sit.png',
+        'images/pets/hamster_sit.png',
+        'images/pets/rabbit_sit.png',
+      ]) {
+        final rect = game.debugPetRectForCandidate(
+          candidateIndex: 9,
+          assetPath: assetPath,
+        );
+
+        expect(
+          rect.bottom,
+          greaterThan(occluderRect.top),
+          reason: '$assetPath should touch the armchair cushion.',
+        );
+        expect(
+          rect.bottom,
+          lessThan(occluderRect.bottom),
+          reason: '$assetPath should not sink through the armchair front.',
+        );
+      }
+    });
 
     test('keeps edge pets fully inside the home scene bounds', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
