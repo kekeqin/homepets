@@ -1445,11 +1445,14 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
     if (targetTask == null) {
       await _loadHomeTasks();
+      if (!mounted) {
+        return;
+      }
 
       targetTask = _findHomeTaskByLabel(taskLabel);
     }
 
-    if (!mounted || targetTask == null) {
+    if (targetTask == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -1541,11 +1544,14 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
     if (targetTask == null) {
       await _loadHomeTasks();
+      if (!mounted) {
+        return;
+      }
 
       targetTask = _findHomeTaskByLabel(taskLabel);
     }
 
-    if (!mounted || targetTask == null) {
+    if (targetTask == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -1596,11 +1602,14 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
     if (targetTask == null) {
       await _loadHomeTasks();
+      if (!mounted) {
+        return;
+      }
 
       targetTask = _findHomeTaskByLabel(taskLabel);
     }
 
-    if (!mounted || targetTask == null) {
+    if (targetTask == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(

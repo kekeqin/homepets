@@ -37,6 +37,100 @@ const double _homePetTargetFillFactor = 0.56;
 const double _homeSceneBackgroundAspectRatio = 1376 / 3076;
 const double _homePetSceneInsetFactor = 0.012;
 
+class _PetFrameAnimationSpec {
+  const _PetFrameAnimationSpec({
+    required this.frameAssetPaths,
+    required this.frameDurations,
+  });
+
+  final List<String> frameAssetPaths;
+  final List<double> frameDurations;
+}
+
+const _PetFrameAnimationSpec _dogLieHomeAnimation = _PetFrameAnimationSpec(
+  frameAssetPaths: <String>[
+    'images/pets/dog/1 (1).png',
+    'images/pets/dog/2 (1).png',
+    'images/pets/dog/3.png',
+    'images/pets/dog/4 (2).png',
+    'images/pets/dog/5.png',
+    'images/pets/dog/6 (1).png',
+  ],
+  frameDurations: <double>[3.8, 0.26, 0.28, 0.38, 0.32, 0.9],
+);
+
+const _PetFrameAnimationSpec _catLieHomeAnimation = _PetFrameAnimationSpec(
+  frameAssetPaths: <String>[
+    'images/pets/cat/1 (3).png',
+    'images/pets/cat/2 (3).png',
+    'images/pets/cat/3 (2).png',
+    'images/pets/cat/4 (4).png',
+    'images/pets/cat/5 (2).png',
+    'images/pets/cat/6 (2).png',
+  ],
+  frameDurations: <double>[3.6, 0.22, 0.22, 0.24, 0.24, 0.28],
+);
+
+const _PetFrameAnimationSpec _catSitHomeAnimation = _PetFrameAnimationSpec(
+  frameAssetPaths: <String>[
+    'images/pets/cat/wagging tail/1 (5).png',
+    'images/pets/cat/wagging tail/2 (5).png',
+    'images/pets/cat/wagging tail/3 (3).png',
+    'images/pets/cat/wagging tail/4 (5).png',
+    'images/pets/cat/wagging tail/5 (3).png',
+  ],
+  frameDurations: <double>[3.4, 0.18, 0.18, 0.18, 0.22],
+);
+
+const _PetFrameAnimationSpec _catSleepHomeAnimation = _PetFrameAnimationSpec(
+  frameAssetPaths: <String>[
+    'images/pets/cat/open eyes/1_transparent.png',
+    'images/pets/cat/open eyes/2_transparent.png',
+    'images/pets/cat/open eyes/1_transparent.png',
+  ],
+  frameDurations: <double>[4.0, 0.32, 0.42],
+);
+
+const _PetFrameAnimationSpec _dogSitHomeAnimation = _PetFrameAnimationSpec(
+  frameAssetPaths: <String>[
+    'images/pets/dog/turning the face and smiling/7_transparent.png',
+    'images/pets/dog/turning the face and smiling/8_transparent.png',
+    'images/pets/dog/turning the face and smiling/9_transparent.png',
+    'images/pets/dog/turning the face and smiling/10_transparent.png',
+    'images/pets/dog/turning the face and smiling/11_transparent.png',
+    'images/pets/dog/wagging tail/12-ezremove.png',
+    'images/pets/dog/wagging tail/13-ezremove.png',
+    'images/pets/dog/wagging tail/14-ezremove.png',
+    'images/pets/dog/wagging tail/15_transparent.png',
+    'images/pets/dog/wagging tail/16-ezremove.png',
+    'images/pets/dog/wagging tail/17-ezremove.png',
+  ],
+  frameDurations: <double>[
+    3.2,
+    0.18,
+    0.18,
+    0.18,
+    0.24,
+    0.18,
+    0.18,
+    0.18,
+    0.18,
+    0.18,
+    0.24,
+  ],
+);
+
+const _PetFrameAnimationSpec _dogSleepHomeAnimation = _PetFrameAnimationSpec(
+  frameAssetPaths: <String>[
+    'images/pets/dog/moving noise/1 (2).png',
+    'images/pets/dog/moving noise/2 (2).png',
+    'images/pets/dog/moving noise/3 (1).png',
+    'images/pets/dog/moving noise/4 (3).png',
+    'images/pets/dog/moving noise/5 (1).png',
+  ],
+  frameDurations: <double>[4.2, 0.24, 0.24, 0.24, 0.3],
+);
+
 class _PetCandidatePoint {
   const _PetCandidatePoint({required this.centerX, required this.centerY});
 
@@ -333,11 +427,15 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       final placement = _petPlacements[pet.petId]!;
       final assetPath = _petAssetPathForType(petType, pet.petId);
       final cropRect = _petCropRectForAsset(assetPath);
+      final animation = _petAnimationForAsset(assetPath);
       return _PetSpriteSpec(
         rect: _petRectForPlacement(placement, layout, cropRect: cropRect),
         referenceSpace: _UiReferenceSpace.background,
         assetPath: assetPath,
         cropRect: cropRect,
+        animationFrameAssetPaths:
+            animation?.frameAssetPaths ?? const <String>[],
+        animationFrameDurations: animation?.frameDurations ?? const <double>[],
         entryDelay: _petEntryDelayFor(index),
         entryOffset: _petEntryOffsetFor(device),
         onTap: () => onOpenPetDetail?.call(pet.petId),
@@ -519,6 +617,18 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
 
   _RectFactor? _petCropRectForAsset(String assetPath) {
     return _homePetCropRects[assetPath];
+  }
+
+  _PetFrameAnimationSpec? _petAnimationForAsset(String assetPath) {
+    return switch (assetPath) {
+      'images/pets/cat_lie.png' => _catLieHomeAnimation,
+      'images/pets/cat_sit.png' => _catSitHomeAnimation,
+      'images/pets/cat_sleep_clean.png' => _catSleepHomeAnimation,
+      'images/pets/dog_lie.png' => _dogLieHomeAnimation,
+      'images/pets/dog_sit.png' => _dogSitHomeAnimation,
+      'images/pets/dog_sleep_clean.png' => _dogSleepHomeAnimation,
+      _ => null,
+    };
   }
 
   @override
@@ -942,6 +1052,8 @@ class _PetSpriteSpec extends _UiSpec {
     required this.assetPath,
     this.cropRect,
     this.onTap,
+    this.animationFrameAssetPaths = const <String>[],
+    this.animationFrameDurations = const <double>[],
     super.referenceSpace,
     required super.entryDelay,
     required super.entryOffset,
@@ -950,6 +1062,8 @@ class _PetSpriteSpec extends _UiSpec {
   final String assetPath;
   final _RectFactor? cropRect;
   final VoidCallback? onTap;
+  final List<String> animationFrameAssetPaths;
+  final List<double> animationFrameDurations;
 
   @override
   _AnimatedSceneComponent build({
@@ -962,6 +1076,8 @@ class _PetSpriteSpec extends _UiSpec {
       assetPath: assetPath,
       cropRect: cropRect,
       onTap: onTap,
+      animationFrameAssetPaths: animationFrameAssetPaths,
+      animationFrameDurations: animationFrameDurations,
       entryDelay: entryDelay,
       entryOffset: entryOffset,
     );
@@ -1580,6 +1696,8 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
     required Rect rect,
     required this.assetPath,
     this.cropRect,
+    this.animationFrameAssetPaths = const <String>[],
+    this.animationFrameDurations = const <double>[],
     required super.entryDelay,
     required super.entryOffset,
     super.onTap,
@@ -1590,13 +1708,25 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
 
   final String assetPath;
   final _RectFactor? cropRect;
+  final List<String> animationFrameAssetPaths;
+  final List<double> animationFrameDurations;
 
   Sprite? _sprite;
+  final List<Sprite> _animationFrames = <Sprite>[];
+  double _animationElapsed = 0;
+  int _animationIndex = 0;
   final Paint _spritePaint = Paint();
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+
+    if (animationFrameAssetPaths.isNotEmpty) {
+      for (final frameAssetPath in animationFrameAssetPaths) {
+        _animationFrames.add(Sprite(await game.images.load(frameAssetPath)));
+      }
+      return;
+    }
 
     final image = await game.images.load(assetPath);
     final clip = cropRect;
@@ -1615,10 +1745,25 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
   }
 
   @override
+  void update(double dt) {
+    super.update(dt);
+
+    if (_animationFrames.length < 2) {
+      return;
+    }
+
+    _animationElapsed += dt;
+    while (_animationElapsed >= _frameDurationFor(_animationIndex)) {
+      _animationElapsed -= _frameDurationFor(_animationIndex);
+      _animationIndex = (_animationIndex + 1) % _animationFrames.length;
+    }
+  }
+
+  @override
   void render(Canvas canvas) {
     super.render(canvas);
 
-    final sprite = _sprite;
+    final sprite = _activeSprite;
     if (sprite == null) {
       return;
     }
@@ -1627,6 +1772,20 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
       0xFFFFFFFF,
     ).withValues(alpha: opacity.clamp(0, 1).toDouble());
     sprite.render(canvas, size: size, overridePaint: _spritePaint);
+  }
+
+  Sprite? get _activeSprite {
+    if (_animationFrames.isNotEmpty) {
+      return _animationFrames[_animationIndex];
+    }
+    return _sprite;
+  }
+
+  double _frameDurationFor(int frameIndex) {
+    if (frameIndex >= 0 && frameIndex < animationFrameDurations.length) {
+      return animationFrameDurations[frameIndex];
+    }
+    return 0.18;
   }
 }
 
