@@ -15,27 +15,54 @@ import '../../../models/pet_artwork.dart';
 enum HomeSceneDevice { mobile, tablet }
 
 const List<_PetCandidatePoint> _homePetCandidatePoints = <_PetCandidatePoint>[
-  // 1. Couch center.
-  _PetCandidatePoint(centerX: 0.31, centerY: 0.60),
-  // 2. Upper-right floor by the chair.
-  _PetCandidatePoint(centerX: 0.65, centerY: 0.72),
+  // 1. Couch marker slightly higher on the left seat cushion.
+  _PetCandidatePoint(centerX: 0.34, centerY: 0.585),
+  // 2. Floor pet centered a touch more between the sofa backdrop and front table.
+  _PetCandidatePoint(centerX: 0.748, centerY: 0.702),
   // 3. Left floor near the book stack.
   _PetCandidatePoint(centerX: 0.14, centerY: 0.83),
   // 4. Bottom-left open floor.
   _PetCandidatePoint(centerX: 0.06, centerY: 0.95),
-  // 5. Center-left rug edge.
-  _PetCandidatePoint(centerX: 0.30, centerY: 0.88),
-  // 6. Bottom-center floor.
-  _PetCandidatePoint(centerX: 0.55, centerY: 0.95),
-  // 7. Right floor near the plant.
-  _PetCandidatePoint(centerX: 0.67, centerY: 0.87),
-  // 8. Bottom-right floor.
-  _PetCandidatePoint(centerX: 0.87, centerY: 0.92),
+  // 5. Lower hamster marker shifted left to open space from the cat slot.
+  _PetCandidatePoint(centerX: 0.30, centerY: 0.90),
+  // 6. Lower cat marker shifted right and slightly down for more separation.
+  _PetCandidatePoint(centerX: 0.48, centerY: 0.935),
+  // 7. Rug marker shifted to the latest red-dot position left of the pillow.
+  _PetCandidatePoint(centerX: 0.36, centerY: 0.81),
+  // 8. Bottom-right marker shifted up to the latest red-dot position.
+  _PetCandidatePoint(centerX: 0.84, centerY: 0.865),
+  // 9. Bookshelf marker tuned to keep the pet resting on the top board surface.
+  _PetCandidatePoint(
+    centerX: 0.712,
+    centerY: 0.406,
+    widthScale: 0.72,
+    heightScale: 0.72,
+    preferRestPose: true,
+    contactShadow: _PetContactShadowSpec(
+      widthFactor: 0.70,
+      heightFactor: 0.10,
+      centerYFactor: 0.985,
+      opacity: 0.17,
+      blurSigmaFactor: 0.045,
+    ),
+  ),
 ];
 
 const double _homePetTargetFillFactor = 0.56;
 const double _homeSceneBackgroundAspectRatio = 1376 / 3076;
 const double _homePetSceneInsetFactor = 0.012;
+const int _homePetRenderPriority = 4;
+const int _homeSceneUiRenderPriority = 12;
+const Set<String> _homePetDynamicPoseTypes = <String>{'cat', 'dog'};
+final Map<String, int> _homePetSessionPoseIndices = <String, int>{};
+
+bool _shouldRotateHomePetPosesForType(String petType) {
+  return _homePetDynamicPoseTypes.contains(normalizePetType(petType));
+}
+
+String _homePetPoseSessionKey(String petType, int petId) {
+  return '${normalizePetType(petType)}#$petId';
+}
 
 class _PetFrameAnimationSpec {
   const _PetFrameAnimationSpec({
@@ -132,10 +159,37 @@ const _PetFrameAnimationSpec _dogSleepHomeAnimation = _PetFrameAnimationSpec(
 );
 
 class _PetCandidatePoint {
-  const _PetCandidatePoint({required this.centerX, required this.centerY});
+  const _PetCandidatePoint({
+    required this.centerX,
+    required this.centerY,
+    this.widthScale = 1,
+    this.heightScale = 1,
+    this.preferRestPose = false,
+    this.contactShadow,
+  });
 
   final double centerX;
   final double centerY;
+  final double widthScale;
+  final double heightScale;
+  final bool preferRestPose;
+  final _PetContactShadowSpec? contactShadow;
+}
+
+class _PetContactShadowSpec {
+  const _PetContactShadowSpec({
+    required this.widthFactor,
+    required this.heightFactor,
+    required this.centerYFactor,
+    this.opacity = 0.18,
+    this.blurSigmaFactor = 0.06,
+  });
+
+  final double widthFactor;
+  final double heightFactor;
+  final double centerYFactor;
+  final double opacity;
+  final double blurSigmaFactor;
 }
 
 class _PetLayoutProfile {
@@ -216,7 +270,9 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   final List<HomeScenePetSeed> _petEntries = <HomeScenePetSeed>[];
   final Map<int, _AssignedPetPlacement> _petPlacements =
       <int, _AssignedPetPlacement>{};
+  final Map<int, int> _petPoseIndices = <int, int>{};
   final math.Random _petPlacementRandom = math.Random();
+  final math.Random _petPoseRandom = math.Random();
   Vector2? _lastUiLayoutSize;
 
   bool _ready = false;
@@ -345,6 +401,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       ..clear()
       ..addAll(pets.where((item) => item.petId > 0));
     _syncPetPlacements();
+    _syncPetPoseIndices();
 
     if (_ready) {
       _rebuildUiFromProfile();
@@ -379,15 +436,152 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
         _petEntries[index].petId: () {
           final pet = _petEntries[index];
           final petType = _normalizedPetType(pet.petType, index: index);
-          final assetPath = _petAssetPathForType(petType, pet.petId);
-          final rect = _petRectForPlacement(
-            _petPlacements[pet.petId]!,
-            layout,
-            cropRect: _petCropRectForAsset(assetPath),
+          final poseVariants = _buildPetPoseVariants(
+            petType: petType,
+            petId: pet.petId,
+            placement: _petPlacements[pet.petId]!,
+            layout: layout,
           );
+          final rect =
+              poseVariants[_initialHomePetPoseIndex(
+                    petType,
+                    pet.petId,
+                    poseVariants.length,
+                  )]
+                  .rect;
           return Rect.fromLTWH(rect.left, rect.top, rect.width, rect.height);
         }(),
     });
+  }
+
+  Map<int, List<String>> debugPetPoseAssetVariants() {
+    _syncPetPlacements();
+    final layout = _petLayoutProfile();
+
+    return Map<int, List<String>>.unmodifiable(<int, List<String>>{
+      for (var index = 0; index < _petEntries.length; index++)
+        _petEntries[index].petId: () {
+          final pet = _petEntries[index];
+          final petType = _normalizedPetType(pet.petType, index: index);
+          final poseVariants = _buildPetPoseVariants(
+            petType: petType,
+            petId: pet.petId,
+            placement: _petPlacements[pet.petId]!,
+            layout: layout,
+          );
+          return List<String>.unmodifiable(
+            poseVariants.map((variant) => variant.assetPath),
+          );
+        }(),
+    });
+  }
+
+  Map<int, String> debugCurrentPetPoseAssetPaths() {
+    _syncPetPoseIndices();
+
+    return Map<int, String>.unmodifiable(<int, String>{
+      for (var index = 0; index < _petEntries.length; index++)
+        _petEntries[index].petId: () {
+          final pet = _petEntries[index];
+          final petType = _normalizedPetType(pet.petType, index: index);
+          final placement = _petPlacements[pet.petId]!;
+          final poseVariants = _homePoseAssetPathsForPlacement(
+            petType,
+            pet.petId,
+            placement,
+          );
+          final currentPoseIndex = _currentHomePetPoseIndex(
+            petType,
+            pet.petId,
+            placement,
+            poseVariants.length,
+          );
+          return poseVariants[currentPoseIndex];
+        }(),
+    });
+  }
+
+  Map<int, List<Rect>> debugPetPoseVariantRects() {
+    _syncPetPlacements();
+    final layout = _petLayoutProfile();
+
+    return Map<int, List<Rect>>.unmodifiable(<int, List<Rect>>{
+      for (var index = 0; index < _petEntries.length; index++)
+        _petEntries[index].petId: () {
+          final pet = _petEntries[index];
+          final petType = _normalizedPetType(pet.petType, index: index);
+          final poseVariants = _buildPetPoseVariants(
+            petType: petType,
+            petId: pet.petId,
+            placement: _petPlacements[pet.petId]!,
+            layout: layout,
+          );
+          return List<Rect>.unmodifiable(
+            poseVariants.map(
+              (variant) => Rect.fromLTWH(
+                variant.rect.left,
+                variant.rect.top,
+                variant.rect.width,
+                variant.rect.height,
+              ),
+            ),
+          );
+        }(),
+    });
+  }
+
+  static bool debugUsesDynamicHomePoseSwitching(String petType) {
+    return _shouldRotateHomePetPosesForType(petType);
+  }
+
+  bool advanceDynamicHomePetPoses() {
+    _syncPetPoseIndices();
+
+    var changed = false;
+    for (var index = 0; index < _petEntries.length; index++) {
+      final pet = _petEntries[index];
+      final petType = _normalizedPetType(pet.petType, index: index);
+      if (!_shouldRotateHomePetPosesForType(petType)) {
+        continue;
+      }
+
+      final placement = _petPlacements[pet.petId]!;
+      final poseCount = _homePoseAssetPathsForPlacement(
+        petType,
+        pet.petId,
+        placement,
+      ).length;
+      if (poseCount < 2) {
+        continue;
+      }
+
+      final currentPoseIndex = _currentHomePetPoseIndex(
+        petType,
+        pet.petId,
+        placement,
+        poseCount,
+      );
+      final nextPoseIndex = _nextDynamicHomePetPoseIndex(
+        currentPoseIndex: currentPoseIndex,
+        poseCount: poseCount,
+      );
+      if (nextPoseIndex == currentPoseIndex) {
+        continue;
+      }
+
+      _setCurrentHomePetPoseIndex(
+        petType: petType,
+        petId: pet.petId,
+        poseIndex: nextPoseIndex,
+        poseCount: poseCount,
+      );
+      changed = true;
+    }
+
+    if (changed && _ready) {
+      _rebuildUiFromProfile();
+    }
+    return changed;
   }
 
   static Rect? debugPetCropRectForAssetPath(String assetPath) {
@@ -425,17 +619,25 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       final pet = _petEntries[index];
       final petType = _normalizedPetType(pet.petType, index: index);
       final placement = _petPlacements[pet.petId]!;
-      final assetPath = _petAssetPathForType(petType, pet.petId);
-      final cropRect = _petCropRectForAsset(assetPath);
-      final animation = _petAnimationForAsset(assetPath);
+      final poseVariants = _buildPetPoseVariants(
+        petType: petType,
+        petId: pet.petId,
+        placement: placement,
+        layout: layout,
+      );
+      final contactShadow =
+          _homePetCandidatePoints[placement.candidateIndex].contactShadow;
+      final initialPoseIndex = _initialHomePetPoseIndex(
+        petType,
+        pet.petId,
+        poseVariants.length,
+      );
       return _PetSpriteSpec(
-        rect: _petRectForPlacement(placement, layout, cropRect: cropRect),
+        rect: poseVariants[initialPoseIndex].rect,
         referenceSpace: _UiReferenceSpace.background,
-        assetPath: assetPath,
-        cropRect: cropRect,
-        animationFrameAssetPaths:
-            animation?.frameAssetPaths ?? const <String>[],
-        animationFrameDurations: animation?.frameDurations ?? const <double>[],
+        poseVariants: poseVariants,
+        initialPoseIndex: initialPoseIndex,
+        contactShadow: contactShadow,
         entryDelay: _petEntryDelayFor(index),
         entryOffset: _petEntryOffsetFor(device),
         onTap: () => onOpenPetDetail?.call(pet.petId),
@@ -520,8 +722,14 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     _RectFactor? cropRect,
   }) {
     final candidate = _homePetCandidatePoints[placement.candidateIndex];
+    final slotLayout = _PetLayoutProfile(
+      widthFactor: layout.widthFactor * candidate.widthScale,
+      heightFactor: layout.heightFactor * candidate.heightScale,
+      overflowJitterX: layout.overflowJitterX,
+      overflowJitterY: layout.overflowJitterY,
+    );
     final renderSize = _petRenderSizeFactors(
-      layout: layout,
+      layout: slotLayout,
       cropRect: cropRect,
     );
     final halfWidth = renderSize.width / 2;
@@ -532,7 +740,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
         )
         .toDouble();
     final bottom =
-        (candidate.centerY + placement.offsetY + (layout.heightFactor / 2))
+        (candidate.centerY + placement.offsetY + (slotLayout.heightFactor / 2))
             .clamp(
               renderSize.height + _homePetSceneInsetFactor,
               1 - _homePetSceneInsetFactor,
@@ -610,9 +818,174 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     );
   }
 
-  String _petAssetPathForType(String petType, int petId) {
-    final poseIndex = deterministicPetPoseIndex(petType, petId);
-    return petHomeAssetPath(petType, poseIndex);
+  void _syncPetPoseIndices() {
+    final activePetIds = _petEntries.map((item) => item.petId).toSet();
+    _petPoseIndices.removeWhere((petId, _) => !activePetIds.contains(petId));
+
+    for (var index = 0; index < _petEntries.length; index++) {
+      final pet = _petEntries[index];
+      final petType = _normalizedPetType(pet.petType, index: index);
+      final placement = _petPlacements[pet.petId];
+      if (placement == null) {
+        continue;
+      }
+      final poseCount = _homePoseAssetPathsForPlacement(
+        petType,
+        pet.petId,
+        placement,
+      ).length;
+      if (poseCount <= 0) {
+        continue;
+      }
+
+      if (!_shouldRotateHomePetPosesForType(petType)) {
+        _petPoseIndices.remove(pet.petId);
+        continue;
+      }
+
+      final sessionKey = _homePetPoseSessionKey(petType, pet.petId);
+      final currentPoseIndex =
+          _petPoseIndices[pet.petId] ??
+          _homePetSessionPoseIndices[sessionKey] ??
+          deterministicHomePetPoseIndex(petType, pet.petId);
+      final normalizedPoseIndex = _normalizeHomePetPoseIndex(
+        currentPoseIndex,
+        poseCount,
+      );
+      _petPoseIndices[pet.petId] = normalizedPoseIndex;
+      _homePetSessionPoseIndices[sessionKey] = normalizedPoseIndex;
+    }
+  }
+
+  int _currentHomePetPoseIndex(
+    String petType,
+    int petId,
+    _AssignedPetPlacement placement,
+    int poseCount,
+  ) {
+    if (poseCount <= 0) {
+      return 0;
+    }
+    if (_placementUsesRestPosePreference(placement) ||
+        !_shouldRotateHomePetPosesForType(petType)) {
+      return _normalizeHomePetPoseIndex(
+        deterministicHomePetPoseIndex(petType, petId),
+        poseCount,
+      );
+    }
+
+    final sessionKey = _homePetPoseSessionKey(petType, petId);
+    final cachedPoseIndex =
+        _petPoseIndices[petId] ?? _homePetSessionPoseIndices[sessionKey];
+    return _normalizeHomePetPoseIndex(
+      cachedPoseIndex ?? deterministicHomePetPoseIndex(petType, petId),
+      poseCount,
+    );
+  }
+
+  void _setCurrentHomePetPoseIndex({
+    required String petType,
+    required int petId,
+    required int poseIndex,
+    required int poseCount,
+  }) {
+    final normalizedPoseIndex = _normalizeHomePetPoseIndex(
+      poseIndex,
+      poseCount,
+    );
+    _petPoseIndices[petId] = normalizedPoseIndex;
+    _homePetSessionPoseIndices[_homePetPoseSessionKey(petType, petId)] =
+        normalizedPoseIndex;
+  }
+
+  int _nextDynamicHomePetPoseIndex({
+    required int currentPoseIndex,
+    required int poseCount,
+  }) {
+    if (poseCount < 2) {
+      return _normalizeHomePetPoseIndex(currentPoseIndex, poseCount);
+    }
+
+    final offset = _petPoseRandom.nextInt(poseCount - 1) + 1;
+    return (currentPoseIndex + offset) % poseCount;
+  }
+
+  int _normalizeHomePetPoseIndex(int poseIndex, int poseCount) {
+    if (poseCount <= 0) {
+      return 0;
+    }
+    final normalized = poseIndex % poseCount;
+    return normalized < 0 ? normalized + poseCount : normalized;
+  }
+
+  bool _placementUsesRestPosePreference(_AssignedPetPlacement placement) {
+    return _homePetCandidatePoints[placement.candidateIndex].preferRestPose;
+  }
+
+  int _initialHomePetPoseIndex(String petType, int petId, int poseCount) {
+    final placement = _petPlacements[petId];
+    if (placement == null) {
+      return 0;
+    }
+    return _currentHomePetPoseIndex(petType, petId, placement, poseCount);
+  }
+
+  List<String> _homePoseAssetPathsForPlacement(
+    String petType,
+    int petId,
+    _AssignedPetPlacement placement,
+  ) {
+    if (_placementUsesRestPosePreference(placement)) {
+      return _preferredRestingHomePoseAssetPaths(petType);
+    }
+    if (_shouldRotateHomePetPosesForType(petType)) {
+      return List<String>.unmodifiable(
+        petHomePoseVariantsForType(
+          petType,
+        ).map((assetName) => 'images/pets/$assetName'),
+      );
+    }
+    return <String>[
+      petHomeAssetPath(petType, deterministicHomePetPoseIndex(petType, petId)),
+    ];
+  }
+
+  List<String> _preferredRestingHomePoseAssetPaths(String petType) {
+    final variantNames = petHomePoseVariantsForType(petType);
+    final preferredLie = variantNames.where((name) => name.contains('lie'));
+    final preferredSleep = variantNames.where((name) => name.contains('sleep'));
+    final chosenVariant = preferredLie.isNotEmpty
+        ? preferredLie.first
+        : (preferredSleep.isNotEmpty
+              ? preferredSleep.first
+              : variantNames.first);
+    return <String>['images/pets/$chosenVariant'];
+  }
+
+  List<_PetPoseVariantSpec> _buildPetPoseVariants({
+    required String petType,
+    required int petId,
+    required _AssignedPetPlacement placement,
+    required _PetLayoutProfile layout,
+  }) {
+    final assetPaths = _homePoseAssetPathsForPlacement(
+      petType,
+      petId,
+      placement,
+    );
+    return List<_PetPoseVariantSpec>.generate(assetPaths.length, (index) {
+      final assetPath = assetPaths[index];
+      final cropRect = _petCropRectForAsset(assetPath);
+      final animation = _petAnimationForAsset(assetPath);
+      return _PetPoseVariantSpec(
+        rect: _petRectForPlacement(placement, layout, cropRect: cropRect),
+        assetPath: assetPath,
+        cropRect: cropRect,
+        animationFrameAssetPaths:
+            animation?.frameAssetPaths ?? const <String>[],
+        animationFrameDurations: animation?.frameDurations ?? const <double>[],
+      );
+    });
   }
 
   _RectFactor? _petCropRectForAsset(String assetPath) {
@@ -807,6 +1180,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       fit: _profile.backgroundFit,
     );
     await world.add(_background);
+    await _preloadSceneUiAssets();
 
     if (_sceneSize.x > 0 && _sceneSize.y > 0) {
       _rebuildUiFromProfile();
@@ -816,6 +1190,15 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     if (_openTaskPanelWhenReady) {
       _openTaskPanelWhenReady = false;
       _showTaskPanel();
+    }
+  }
+
+  Future<void> _preloadSceneUiAssets() async {
+    for (final spec in _profile.specs) {
+      if (spec is! _SceneSpriteSpec) {
+        continue;
+      }
+      await images.load(spec.assetPath);
     }
   }
 
@@ -979,6 +1362,19 @@ Size _resolveHomePetRenderSize({
 
 enum _UiReferenceSpace { viewport, background }
 
+Rect _resolveUiRectForReferenceSpace({
+  required _RectFactor rect,
+  required Vector2 sceneSize,
+  required Rect backgroundRect,
+  required _UiReferenceSpace referenceSpace,
+}) {
+  final referenceRect = switch (referenceSpace) {
+    _UiReferenceSpace.viewport => Rect.fromLTWH(0, 0, sceneSize.x, sceneSize.y),
+    _UiReferenceSpace.background => backgroundRect,
+  };
+  return rect.resolveInRect(referenceRect);
+}
+
 abstract class _UiSpec {
   const _UiSpec({
     required this.rect,
@@ -993,16 +1389,12 @@ abstract class _UiSpec {
   final _UiReferenceSpace referenceSpace;
 
   Rect resolveRect(Vector2 sceneSize, Rect backgroundRect) {
-    final referenceRect = switch (referenceSpace) {
-      _UiReferenceSpace.viewport => Rect.fromLTWH(
-        0,
-        0,
-        sceneSize.x,
-        sceneSize.y,
-      ),
-      _UiReferenceSpace.background => backgroundRect,
-    };
-    return rect.resolveInRect(referenceRect);
+    return _resolveUiRectForReferenceSpace(
+      rect: rect,
+      sceneSize: sceneSize,
+      backgroundRect: backgroundRect,
+      referenceSpace: referenceSpace,
+    );
   }
 
   _AnimatedSceneComponent build({
@@ -1046,38 +1438,83 @@ class _SceneSpriteSpec extends _UiSpec {
   }
 }
 
+class _PetPoseVariantSpec {
+  const _PetPoseVariantSpec({
+    required this.rect,
+    required this.assetPath,
+    this.cropRect,
+    this.animationFrameAssetPaths = const <String>[],
+    this.animationFrameDurations = const <double>[],
+  });
+
+  final _RectFactor rect;
+  final String assetPath;
+  final _RectFactor? cropRect;
+  final List<String> animationFrameAssetPaths;
+  final List<double> animationFrameDurations;
+}
+
+class _ResolvedPetPoseVariant {
+  const _ResolvedPetPoseVariant({
+    required this.rect,
+    required this.assetPath,
+    this.cropRect,
+    this.animationFrameAssetPaths = const <String>[],
+    this.animationFrameDurations = const <double>[],
+  });
+
+  final Rect rect;
+  final String assetPath;
+  final _RectFactor? cropRect;
+  final List<String> animationFrameAssetPaths;
+  final List<double> animationFrameDurations;
+}
+
 class _PetSpriteSpec extends _UiSpec {
   const _PetSpriteSpec({
     required super.rect,
-    required this.assetPath,
-    this.cropRect,
     this.onTap,
-    this.animationFrameAssetPaths = const <String>[],
-    this.animationFrameDurations = const <double>[],
+    required this.poseVariants,
+    required this.initialPoseIndex,
+    this.contactShadow,
     super.referenceSpace,
     required super.entryDelay,
     required super.entryOffset,
   });
 
-  final String assetPath;
-  final _RectFactor? cropRect;
   final VoidCallback? onTap;
-  final List<String> animationFrameAssetPaths;
-  final List<double> animationFrameDurations;
+  final List<_PetPoseVariantSpec> poseVariants;
+  final int initialPoseIndex;
+  final _PetContactShadowSpec? contactShadow;
 
   @override
   _AnimatedSceneComponent build({
     required Vector2 sceneSize,
     required Rect backgroundRect,
   }) {
-    final resolved = resolveRect(sceneSize, backgroundRect);
+    final resolvedPoseVariants = List<_ResolvedPetPoseVariant>.generate(
+      poseVariants.length,
+      (index) {
+        final variant = poseVariants[index];
+        return _ResolvedPetPoseVariant(
+          rect: _resolveUiRectForReferenceSpace(
+            rect: variant.rect,
+            sceneSize: sceneSize,
+            backgroundRect: backgroundRect,
+            referenceSpace: referenceSpace,
+          ),
+          assetPath: variant.assetPath,
+          cropRect: variant.cropRect,
+          animationFrameAssetPaths: variant.animationFrameAssetPaths,
+          animationFrameDurations: variant.animationFrameDurations,
+        );
+      },
+    );
     return _PetSpriteComponent(
-      rect: resolved,
-      assetPath: assetPath,
-      cropRect: cropRect,
+      poseVariants: resolvedPoseVariants,
+      initialPoseIndex: initialPoseIndex,
+      contactShadow: contactShadow,
       onTap: onTap,
-      animationFrameAssetPaths: animationFrameAssetPaths,
-      animationFrameDurations: animationFrameDurations,
       entryDelay: entryDelay,
       entryOffset: entryOffset,
     );
@@ -1176,12 +1613,13 @@ abstract class _AnimatedSceneComponent extends PositionComponent
   _AnimatedSceneComponent({
     required super.position,
     required super.size,
+    int priority = 0,
     required this.entryDelay,
     required this.entryOffset,
     this.onTap,
     this.pressedScale = 0.94,
     Anchor anchor = Anchor.topLeft,
-  }) : super(anchor: anchor);
+  }) : super(anchor: anchor, priority: priority);
 
   final double entryDelay;
   final double entryOffset;
@@ -1545,6 +1983,7 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
          position: _positionForRect(rect, behavior),
          size: Vector2(rect.width, rect.height),
          anchor: _anchorForBehavior(behavior),
+         priority: _homeSceneUiRenderPriority,
          pressedScale: behavior == _SceneSpriteBehavior.taskNote ? 0.94 : 1,
        );
 
@@ -1690,72 +2129,87 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
   }
 }
 
+class _LoadedPetPoseVariant {
+  _LoadedPetPoseVariant({
+    required this.rect,
+    this.sprite,
+    this.animationFrames = const <Sprite>[],
+    this.animationFrameDurations = const <double>[],
+  });
+
+  final Rect rect;
+  final Sprite? sprite;
+  final List<Sprite> animationFrames;
+  final List<double> animationFrameDurations;
+}
+
 class _PetSpriteComponent extends _AnimatedSceneComponent
     with HasGameReference<HomeSceneGame> {
   _PetSpriteComponent({
-    required Rect rect,
-    required this.assetPath,
-    this.cropRect,
-    this.animationFrameAssetPaths = const <String>[],
-    this.animationFrameDurations = const <double>[],
+    required List<_ResolvedPetPoseVariant> poseVariants,
+    required int initialPoseIndex,
+    this.contactShadow,
     required super.entryDelay,
     required super.entryOffset,
     super.onTap,
-  }) : super(
-         position: Vector2(rect.left, rect.top),
-         size: Vector2(rect.width, rect.height),
+  }) : assert(poseVariants.isNotEmpty),
+       poseVariants = List<_ResolvedPetPoseVariant>.unmodifiable(poseVariants),
+       _initialPoseIndex = _normalizePoseIndexFor(
+         initialPoseIndex,
+         poseVariants.length,
+       ),
+       super(
+         position: Vector2(
+           _initialPoseRect(poseVariants, initialPoseIndex).left,
+           _initialPoseRect(poseVariants, initialPoseIndex).top,
+         ),
+         size: Vector2(
+           _initialPoseRect(poseVariants, initialPoseIndex).width,
+           _initialPoseRect(poseVariants, initialPoseIndex).height,
+         ),
+         priority: _homePetRenderPriority,
        );
 
-  final String assetPath;
-  final _RectFactor? cropRect;
-  final List<String> animationFrameAssetPaths;
-  final List<double> animationFrameDurations;
+  final List<_ResolvedPetPoseVariant> poseVariants;
+  final int _initialPoseIndex;
+  final _PetContactShadowSpec? contactShadow;
 
-  Sprite? _sprite;
-  final List<Sprite> _animationFrames = <Sprite>[];
+  final List<_LoadedPetPoseVariant> _loadedPoseVariants =
+      <_LoadedPetPoseVariant>[];
+  final Paint _spritePaint = Paint();
+  final Paint _shadowPaint = Paint();
   double _animationElapsed = 0;
   int _animationIndex = 0;
-  final Paint _spritePaint = Paint();
+  int _activePoseIndex = 0;
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
 
-    if (animationFrameAssetPaths.isNotEmpty) {
-      for (final frameAssetPath in animationFrameAssetPaths) {
-        _animationFrames.add(Sprite(await game.images.load(frameAssetPath)));
-      }
-      return;
+    for (final poseVariant in poseVariants) {
+      _loadedPoseVariants.add(await _loadPoseVariant(poseVariant));
     }
 
-    final image = await game.images.load(assetPath);
-    final clip = cropRect;
-    if (clip == null) {
-      _sprite = Sprite(image);
-      return;
-    }
-
-    final sourceSize = Vector2(image.width.toDouble(), image.height.toDouble());
-    final sourceRect = clip.resolve(sourceSize);
-    _sprite = Sprite(
-      image,
-      srcPosition: Vector2(sourceRect.left, sourceRect.top),
-      srcSize: Vector2(sourceRect.width, sourceRect.height),
-    );
+    _applyPose(_initialPoseIndex);
   }
 
   @override
   void update(double dt) {
     super.update(dt);
 
-    if (_animationFrames.length < 2) {
+    final activePose = _activePose;
+    if (activePose == null) {
       return;
     }
 
-    _animationElapsed += dt;
-    while (_animationElapsed >= _frameDurationFor(_animationIndex)) {
-      _animationElapsed -= _frameDurationFor(_animationIndex);
-      _animationIndex = (_animationIndex + 1) % _animationFrames.length;
+    final animationFrames = activePose.animationFrames;
+    if (animationFrames.length >= 2) {
+      _animationElapsed += dt;
+      while (_animationElapsed >=
+          _frameDurationFor(activePose, _animationIndex)) {
+        _animationElapsed -= _frameDurationFor(activePose, _animationIndex);
+        _animationIndex = (_animationIndex + 1) % animationFrames.length;
+      }
     }
   }
 
@@ -1768,24 +2222,136 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
       return;
     }
 
+    _renderContactShadow(canvas);
+
     _spritePaint.color = const Color(
       0xFFFFFFFF,
     ).withValues(alpha: opacity.clamp(0, 1).toDouble());
     sprite.render(canvas, size: size, overridePaint: _spritePaint);
   }
 
-  Sprite? get _activeSprite {
-    if (_animationFrames.isNotEmpty) {
-      return _animationFrames[_animationIndex];
+  _LoadedPetPoseVariant? get _activePose {
+    if (_loadedPoseVariants.isEmpty) {
+      return null;
     }
-    return _sprite;
+    return _loadedPoseVariants[_activePoseIndex];
   }
 
-  double _frameDurationFor(int frameIndex) {
-    if (frameIndex >= 0 && frameIndex < animationFrameDurations.length) {
-      return animationFrameDurations[frameIndex];
+  Sprite? get _activeSprite {
+    final activePose = _activePose;
+    if (activePose == null) {
+      return null;
+    }
+    if (activePose.animationFrames.isNotEmpty) {
+      return activePose.animationFrames[_animationIndex];
+    }
+    return activePose.sprite;
+  }
+
+  Future<_LoadedPetPoseVariant> _loadPoseVariant(
+    _ResolvedPetPoseVariant poseVariant,
+  ) async {
+    if (poseVariant.animationFrameAssetPaths.isNotEmpty) {
+      final animationFrames = <Sprite>[];
+      for (final frameAssetPath in poseVariant.animationFrameAssetPaths) {
+        animationFrames.add(Sprite(await game.images.load(frameAssetPath)));
+      }
+      return _LoadedPetPoseVariant(
+        rect: poseVariant.rect,
+        animationFrames: animationFrames,
+        animationFrameDurations: poseVariant.animationFrameDurations,
+      );
+    }
+
+    final image = await game.images.load(poseVariant.assetPath);
+    final clip = poseVariant.cropRect;
+    if (clip == null) {
+      return _LoadedPetPoseVariant(
+        rect: poseVariant.rect,
+        sprite: Sprite(image),
+      );
+    }
+
+    final sourceSize = Vector2(image.width.toDouble(), image.height.toDouble());
+    final sourceRect = clip.resolve(sourceSize);
+    return _LoadedPetPoseVariant(
+      rect: poseVariant.rect,
+      sprite: Sprite(
+        image,
+        srcPosition: Vector2(sourceRect.left, sourceRect.top),
+        srcSize: Vector2(sourceRect.width, sourceRect.height),
+      ),
+    );
+  }
+
+  void _applyPose(int poseIndex) {
+    _activePoseIndex = _normalizePoseIndexFor(
+      poseIndex,
+      _loadedPoseVariants.length,
+    );
+    final activePose = _activePose;
+    if (activePose == null) {
+      return;
+    }
+
+    position.setValues(activePose.rect.left, activePose.rect.top);
+    size.setValues(activePose.rect.width, activePose.rect.height);
+    _animationElapsed = 0;
+    _animationIndex = 0;
+  }
+
+  double _frameDurationFor(_LoadedPetPoseVariant pose, int frameIndex) {
+    if (frameIndex >= 0 && frameIndex < pose.animationFrameDurations.length) {
+      return pose.animationFrameDurations[frameIndex];
     }
     return 0.18;
+  }
+
+  void _renderContactShadow(Canvas canvas) {
+    final shadow = contactShadow;
+    if (shadow == null) {
+      return;
+    }
+
+    final shadowWidth = size.x * shadow.widthFactor;
+    final shadowHeight = size.y * shadow.heightFactor;
+    if (shadowWidth <= 0 || shadowHeight <= 0) {
+      return;
+    }
+
+    final shadowRect = Rect.fromCenter(
+      center: Offset(size.x * 0.5, size.y * shadow.centerYFactor),
+      width: shadowWidth,
+      height: shadowHeight,
+    );
+    _shadowPaint
+      ..color = const Color(
+        0xFF3E2A1B,
+      ).withValues(alpha: shadow.opacity * opacity.clamp(0, 1).toDouble())
+      ..maskFilter = MaskFilter.blur(
+        BlurStyle.normal,
+        math.max(size.y * shadow.blurSigmaFactor, 1),
+      );
+    canvas.drawOval(shadowRect, _shadowPaint);
+  }
+
+  static Rect _initialPoseRect(
+    List<_ResolvedPetPoseVariant> poseVariants,
+    int initialPoseIndex,
+  ) {
+    final normalizedIndex = _normalizePoseIndexFor(
+      initialPoseIndex,
+      poseVariants.length,
+    );
+    return poseVariants[normalizedIndex].rect;
+  }
+
+  static int _normalizePoseIndexFor(int poseIndex, int poseCount) {
+    if (poseCount <= 0) {
+      return 0;
+    }
+    final normalized = poseIndex % poseCount;
+    return normalized < 0 ? normalized + poseCount : normalized;
   }
 }
 

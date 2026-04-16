@@ -258,11 +258,16 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     });
   }
 
+  void _advanceHomePetPosesAfterUiChange() {
+    _game.advanceDynamicHomePetPoses();
+  }
+
   void _openFamily() {
     if (!mounted) {
       return;
     }
 
+    _advanceHomePetPosesAfterUiChange();
     context.go('/family');
   }
 
@@ -321,6 +326,10 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       },
     );
     _shopPanelVisible = false;
+
+    if (mounted) {
+      _advanceHomePetPosesAfterUiChange();
+    }
 
     if (!mounted || !clearRouteAfterClose) {
       return;
@@ -460,6 +469,8 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       _taskPanelPressedInteractionKey = null;
     });
 
+    _advanceHomePetPosesAfterUiChange();
+
     if (!shouldClearRoute) {
       return;
     }
@@ -531,6 +542,13 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         break;
       case null:
         break;
+    }
+
+    if (mounted &&
+        !_taskPanelVisible &&
+        !_petDetailVisible &&
+        !_shopPanelVisible) {
+      _advanceHomePetPosesAfterUiChange();
     }
   }
 
@@ -2260,6 +2278,8 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       _petDetailBackdropInteractive = false;
       _activePetDetail = null;
     });
+
+    _advanceHomePetPosesAfterUiChange();
   }
 
   Widget _buildPetDetailOverlay(Size size) {

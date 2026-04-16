@@ -54,8 +54,20 @@ List<String> petPoseVariantsForType(String petType) {
   return list ?? _petPoseVariants['dog']!;
 }
 
+List<String> petHomePoseVariantsForType(String petType) {
+  final normalized = normalizePetType(petType);
+  final list = _petHomePoseVariants[normalized] ?? _petPoseVariants[normalized];
+  return list ?? _petPoseVariants['dog']!;
+}
+
 int deterministicPetPoseIndex(String petType, int seed) {
   final variants = petPoseVariantsForType(petType);
+  final adjustedSeed = (seed ^ petType.hashCode) & 0x7fffffff;
+  return variants.isEmpty ? 0 : adjustedSeed % variants.length;
+}
+
+int deterministicHomePetPoseIndex(String petType, int seed) {
+  final variants = petHomePoseVariantsForType(petType);
   final adjustedSeed = (seed ^ petType.hashCode) & 0x7fffffff;
   return variants.isEmpty ? 0 : adjustedSeed % variants.length;
 }
@@ -70,9 +82,7 @@ String petAvatarAssetPath(String petType, int poseIndex) {
 }
 
 String petHomeAssetPath(String petType, int poseIndex) {
-  final variants =
-      _petHomePoseVariants[normalizePetType(petType)] ??
-      petPoseVariantsForType(petType);
+  final variants = petHomePoseVariantsForType(petType);
   if (variants.isEmpty) {
     return 'images/pets/dog_lie.png';
   }

@@ -85,6 +85,75 @@ void main() {
       expect(secondAssignments, firstAssignments);
     });
 
+    test(
+      'cat and dog expose three home pose variants for UI-triggered switching',
+      () {
+        final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+
+        game.replacePetEntries(const <HomeScenePetSeed>[
+          HomeScenePetSeed(petId: 11, petType: 'cat'),
+          HomeScenePetSeed(petId: 22, petType: 'dog'),
+          HomeScenePetSeed(petId: 33, petType: 'hamster'),
+        ]);
+
+        final poseVariants = game.debugPetPoseAssetVariants();
+
+        expect(HomeSceneGame.debugUsesDynamicHomePoseSwitching('cat'), isTrue);
+        expect(HomeSceneGame.debugUsesDynamicHomePoseSwitching('dog'), isTrue);
+        expect(
+          HomeSceneGame.debugUsesDynamicHomePoseSwitching('hamster'),
+          isFalse,
+        );
+        expect(poseVariants[11], hasLength(3));
+        expect(poseVariants[22], hasLength(3));
+        expect(poseVariants[33], hasLength(1));
+      },
+    );
+
+    test(
+      'keeps current cat and dog poses stable until explicitly advanced',
+      () {
+        final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+        const pets = <HomeScenePetSeed>[
+          HomeScenePetSeed(petId: 11, petType: 'cat'),
+          HomeScenePetSeed(petId: 22, petType: 'dog'),
+        ];
+
+        game.replacePetEntries(pets);
+        final firstAssets = game.debugCurrentPetPoseAssetPaths();
+
+        game.replacePetEntries(pets);
+        final secondAssets = game.debugCurrentPetPoseAssetPaths();
+
+        expect(secondAssets, firstAssets);
+      },
+    );
+
+    test('advances cat and dog poses only when explicitly requested', () {
+      final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+
+      game.replacePetEntries(const <HomeScenePetSeed>[
+        HomeScenePetSeed(petId: 11, petType: 'cat'),
+        HomeScenePetSeed(petId: 22, petType: 'dog'),
+        HomeScenePetSeed(petId: 33, petType: 'hamster'),
+      ]);
+
+      final beforeAdvance = game.debugCurrentPetPoseAssetPaths();
+      final changed = game.advanceDynamicHomePetPoses();
+      final afterAdvance = game.debugCurrentPetPoseAssetPaths();
+      final dynamicChanges = <bool>[
+        afterAdvance[11] != beforeAdvance[11],
+        afterAdvance[22] != beforeAdvance[22],
+      ];
+
+      expect(changed, isTrue);
+      expect(
+        dynamicChanges.where((value) => value).length,
+        greaterThanOrEqualTo(1),
+      );
+      expect(afterAdvance[33], equals(beforeAdvance[33]));
+    });
+
     test('adds overflow pets with local jitter when candidates are full', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
       final petCount = game.debugPetCandidateCount + 2;
@@ -149,6 +218,31 @@ void main() {
         final minArea = renderAreas.reduce(math.min);
         final maxArea = renderAreas.reduce(math.max);
         expect(maxArea / minArea, lessThan(1.01));
+      },
+    );
+
+    test(
+      'dynamic cat and dog pose variants stay inside the home scene bounds',
+      () {
+        final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+
+        game.replacePetEntries(const <HomeScenePetSeed>[
+          HomeScenePetSeed(petId: 101, petType: 'cat'),
+          HomeScenePetSeed(petId: 202, petType: 'dog'),
+        ]);
+
+        final poseVariantRects = game.debugPetPoseVariantRects();
+        expect(poseVariantRects[101], hasLength(3));
+        expect(poseVariantRects[202], hasLength(3));
+
+        for (final rects in poseVariantRects.values) {
+          for (final rect in rects) {
+            expect(rect.left, greaterThanOrEqualTo(-0.0001));
+            expect(rect.top, greaterThanOrEqualTo(-0.0001));
+            expect(rect.right, lessThanOrEqualTo(1.0001));
+            expect(rect.bottom, lessThanOrEqualTo(1.0001));
+          }
+        }
       },
     );
 
