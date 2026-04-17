@@ -5,6 +5,32 @@ import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:homepets/screens/home/game/home_scene_game.dart';
 
+const _staticHomePetAssetPaths = <String>[
+  'images/pets/pets/cat_lying.png',
+  'images/pets/pets/cat_sit.png',
+  'images/pets/pets/cat_sleep.png',
+  'images/pets/pets/dog_lying.png',
+  'images/pets/pets/dog_sit.png',
+  'images/pets/pets/dog_sleep.png',
+  'images/pets/pets/hamster_stand.png',
+  'images/pets/pets/hamster_sit.png',
+  'images/pets/pets/hamster_sleep.png',
+  'images/pets/pets/rabbit_lying.png',
+  'images/pets/pets/rabbit_sit.png',
+  'images/pets/pets/rabbit_sleep.png',
+  'images/pets/pets/turtle_lying.png',
+  'images/pets/pets/turtle_sit.png',
+  'images/pets/pets/turtle_sleep.png',
+];
+
+const _rightArmchairSitAssetPaths = <String>[
+  'images/pets/pets/cat_sit.png',
+  'images/pets/pets/dog_sit.png',
+  'images/pets/pets/hamster_sit.png',
+  'images/pets/pets/rabbit_sit.png',
+  'images/pets/pets/turtle_sit.png',
+];
+
 void main() {
   group('HomeSceneGame', () {
     test('follows mobile viewport size after resize', () {
@@ -105,86 +131,96 @@ void main() {
     });
 
     test(
-      'cat and dog expose three home pose variants for UI-triggered switching',
+      'uses one static homepage pet asset per pet from the new asset set',
       () {
         final game = HomeSceneGame(device: HomeSceneDevice.mobile);
-        final petCount = game.debugPetCandidateCount;
-
-        game.replacePetEntries(
-          List<HomeScenePetSeed>.generate(
-            petCount,
-            (index) => HomeScenePetSeed(
-              petId: index + 1,
-              petType: index.isEven ? 'cat' : 'dog',
-            ),
-          ),
-        );
-
-        final poseVariants = game.debugPetPoseAssetVariants();
-        final variantCounts = poseVariants.values
-            .map((variants) => variants.length)
-            .toList();
-
-        expect(HomeSceneGame.debugUsesDynamicHomePoseSwitching('cat'), isTrue);
-        expect(HomeSceneGame.debugUsesDynamicHomePoseSwitching('dog'), isTrue);
-        expect(
-          HomeSceneGame.debugUsesDynamicHomePoseSwitching('hamster'),
-          isFalse,
-        );
-        expect(
-          variantCounts.where((count) => count == 3).length,
-          greaterThanOrEqualTo(1),
-        );
-        expect(
-          variantCounts.where((count) => count == 1).length,
-          greaterThanOrEqualTo(1),
-        );
-      },
-    );
-
-    test(
-      'keeps current cat and dog poses stable until explicitly advanced',
-      () {
-        final game = HomeSceneGame(device: HomeSceneDevice.mobile);
-        const pets = <HomeScenePetSeed>[
+        game.replacePetEntries(const <HomeScenePetSeed>[
           HomeScenePetSeed(petId: 11, petType: 'cat'),
           HomeScenePetSeed(petId: 22, petType: 'dog'),
-        ];
+          HomeScenePetSeed(petId: 33, petType: 'hamster'),
+          HomeScenePetSeed(petId: 44, petType: 'rabbit'),
+          HomeScenePetSeed(petId: 55, petType: 'turtle'),
+        ]);
 
-        game.replacePetEntries(pets);
-        final firstAssets = game.debugCurrentPetPoseAssetPaths();
+        final poseVariants = game.debugPetPoseAssetVariants();
+        expect(poseVariants.length, 5);
 
-        game.replacePetEntries(pets);
-        final secondAssets = game.debugCurrentPetPoseAssetPaths();
-
-        expect(secondAssets, firstAssets);
+        for (final variants in poseVariants.values) {
+          expect(variants, hasLength(1));
+          expect(variants.single, startsWith('images/pets/pets/'));
+          expect(variants.single, endsWith('.png'));
+        }
       },
     );
 
-    test('advances cat and dog poses only when explicitly requested', () {
+    test('keeps homepage pet asset paths stable across refreshes', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
-      final petCount = game.debugPetCandidateCount;
+      const pets = <HomeScenePetSeed>[
+        HomeScenePetSeed(petId: 11, petType: 'cat'),
+        HomeScenePetSeed(petId: 22, petType: 'dog'),
+      ];
 
-      game.replacePetEntries(
-        List<HomeScenePetSeed>.generate(
-          petCount,
-          (index) => HomeScenePetSeed(
-            petId: index + 1,
-            petType: index.isEven ? 'cat' : 'dog',
-          ),
+      game.replacePetEntries(pets);
+      final firstAssets = game.debugCurrentPetPoseAssetPaths();
+
+      game.replacePetEntries(pets);
+      final secondAssets = game.debugCurrentPetPoseAssetPaths();
+
+      expect(secondAssets, firstAssets);
+    });
+
+    test('keeps cat and dog off lying poses on the homepage', () {
+      final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+      game.replacePetEntries(const <HomeScenePetSeed>[
+        HomeScenePetSeed(petId: 11, petType: 'cat'),
+        HomeScenePetSeed(petId: 12, petType: 'dog'),
+        HomeScenePetSeed(petId: 13, petType: 'cat'),
+        HomeScenePetSeed(petId: 14, petType: 'dog'),
+        HomeScenePetSeed(petId: 15, petType: 'cat'),
+        HomeScenePetSeed(petId: 16, petType: 'dog'),
+      ]);
+
+      final currentAssets = game.debugCurrentPetPoseAssetPaths().values;
+      expect(
+        currentAssets.where(
+          (assetPath) =>
+              assetPath.contains('cat_lying') ||
+              assetPath.contains('dog_lying'),
         ),
+        isEmpty,
       );
+    });
 
-      final beforeAdvance = game.debugCurrentPetPoseAssetPaths();
-      final changed = game.advanceDynamicHomePetPoses();
-      final afterAdvance = game.debugCurrentPetPoseAssetPaths();
-      final dynamicChanges = beforeAdvance.keys
-          .map((petId) => afterAdvance[petId] != beforeAdvance[petId])
-          .where((value) => value)
-          .length;
+    test('uses static sit and rest poses for preferred home slots', () {
+      final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+      game.replacePetEntries(const <HomeScenePetSeed>[
+        HomeScenePetSeed(petId: 101, petType: 'hamster'),
+        HomeScenePetSeed(petId: 102, petType: 'rabbit'),
+        HomeScenePetSeed(petId: 103, petType: 'turtle'),
+        HomeScenePetSeed(petId: 104, petType: 'cat'),
+        HomeScenePetSeed(petId: 105, petType: 'dog'),
+        HomeScenePetSeed(petId: 106, petType: 'hamster'),
+        HomeScenePetSeed(petId: 107, petType: 'dog'),
+        HomeScenePetSeed(petId: 108, petType: 'cat'),
+      ]);
 
-      expect(changed, isTrue);
-      expect(dynamicChanges, greaterThanOrEqualTo(1));
+      final assignments = game.debugPetCandidateAssignments();
+      final currentAssets = game.debugCurrentPetPoseAssetPaths();
+      final bookshelfPetId = assignments.entries
+          .singleWhere((entry) => entry.value == 8)
+          .key;
+      final armchairPetId = assignments.entries
+          .singleWhere((entry) => entry.value == 9)
+          .key;
+
+      expect(
+        currentAssets[bookshelfPetId],
+        anyOf(contains('lying'), contains('sleep')),
+      );
+      expect(
+        currentAssets[armchairPetId],
+        anyOf(contains('sit'), contains('stand')),
+      );
     });
 
     test('adds overflow pets with local jitter when candidates are full', () {
@@ -212,26 +248,83 @@ void main() {
       );
     });
 
+    test('defines a home scale override for every homepage pose asset', () {
+      for (final assetPath in _staticHomePetAssetPaths) {
+        expect(HomeSceneGame.debugHasHomePetScaleOverride(assetPath), isTrue);
+      }
+    });
+
+    test('keeps dog sit more restrained than cat and rabbit sit poses', () {
+      expect(
+        HomeSceneGame.debugHomePetScaleForAssetPath(
+          'images/pets/pets/dog_sit.png',
+        ),
+        lessThan(
+          HomeSceneGame.debugHomePetScaleForAssetPath(
+            'images/pets/pets/cat_sit.png',
+          ),
+        ),
+      );
+      expect(
+        HomeSceneGame.debugHomePetScaleForAssetPath(
+          'images/pets/pets/dog_sit.png',
+        ),
+        lessThan(
+          HomeSceneGame.debugHomePetScaleForAssetPath(
+            'images/pets/pets/rabbit_sit.png',
+          ),
+        ),
+      );
+    });
+
     test(
-      'normalizes home pet render areas after trimming asset whitespace',
+      'applies perspective scaling so near slots render larger than far slots',
+      () {
+        expect(
+          HomeSceneGame.debugPerspectiveScaleForCandidate(8),
+          lessThan(HomeSceneGame.debugPerspectiveScaleForCandidate(0)),
+        );
+        expect(
+          HomeSceneGame.debugPerspectiveScaleForCandidate(0),
+          lessThan(HomeSceneGame.debugPerspectiveScaleForCandidate(7)),
+        );
+      },
+    );
+
+    test('uses actual source aspect ratios for home pet sizing', () {
+      const slotSize = Size(69, 100);
+
+      final rabbitSitCrop = HomeSceneGame.debugPetCropRectForAssetPath(
+        'images/pets/pets/rabbit_sit.png',
+      );
+      final catLyingCrop = HomeSceneGame.debugPetCropRectForAssetPath(
+        'images/pets/pets/cat_lying.png',
+      );
+
+      expect(rabbitSitCrop, isNotNull);
+      expect(catLyingCrop, isNotNull);
+
+      final rabbitSitSize = HomeSceneGame.debugPetRenderSize(
+        assetPath: 'images/pets/pets/rabbit_sit.png',
+        slotSize: slotSize,
+        sourceSize: rabbitSitCrop!.size,
+      );
+      final catLyingSize = HomeSceneGame.debugPetRenderSize(
+        assetPath: 'images/pets/pets/cat_lying.png',
+        slotSize: slotSize,
+        sourceSize: catLyingCrop!.size,
+      );
+
+      expect(rabbitSitSize.width, lessThan(rabbitSitSize.height));
+      expect(catLyingSize.width, greaterThan(catLyingSize.height * 2));
+    });
+
+    test(
+      'preserves varied home pet render areas after trimming whitespace',
       () {
         const slotSize = Size(69, 100);
-        const assetPaths = <String>[
-          'images/pets/cat_lie.png',
-          'images/pets/cat_sit.png',
-          'images/pets/cat_sleep_clean.png',
-          'images/pets/dog_lie.png',
-          'images/pets/dog_sit.png',
-          'images/pets/dog_sleep_clean.png',
-          'images/pets/hamster_lie_.png',
-          'images/pets/hamster_sit.png',
-          'images/pets/hamster_sleep.png',
-          'images/pets/rabbit_sit.png',
-          'images/pets/rabbit_sleep.png',
-          'images/pets/turtle_sleep.png',
-        ];
 
-        final renderAreas = assetPaths.map((assetPath) {
+        final renderAreas = _staticHomePetAssetPaths.map((assetPath) {
           final cropRect = HomeSceneGame.debugPetCropRectForAssetPath(
             assetPath,
           );
@@ -242,6 +335,7 @@ void main() {
           );
 
           final renderSize = HomeSceneGame.debugPetRenderSize(
+            assetPath: assetPath,
             slotSize: slotSize,
             sourceSize: cropRect!.size,
           );
@@ -250,49 +344,33 @@ void main() {
 
         final minArea = renderAreas.reduce(math.min);
         final maxArea = renderAreas.reduce(math.max);
-        expect(maxArea / minArea, lessThan(1.01));
+        expect(maxArea / minArea, greaterThan(1.25));
       },
     );
 
-    test(
-      'dynamic cat and dog pose variants stay inside the home scene bounds',
-      () {
-        final game = HomeSceneGame(device: HomeSceneDevice.mobile);
-        final petCount = game.debugPetCandidateCount;
+    test('static home pet poses stay inside the home scene bounds', () {
+      final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+      game.replacePetEntries(const <HomeScenePetSeed>[
+        HomeScenePetSeed(petId: 201, petType: 'cat'),
+        HomeScenePetSeed(petId: 202, petType: 'dog'),
+        HomeScenePetSeed(petId: 203, petType: 'hamster'),
+        HomeScenePetSeed(petId: 204, petType: 'rabbit'),
+        HomeScenePetSeed(petId: 205, petType: 'turtle'),
+      ]);
 
-        game.replacePetEntries(
-          List<HomeScenePetSeed>.generate(
-            petCount,
-            (index) => HomeScenePetSeed(
-              petId: 101 + index,
-              petType: index.isEven ? 'cat' : 'dog',
-            ),
-          ),
-        );
+      final poseVariantRects = game.debugPetPoseVariantRects();
 
-        final poseVariantRects = game.debugPetPoseVariantRects();
-        final rectVariantCounts = poseVariantRects.values
-            .map((rects) => rects.length)
-            .toList();
-        expect(
-          rectVariantCounts.where((count) => count == 3).length,
-          greaterThanOrEqualTo(1),
-        );
-        expect(
-          rectVariantCounts.where((count) => count == 1).length,
-          greaterThanOrEqualTo(1),
-        );
+      for (final rects in poseVariantRects.values) {
+        expect(rects, hasLength(1));
 
-        for (final rects in poseVariantRects.values) {
-          for (final rect in rects) {
-            expect(rect.left, greaterThanOrEqualTo(-0.0001));
-            expect(rect.top, greaterThanOrEqualTo(-0.0001));
-            expect(rect.right, lessThanOrEqualTo(1.0001));
-            expect(rect.bottom, lessThanOrEqualTo(1.0001));
-          }
+        for (final rect in rects) {
+          expect(rect.left, greaterThanOrEqualTo(-0.0001));
+          expect(rect.top, greaterThanOrEqualTo(-0.0001));
+          expect(rect.right, lessThanOrEqualTo(1.0001));
+          expect(rect.bottom, lessThanOrEqualTo(1.0001));
         }
-      },
-    );
+      }
+    });
 
     test('renders the floor armchair-adjacent pet above the seat front', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
@@ -311,12 +389,7 @@ void main() {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
       final occluderRect = HomeSceneGame.debugRightArmchairFrontOccluderRect;
 
-      for (final assetPath in const <String>[
-        'images/pets/cat_sit.png',
-        'images/pets/dog_sit.png',
-        'images/pets/hamster_sit.png',
-        'images/pets/rabbit_sit.png',
-      ]) {
+      for (final assetPath in _rightArmchairSitAssetPaths) {
         final rect = game.debugPetRectForCandidate(
           candidateIndex: 9,
           assetPath: assetPath,
@@ -339,12 +412,7 @@ void main() {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
       final occluderRect = HomeSceneGame.debugRightArmchairFrontOccluderRect;
 
-      for (final assetPath in const <String>[
-        'images/pets/cat_sit.png',
-        'images/pets/dog_sit.png',
-        'images/pets/hamster_sit.png',
-        'images/pets/rabbit_sit.png',
-      ]) {
+      for (final assetPath in _rightArmchairSitAssetPaths) {
         final rect = game.debugPetRectForCandidate(
           candidateIndex: 9,
           assetPath: assetPath,
@@ -368,12 +436,7 @@ void main() {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
       final occluderRect = HomeSceneGame.debugRightArmchairSideOccluderRect;
 
-      for (final assetPath in const <String>[
-        'images/pets/cat_sit.png',
-        'images/pets/dog_sit.png',
-        'images/pets/hamster_sit.png',
-        'images/pets/rabbit_sit.png',
-      ]) {
+      for (final assetPath in _rightArmchairSitAssetPaths) {
         final rect = game.debugPetRectForCandidate(
           candidateIndex: 9,
           assetPath: assetPath,
@@ -387,7 +450,7 @@ void main() {
         );
         expect(
           horizontalOverlap,
-          lessThan(rect.width * 0.35),
+          lessThan(rect.width * 0.28),
           reason: '$assetPath is being covered too much at the right corner.',
         );
         expect(

@@ -72,6 +72,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/pets/
+    - assets/images/pets/pets/
     - assets/images/pets/cat/
     - "assets/images/pets/cat/open eyes/"
     - "assets/images/pets/cat/wagging tail/"

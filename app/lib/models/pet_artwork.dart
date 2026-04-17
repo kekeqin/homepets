@@ -6,28 +6,55 @@ const List<String> selectablePetTypes = <String>[
   'turtle',
 ];
 
+const String _petAvatarAssetBasePath = 'assets/images/pets/';
+const String _petHomeAssetBasePath = 'images/pets/';
+
 const Map<String, List<String>> _petPoseVariants = <String, List<String>>{
-  'cat': <String>['cat_lie.png', 'cat_sit.png', 'cat_sleep_clean.png'],
-  'dog': <String>['dog_lie.png', 'dog_sit.png', 'dog_sleep_clean.png'],
-  'hamster': <String>[
-    'hamster_lie_.png',
-    'hamster_sit.png',
-    'hamster_sleep.png',
+  'cat': <String>[
+    'pets/cat_lying.png',
+    'pets/cat_sit.png',
+    'pets/cat_sleep.png',
   ],
-  'rabbit': <String>['rabbit_lie.png', 'rabbit_sit.png', 'rabbit_sleep.png'],
-  'turtle': <String>['turtle_lie.png', 'turtle_sit.png', 'turtle_sleep.png'],
+  'dog': <String>[
+    'pets/dog_lying.png',
+    'pets/dog_sit.png',
+    'pets/dog_sleep.png',
+  ],
+  'hamster': <String>[
+    'pets/hamster_stand.png',
+    'pets/hamster_sit.png',
+    'pets/hamster_sleep.png',
+  ],
+  'rabbit': <String>[
+    'pets/rabbit_lying.png',
+    'pets/rabbit_sit.png',
+    'pets/rabbit_sleep.png',
+  ],
+  'turtle': <String>[
+    'pets/turtle_lying.png',
+    'pets/turtle_sit.png',
+    'pets/turtle_sleep.png',
+  ],
 };
 
 const Map<String, List<String>> _petHomePoseVariants = <String, List<String>>{
-  'cat': <String>['cat_lie.png', 'cat_sit.png', 'cat_sleep_clean.png'],
-  'dog': <String>['dog_lie.png', 'dog_sit.png', 'dog_sleep_clean.png'],
+  'cat': <String>['pets/cat_sit.png', 'pets/cat_sleep.png'],
+  'dog': <String>['pets/dog_sit.png', 'pets/dog_sleep.png'],
   'hamster': <String>[
-    'hamster_lie_.png',
-    'hamster_sit.png',
-    'hamster_sleep.png',
+    'pets/hamster_stand.png',
+    'pets/hamster_sit.png',
+    'pets/hamster_sleep.png',
   ],
-  'rabbit': <String>['rabbit_sit.png', 'rabbit_sleep.png'],
-  'turtle': <String>['turtle_sleep.png'],
+  'rabbit': <String>[
+    'pets/rabbit_lying.png',
+    'pets/rabbit_sit.png',
+    'pets/rabbit_sleep.png',
+  ],
+  'turtle': <String>[
+    'pets/turtle_lying.png',
+    'pets/turtle_sit.png',
+    'pets/turtle_sleep.png',
+  ],
 };
 
 const Map<String, String> _petTypeLabels = <String, String>{
@@ -75,19 +102,19 @@ int deterministicHomePetPoseIndex(String petType, int seed) {
 String petAvatarAssetPath(String petType, int poseIndex) {
   final variants = petPoseVariantsForType(petType);
   if (variants.isEmpty) {
-    return 'assets/images/pets/dog_lie.png';
+    return '${_petAvatarAssetBasePath}pets/dog_lying.png';
   }
   final index = poseIndex % variants.length;
-  return 'assets/images/pets/${variants[index]}';
+  return '$_petAvatarAssetBasePath${variants[index]}';
 }
 
 String petHomeAssetPath(String petType, int poseIndex) {
   final variants = petHomePoseVariantsForType(petType);
   if (variants.isEmpty) {
-    return 'images/pets/dog_lie.png';
+    return '${_petHomeAssetBasePath}pets/dog_lying.png';
   }
   final index = poseIndex % variants.length;
-  return 'images/pets/${variants[index]}';
+  return '$_petHomeAssetBasePath${variants[index]}';
 }
 
 String petDisplayName(String petType) =>
