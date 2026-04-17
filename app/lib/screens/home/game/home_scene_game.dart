@@ -31,8 +31,8 @@ const List<_PetCandidatePoint> _homePetCandidatePoints = <_PetCandidatePoint>[
   _PetCandidatePoint(centerX: 0.455, centerY: 0.815),
   // 6. Retired bottom-middle floor slot kept disabled to avoid future reuse.
   _PetCandidatePoint(centerX: 0.48, centerY: 0.935, placementEnabled: false),
-  // 7. Rug marker pulled slightly away from the sofa front edge.
-  _PetCandidatePoint(centerX: 0.395, centerY: 0.775),
+  // 7. Rug marker lifted upward while staying off the sofa front edge.
+  _PetCandidatePoint(centerX: 0.395, centerY: 0.745),
   // 8. Bottom-right marker shifted up to the latest red-dot position.
   _PetCandidatePoint(centerX: 0.84, centerY: 0.865),
   // 9. Bookshelf marker tuned to keep the pet resting on the top board surface.
@@ -53,7 +53,7 @@ const List<_PetCandidatePoint> _homePetCandidatePoints = <_PetCandidatePoint>[
   // 10. Right armchair marker tuned to keep the pet resting on the seat cushion.
   _PetCandidatePoint(
     centerX: 0.828,
-    centerY: 0.605,
+    centerY: 0.602,
     widthScale: 0.94,
     heightScale: 0.94,
     preferSitPose: true,
@@ -83,9 +83,15 @@ final List<int> _enabledHomePetCandidateIndices = List<int>.unmodifiable(
 );
 const _RectFactor _rightArmchairFrontOccluderRect = _RectFactor(
   0.758,
-  0.645,
+  0.652,
   0.116,
-  0.052,
+  0.042,
+);
+const _RectFactor _rightArmchairSideOccluderRect = _RectFactor(
+  0.852,
+  0.647,
+  0.038,
+  0.040,
 );
 
 bool _shouldRotateHomePetPosesForType(String petType) {
@@ -397,6 +403,17 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           entryDelay: 0.12,
           entryOffset: 0,
         ),
+        _SceneSpriteSpec(
+          rect: _rightArmchairSideOccluderRect,
+          referenceSpace: _UiReferenceSpace.background,
+          assetPath: 'scenes/4.jpg',
+          behavior: _SceneSpriteBehavior.staticOverlay,
+          ambientPhase: 0,
+          cropRect: _rightArmchairSideOccluderRect,
+          renderPriority: _homeSeatOccluderRenderPriority,
+          entryDelay: 0.12,
+          entryOffset: 0,
+        ),
       ],
     );
   }
@@ -448,6 +465,17 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           behavior: _SceneSpriteBehavior.staticOverlay,
           ambientPhase: 0,
           cropRect: _rightArmchairFrontOccluderRect,
+          renderPriority: _homeSeatOccluderRenderPriority,
+          entryDelay: 0.12,
+          entryOffset: 0,
+        ),
+        _SceneSpriteSpec(
+          rect: _rightArmchairSideOccluderRect,
+          referenceSpace: _UiReferenceSpace.background,
+          assetPath: 'scenes/4.jpg',
+          behavior: _SceneSpriteBehavior.staticOverlay,
+          ambientPhase: 0,
+          cropRect: _rightArmchairSideOccluderRect,
           renderPriority: _homeSeatOccluderRenderPriority,
           entryDelay: 0.12,
           entryOffset: 0,
@@ -602,6 +630,13 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     _rightArmchairFrontOccluderRect.top,
     _rightArmchairFrontOccluderRect.width,
     _rightArmchairFrontOccluderRect.height,
+  );
+
+  static Rect get debugRightArmchairSideOccluderRect => Rect.fromLTWH(
+    _rightArmchairSideOccluderRect.left,
+    _rightArmchairSideOccluderRect.top,
+    _rightArmchairSideOccluderRect.width,
+    _rightArmchairSideOccluderRect.height,
   );
 
   int debugPetRenderPriorityForCandidate(int candidateIndex) {

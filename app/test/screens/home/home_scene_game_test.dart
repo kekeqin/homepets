@@ -335,6 +335,74 @@ void main() {
       }
     });
 
+    test('limits right armchair front-edge overlap to the pet lower body', () {
+      final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+      final occluderRect = HomeSceneGame.debugRightArmchairFrontOccluderRect;
+
+      for (final assetPath in const <String>[
+        'images/pets/cat_sit.png',
+        'images/pets/dog_sit.png',
+        'images/pets/hamster_sit.png',
+        'images/pets/rabbit_sit.png',
+      ]) {
+        final rect = game.debugPetRectForCandidate(
+          candidateIndex: 9,
+          assetPath: assetPath,
+        );
+        final overlapHeight = rect.bottom - occluderRect.top;
+
+        expect(
+          overlapHeight,
+          greaterThan(0),
+          reason: '$assetPath should still be seated behind the front edge.',
+        );
+        expect(
+          overlapHeight,
+          lessThan(rect.height * 0.25),
+          reason: '$assetPath is being covered too much by the armchair front.',
+        );
+      }
+    });
+
+    test('keeps right armchair corner in front of the pet right flank', () {
+      final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+      final occluderRect = HomeSceneGame.debugRightArmchairSideOccluderRect;
+
+      for (final assetPath in const <String>[
+        'images/pets/cat_sit.png',
+        'images/pets/dog_sit.png',
+        'images/pets/hamster_sit.png',
+        'images/pets/rabbit_sit.png',
+      ]) {
+        final rect = game.debugPetRectForCandidate(
+          candidateIndex: 9,
+          assetPath: assetPath,
+        );
+        final horizontalOverlap = rect.right - occluderRect.left;
+
+        expect(
+          horizontalOverlap,
+          greaterThan(0),
+          reason: '$assetPath should overlap the armchair right corner.',
+        );
+        expect(
+          horizontalOverlap,
+          lessThan(rect.width * 0.35),
+          reason: '$assetPath is being covered too much at the right corner.',
+        );
+        expect(
+          occluderRect.top,
+          greaterThan(rect.top + (rect.height * 0.2)),
+          reason: '$assetPath corner cover should start below the head.',
+        );
+        expect(
+          occluderRect.top,
+          lessThan(rect.bottom),
+          reason: '$assetPath corner cover should intersect the pet body.',
+        );
+      }
+    });
+
     test('keeps edge pets fully inside the home scene bounds', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
       final petCount = game.debugPetCandidateCount;
