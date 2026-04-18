@@ -37,10 +37,10 @@ const List<_PetCandidatePoint> _homePetCandidatePoints = <_PetCandidatePoint>[
   _PetCandidatePoint(centerX: 0.84, centerY: 0.865),
   // 9. Bookshelf marker tuned to keep the pet resting on the top board surface.
   _PetCandidatePoint(
-    centerX: 0.712,
-    centerY: 0.406,
-    widthScale: 0.88,
-    heightScale: 0.88,
+    centerX: 0.668,
+    centerY: 0.398,
+    widthScale: 0.74,
+    heightScale: 0.76,
     preferRestPose: true,
     contactShadow: _PetContactShadowSpec(
       widthFactor: 0.70,
@@ -85,15 +85,15 @@ const Map<String, double> _homePetScaleByAssetPath = <String, double>{
   'images/pets/pets/dog_lying.png': 0.70,
   'images/pets/pets/dog_sit.png': 0.68,
   'images/pets/pets/dog_sleep.png': 0.72,
-  'images/pets/pets/hamster_stand.png': 0.74,
-  'images/pets/pets/hamster_sit.png': 0.76,
-  'images/pets/pets/hamster_sleep.png': 0.78,
+  'images/pets/pets/hamster_stand.png': 0.68,
+  'images/pets/pets/hamster_sit.png': 0.70,
+  'images/pets/pets/hamster_sleep.png': 0.72,
   'images/pets/pets/rabbit_lying.png': 0.80,
   'images/pets/pets/rabbit_sit.png': 0.74,
   'images/pets/pets/rabbit_sleep.png': 0.82,
-  'images/pets/pets/turtle_lying.png': 0.78,
-  'images/pets/pets/turtle_sit.png': 0.78,
-  'images/pets/pets/turtle_sleep.png': 0.80,
+  'images/pets/pets/turtle_lying.png': 0.73,
+  'images/pets/pets/turtle_sit.png': 0.73,
+  'images/pets/pets/turtle_sleep.png': 0.75,
 };
 final Map<String, int> _homePetSessionPoseIndices = <String, int>{};
 final List<int> _enabledHomePetCandidateIndices = List<int>.unmodifiable(
@@ -129,6 +129,20 @@ bool _assetNameContainsAny(String assetName, Iterable<String> keywords) {
 
 double _homePetScaleForAssetPath(String assetPath) {
   return _homePetScaleByAssetPath[assetPath] ?? 1;
+}
+
+double _homePetPlacementScaleAdjustment({
+  required _PetCandidatePoint candidate,
+  required String assetPath,
+}) {
+  final normalizedPath = assetPath.toLowerCase();
+  if (candidate.preferRestPose && normalizedPath.contains('hamster_')) {
+    return 1.18;
+  }
+  if (normalizedPath.contains('cat_sleep') && candidate.centerY >= 0.80) {
+    return 1.28;
+  }
+  return 1;
 }
 
 const Map<String, Size> _homePetImagePixelSizes = <String, Size>{
@@ -851,6 +865,21 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     return _homePetScaleByAssetPath.containsKey(assetPath);
   }
 
+  static double debugPlacementScaleAdjustmentForCandidateAsset({
+    required int candidateIndex,
+    required String assetPath,
+  }) {
+    RangeError.checkValidIndex(
+      candidateIndex,
+      _homePetCandidatePoints,
+      'candidateIndex',
+    );
+    return _homePetPlacementScaleAdjustment(
+      candidate: _homePetCandidatePoints[candidateIndex],
+      assetPath: assetPath,
+    );
+  }
+
   List<_PetSpriteSpec> _buildPetSpecs() {
     if (_petEntries.isEmpty) {
       return const <_PetSpriteSpec>[];
@@ -994,6 +1023,10 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   }) {
     final candidate = _homePetCandidatePoints[placement.candidateIndex];
     final perspectiveScale = _homePetPerspectiveScaleForCandidate(candidate);
+    final placementScaleAdjustment = _homePetPlacementScaleAdjustment(
+      candidate: candidate,
+      assetPath: assetPath,
+    );
     final slotLayout = _PetLayoutProfile(
       widthFactor: layout.widthFactor * candidate.widthScale * perspectiveScale,
       heightFactor:
@@ -1004,7 +1037,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     final renderSize = _petRenderSizeFactors(
       layout: slotLayout,
       assetPath: assetPath,
-      petScale: petScale,
+      petScale: petScale * placementScaleAdjustment,
       cropRect: cropRect,
     );
     final halfWidth = renderSize.width / 2;

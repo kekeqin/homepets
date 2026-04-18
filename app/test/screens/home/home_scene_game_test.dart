@@ -277,6 +277,40 @@ void main() {
       );
     });
 
+    test('boosts hamster scale when resting on the bookshelf slot', () {
+      expect(
+        HomeSceneGame.debugPlacementScaleAdjustmentForCandidateAsset(
+          candidateIndex: 8,
+          assetPath: 'images/pets/pets/hamster_sleep.png',
+        ),
+        greaterThan(1),
+      );
+      expect(
+        HomeSceneGame.debugPlacementScaleAdjustmentForCandidateAsset(
+          candidateIndex: 8,
+          assetPath: 'images/pets/pets/rabbit_sleep.png',
+        ),
+        1,
+      );
+    });
+
+    test('boosts sleeping cat scale on front floor slots', () {
+      expect(
+        HomeSceneGame.debugPlacementScaleAdjustmentForCandidateAsset(
+          candidateIndex: 3,
+          assetPath: 'images/pets/pets/cat_sleep.png',
+        ),
+        greaterThan(1),
+      );
+      expect(
+        HomeSceneGame.debugPlacementScaleAdjustmentForCandidateAsset(
+          candidateIndex: 0,
+          assetPath: 'images/pets/pets/cat_sleep.png',
+        ),
+        1,
+      );
+    });
+
     test(
       'applies perspective scaling so near slots render larger than far slots',
       () {
