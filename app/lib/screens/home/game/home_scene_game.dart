@@ -188,6 +188,557 @@ double _homePetPerspectiveScaleForCandidate(_PetCandidatePoint candidate) {
       1;
 }
 
+class _PetAmbientMotionProfile {
+  const _PetAmbientMotionProfile({
+    required this.breathAmplitude,
+    required this.breathSpeed,
+    required this.floatAmplitude,
+    required this.wobbleAmplitude,
+  });
+
+  const _PetAmbientMotionProfile.inactive()
+    : breathAmplitude = 0,
+      breathSpeed = 1,
+      floatAmplitude = 0,
+      wobbleAmplitude = 0;
+
+  final double breathAmplitude;
+  final double breathSpeed;
+  final double floatAmplitude;
+  final double wobbleAmplitude;
+}
+
+_PetAmbientMotionProfile _petAmbientMotionProfileForDepth(
+  double normalizedDepth,
+) {
+  final clampedDepth = normalizedDepth.clamp(0, 1).toDouble();
+  final nearStrength = ((clampedDepth - 0.60) / 0.28).clamp(0, 1).toDouble();
+  final easedNearStrength = Curves.easeInOut.transform(nearStrength);
+  final floatStrength = ((nearStrength - 0.28) / 0.72).clamp(0, 1).toDouble();
+  final easedFloatStrength = Curves.easeOut.transform(floatStrength);
+
+  return _PetAmbientMotionProfile(
+    breathAmplitude: ui.lerpDouble(0.90, 1.28, easedNearStrength) ?? 1.08,
+    breathSpeed: ui.lerpDouble(0.92, 1.05, easedNearStrength) ?? 0.98,
+    floatAmplitude: nearStrength <= 0.28
+        ? 0
+        : (ui.lerpDouble(0, 1.25, easedFloatStrength) ?? 0),
+    wobbleAmplitude: ui.lerpDouble(0.55, 1.00, easedNearStrength) ?? 0.76,
+  );
+}
+
+enum _PetMotionActionKind {
+  catSitBlinkTail,
+  catSitLook,
+  catSleepEarTwitch,
+  catSleepDrowse,
+  dogSitTailWag,
+  dogSitHeadTilt,
+  dogSleepDreamTwitch,
+  dogSleepKick,
+  hamsterStandLook,
+  hamsterStandTuck,
+  hamsterSitNibble,
+  hamsterSleepEarTwitch,
+  rabbitLyingEarsFlick,
+  rabbitLyingNoseTwitch,
+  rabbitSitEarSway,
+  rabbitSleepDrowse,
+  turtleLyingHeadOut,
+  turtleLyingPawShift,
+  turtleSitLift,
+  turtleSleepSink,
+  tapCat,
+  tapDog,
+  tapHamster,
+  tapRabbit,
+  tapTurtle,
+}
+
+class _PetMotionSpec {
+  const _PetMotionSpec({
+    required this.breathAmplitude,
+    required this.breathSpeed,
+    required this.floatAmplitude,
+    required this.floatSpeed,
+    required this.idleDelayMin,
+    required this.idleDelayMax,
+    required this.idleActionKinds,
+    required this.tapActionKind,
+  });
+
+  final double breathAmplitude;
+  final double breathSpeed;
+  final double floatAmplitude;
+  final double floatSpeed;
+  final double idleDelayMin;
+  final double idleDelayMax;
+  final List<_PetMotionActionKind> idleActionKinds;
+  final _PetMotionActionKind tapActionKind;
+}
+
+class _PetMotionTransform {
+  const _PetMotionTransform({
+    this.offsetX = 0,
+    this.offsetY = 0,
+    this.rotation = 0,
+    this.scaleX = 1,
+    this.scaleY = 1,
+  });
+
+  final double offsetX;
+  final double offsetY;
+  final double rotation;
+  final double scaleX;
+  final double scaleY;
+}
+
+class _ActivePetMotionAction {
+  const _ActivePetMotionAction({
+    required this.kind,
+    required this.duration,
+    required this.isTapFeedback,
+  });
+
+  final _PetMotionActionKind kind;
+  final double duration;
+  final bool isTapFeedback;
+}
+
+_PetMotionSpec _petMotionSpecForAssetPath(String assetPath) {
+  return switch (assetPath) {
+    'images/pets/pets/cat_sit.png' => const _PetMotionSpec(
+      breathAmplitude: 0.0092,
+      breathSpeed: 0.98,
+      floatAmplitude: 0.26,
+      floatSpeed: 0.82,
+      idleDelayMin: 3.8,
+      idleDelayMax: 6.4,
+      idleActionKinds: <_PetMotionActionKind>[
+        _PetMotionActionKind.catSitBlinkTail,
+        _PetMotionActionKind.catSitLook,
+      ],
+      tapActionKind: _PetMotionActionKind.tapCat,
+    ),
+    'images/pets/pets/cat_sleep.png' => const _PetMotionSpec(
+      breathAmplitude: 0.0070,
+      breathSpeed: 0.72,
+      floatAmplitude: 0.08,
+      floatSpeed: 0.56,
+      idleDelayMin: 5.8,
+      idleDelayMax: 8.8,
+      idleActionKinds: <_PetMotionActionKind>[
+        _PetMotionActionKind.catSleepEarTwitch,
+        _PetMotionActionKind.catSleepDrowse,
+      ],
+      tapActionKind: _PetMotionActionKind.tapCat,
+    ),
+    'images/pets/pets/dog_sit.png' => const _PetMotionSpec(
+      breathAmplitude: 0.0080,
+      breathSpeed: 0.90,
+      floatAmplitude: 0.18,
+      floatSpeed: 0.76,
+      idleDelayMin: 3.6,
+      idleDelayMax: 6.0,
+      idleActionKinds: <_PetMotionActionKind>[
+        _PetMotionActionKind.dogSitTailWag,
+        _PetMotionActionKind.dogSitHeadTilt,
+      ],
+      tapActionKind: _PetMotionActionKind.tapDog,
+    ),
+    'images/pets/pets/dog_sleep.png' => const _PetMotionSpec(
+      breathAmplitude: 0.0064,
+      breathSpeed: 0.70,
+      floatAmplitude: 0.05,
+      floatSpeed: 0.54,
+      idleDelayMin: 6.0,
+      idleDelayMax: 9.2,
+      idleActionKinds: <_PetMotionActionKind>[
+        _PetMotionActionKind.dogSleepDreamTwitch,
+        _PetMotionActionKind.dogSleepKick,
+      ],
+      tapActionKind: _PetMotionActionKind.tapDog,
+    ),
+    'images/pets/pets/hamster_stand.png' => const _PetMotionSpec(
+      breathAmplitude: 0.0088,
+      breathSpeed: 1.12,
+      floatAmplitude: 0.22,
+      floatSpeed: 0.88,
+      idleDelayMin: 2.6,
+      idleDelayMax: 4.6,
+      idleActionKinds: <_PetMotionActionKind>[
+        _PetMotionActionKind.hamsterStandLook,
+        _PetMotionActionKind.hamsterStandTuck,
+      ],
+      tapActionKind: _PetMotionActionKind.tapHamster,
+    ),
+    'images/pets/pets/hamster_sit.png' => const _PetMotionSpec(
+      breathAmplitude: 0.0072,
+      breathSpeed: 1.00,
+      floatAmplitude: 0.14,
+      floatSpeed: 0.70,
+      idleDelayMin: 3.4,
+      idleDelayMax: 5.8,
+      idleActionKinds: <_PetMotionActionKind>[
+        _PetMotionActionKind.hamsterSitNibble,
+      ],
+      tapActionKind: _PetMotionActionKind.tapHamster,
+    ),
+    'images/pets/pets/hamster_sleep.png' => const _PetMotionSpec(
+      breathAmplitude: 0.0042,
+      breathSpeed: 0.64,
+      floatAmplitude: 0,
+      floatSpeed: 0.48,
+      idleDelayMin: 7.2,
+      idleDelayMax: 10.2,
+      idleActionKinds: <_PetMotionActionKind>[
+        _PetMotionActionKind.hamsterSleepEarTwitch,
+      ],
+      tapActionKind: _PetMotionActionKind.tapHamster,
+    ),
+    'images/pets/pets/rabbit_lying.png' => const _PetMotionSpec(
+      breathAmplitude: 0.0074,
+      breathSpeed: 0.84,
+      floatAmplitude: 0.10,
+      floatSpeed: 0.62,
+      idleDelayMin: 3.0,
+      idleDelayMax: 5.2,
+      idleActionKinds: <_PetMotionActionKind>[
+        _PetMotionActionKind.rabbitLyingEarsFlick,
+        _PetMotionActionKind.rabbitLyingNoseTwitch,
+      ],
+      tapActionKind: _PetMotionActionKind.tapRabbit,
+    ),
+    'images/pets/pets/rabbit_sit.png' => const _PetMotionSpec(
+      breathAmplitude: 0.0082,
+      breathSpeed: 0.90,
+      floatAmplitude: 0.18,
+      floatSpeed: 0.70,
+      idleDelayMin: 3.8,
+      idleDelayMax: 6.2,
+      idleActionKinds: <_PetMotionActionKind>[
+        _PetMotionActionKind.rabbitSitEarSway,
+      ],
+      tapActionKind: _PetMotionActionKind.tapRabbit,
+    ),
+    'images/pets/pets/rabbit_sleep.png' => const _PetMotionSpec(
+      breathAmplitude: 0.0054,
+      breathSpeed: 0.66,
+      floatAmplitude: 0.04,
+      floatSpeed: 0.46,
+      idleDelayMin: 6.6,
+      idleDelayMax: 10.6,
+      idleActionKinds: <_PetMotionActionKind>[
+        _PetMotionActionKind.rabbitSleepDrowse,
+      ],
+      tapActionKind: _PetMotionActionKind.tapRabbit,
+    ),
+    'images/pets/pets/turtle_lying.png' => const _PetMotionSpec(
+      breathAmplitude: 0.0048,
+      breathSpeed: 0.58,
+      floatAmplitude: 0.03,
+      floatSpeed: 0.42,
+      idleDelayMin: 5.8,
+      idleDelayMax: 8.8,
+      idleActionKinds: <_PetMotionActionKind>[
+        _PetMotionActionKind.turtleLyingHeadOut,
+        _PetMotionActionKind.turtleLyingPawShift,
+      ],
+      tapActionKind: _PetMotionActionKind.tapTurtle,
+    ),
+    'images/pets/pets/turtle_sit.png' => const _PetMotionSpec(
+      breathAmplitude: 0.0054,
+      breathSpeed: 0.62,
+      floatAmplitude: 0.04,
+      floatSpeed: 0.48,
+      idleDelayMin: 5.0,
+      idleDelayMax: 7.8,
+      idleActionKinds: <_PetMotionActionKind>[
+        _PetMotionActionKind.turtleSitLift,
+      ],
+      tapActionKind: _PetMotionActionKind.tapTurtle,
+    ),
+    'images/pets/pets/turtle_sleep.png' => const _PetMotionSpec(
+      breathAmplitude: 0.0036,
+      breathSpeed: 0.48,
+      floatAmplitude: 0.02,
+      floatSpeed: 0.38,
+      idleDelayMin: 8.6,
+      idleDelayMax: 12.0,
+      idleActionKinds: <_PetMotionActionKind>[
+        _PetMotionActionKind.turtleSleepSink,
+      ],
+      tapActionKind: _PetMotionActionKind.tapTurtle,
+    ),
+    _ => const _PetMotionSpec(
+      breathAmplitude: 0.0052,
+      breathSpeed: 0.86,
+      floatAmplitude: 0.22,
+      floatSpeed: 0.60,
+      idleDelayMin: 4.8,
+      idleDelayMax: 7.2,
+      idleActionKinds: <_PetMotionActionKind>[],
+      tapActionKind: _PetMotionActionKind.tapRabbit,
+    ),
+  };
+}
+
+double _holdPulse(
+  double progress, {
+  required double begin,
+  required double end,
+}) {
+  if (progress <= begin || progress >= end) {
+    return 0;
+  }
+  final normalized = (progress - begin) / (end - begin);
+  return math.sin(normalized * math.pi);
+}
+
+double _holdLevel(
+  double progress, {
+  required double begin,
+  required double holdBegin,
+  required double holdEnd,
+  required double end,
+}) {
+  if (progress <= begin || progress >= end) {
+    return 0;
+  }
+  if (progress < holdBegin) {
+    return Curves.easeOut.transform((progress - begin) / (holdBegin - begin));
+  }
+  if (progress <= holdEnd) {
+    return 1;
+  }
+  return 1 - Curves.easeInOut.transform((progress - holdEnd) / (end - holdEnd));
+}
+
+_PetMotionTransform _petMotionTransformForAction({
+  required _PetMotionActionKind kind,
+  required double progress,
+  required double unit,
+  required double amplitudeScale,
+}) {
+  final clamped = progress.clamp(0, 1).toDouble();
+  final pulse = math.sin(clamped * math.pi);
+
+  switch (kind) {
+    case _PetMotionActionKind.catSitBlinkTail:
+      final sway =
+          math.sin(clamped * math.pi * 2.2) * 0.020 * pulse * amplitudeScale;
+      final blink = _holdPulse(clamped, begin: 0.46, end: 0.68);
+      return _PetMotionTransform(
+        rotation: sway,
+        scaleX: 1 + (0.014 * blink * amplitudeScale),
+        scaleY: 1 - (0.030 * blink * amplitudeScale),
+        offsetY: -(unit * 0.18 * blink * amplitudeScale),
+      );
+    case _PetMotionActionKind.catSitLook:
+      final look = _holdLevel(
+        clamped,
+        begin: 0.08,
+        holdBegin: 0.28,
+        holdEnd: 0.62,
+        end: 0.92,
+      );
+      return _PetMotionTransform(
+        offsetY: -(unit * 0.95 * look * amplitudeScale),
+        scaleY: 1 + (0.014 * look * amplitudeScale),
+        rotation: 0.006 * look * amplitudeScale,
+      );
+    case _PetMotionActionKind.catSleepEarTwitch:
+      final twitchA = _holdPulse(clamped, begin: 0.12, end: 0.28);
+      final twitchB = _holdPulse(clamped, begin: 0.34, end: 0.48);
+      return _PetMotionTransform(
+        rotation: ((0.028 * twitchA) - (0.020 * twitchB)) * amplitudeScale,
+        offsetX: unit * 0.10 * (twitchA - twitchB) * amplitudeScale,
+      );
+    case _PetMotionActionKind.catSleepDrowse:
+      final drowse = _holdPulse(clamped, begin: 0.16, end: 0.86);
+      return _PetMotionTransform(
+        scaleX: 1 + (0.018 * drowse * amplitudeScale),
+        scaleY: 1 - (0.030 * drowse * amplitudeScale),
+        offsetY: unit * 0.24 * drowse * amplitudeScale,
+      );
+    case _PetMotionActionKind.dogSitTailWag:
+      final wag = math.sin(clamped * math.pi * 4) * pulse * amplitudeScale;
+      return _PetMotionTransform(
+        rotation: wag * 0.030,
+        offsetY: -(unit * 0.24 * pulse * amplitudeScale),
+      );
+    case _PetMotionActionKind.dogSitHeadTilt:
+      final tilt = _holdLevel(
+        clamped,
+        begin: 0.10,
+        holdBegin: 0.26,
+        holdEnd: 0.66,
+        end: 0.94,
+      );
+      return _PetMotionTransform(
+        rotation: -0.080 * tilt * amplitudeScale,
+        offsetY: -(unit * 0.50 * tilt * amplitudeScale),
+        offsetX: unit * 0.18 * tilt * amplitudeScale,
+      );
+    case _PetMotionActionKind.dogSleepDreamTwitch:
+      final twitchA = _holdPulse(clamped, begin: 0.10, end: 0.26);
+      final twitchB = _holdPulse(clamped, begin: 0.34, end: 0.48);
+      return _PetMotionTransform(
+        offsetX: unit * 0.32 * (twitchA - twitchB) * amplitudeScale,
+        rotation: ((0.010 * twitchA) - (0.008 * twitchB)) * amplitudeScale,
+      );
+    case _PetMotionActionKind.dogSleepKick:
+      final twitchA = _holdPulse(clamped, begin: 0.14, end: 0.26);
+      final twitchB = _holdPulse(clamped, begin: 0.32, end: 0.44);
+      return _PetMotionTransform(
+        offsetY: -(unit * 0.26 * (twitchA + (0.7 * twitchB)) * amplitudeScale),
+        rotation: ((0.012 * twitchA) + (0.008 * twitchB)) * amplitudeScale,
+      );
+    case _PetMotionActionKind.hamsterStandLook:
+      final look = math.sin(clamped * math.pi * 2) * pulse * amplitudeScale;
+      return _PetMotionTransform(
+        offsetX: unit * 0.34 * look,
+        rotation: look * 0.060,
+      );
+    case _PetMotionActionKind.hamsterStandTuck:
+      final tuck = _holdPulse(clamped, begin: 0.10, end: 0.88);
+      return _PetMotionTransform(
+        scaleX: 1 - (0.018 * tuck * amplitudeScale),
+        scaleY: 1 + (0.022 * tuck * amplitudeScale),
+        offsetY: -(unit * 0.42 * tuck * amplitudeScale),
+      );
+    case _PetMotionActionKind.hamsterSitNibble:
+      final nibble = math.sin(clamped * math.pi * 3) * pulse * amplitudeScale;
+      return _PetMotionTransform(
+        offsetY: -(unit * 0.28 * nibble.abs()),
+        scaleX: 1 + (0.016 * nibble),
+        rotation: nibble * 0.020,
+      );
+    case _PetMotionActionKind.hamsterSleepEarTwitch:
+      final twitch = _holdPulse(clamped, begin: 0.18, end: 0.40);
+      return _PetMotionTransform(
+        rotation: 0.020 * twitch * amplitudeScale,
+        offsetY: -(unit * 0.08 * twitch * amplitudeScale),
+      );
+    case _PetMotionActionKind.rabbitLyingEarsFlick:
+      final flick = math.sin(clamped * math.pi * 2.6) * pulse * amplitudeScale;
+      return _PetMotionTransform(
+        rotation: flick * 0.026,
+        offsetY: -(unit * 0.14 * pulse * amplitudeScale),
+      );
+    case _PetMotionActionKind.rabbitLyingNoseTwitch:
+      final twitch = math.sin(clamped * math.pi * 5.2) * pulse * amplitudeScale;
+      return _PetMotionTransform(
+        scaleX: 1 + (0.010 * twitch),
+        scaleY: 1 - (0.010 * twitch.abs()),
+      );
+    case _PetMotionActionKind.rabbitSitEarSway:
+      final sway = math.sin(clamped * math.pi * 2) * pulse * amplitudeScale;
+      return _PetMotionTransform(
+        rotation: sway * 0.028,
+        offsetY: -(unit * 0.34 * pulse * amplitudeScale),
+      );
+    case _PetMotionActionKind.rabbitSleepDrowse:
+      final drowse = _holdPulse(clamped, begin: 0.18, end: 0.86);
+      return _PetMotionTransform(
+        rotation: 0.010 * drowse * amplitudeScale,
+        scaleY: 1 - (0.018 * drowse * amplitudeScale),
+      );
+    case _PetMotionActionKind.turtleLyingHeadOut:
+      final extend = _holdLevel(
+        clamped,
+        begin: 0.10,
+        holdBegin: 0.28,
+        holdEnd: 0.58,
+        end: 0.94,
+      );
+      return _PetMotionTransform(
+        offsetX: unit * 0.42 * extend * amplitudeScale,
+        offsetY: -(unit * 0.12 * extend * amplitudeScale),
+      );
+    case _PetMotionActionKind.turtleLyingPawShift:
+      final shift = _holdPulse(clamped, begin: 0.20, end: 0.82);
+      return _PetMotionTransform(
+        offsetX: unit * 0.22 * shift * amplitudeScale,
+        offsetY: unit * 0.10 * shift * amplitudeScale,
+        rotation: 0.010 * shift * amplitudeScale,
+      );
+    case _PetMotionActionKind.turtleSitLift:
+      final lift = _holdLevel(
+        clamped,
+        begin: 0.14,
+        holdBegin: 0.32,
+        holdEnd: 0.62,
+        end: 0.92,
+      );
+      return _PetMotionTransform(
+        offsetY: -(unit * 0.66 * lift * amplitudeScale),
+        scaleY: 1 + (0.010 * lift * amplitudeScale),
+      );
+    case _PetMotionActionKind.turtleSleepSink:
+      final sink = _holdPulse(clamped, begin: 0.18, end: 0.92);
+      return _PetMotionTransform(
+        offsetY: unit * 0.18 * sink * amplitudeScale,
+        scaleY: 1 - (0.010 * sink * amplitudeScale),
+      );
+    case _PetMotionActionKind.tapCat:
+      final ears = _holdPulse(clamped, begin: 0.00, end: 0.28);
+      final tail =
+          math.sin((clamped - 0.28).clamp(0, 1) * math.pi * 3.2) *
+          _holdPulse(clamped, begin: 0.28, end: 0.88) *
+          amplitudeScale;
+      return _PetMotionTransform(
+        offsetY: -(unit * 0.44 * ears * amplitudeScale),
+        scaleY: 1 + (0.020 * ears * amplitudeScale),
+        rotation: tail * 0.026,
+      );
+    case _PetMotionActionKind.tapDog:
+      final head = _holdPulse(clamped, begin: 0.00, end: 0.30);
+      final wag =
+          math.sin((clamped - 0.26).clamp(0, 1) * math.pi * 4.2) *
+          _holdPulse(clamped, begin: 0.26, end: 0.90) *
+          amplitudeScale;
+      return _PetMotionTransform(
+        offsetY: -(unit * 0.58 * head * amplitudeScale),
+        rotation: wag * 0.032,
+      );
+    case _PetMotionActionKind.tapHamster:
+      final peek = _holdPulse(clamped, begin: 0.00, end: 0.64);
+      return _PetMotionTransform(
+        offsetY: -(unit * 0.42 * peek * amplitudeScale),
+        scaleX: 1 + (0.020 * peek * amplitudeScale),
+        scaleY: 1 + (0.020 * peek * amplitudeScale),
+      );
+    case _PetMotionActionKind.tapRabbit:
+      final ears = _holdPulse(clamped, begin: 0.00, end: 0.34);
+      final lift = _holdLevel(
+        clamped,
+        begin: 0.18,
+        holdBegin: 0.34,
+        holdEnd: 0.58,
+        end: 0.92,
+      );
+      return _PetMotionTransform(
+        offsetY: -(unit * (0.26 * ears + 0.52 * lift) * amplitudeScale),
+        scaleY: 1 + (0.018 * ears * amplitudeScale),
+      );
+    case _PetMotionActionKind.tapTurtle:
+      final retract = _holdPulse(clamped, begin: 0.00, end: 0.24);
+      final extend = _holdLevel(
+        clamped,
+        begin: 0.24,
+        holdBegin: 0.46,
+        holdEnd: 0.62,
+        end: 0.96,
+      );
+      return _PetMotionTransform(
+        offsetX:
+            ((-unit * 0.34 * retract) + (unit * 0.42 * extend)) *
+            amplitudeScale,
+      );
+  }
+}
+
 class _PetFrameAnimationSpec {
   const _PetFrameAnimationSpec({
     required this.frameAssetPaths,
@@ -281,8 +832,90 @@ const _PetFrameAnimationSpec _dogSleepHomeAnimation = _PetFrameAnimationSpec(
   frameDurations: <double>[4.2, 0.24, 0.24, 0.24, 0.3],
 );
 
+List<String> _homeActFrameAssetPaths(String prefix) => List<String>.generate(
+  25,
+  (index) =>
+      'images/pets/act/${prefix}_${(index + 1).toString().padLeft(2, '0')}.png',
+);
+
+List<double> _homeActFrameDurations(double durationSeconds) =>
+    List<double>.filled(25, durationSeconds);
+
+final _PetFrameAnimationSpec _catSitActHomeAnimation = _PetFrameAnimationSpec(
+  frameAssetPaths: _homeActFrameAssetPaths('cat_sit_frame'),
+  frameDurations: _homeActFrameDurations(0.16),
+);
+
+final _PetFrameAnimationSpec _catSleepActHomeAnimation = _PetFrameAnimationSpec(
+  frameAssetPaths: _homeActFrameAssetPaths('cat_sleep_frame'),
+  frameDurations: _homeActFrameDurations(0.18),
+);
+
+final _PetFrameAnimationSpec _dogSitActHomeAnimation = _PetFrameAnimationSpec(
+  frameAssetPaths: _homeActFrameAssetPaths('dog_sit_frame'),
+  frameDurations: _homeActFrameDurations(0.15),
+);
+
+final _PetFrameAnimationSpec _dogSleepActHomeAnimation = _PetFrameAnimationSpec(
+  frameAssetPaths: _homeActFrameAssetPaths('dog_sleep_frame'),
+  frameDurations: _homeActFrameDurations(0.18),
+);
+
+final _PetFrameAnimationSpec _rabbitLyingActHomeAnimation =
+    _PetFrameAnimationSpec(
+      frameAssetPaths: _homeActFrameAssetPaths('rabbit_lying_frame'),
+      frameDurations: _homeActFrameDurations(0.17),
+    );
+
+final _PetFrameAnimationSpec _rabbitSitActHomeAnimation =
+    _PetFrameAnimationSpec(
+      frameAssetPaths: _homeActFrameAssetPaths('rabbit_sit_frame'),
+      frameDurations: _homeActFrameDurations(0.16),
+    );
+
+final _PetFrameAnimationSpec _rabbitSleepActHomeAnimation =
+    _PetFrameAnimationSpec(
+      frameAssetPaths: _homeActFrameAssetPaths('rabbit_sleep_frame'),
+      frameDurations: _homeActFrameDurations(0.18),
+    );
+
+final _PetFrameAnimationSpec _hamsterStandActHomeAnimation =
+    _PetFrameAnimationSpec(
+      frameAssetPaths: _homeActFrameAssetPaths('hamster_stand_frame'),
+      frameDurations: _homeActFrameDurations(0.15),
+    );
+
+final _PetFrameAnimationSpec _hamsterSitActHomeAnimation =
+    _PetFrameAnimationSpec(
+      frameAssetPaths: _homeActFrameAssetPaths('hamster_sit_frame'),
+      frameDurations: _homeActFrameDurations(0.15),
+    );
+
+final _PetFrameAnimationSpec _turtleLyingActHomeAnimation =
+    _PetFrameAnimationSpec(
+      frameAssetPaths: _homeActFrameAssetPaths('turtle_lying_frame'),
+      frameDurations: _homeActFrameDurations(0.20),
+    );
+
+final _PetFrameAnimationSpec _turtleSitActHomeAnimation =
+    _PetFrameAnimationSpec(
+      frameAssetPaths: _homeActFrameAssetPaths('turtle_sit_frame'),
+      frameDurations: _homeActFrameDurations(0.18),
+    );
+
 _PetFrameAnimationSpec? _homePetAnimationForAsset(String assetPath) {
   return switch (assetPath) {
+    'images/pets/pets/cat_sit.png' => _catSitActHomeAnimation,
+    'images/pets/pets/cat_sleep.png' => _catSleepActHomeAnimation,
+    'images/pets/pets/dog_sit.png' => _dogSitActHomeAnimation,
+    'images/pets/pets/dog_sleep.png' => _dogSleepActHomeAnimation,
+    'images/pets/pets/hamster_stand.png' => _hamsterStandActHomeAnimation,
+    'images/pets/pets/hamster_sit.png' => _hamsterSitActHomeAnimation,
+    'images/pets/pets/rabbit_lying.png' => _rabbitLyingActHomeAnimation,
+    'images/pets/pets/rabbit_sit.png' => _rabbitSitActHomeAnimation,
+    'images/pets/pets/rabbit_sleep.png' => _rabbitSleepActHomeAnimation,
+    'images/pets/pets/turtle_lying.png' => _turtleLyingActHomeAnimation,
+    'images/pets/pets/turtle_sit.png' => _turtleSitActHomeAnimation,
     'images/pets/cat_lie.png' => _catLieHomeAnimation,
     'images/pets/cat_sit.png' => _catSitHomeAnimation,
     'images/pets/cat_sleep_clean.png' => _catSleepHomeAnimation,
@@ -858,6 +1491,20 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     );
     return _homePetPerspectiveScaleForCandidate(
       _homePetCandidatePoints[candidateIndex],
+    );
+  }
+
+  static ({
+    double breathAmplitude,
+    double floatAmplitude,
+    double wobbleAmplitude,
+  })
+  debugAmbientMotionValuesForDepth(double normalizedDepth) {
+    final profile = _petAmbientMotionProfileForDepth(normalizedDepth);
+    return (
+      breathAmplitude: profile.breathAmplitude,
+      floatAmplitude: profile.floatAmplitude,
+      wobbleAmplitude: profile.wobbleAmplitude,
     );
   }
 
@@ -2595,7 +3242,19 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
       <_LoadedPetPoseVariant>[];
   final Paint _spritePaint = Paint();
   final Paint _shadowPaint = Paint();
+  late final math.Random _ambientRandom;
+  late _PetMotionSpec _motionSpec;
+  _PetAmbientMotionProfile _ambientMotion =
+      const _PetAmbientMotionProfile.inactive();
+  _ActivePetMotionAction? _activeMotionAction;
   double _animationElapsed = 0;
+  double _ambientMotionElapsed = 0;
+  double _ambientActivationDelay = 0;
+  double _ambientBreathPhase = 0;
+  double _ambientFloatPhase = 0;
+  double _motionActionElapsed = 0;
+  double _idleActionCooldown = 0;
+  double? _pendingTapCallbackDelay;
   int _animationIndex = 0;
   int _activePoseIndex = 0;
 
@@ -2603,11 +3262,19 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
   Future<void> onLoad() async {
     await super.onLoad();
 
+    _ambientRandom = math.Random(_motionSeed());
+    _ambientBreathPhase = _ambientRandom.nextDouble() * math.pi * 2;
+    _ambientFloatPhase = _ambientRandom.nextDouble() * math.pi * 2;
+    _ambientActivationDelay =
+        entryDelay + 0.55 + (_ambientRandom.nextDouble() * 0.60);
+    _motionSpec = _petMotionSpecForAssetPath(poseVariants.first.assetPath);
+
     for (final poseVariant in poseVariants) {
       _loadedPoseVariants.add(await _loadPoseVariant(poseVariant));
     }
 
     _applyPose(_initialPoseIndex);
+    _scheduleNextIdleAction();
   }
 
   @override
@@ -2628,6 +3295,39 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
         _animationIndex = (_animationIndex + 1) % animationFrames.length;
       }
     }
+
+    _ambientMotionElapsed += dt;
+    final tapDelay = _pendingTapCallbackDelay;
+    if (tapDelay != null) {
+      final nextTapDelay = tapDelay - dt;
+      if (nextTapDelay <= 0) {
+        _pendingTapCallbackDelay = null;
+        onTap?.call();
+      } else {
+        _pendingTapCallbackDelay = nextTapDelay;
+      }
+    }
+    if (_ambientMotionElapsed < _ambientActivationDelay) {
+      return;
+    }
+
+    final activeMotionAction = _activeMotionAction;
+    if (activeMotionAction != null) {
+      _motionActionElapsed += dt;
+      if (_motionActionElapsed >= activeMotionAction.duration) {
+        _activeMotionAction = null;
+        _motionActionElapsed = 0;
+        if (!activeMotionAction.isTapFeedback) {
+          _scheduleNextIdleAction();
+        }
+      }
+      return;
+    }
+
+    _idleActionCooldown -= dt;
+    if (_idleActionCooldown <= 0) {
+      _startRandomIdleAction();
+    }
   }
 
   @override
@@ -2641,10 +3341,44 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
 
     _renderContactShadow(canvas);
 
+    final floatOffset = _currentFloatOffset();
+    final breathScale = _currentBreathScale();
+    final actionTransform = _currentActionTransform();
+    final combinedScaleX = breathScale * actionTransform.scaleX;
+    final combinedScaleY = breathScale * actionTransform.scaleY;
+
+    if (floatOffset != 0 ||
+        actionTransform.offsetX != 0 ||
+        actionTransform.offsetY != 0 ||
+        combinedScaleX != 1 ||
+        combinedScaleY != 1 ||
+        actionTransform.rotation != 0) {
+      final centerX = size.x * 0.5;
+      final centerY = size.y * 0.5;
+      canvas.save();
+      canvas.translate(
+        actionTransform.offsetX,
+        floatOffset + actionTransform.offsetY,
+      );
+      canvas.translate(centerX, centerY);
+      canvas.rotate(actionTransform.rotation);
+      canvas.scale(combinedScaleX, combinedScaleY);
+      canvas.translate(-centerX, -centerY);
+    }
+
     _spritePaint.color = const Color(
       0xFFFFFFFF,
     ).withValues(alpha: opacity.clamp(0, 1).toDouble());
     sprite.render(canvas, size: size, overridePaint: _spritePaint);
+
+    if (floatOffset != 0 ||
+        actionTransform.offsetX != 0 ||
+        actionTransform.offsetY != 0 ||
+        combinedScaleX != 1 ||
+        combinedScaleY != 1 ||
+        actionTransform.rotation != 0) {
+      canvas.restore();
+    }
   }
 
   _LoadedPetPoseVariant? get _activePose {
@@ -2715,6 +3449,10 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
     size.setValues(activePose.rect.width, activePose.rect.height);
     _animationElapsed = 0;
     _animationIndex = 0;
+    _motionSpec = _petMotionSpecForAssetPath(
+      poseVariants[_activePoseIndex].assetPath,
+    );
+    _refreshAmbientMotionProfile();
   }
 
   double _frameDurationFor(_LoadedPetPoseVariant pose, int frameIndex) {
@@ -2750,6 +3488,105 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
         math.max(size.y * shadow.blurSigmaFactor, 1),
       );
     canvas.drawOval(shadowRect, _shadowPaint);
+  }
+
+  void _refreshAmbientMotionProfile() {
+    final sceneHeight = math.max(game.size.y, 1);
+    final normalizedDepth = ((position.y + size.y) / sceneHeight)
+        .clamp(0, 1)
+        .toDouble();
+    _ambientMotion = _petAmbientMotionProfileForDepth(normalizedDepth);
+  }
+
+  void _scheduleNextIdleAction() {
+    _idleActionCooldown = _randomBetween(
+      _motionSpec.idleDelayMin,
+      _motionSpec.idleDelayMax,
+    );
+  }
+
+  void _startRandomIdleAction() {
+    _scheduleNextIdleAction();
+  }
+
+  double _currentMotionWeight() {
+    final progress = ((_ambientMotionElapsed - _ambientActivationDelay) / 0.85)
+        .clamp(0, 1)
+        .toDouble();
+    return Curves.easeOut.transform(progress);
+  }
+
+  double _currentBreathScale() {
+    final weight = _currentMotionWeight();
+    final amplitude =
+        _motionSpec.breathAmplitude * _ambientMotion.breathAmplitude;
+    if (weight <= 0 || amplitude <= 0) {
+      return 1;
+    }
+    return 1 +
+        (math.sin(
+              (_ambientMotionElapsed *
+                      _motionSpec.breathSpeed *
+                      _ambientMotion.breathSpeed) +
+                  _ambientBreathPhase,
+            ) *
+            amplitude *
+            weight);
+  }
+
+  double _currentFloatOffset() {
+    final weight = _currentMotionWeight();
+    final amplitude =
+        _motionSpec.floatAmplitude * _ambientMotion.floatAmplitude;
+    if (weight <= 0 || amplitude <= 0) {
+      return 0;
+    }
+    return math.sin(
+          (_ambientMotionElapsed * _motionSpec.floatSpeed) + _ambientFloatPhase,
+        ) *
+        amplitude *
+        weight;
+  }
+
+  _PetMotionTransform _currentActionTransform() {
+    final weight = _currentMotionWeight();
+    final activeMotionAction = _activeMotionAction;
+    if (weight <= 0 ||
+        activeMotionAction == null ||
+        activeMotionAction.duration <= 0) {
+      return const _PetMotionTransform();
+    }
+    final progress = (_motionActionElapsed / activeMotionAction.duration)
+        .clamp(0, 1)
+        .toDouble();
+    final unit = math.max(math.min(size.x, size.y) * 0.028, 0.35);
+    return _petMotionTransformForAction(
+      kind: activeMotionAction.kind,
+      progress: progress,
+      unit: unit,
+      amplitudeScale: _ambientMotion.wobbleAmplitude * weight,
+    );
+  }
+
+  double _randomBetween(double min, double max) {
+    if (max <= min) {
+      return min;
+    }
+    return min + (_ambientRandom.nextDouble() * (max - min));
+  }
+
+  int _motionSeed() {
+    final rect = _initialPoseRect(poseVariants, _initialPoseIndex);
+    return poseVariants.first.assetPath.hashCode ^
+        (rect.left * 1000).round() ^
+        (rect.top * 1000).round() ^
+        poseVariants.length ^
+        renderPriority;
+  }
+
+  @override
+  void triggerTapAction() {
+    onTap?.call();
   }
 
   static Rect _initialPoseRect(

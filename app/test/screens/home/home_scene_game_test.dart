@@ -277,6 +277,75 @@ void main() {
       );
     });
 
+    test('uses act sequence frames for homepage pet poses with new sheets', () {
+      expect(
+        HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+          'images/pets/pets/cat_sit.png',
+        ),
+        hasLength(25),
+      );
+      expect(
+        HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+          'images/pets/pets/cat_sleep.png',
+        ).first,
+        'images/pets/act/cat_sleep_frame_01.png',
+      );
+      expect(
+        HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+          'images/pets/pets/dog_sit.png',
+        ).last,
+        'images/pets/act/dog_sit_frame_25.png',
+      );
+      expect(
+        HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+          'images/pets/pets/dog_sleep.png',
+        ),
+        hasLength(25),
+      );
+      expect(
+        HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+          'images/pets/pets/hamster_stand.png',
+        ).first,
+        'images/pets/act/hamster_stand_frame_01.png',
+      );
+      expect(
+        HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+          'images/pets/pets/hamster_sit.png',
+        ).last,
+        'images/pets/act/hamster_sit_frame_25.png',
+      );
+      expect(
+        HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+          'images/pets/pets/rabbit_lying.png',
+        ).first,
+        'images/pets/act/rabbit_lying_frame_01.png',
+      );
+      expect(
+        HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+          'images/pets/pets/rabbit_sit.png',
+        ).last,
+        'images/pets/act/rabbit_sit_frame_25.png',
+      );
+      expect(
+        HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+          'images/pets/pets/rabbit_sleep.png',
+        ),
+        hasLength(25),
+      );
+      expect(
+        HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+          'images/pets/pets/turtle_lying.png',
+        ).first,
+        'images/pets/act/turtle_lying_frame_01.png',
+      );
+      expect(
+        HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+          'images/pets/pets/turtle_sit.png',
+        ).last,
+        'images/pets/act/turtle_sit_frame_25.png',
+      );
+    });
+
     test('boosts hamster scale when resting on the bookshelf slot', () {
       expect(
         HomeSceneGame.debugPlacementScaleAdjustmentForCandidateAsset(
@@ -324,6 +393,22 @@ void main() {
         );
       },
     );
+
+    test('uses stronger ambient motion for near pets than far pets', () {
+      final farMotion = HomeSceneGame.debugAmbientMotionValuesForDepth(0.44);
+      final nearMotion = HomeSceneGame.debugAmbientMotionValuesForDepth(0.86);
+
+      expect(farMotion.floatAmplitude, 0);
+      expect(nearMotion.floatAmplitude, greaterThan(0));
+      expect(
+        nearMotion.breathAmplitude,
+        greaterThan(farMotion.breathAmplitude),
+      );
+      expect(
+        nearMotion.wobbleAmplitude,
+        greaterThan(farMotion.wobbleAmplitude),
+      );
+    });
 
     test('uses actual source aspect ratios for home pet sizing', () {
       const slotSize = Size(69, 100);
