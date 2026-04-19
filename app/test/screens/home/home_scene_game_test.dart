@@ -302,11 +302,26 @@ void main() {
         ),
         hasLength(25),
       );
+      final List<String> hamsterStandFrames =
+          HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+            'images/pets/pets/hamster_stand.png',
+          );
+      expect(hamsterStandFrames, hasLength(14));
       expect(
-        HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-          'images/pets/pets/hamster_stand.png',
-        ).first,
+        hamsterStandFrames.first,
         'images/pets/act/hamster_stand_frame_01.png',
+      );
+      expect(
+        hamsterStandFrames.last,
+        'images/pets/act/hamster_stand_frame_24.png',
+      );
+      expect(
+        hamsterStandFrames,
+        isNot(contains('images/pets/act/hamster_stand_frame_09.png')),
+      );
+      expect(
+        hamsterStandFrames,
+        isNot(contains('images/pets/act/hamster_stand_frame_25.png')),
       );
       expect(
         HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
@@ -343,6 +358,42 @@ void main() {
           'images/pets/pets/turtle_sit.png',
         ).last,
         'images/pets/act/turtle_sit_frame_25.png',
+      );
+    });
+
+    test('keeps a pause window between homepage pet act playbacks', () {
+      final hamsterStandPauseRange =
+          HomeSceneGame.debugAnimationPlaybackPauseRangeForAsset(
+            'images/pets/pets/hamster_stand.png',
+          );
+
+      expect(hamsterStandPauseRange, hasLength(2));
+      expect(hamsterStandPauseRange.first, greaterThan(3));
+      expect(
+        hamsterStandPauseRange.last,
+        greaterThan(hamsterStandPauseRange.first),
+      );
+    });
+
+    test('staggers the initial homepage pet act playback timing', () {
+      final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+      game.replacePetEntries(const <HomeScenePetSeed>[
+        HomeScenePetSeed(petId: 11, petType: 'hamster'),
+        HomeScenePetSeed(petId: 22, petType: 'hamster'),
+        HomeScenePetSeed(petId: 33, petType: 'rabbit'),
+        HomeScenePetSeed(petId: 44, petType: 'cat'),
+      ]);
+
+      final initialDelays = game
+          .debugPetInitialAnimationDelays()
+          .values
+          .toList();
+
+      expect(initialDelays, hasLength(4));
+      expect(initialDelays.every((delay) => delay > 0), isTrue);
+      expect(
+        initialDelays.map((delay) => delay.toStringAsFixed(2)).toSet().length,
+        4,
       );
     });
 

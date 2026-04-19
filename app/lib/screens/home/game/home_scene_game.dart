@@ -277,6 +277,19 @@ class _PetMotionSpec {
   final _PetMotionActionKind tapActionKind;
 }
 
+const double _homePetFramePlaybackPauseMinFactor = 1.25;
+const double _homePetFramePlaybackPauseMaxFactor = 1.85;
+
+class _PetFramePlaybackTiming {
+  const _PetFramePlaybackTiming({
+    required this.pauseMin,
+    required this.pauseMax,
+  });
+
+  final double pauseMin;
+  final double pauseMax;
+}
+
 class _PetMotionTransform {
   const _PetMotionTransform({
     this.offsetX = 0,
@@ -481,6 +494,21 @@ _PetMotionSpec _petMotionSpecForAssetPath(String assetPath) {
       tapActionKind: _PetMotionActionKind.tapRabbit,
     ),
   };
+}
+
+_PetFramePlaybackTiming _petFramePlaybackTimingForAssetPath(String assetPath) {
+  final motionSpec = _petMotionSpecForAssetPath(assetPath);
+  return _PetFramePlaybackTiming(
+    pauseMin: motionSpec.idleDelayMin * _homePetFramePlaybackPauseMinFactor,
+    pauseMax: motionSpec.idleDelayMax * _homePetFramePlaybackPauseMaxFactor,
+  );
+}
+
+double _randomBetweenFor(math.Random random, double min, double max) {
+  if (max <= min) {
+    return min;
+  }
+  return min + (random.nextDouble() * (max - min));
 }
 
 double _holdPulse(
@@ -832,14 +860,21 @@ const _PetFrameAnimationSpec _dogSleepHomeAnimation = _PetFrameAnimationSpec(
   frameDurations: <double>[4.2, 0.24, 0.24, 0.24, 0.3],
 );
 
-List<String> _homeActFrameAssetPaths(String prefix) => List<String>.generate(
-  25,
-  (index) =>
-      'images/pets/act/${prefix}_${(index + 1).toString().padLeft(2, '0')}.png',
-);
+List<String> _homeActFrameAssetPaths(String prefix, {List<int>? frameNumbers}) {
+  final List<int> resolvedFrameNumbers =
+      frameNumbers ?? List<int>.generate(25, (index) => index + 1);
+  return resolvedFrameNumbers
+      .map(
+        (frameNumber) =>
+            'images/pets/act/${prefix}_${frameNumber.toString().padLeft(2, '0')}.png',
+      )
+      .toList(growable: false);
+}
 
-List<double> _homeActFrameDurations(double durationSeconds) =>
-    List<double>.filled(25, durationSeconds);
+List<double> _homeActFrameDurations(
+  double durationSeconds, {
+  int frameCount = 25,
+}) => List<double>.filled(frameCount, durationSeconds);
 
 final _PetFrameAnimationSpec _catSitActHomeAnimation = _PetFrameAnimationSpec(
   frameAssetPaths: _homeActFrameAssetPaths('cat_sit_frame'),
@@ -879,10 +914,18 @@ final _PetFrameAnimationSpec _rabbitSleepActHomeAnimation =
       frameDurations: _homeActFrameDurations(0.18),
     );
 
+final List<String> _hamsterStandActFrameAssetPaths = _homeActFrameAssetPaths(
+  'hamster_stand_frame',
+  frameNumbers: const <int>[1, 2, 3, 4, 5, 6, 7, 8, 19, 20, 21, 22, 23, 24],
+);
+
 final _PetFrameAnimationSpec _hamsterStandActHomeAnimation =
     _PetFrameAnimationSpec(
-      frameAssetPaths: _homeActFrameAssetPaths('hamster_stand_frame'),
-      frameDurations: _homeActFrameDurations(0.15),
+      frameAssetPaths: _hamsterStandActFrameAssetPaths,
+      frameDurations: _homeActFrameDurations(
+        0.15,
+        frameCount: _hamsterStandActFrameAssetPaths.length,
+      ),
     );
 
 final _PetFrameAnimationSpec _hamsterSitActHomeAnimation =
@@ -1373,6 +1416,51 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     return List<String>.unmodifiable(
       _homePetAnimationForAsset(assetPath)?.frameAssetPaths ?? const <String>[],
     );
+  }
+
+  static List<double> debugAnimationPlaybackPauseRangeForAsset(
+    String assetPath,
+  ) {
+    final timing = _petFramePlaybackTimingForAssetPath(assetPath);
+    return List<double>.unmodifiable(<double>[
+      timing.pauseMin,
+      timing.pauseMax,
+    ]);
+  }
+
+  Map<int, double> debugPetInitialAnimationDelays() {
+    _syncPetPlacements();
+    final layout = _petLayoutProfile();
+
+    return Map<int, double>.unmodifiable(<int, double>{
+      for (var index = 0; index < _petEntries.length; index++)
+        _petEntries[index].petId: () {
+          final pet = _petEntries[index];
+          final petType = _normalizedPetType(pet.petType, index: index);
+          final placement = _petPlacements[pet.petId]!;
+          final candidate = _homePetCandidatePoints[placement.candidateIndex];
+          final poseVariants = _buildPetPoseVariants(
+            petType: petType,
+            petId: pet.petId,
+            placement: placement,
+            layout: layout,
+          );
+          final initialPoseIndex = _initialHomePetPoseIndex(
+            petType,
+            pet.petId,
+            poseVariants.length,
+          );
+          final initialPose = poseVariants[initialPoseIndex];
+          return _PetSpriteComponent.debugInitialFramePlaybackDelay(
+            assetPath: initialPose.assetPath,
+            seedLeft: initialPose.rect.left,
+            seedTop: initialPose.rect.top,
+            poseVariantCount: poseVariants.length,
+            renderPriority: candidate.renderPriority,
+            entryDelay: _petEntryDelayFor(index),
+          );
+        }(),
+    });
   }
 
   int debugPetRenderPriorityForCandidate(int candidateIndex) {
@@ -3252,11 +3340,13 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
   double _ambientActivationDelay = 0;
   double _ambientBreathPhase = 0;
   double _ambientFloatPhase = 0;
+  double _framePlaybackCooldown = 0;
   double _motionActionElapsed = 0;
   double _idleActionCooldown = 0;
   double? _pendingTapCallbackDelay;
   int _animationIndex = 0;
   int _activePoseIndex = 0;
+  bool _isFrameAnimationPlaying = false;
 
   @override
   Future<void> onLoad() async {
@@ -3274,6 +3364,7 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
     }
 
     _applyPose(_initialPoseIndex);
+    _scheduleInitialFramePlayback();
     _scheduleNextIdleAction();
   }
 
@@ -3286,15 +3377,7 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
       return;
     }
 
-    final animationFrames = activePose.animationFrames;
-    if (animationFrames.length >= 2) {
-      _animationElapsed += dt;
-      while (_animationElapsed >=
-          _frameDurationFor(activePose, _animationIndex)) {
-        _animationElapsed -= _frameDurationFor(activePose, _animationIndex);
-        _animationIndex = (_animationIndex + 1) % animationFrames.length;
-      }
-    }
+    _updateFramePlayback(activePose, dt);
 
     _ambientMotionElapsed += dt;
     final tapDelay = _pendingTapCallbackDelay;
@@ -3449,6 +3532,8 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
     size.setValues(activePose.rect.width, activePose.rect.height);
     _animationElapsed = 0;
     _animationIndex = 0;
+    _framePlaybackCooldown = 0;
+    _isFrameAnimationPlaying = false;
     _motionSpec = _petMotionSpecForAssetPath(
       poseVariants[_activePoseIndex].assetPath,
     );
@@ -3503,6 +3588,86 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
       _motionSpec.idleDelayMin,
       _motionSpec.idleDelayMax,
     );
+  }
+
+  void _scheduleInitialFramePlayback() {
+    final activePose = _activePose;
+    if (activePose == null || activePose.animationFrames.length < 2) {
+      _framePlaybackCooldown = 0;
+      _isFrameAnimationPlaying = false;
+      return;
+    }
+    _framePlaybackCooldown = debugInitialFramePlaybackDelay(
+      assetPath: poseVariants[_activePoseIndex].assetPath,
+      seedLeft: activePose.rect.left,
+      seedTop: activePose.rect.top,
+      poseVariantCount: poseVariants.length,
+      renderPriority: renderPriority,
+      entryDelay: entryDelay,
+    );
+  }
+
+  void _scheduleNextFramePlayback() {
+    final activePose = _activePose;
+    if (activePose == null || activePose.animationFrames.length < 2) {
+      _framePlaybackCooldown = 0;
+      return;
+    }
+
+    final timing = _petFramePlaybackTimingForAssetPath(
+      poseVariants[_activePoseIndex].assetPath,
+    );
+    _framePlaybackCooldown = _randomBetweenFor(
+      _ambientRandom,
+      timing.pauseMin,
+      timing.pauseMax,
+    );
+  }
+
+  void _startFramePlayback() {
+    _isFrameAnimationPlaying = true;
+    _animationElapsed = 0;
+    _animationIndex = 0;
+    _framePlaybackCooldown = 0;
+  }
+
+  void _finishFramePlayback() {
+    _isFrameAnimationPlaying = false;
+    _animationElapsed = 0;
+    _animationIndex = 0;
+    _scheduleNextFramePlayback();
+  }
+
+  void _updateFramePlayback(_LoadedPetPoseVariant activePose, double dt) {
+    final animationFrames = activePose.animationFrames;
+    if (animationFrames.length < 2) {
+      _framePlaybackCooldown = 0;
+      _isFrameAnimationPlaying = false;
+      _animationElapsed = 0;
+      _animationIndex = 0;
+      return;
+    }
+
+    if (!_isFrameAnimationPlaying) {
+      _animationIndex = 0;
+      _animationElapsed = 0;
+      _framePlaybackCooldown -= dt;
+      if (_framePlaybackCooldown <= 0) {
+        _startFramePlayback();
+      }
+      return;
+    }
+
+    _animationElapsed += dt;
+    while (_isFrameAnimationPlaying &&
+        _animationElapsed >= _frameDurationFor(activePose, _animationIndex)) {
+      _animationElapsed -= _frameDurationFor(activePose, _animationIndex);
+      if (_animationIndex >= animationFrames.length - 1) {
+        _finishFramePlayback();
+      } else {
+        _animationIndex += 1;
+      }
+    }
   }
 
   void _startRandomIdleAction() {
@@ -3576,17 +3741,57 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
   }
 
   int _motionSeed() {
-    final rect = _initialPoseRect(poseVariants, _initialPoseIndex);
-    return poseVariants.first.assetPath.hashCode ^
-        (rect.left * 1000).round() ^
-        (rect.top * 1000).round() ^
-        poseVariants.length ^
-        renderPriority;
+    return _motionSeedFor(
+      assetPath: poseVariants[_initialPoseIndex].assetPath,
+      seedLeft: _initialPoseRect(poseVariants, _initialPoseIndex).left,
+      seedTop: _initialPoseRect(poseVariants, _initialPoseIndex).top,
+      poseVariantCount: poseVariants.length,
+      renderPriority: renderPriority,
+    );
   }
 
   @override
   void triggerTapAction() {
     onTap?.call();
+  }
+
+  static double debugInitialFramePlaybackDelay({
+    required String assetPath,
+    required double seedLeft,
+    required double seedTop,
+    required int poseVariantCount,
+    required int renderPriority,
+    required double entryDelay,
+  }) {
+    final timing = _petFramePlaybackTimingForAssetPath(assetPath);
+    final random = math.Random(
+      _motionSeedFor(
+        assetPath: assetPath,
+        seedLeft: seedLeft,
+        seedTop: seedTop,
+        poseVariantCount: poseVariantCount,
+        renderPriority: renderPriority,
+      ),
+    );
+    random.nextDouble();
+    random.nextDouble();
+    random.nextDouble();
+    return entryDelay +
+        _randomBetweenFor(random, timing.pauseMin, timing.pauseMax);
+  }
+
+  static int _motionSeedFor({
+    required String assetPath,
+    required double seedLeft,
+    required double seedTop,
+    required int poseVariantCount,
+    required int renderPriority,
+  }) {
+    return assetPath.hashCode ^
+        (seedLeft * 1000).round() ^
+        (seedTop * 1000).round() ^
+        poseVariantCount ^
+        renderPriority;
   }
 
   static Rect _initialPoseRect(
