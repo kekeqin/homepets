@@ -222,10 +222,7 @@ class _MemberProfileIpadScreenState
   }
 
   Future<void> _openPetDetail(Pet pet) async {
-    await Navigator.of(
-      context,
-      rootNavigator: true,
-    ).push(MaterialPageRoute(builder: (_) => PetDetailScreen(pet: pet)));
+    await showPetDetailDialog(context, pet: pet);
     if (!mounted) {
       return;
     }

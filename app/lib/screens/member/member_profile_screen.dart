@@ -213,10 +213,7 @@ class _MemberProfileScreenState extends ConsumerState<MemberProfileScreen> {
   Pet? get _mainPet => _pets.isEmpty ? null : _pets.first;
 
   Future<void> _openPetDetail(Pet pet) async {
-    await Navigator.of(
-      context,
-      rootNavigator: true,
-    ).push(MaterialPageRoute(builder: (_) => PetDetailScreen(pet: pet)));
+    await showPetDetailDialog(context, pet: pet);
     if (!mounted) {
       return;
     }

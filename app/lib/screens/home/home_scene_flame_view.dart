@@ -22,7 +22,7 @@ import '../../models/pet_artwork.dart';
 
 import '../../providers/auth_provider.dart';
 
-import '../pet/widgets/pet_detail_view.dart';
+import '../pet/pet_detail_screen.dart';
 import '../shop/shop_screen.dart';
 
 import 'game/home_scene_game.dart';
@@ -68,7 +68,6 @@ const Size _taskPanelBoardSourceSize = Size(1024, 1536);
 const double _taskPanelBoardAspectRatio = 492 / 792;
 const double _taskPanelBoardHeightRatio = 792 / 492;
 const Duration _taskPanelTransitionDuration = Duration(milliseconds: 320);
-const Duration _petDetailOverlayDuration = Duration(milliseconds: 260);
 const String _taskPanelAddButtonLabel = '+ \u6dfb\u52a0\u4efb\u52a1';
 
 class HomeSceneFlameView extends ConsumerStatefulWidget {
@@ -93,7 +92,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
   late GlobalKey<RiverpodAwareGameWidgetState<HomeSceneGame>> _gameKey;
   late final AnimationController _taskPanelController;
-  late final AnimationController _petDetailOverlayController;
 
   SpriteAtlas? _taskPanelSpriteAtlas;
   List<Pet> _pets = const <Pet>[];
@@ -111,10 +109,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   Rect? _taskPanelOriginRect;
   bool _didPrecacheTaskPanelAssets = false;
   String? _taskPanelPressedInteractionKey;
-  bool _petDetailVisible = false;
-  bool _petDetailClosing = false;
-  bool _petDetailBackdropInteractive = false;
-  Pet? _activePetDetail;
 
   static const int _taskPanelPageSize = 4;
 
@@ -135,11 +129,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       vsync: this,
       duration: _taskPanelTransitionDuration,
       reverseDuration: _taskPanelTransitionDuration,
-    );
-    _petDetailOverlayController = AnimationController(
-      vsync: this,
-      duration: _petDetailOverlayDuration,
-      reverseDuration: _petDetailOverlayDuration,
     );
 
     _preloadTaskPanelSpriteAtlas();
@@ -2185,191 +2174,45 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     return null;
   }
 
-  void _openPetDetail(int petId) {
+  Future<void> _openPetDetail(int petId) async {
     final selectedPet = _findPetById(petId);
 
     if (selectedPet != null) {
-      _showPetDetailOverlay(selectedPet);
+      await _showPetDetailDialog(selectedPet);
       return;
     }
 
-    _loadFamilyPets().then((_) {
-      if (!mounted) {
-        return;
-      }
-
-      final refreshedPet = _findPetById(petId);
-      if (refreshedPet == null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('当前家庭还没有宠物，先去创建一个吧')));
-        return;
-      }
-
-      _showPetDetailOverlay(refreshedPet);
-    });
-  }
-
-  Future<void> _showPetDetailOverlay(Pet pet) async {
+    await _loadFamilyPets();
     if (!mounted) {
       return;
     }
 
-    if (_petDetailVisible) {
-      setState(() => _activePetDetail = pet);
+    final refreshedPet = _findPetById(petId);
+    if (refreshedPet == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('当前家庭还没有宠物，先去创建一个吧')));
       return;
     }
 
-    setState(() {
-      _activePetDetail = pet;
-      _petDetailVisible = true;
-      _petDetailClosing = false;
-      _petDetailBackdropInteractive = false;
-    });
-
-    await _petDetailOverlayController.forward(from: 0);
-    if (!mounted || !_petDetailVisible) {
-      return;
-    }
-
-    setState(() => _petDetailBackdropInteractive = true);
+    await _showPetDetailDialog(refreshedPet);
   }
 
-  Future<void> _hidePetDetailOverlay() async {
-    if (!_petDetailVisible || _petDetailClosing) {
-      return;
-    }
-
-    setState(() {
-      _petDetailClosing = true;
-      _petDetailBackdropInteractive = false;
-    });
-
-    await _petDetailOverlayController.reverse(
-      from: _petDetailOverlayController.value == 0
-          ? 1
-          : _petDetailOverlayController.value,
-    );
+  Future<void> _showPetDetailDialog(Pet pet) async {
     if (!mounted) {
       return;
     }
 
-    setState(() {
-      _petDetailVisible = false;
-      _petDetailClosing = false;
-      _petDetailBackdropInteractive = false;
-      _activePetDetail = null;
-    });
-  }
-
-  Widget _buildPetDetailOverlay(Size size) {
-    final pet = _activePetDetail!;
-    final panelWidth = math.min(
-      size.width * (widget.device == HomeSceneDevice.tablet ? 0.58 : 0.92),
-      620.0,
-    );
-    final panelHeight = math.min(
-      size.height * 0.82,
-      widget.device == HomeSceneDevice.tablet ? 760.0 : 680.0,
-    );
-    final panelLeft = (size.width - panelWidth) / 2;
-    final panelTop = math.max(24.0, (size.height - panelHeight) / 2);
-
-    return Positioned.fill(
-      child: AnimatedBuilder(
-        animation: _petDetailOverlayController,
-        child: RepaintBoundary(
-          child: PetDetailView(
-            pet: pet,
-            embedded: true,
-            onClose: _hidePetDetailOverlay,
-          ),
-        ),
-        builder: (context, child) {
-          final progress = Curves.easeInOutCubicEmphasized.transform(
-            _petDetailOverlayController.value,
-          );
-          final backdropOpacity = Curves.easeOutCubic.transform(
-            _petDetailOverlayController.value,
-          );
-          final panelOpacity = _taskPanelIntervalValue(
-            _petDetailOverlayController.value,
-            begin: 0.12,
-            end: 1,
-            curve: Curves.easeOutCubic,
-          );
-          final panelScale = ui.lerpDouble(0.92, 1.0, progress)!;
-          final panelTranslateY = ui.lerpDouble(22, 0, progress)!;
-
-          return Stack(
-            children: [
-              Positioned.fill(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: _petDetailBackdropInteractive
-                      ? _hidePetDetailOverlay
-                      : null,
-                  child: ColoredBox(
-                    color: Colors.black.withValues(
-                      alpha: 0.36 * backdropOpacity,
-                    ),
-                    child: ClipRect(
-                      child: BackdropFilter(
-                        filter: ui.ImageFilter.blur(
-                          sigmaX: 5.0 * backdropOpacity,
-                          sigmaY: 5.0 * backdropOpacity,
-                        ),
-                        child: const SizedBox.expand(),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: panelLeft,
-                top: panelTop + panelTranslateY,
-                width: panelWidth,
-                height: panelHeight,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {},
-                  child: Opacity(
-                    opacity: panelOpacity,
-                    child: Transform.scale(
-                      scale: panelScale,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(30),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(
-                                0xFF3A2514,
-                              ).withValues(alpha: 0.22),
-                              blurRadius: 24,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: IgnorePointer(
-                          ignoring: !_petDetailBackdropInteractive,
-                          child: child,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
+    await showPetDetailDialog(context, pet: pet);
+    if (!mounted) {
+      return;
+    }
+    await _loadFamilyPets();
   }
 
   @override
   void dispose() {
     _taskPanelController.dispose();
-    _petDetailOverlayController.dispose();
     _game.startExitAnimation();
 
     super.dispose();
@@ -2408,8 +2251,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                 },
               ),
               if (_taskPanelVisible) _buildAnimatedTaskPanelOverlay(size),
-              if (_petDetailVisible && _activePetDetail != null)
-                _buildPetDetailOverlay(size),
             ],
           ),
         );

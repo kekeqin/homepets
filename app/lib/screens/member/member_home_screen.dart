@@ -252,18 +252,10 @@ class _MemberHomeScreenState extends ConsumerState<MemberHomeScreen> {
                                     final pet = _myPets[index];
                                     return _PetCard(
                                       pet: pet,
-                                      onTap: () =>
-                                          Navigator.of(
-                                                context,
-                                                rootNavigator: true,
-                                              )
-                                              .push(
-                                                MaterialPageRoute(
-                                                  builder: (_) =>
-                                                      PetDetailScreen(pet: pet),
-                                                ),
-                                              )
-                                              .then((_) => _loadData()),
+                                      onTap: () => showPetDetailDialog(
+                                        context,
+                                        pet: pet,
+                                      ).then((_) => _loadData()),
                                     );
                                   },
                                 ),
