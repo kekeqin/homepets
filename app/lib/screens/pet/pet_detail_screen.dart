@@ -38,16 +38,13 @@ Future<void> showPetDetailDialog(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => Navigator.of(context).pop(),
-              child: ColoredBox(
-                color: Colors.black.withValues(alpha: 0.36 * backdropOpacity),
-                child: ClipRect(
-                  child: BackdropFilter(
-                    filter: ui.ImageFilter.blur(
-                      sigmaX: 5.0 * backdropOpacity,
-                      sigmaY: 5.0 * backdropOpacity,
-                    ),
-                    child: const SizedBox.expand(),
+              child: ClipRect(
+                child: BackdropFilter(
+                  filter: ui.ImageFilter.blur(
+                    sigmaX: 8.0 * backdropOpacity,
+                    sigmaY: 8.0 * backdropOpacity,
                   ),
+                  child: const SizedBox.expand(),
                 ),
               ),
             ),
@@ -78,18 +75,11 @@ class PetDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8EEDF),
-      appBar: AppBar(
-        title: const Text(
-          '宠物详情',
-          style: TextStyle(fontWeight: FontWeight.w800),
-        ),
-        backgroundColor: const Color(0xFFF8EEDF),
-        foregroundColor: const Color(0xFF664625),
-        surfaceTintColor: const Color(0xFFF8EEDF),
-        scrolledUnderElevation: 0,
+      backgroundColor: const Color(0xFFDCE5EA),
+      body: PetDetailView(
+        pet: pet,
+        onClose: () => Navigator.of(context).maybePop(),
       ),
-      body: PetDetailView(pet: pet),
     );
   }
 }
@@ -104,8 +94,11 @@ class _PetDetailDialogSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final isTablet = size.width >= 900;
-    final panelWidth = math.min(size.width * (isTablet ? 0.58 : 0.92), 620.0);
-    final panelHeight = math.min(size.height * 0.82, isTablet ? 760.0 : 680.0);
+    final panelWidth = math.min(size.width * (isTablet ? 0.45 : 0.98), 448.0);
+    final panelMaxHeight = math.min(
+      size.height * 0.9,
+      isTablet ? 760.0 : 700.0,
+    );
 
     return SafeArea(
       child: Center(
@@ -114,19 +107,24 @@ class _PetDetailDialogSheet extends StatelessWidget {
           onTap: () {},
           child: SizedBox(
             width: panelWidth,
-            height: panelHeight,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF3A2514).withValues(alpha: 0.22),
-                    blurRadius: 24,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: panelMaxHeight),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF20303A).withValues(alpha: 0.22),
+                      blurRadius: 26,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: PetDetailView(
+                  pet: pet,
+                  embedded: true,
+                  onClose: onClose,
+                ),
               ),
-              child: PetDetailView(pet: pet, embedded: true, onClose: onClose),
             ),
           ),
         ),

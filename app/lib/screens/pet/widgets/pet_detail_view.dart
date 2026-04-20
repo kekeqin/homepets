@@ -1,10 +1,7 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../models/pet.dart';
-import '../../../models/pet_artwork.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../services/pet_detail_service.dart';
 import '../../../widgets/pet_avatar.dart';
@@ -62,195 +59,44 @@ class _PetDetailViewState extends ConsumerState<PetDetailView> {
   @override
   Widget build(BuildContext context) {
     final pet = widget.pet;
-    final stageLabel = _stageLabel(pet);
-    final moodLabel = _moodLabel(pet);
-    final scrollPadding = EdgeInsets.fromLTRB(
-      widget.embedded ? 18 : 20,
-      widget.embedded ? 18 : 22,
-      widget.embedded ? 18 : 20,
-      widget.embedded ? 20 : 28,
-    );
-
-    final content = Stack(
-      children: [
-        const Positioned(
-          top: -42,
-          right: -24,
-          child: _WashBlob(
-            width: 176,
-            height: 176,
-            color: _PetDetailPalette.washHoney,
-          ),
-        ),
-        const Positioned(
-          top: 168,
-          left: -34,
-          child: _WashBlob(
-            width: 124,
-            height: 124,
-            color: _PetDetailPalette.washGreen,
-          ),
-        ),
-        const Positioned(
-          bottom: 88,
-          right: -18,
-          child: _WashBlob(
-            width: 126,
-            height: 126,
-            color: _PetDetailPalette.washCoral,
-          ),
-        ),
-        const Positioned(
-          left: 26,
-          top: 120,
-          child: _BrickMarks(color: _PetDetailPalette.paperShadow),
-        ),
-        const Positioned(
-          right: 24,
-          bottom: 156,
-          child: _BrickMarks(color: _PetDetailPalette.paperShadow),
-        ),
-        SingleChildScrollView(
-          padding: scrollPadding,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 600;
-              final notes = _buildStickyNotes(
-                pet: pet,
-                moodLabel: moodLabel,
-                stageLabel: stageLabel,
-              );
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _PetHeroCard(
-                    pet: pet,
-                    stageLabel: stageLabel,
-                    moodLabel: moodLabel,
-                    ownerLabel: _ownerLabel(pet),
-                    typeLabel: _petTypeName(pet),
-                    progressNote: _progressNote(pet),
-                    onClose: widget.onClose,
-                  ),
-                  const SizedBox(height: 16),
-                  if (isWide)
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 7,
-                          child: _GrowthNotebook(
-                            pet: pet,
-                            stageLabel: stageLabel,
-                            moodLabel: moodLabel,
-                            typeLabel: _petTypeName(pet),
-                            progressNote: _progressNote(pet),
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          flex: 5,
-                          child: _StickyNoteBoard(notes: notes),
-                        ),
-                      ],
-                    )
-                  else ...[
-                    _GrowthNotebook(
-                      pet: pet,
-                      stageLabel: stageLabel,
-                      moodLabel: moodLabel,
-                      typeLabel: _petTypeName(pet),
-                      progressNote: _progressNote(pet),
-                    ),
-                    const SizedBox(height: 16),
-                    _StickyNoteBoard(notes: notes),
-                  ],
-                  const SizedBox(height: 16),
-                  _HistoryNotebook(
-                    loading: _loading,
-                    entries: _history.take(widget.embedded ? 5 : 8).toList(),
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      ],
-    );
-
-    final decorated = DecoratedBox(
-      decoration: BoxDecoration(
-        color: widget.embedded
-            ? _PetDetailPalette.embeddedBackground
-            : _PetDetailPalette.background,
-        borderRadius: widget.embedded ? BorderRadius.circular(30) : null,
-        border: widget.embedded
-            ? Border.all(color: _PetDetailPalette.ink.withValues(alpha: 0.18))
-            : null,
+    final content = SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        widget.embedded ? 12 : 20,
+        widget.embedded ? 24 : 24,
+        widget.embedded ? 12 : 20,
+        widget.embedded ? 18 : 28,
       ),
-      child: content,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: widget.embedded ? 412 : 448),
+          child: DefaultTextStyle.merge(
+            style: const TextStyle(
+              decoration: TextDecoration.none,
+              decorationColor: Colors.transparent,
+            ),
+            child: _ProfileCard(
+              pet: pet,
+              stageLabel: _stageLabel(pet),
+              growthValue: _growthValueLabel(pet),
+              feedCountLabel: _feedCountLabel(),
+              recentTasks: _buildRecentTasks(),
+              statusLabel: _statusStampLabel(pet),
+              loading: _loading,
+            ),
+          ),
+        ),
+      ),
     );
 
     if (widget.embedded) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: decorated,
-      );
+      return content;
     }
 
     return ColoredBox(
-      color: _PetDetailPalette.background,
-      child: SafeArea(bottom: false, child: decorated),
+      color: _PetDetailColors.background,
+      child: SafeArea(child: content),
     );
   }
-
-  List<_StickyNoteData> _buildStickyNotes({
-    required Pet pet,
-    required String moodLabel,
-    required String stageLabel,
-  }) {
-    return <_StickyNoteData>[
-      _StickyNoteData(
-        title: '当前成长值',
-        value: '${pet.experience}',
-        note: '今天每次互动都会继续累积。',
-        icon: Icons.auto_awesome_rounded,
-        color: _PetDetailPalette.noteHoney,
-        accent: _PetDetailPalette.honeyDeep,
-        angle: -0.028,
-      ),
-      _StickyNoteData(
-        title: '距离升级',
-        value: _remainingValue(pet),
-        note: _remainingNote(pet),
-        icon: Icons.star_rounded,
-        color: _PetDetailPalette.noteGreen,
-        accent: _PetDetailPalette.greenDeep,
-        angle: 0.024,
-      ),
-      _StickyNoteData(
-        title: '今日状态',
-        value: moodLabel,
-        note: '这会影响这张档案页现在的气质。',
-        icon: Icons.favorite_rounded,
-        color: _PetDetailPalette.noteCoral,
-        accent: _PetDetailPalette.coralDeep,
-        angle: 0.018,
-      ),
-      _StickyNoteData(
-        title: '成长阶段',
-        value: stageLabel,
-        note: '${_petTypeName(pet)}小伙伴正在慢慢长大。',
-        icon: Icons.eco_rounded,
-        color: _PetDetailPalette.paperMuted,
-        accent: _PetDetailPalette.ink,
-        angle: -0.018,
-      ),
-    ];
-  }
-
-  String _petTypeName(Pet pet) => petTypeLabel(pet.petType);
 
   String _stageLabel(Pet pet) {
     return switch (pet.level) {
@@ -262,1293 +108,600 @@ class _PetDetailViewState extends ConsumerState<PetDetailView> {
     };
   }
 
-  String _moodLabel(Pet pet) {
-    final progress = pet.progress;
-    if (progress >= 0.85) {
-      return '活力满满';
-    }
-    if (progress >= 0.55) {
-      return '开心玩耍';
-    }
-    if (progress >= 0.25) {
-      return '认真成长';
-    }
-    return '需要鼓励';
-  }
-
-  String _progressNote(Pet pet) {
-    final threshold = pet.levelThreshold;
-    if (threshold == null || threshold == 0) {
-      return '已经来到满级阶段，是家里最闪亮的小伙伴。';
-    }
-    final remaining = math.max(threshold - pet.experience, 0);
-    return '再收集 $remaining 点成长值，就能升到 Lv.${pet.level + 1}。';
-  }
-
-  String _remainingValue(Pet pet) {
+  String _growthValueLabel(Pet pet) {
     final threshold = pet.levelThreshold;
     if (threshold == null || threshold == 0) {
       return '满级';
     }
-    return '${math.max(threshold - pet.experience, 0)}';
+    return '${pet.experience} / $threshold';
   }
 
-  String _remainingNote(Pet pet) {
-    final threshold = pet.levelThreshold;
-    if (threshold == null || threshold == 0) {
-      return '这一阶段已经全部完成。';
-    }
-    return '离下一级只差一点点。';
+  String _feedCountLabel() {
+    final count = _todayFeedCount();
+    return '$count次/天';
   }
 
-  String _ownerLabel(Pet pet) {
-    final owner = pet.ownerNickname?.trim();
-    if (owner == null || owner.isEmpty) {
-      return '家庭小伙伴';
+  int _todayFeedCount() {
+    final now = DateTime.now();
+    var todayCount = 0;
+    var totalCount = 0;
+
+    for (final entry in _history) {
+      if (entry.eventType != 'feed') {
+        continue;
+      }
+      totalCount += 1;
+      final createdAt = entry.createdAt;
+      if (createdAt == null) {
+        continue;
+      }
+      if (createdAt.year == now.year &&
+          createdAt.month == now.month &&
+          createdAt.day == now.day) {
+        todayCount += 1;
+      }
     }
-    return '$owner 的伙伴';
+
+    return todayCount > 0 ? todayCount : totalCount;
+  }
+
+  List<_InteractionData> _buildRecentTasks() {
+    final tasks = <_InteractionData>[];
+    final icons = <IconData>[
+      Icons.pan_tool_alt_rounded,
+      Icons.content_cut_rounded,
+      Icons.sports_baseball_rounded,
+    ];
+
+    for (final entry in _history) {
+      if (entry.eventType != 'task') {
+        continue;
+      }
+      tasks.add(
+        _InteractionData(
+          label: entry.title.trim().isEmpty ? '完成任务' : entry.title.trim(),
+          icon: icons[tasks.length % icons.length],
+          highlight: tasks.isEmpty,
+        ),
+      );
+      if (tasks.length == 3) {
+        break;
+      }
+    }
+
+    return tasks;
+  }
+
+  String _statusStampLabel(Pet pet) {
+    final progress = pet.progress;
+    if (progress >= 0.85) {
+      return '闪亮';
+    }
+    if (progress >= 0.45) {
+      return '成长';
+    }
+    return '关注';
   }
 }
 
-class _PetDetailPalette {
-  static const background = Color(0xFFF8EEDF);
-  static const embeddedBackground = Color(0xFFF7EAD8);
-  static const paper = Color(0xFFFFFBF2);
-  static const paperMuted = Color(0xFFF5E9D5);
-  static const paperWarm = Color(0xFFF7E7BF);
-  static const noteHoney = Color(0xFFF6E4AA);
-  static const noteGreen = Color(0xFFDCE9C7);
-  static const noteCoral = Color(0xFFF4D7CD);
-  static const washHoney = Color(0xFFF3D79F);
-  static const washGreen = Color(0xFFDCEAC2);
-  static const washCoral = Color(0xFFF2D3C7);
-  static const honey = Color(0xFFE5BD6F);
-  static const honeyDeep = Color(0xFF9A6A1A);
-  static const green = Color(0xFF98B96C);
-  static const greenDeep = Color(0xFF427139);
-  static const coral = Color(0xFFDEA48F);
-  static const coralDeep = Color(0xFFAF5C45);
-  static const ink = Color(0xFF664625);
-  static const inkSoft = Color(0xFF866C49);
-  static const paperShadow = Color(0x18000000);
+class _PetDetailColors {
+  static const background = Color(0xFFDCE5EA);
+  static const paper = Color(0xFFF3EBDD);
+  static const paperSoft = Color(0xFFE9DFCF);
+  static const accent = Color(0xFFC9B7A1);
+  static const accentStrong = Color(0xFFAA9577);
+  static const highlight = Color(0xFFDDD2BF);
+  static const ink = Color(0xFF5B4632);
+  static const line = Color(0xFF6A5237);
+  static const green = Color(0xFF869A77);
+  static const greenTrack = Color(0xFFD2C9BA);
+  static const shadow = Color(0x16212A30);
 }
 
-class _PetHeroCard extends StatelessWidget {
-  const _PetHeroCard({
+class _ProfileCard extends StatelessWidget {
+  const _ProfileCard({
     required this.pet,
     required this.stageLabel,
-    required this.moodLabel,
-    required this.ownerLabel,
-    required this.typeLabel,
-    required this.progressNote,
-    this.onClose,
+    required this.growthValue,
+    required this.feedCountLabel,
+    required this.recentTasks,
+    required this.statusLabel,
+    required this.loading,
   });
 
   final Pet pet;
   final String stageLabel;
-  final String moodLabel;
-  final String ownerLabel;
-  final String typeLabel;
-  final String progressNote;
-  final VoidCallback? onClose;
+  final String growthValue;
+  final String feedCountLabel;
+  final List<_InteractionData> recentTasks;
+  final String statusLabel;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
-    return _PaperPanel(
-      color: _PetDetailPalette.paper,
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const _PaperTapeLabel(
-                text: '宠物档案',
-                background: _PetDetailPalette.paperWarm,
-                foreground: _PetDetailPalette.ink,
-              ),
-              const Spacer(),
-              _PaperBadge(
-                icon: Icons.workspace_premium_rounded,
-                label: 'Lv.${pet.level}',
-                background: _PetDetailPalette.noteHoney,
-                foreground: _PetDetailPalette.honeyDeep,
-              ),
-              if (onClose != null) ...[
-                const SizedBox(width: 8),
-                _CircleInkButton(
-                  tooltip: '关闭',
-                  icon: Icons.close_rounded,
-                  onTap: onClose,
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 16),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 520;
-
-              if (isWide) {
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _PetStageCard(pet: pet, moodLabel: moodLabel),
-                    const SizedBox(width: 18),
-                    Expanded(
-                      child: _HeroInfoColumn(
-                        pet: pet,
-                        stageLabel: stageLabel,
-                        ownerLabel: ownerLabel,
-                        typeLabel: typeLabel,
-                        moodLabel: moodLabel,
-                        progressNote: progressNote,
-                      ),
-                    ),
-                  ],
-                );
-              }
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: _PetStageCard(pet: pet, moodLabel: moodLabel),
-                  ),
-                  const SizedBox(height: 16),
-                  _HeroInfoColumn(
-                    pet: pet,
-                    stageLabel: stageLabel,
-                    ownerLabel: ownerLabel,
-                    typeLabel: typeLabel,
-                    moodLabel: moodLabel,
-                    progressNote: progressNote,
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroInfoColumn extends StatelessWidget {
-  const _HeroInfoColumn({
-    required this.pet,
-    required this.stageLabel,
-    required this.ownerLabel,
-    required this.typeLabel,
-    required this.moodLabel,
-    required this.progressNote,
-  });
-
-  final Pet pet;
-  final String stageLabel;
-  final String ownerLabel;
-  final String typeLabel;
-  final String moodLabel;
-  final String progressNote;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Stack(
+      clipBehavior: Clip.none,
       children: [
-        Text(
-          pet.name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontSize: 32,
-            height: 1.05,
-            fontWeight: FontWeight.w900,
-            color: _PetDetailPalette.ink,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          '$typeLabel · $stageLabel',
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: _PetDetailPalette.inkSoft,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            _PaperBadge(
-              icon: Icons.favorite_rounded,
-              label: moodLabel,
-              background: _PetDetailPalette.noteCoral,
-              foreground: _PetDetailPalette.coralDeep,
-            ),
-            _PaperBadge(
-              icon: Icons.person_rounded,
-              label: ownerLabel,
-              background: _PetDetailPalette.noteGreen,
-              foreground: _PetDetailPalette.greenDeep,
-            ),
-            _PaperBadge(
-              icon: Icons.auto_awesome_rounded,
-              label: pet.displayEmoji,
-              background: _PetDetailPalette.paperMuted,
-              foreground: _PetDetailPalette.ink,
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          padding: const EdgeInsets.fromLTRB(16, 38, 16, 16),
           decoration: BoxDecoration(
-            color: _PetDetailPalette.paperWarm.withValues(alpha: 0.72),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: _PetDetailPalette.ink.withValues(alpha: 0.14),
-            ),
+            color: _PetDetailColors.paper,
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: _PetDetailColors.line, width: 3),
+            boxShadow: const [
+              BoxShadow(
+                color: _PetDetailColors.shadow,
+                blurRadius: 16,
+                offset: Offset(0, 8),
+              ),
+            ],
           ),
-          child: Text(
-            progressNote,
-            style: const TextStyle(
-              fontSize: 13,
-              height: 1.6,
-              fontWeight: FontWeight.w600,
-              color: _PetDetailPalette.ink,
-            ),
+          child: Column(
+            children: [
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact = constraints.maxWidth < 310;
+
+                  if (isCompact) {
+                    return Column(
+                      children: [
+                        _PortraitFrame(pet: pet),
+                        const SizedBox(height: 12),
+                        _MetricColumn(
+                          stageLabel: stageLabel,
+                          level: pet.level,
+                          growthValue: growthValue,
+                          feedCountLabel: feedCountLabel,
+                          progress: pet.progress,
+                        ),
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: _PortraitFrame(pet: pet)),
+                      const SizedBox(width: 12),
+                      SizedBox(
+                        width: 124,
+                        child: _MetricColumn(
+                          stageLabel: stageLabel,
+                          level: pet.level,
+                          growthValue: growthValue,
+                          feedCountLabel: feedCountLabel,
+                          progress: pet.progress,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: _RecentTasksPanel(
+                      tasks: recentTasks,
+                      loading: loading,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  _AchievementTag(level: pet.level, statusLabel: statusLabel),
+                ],
+              ),
+            ],
           ),
+        ),
+        Positioned(
+          top: -18,
+          left: 0,
+          right: 0,
+          child: Center(child: _NameBanner(text: pet.name)),
         ),
       ],
     );
   }
 }
 
-class _PetStageCard extends StatelessWidget {
-  const _PetStageCard({required this.pet, required this.moodLabel});
+class _PortraitFrame extends StatelessWidget {
+  const _PortraitFrame({required this.pet});
 
   final Pet pet;
-  final String moodLabel;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 204,
-      padding: const EdgeInsets.all(14),
+      height: 228,
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: _PetDetailPalette.paperMuted,
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(
-          color: _PetDetailPalette.ink.withValues(alpha: 0.15),
+        color: _PetDetailColors.paper,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _PetDetailColors.line, width: 3),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: _PetDetailColors.paperSoft,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: _PetDetailColors.line, width: 3),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x143D5A66),
+              blurRadius: 20,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: Center(
+          child: PetAvatar(pet: pet, size: 132, showBackground: false),
         ),
       ),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            left: 18,
-            top: -6,
-            child: _TapePiece(
-              width: 46,
-              color: _PetDetailPalette.noteHoney.withValues(alpha: 0.8),
-            ),
-          ),
-          Positioned(
-            right: 18,
-            top: -4,
-            child: _TapePiece(
-              width: 38,
-              color: _PetDetailPalette.noteGreen.withValues(alpha: 0.76),
-            ),
-          ),
-          Column(
-            children: [
-              Align(
-                alignment: Alignment.centerRight,
-                child: _PaperBadge(
-                  icon: Icons.eco_rounded,
-                  label: moodLabel,
-                  background: _PetDetailPalette.paper,
-                  foreground: _PetDetailPalette.inkSoft,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Container(
-                height: 156,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: _PetDetailPalette.paper,
-                  borderRadius: BorderRadius.circular(26),
-                  border: Border.all(
-                    color: _PetDetailPalette.ink.withValues(alpha: 0.12),
-                  ),
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Positioned(
-                      bottom: 22,
-                      child: Container(
-                        width: 110,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: _PetDetailPalette.noteGreen,
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                      ),
-                    ),
-                    const Positioned(
-                      top: 18,
-                      left: 20,
-                      child: Icon(
-                        Icons.star_rounded,
-                        color: _PetDetailPalette.honey,
-                        size: 18,
-                      ),
-                    ),
-                    const Positioned(
-                      top: 22,
-                      right: 24,
-                      child: Icon(
-                        Icons.eco_rounded,
-                        color: _PetDetailPalette.green,
-                        size: 18,
-                      ),
-                    ),
-                    PetAvatar(pet: pet, size: 118, showBackground: false),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 }
 
-class _GrowthNotebook extends StatelessWidget {
-  const _GrowthNotebook({
-    required this.pet,
+class _MetricColumn extends StatelessWidget {
+  const _MetricColumn({
     required this.stageLabel,
-    required this.moodLabel,
-    required this.typeLabel,
-    required this.progressNote,
+    required this.level,
+    required this.growthValue,
+    required this.feedCountLabel,
+    required this.progress,
   });
 
-  final Pet pet;
   final String stageLabel;
-  final String moodLabel;
-  final String typeLabel;
-  final String progressNote;
+  final int level;
+  final String growthValue;
+  final String feedCountLabel;
+  final double progress;
 
   @override
   Widget build(BuildContext context) {
-    final threshold = pet.levelThreshold;
-    final maxed = threshold == null || threshold == 0;
-
-    return _PaperPanel(
-      color: _PetDetailPalette.paper,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _SectionHeading(
-            title: '成长纸条',
-            subtitle: '把每一次喂养和任务都贴进这本成长手帐里。',
-          ),
-          const SizedBox(height: 14),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: _PetDetailPalette.paperWarm.withValues(alpha: 0.72),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        '成长进度',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                          color: _PetDetailPalette.ink,
-                        ),
-                      ),
-                    ),
-                    _PaperBadge(
-                      icon: maxed
-                          ? Icons.workspace_premium_rounded
-                          : Icons.arrow_upward_rounded,
-                      label: maxed ? '已经满级' : '${pet.experience}/$threshold',
-                      background: _PetDetailPalette.paper,
-                      foreground: _PetDetailPalette.ink,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  progressNote,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    height: 1.55,
-                    color: _PetDetailPalette.inkSoft,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                _PaperProgressBar(progress: pet.progress, maxed: maxed),
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    _InfoPill(
-                      icon: Icons.pets_rounded,
-                      label: typeLabel,
-                      background: _PetDetailPalette.paper,
-                    ),
-                    _InfoPill(
-                      icon: Icons.auto_awesome_rounded,
-                      label: stageLabel,
-                      background: _PetDetailPalette.paper,
-                    ),
-                    _InfoPill(
-                      icon: Icons.favorite_rounded,
-                      label: moodLabel,
-                      background: _PetDetailPalette.paper,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return Column(
+      children: [
+        _MetricCard(
+          title: '成长阶段',
+          icon: Icons.spa_outlined,
+          value: '$stageLabel (LV$level)',
+          progress: progress,
+        ),
+        const SizedBox(height: 10),
+        _MetricCard(
+          title: '成长值',
+          icon: Icons.star_border_rounded,
+          value: growthValue,
+        ),
+        const SizedBox(height: 10),
+        _MetricCard(
+          title: '喂养次数',
+          icon: Icons.lunch_dining_outlined,
+          value: feedCountLabel,
+        ),
+      ],
     );
   }
 }
 
-class _StickyNoteBoard extends StatelessWidget {
-  const _StickyNoteBoard({required this.notes});
-
-  final List<_StickyNoteData> notes;
-
-  @override
-  Widget build(BuildContext context) {
-    return _PaperPanel(
-      color: _PetDetailPalette.paper,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _SectionHeading(title: '成长便签', subtitle: '把最重要的几件小事先贴在最上面。'),
-          const SizedBox(height: 14),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final singleColumn = constraints.maxWidth < 260;
-              final columns = singleColumn ? 1 : 2;
-              const spacing = 12.0;
-              final width =
-                  (constraints.maxWidth - spacing * (columns - 1)) / columns;
-
-              return Wrap(
-                spacing: spacing,
-                runSpacing: spacing,
-                children: notes
-                    .map(
-                      (note) => SizedBox(
-                        width: width,
-                        child: Transform.rotate(
-                          angle: note.angle,
-                          child: _StickyNoteCard(data: note),
-                        ),
-                      ),
-                    )
-                    .toList(),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HistoryNotebook extends StatelessWidget {
-  const _HistoryNotebook({required this.loading, required this.entries});
-
-  final bool loading;
-  final List<PetHistoryEntry> entries;
-
-  @override
-  Widget build(BuildContext context) {
-    return _PaperPanel(
-      color: _PetDetailPalette.paper,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _SectionHeading(
-            title: '最近记录',
-            subtitle: '每一张便签都记着一次喂养、一次任务，或者一次小升级。',
-          ),
-          const SizedBox(height: 14),
-          if (loading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(
-                child: CircularProgressIndicator(
-                  color: _PetDetailPalette.greenDeep,
-                ),
-              ),
-            )
-          else if (entries.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: _PetDetailPalette.paperMuted,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: const Text(
-                '暂时还没有新的成长记录，先去完成一项任务吧。',
-                style: TextStyle(
-                  fontSize: 13,
-                  height: 1.6,
-                  color: _PetDetailPalette.inkSoft,
-                ),
-              ),
-            )
-          else
-            Column(
-              children: [
-                for (var index = 0; index < entries.length; index++)
-                  _TimelineRow(
-                    entry: entries[index],
-                    isLast: index == entries.length - 1,
-                    angle: index.isEven ? -0.012 : 0.014,
-                  ),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TimelineRow extends StatelessWidget {
-  const _TimelineRow({
-    required this.entry,
-    required this.isLast,
-    required this.angle,
+class _MetricCard extends StatelessWidget {
+  const _MetricCard({
+    required this.title,
+    required this.icon,
+    required this.value,
+    this.progress,
   });
 
-  final PetHistoryEntry entry;
-  final bool isLast;
-  final double angle;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = _HistoryPalette.fromEntry(entry);
-
-    return Padding(
-      padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 28,
-            child: Column(
-              children: [
-                Container(
-                  width: 18,
-                  height: 18,
-                  decoration: BoxDecoration(
-                    color: palette.dotColor,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: _PetDetailPalette.ink.withValues(alpha: 0.18),
-                    ),
-                  ),
-                  child: Icon(
-                    _timelineIcon(entry.eventType),
-                    size: 11,
-                    color: palette.iconColor,
-                  ),
-                ),
-                if (!isLast)
-                  Container(
-                    width: 2,
-                    height: 62,
-                    margin: const EdgeInsets.only(top: 6),
-                    decoration: BoxDecoration(
-                      color: _PetDetailPalette.ink.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Transform.rotate(
-              angle: angle,
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: palette.cardColor,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(
-                    color: _PetDetailPalette.ink.withValues(alpha: 0.14),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            entry.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w900,
-                              color: _PetDetailPalette.ink,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        _PaperBadge(
-                          icon: entry.isPositive
-                              ? Icons.add_rounded
-                              : Icons.remove_rounded,
-                          label:
-                              '${entry.isPositive ? '+' : ''}${entry.points}',
-                          background: _PetDetailPalette.paper,
-                          foreground: entry.isPositive
-                              ? _PetDetailPalette.greenDeep
-                              : _PetDetailPalette.coralDeep,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      entry.subtitle,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        height: 1.5,
-                        color: _PetDetailPalette.inkSoft,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: _PaperTapeLabel(
-                        text: _formatTime(entry.createdAt),
-                        background: _PetDetailPalette.paper.withValues(
-                          alpha: 0.82,
-                        ),
-                        foreground: _PetDetailPalette.inkSoft,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static IconData _timelineIcon(String eventType) {
-    return switch (eventType) {
-      'feed' => Icons.restaurant_rounded,
-      'task' => Icons.task_alt_rounded,
-      _ => Icons.auto_awesome_rounded,
-    };
-  }
-
-  static String _formatTime(DateTime? time) {
-    if (time == null) {
-      return '刚刚';
-    }
-    final diff = DateTime.now().difference(time);
-    if (diff.inMinutes < 1) {
-      return '刚刚';
-    }
-    if (diff.inMinutes < 60) {
-      return '${diff.inMinutes} 分钟前';
-    }
-    if (diff.inHours < 24) {
-      return '${diff.inHours} 小时前';
-    }
-    if (diff.inDays < 7) {
-      return '${diff.inDays} 天前';
-    }
-    return '${time.month}月${time.day}日';
-  }
-}
-
-class _HistoryPalette {
-  const _HistoryPalette({
-    required this.cardColor,
-    required this.dotColor,
-    required this.iconColor,
-  });
-
-  final Color cardColor;
-  final Color dotColor;
-  final Color iconColor;
-
-  factory _HistoryPalette.fromEntry(PetHistoryEntry entry) {
-    if (entry.eventType == 'feed') {
-      return const _HistoryPalette(
-        cardColor: _PetDetailPalette.noteGreen,
-        dotColor: _PetDetailPalette.green,
-        iconColor: _PetDetailPalette.greenDeep,
-      );
-    }
-    if (entry.eventType == 'task') {
-      return const _HistoryPalette(
-        cardColor: _PetDetailPalette.noteHoney,
-        dotColor: _PetDetailPalette.honey,
-        iconColor: _PetDetailPalette.honeyDeep,
-      );
-    }
-    return const _HistoryPalette(
-      cardColor: _PetDetailPalette.noteCoral,
-      dotColor: _PetDetailPalette.coral,
-      iconColor: _PetDetailPalette.coralDeep,
-    );
-  }
-}
-
-class _PaperPanel extends StatelessWidget {
-  const _PaperPanel({
-    required this.child,
-    this.color = _PetDetailPalette.paper,
-    this.padding = const EdgeInsets.all(16),
-  });
-
-  final Widget child;
-  final Color color;
-  final EdgeInsetsGeometry padding;
+  final String title;
+  final IconData icon;
+  final String value;
+  final double? progress;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: padding,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: _PetDetailPalette.ink.withValues(alpha: 0.14),
+        color: _PetDetailColors.paper,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _PetDetailColors.line, width: 3),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: _PetDetailColors.ink),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: _PetDetailColors.ink,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              color: _PetDetailColors.ink,
+            ),
+          ),
+          if (progress != null) ...[
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 8,
+                backgroundColor: _PetDetailColors.greenTrack,
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  _PetDetailColors.green,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _RecentTasksPanel extends StatelessWidget {
+  const _RecentTasksPanel({required this.tasks, required this.loading});
+
+  final List<_InteractionData> tasks;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(10, 30, 10, 10),
+          decoration: BoxDecoration(
+            color: _PetDetailColors.paper,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: _PetDetailColors.line, width: 3),
+          ),
+          child: Column(
+            children: [
+              if (loading && tasks.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: CircularProgressIndicator(
+                    color: _PetDetailColors.green,
+                  ),
+                )
+              else if (tasks.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  child: Text(
+                    '还没有完成任务',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: _PetDetailColors.ink,
+                    ),
+                  ),
+                )
+              else
+                for (var index = 0; index < tasks.length; index++) ...[
+                  _InteractionRow(data: tasks[index]),
+                  if (index != tasks.length - 1) const SizedBox(height: 8),
+                ],
+            ],
+          ),
         ),
-        boxShadow: const [
-          BoxShadow(
-            color: _PetDetailPalette.paperShadow,
-            blurRadius: 16,
-            offset: Offset(0, 8),
+        const Positioned(
+          top: -12,
+          left: 0,
+          child: _RibbonLabel(text: '最近互动TOP3'),
+        ),
+      ],
+    );
+  }
+}
+
+class _InteractionRow extends StatelessWidget {
+  const _InteractionRow({required this.data});
+
+  final _InteractionData data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: data.highlight
+            ? _PetDetailColors.highlight
+            : _PetDetailColors.paperSoft,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _PetDetailColors.line, width: 2.5),
+      ),
+      child: Row(
+        children: [
+          Icon(data.icon, size: 18, color: _PetDetailColors.ink),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              data.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+                color: _PetDetailColors.ink,
+              ),
+            ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AchievementTag extends StatelessWidget {
+  const _AchievementTag({required this.level, required this.statusLabel});
+
+  final int level;
+  final String statusLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Transform.rotate(
+      angle: 0.14,
+      child: Container(
+        width: 78,
+        padding: const EdgeInsets.fromLTRB(10, 14, 10, 12),
+        decoration: BoxDecoration(
+          color: _PetDetailColors.paper,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _PetDetailColors.line, width: 3),
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            const Positioned(
+              top: -10,
+              right: -4,
+              child: Icon(
+                Icons.star_rounded,
+                size: 24,
+                color: _PetDetailColors.accentStrong,
+              ),
+            ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'LV$level',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: _PetDetailColors.ink,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  statusLabel,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: _PetDetailColors.ink,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                const Text(
+                  '成就',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: _PetDetailColors.ink,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NameBanner extends StatelessWidget {
+  const _NameBanner({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return _BannerShell(
+      backgroundColor: _PetDetailColors.accent,
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w900,
+          color: _PetDetailColors.ink,
+        ),
+      ),
+    );
+  }
+}
+
+class _RibbonLabel extends StatelessWidget {
+  const _RibbonLabel({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return _BannerShell(
+      backgroundColor: _PetDetailColors.accent,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w900,
+          color: _PetDetailColors.ink,
+        ),
+      ),
+    );
+  }
+}
+
+class _BannerShell extends StatelessWidget {
+  const _BannerShell({
+    required this.backgroundColor,
+    required this.padding,
+    required this.child,
+  });
+
+  final Color backgroundColor;
+  final EdgeInsetsGeometry padding;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _PetDetailColors.line, width: 3),
       ),
       child: child,
     );
   }
 }
 
-class _SectionHeading extends StatelessWidget {
-  const _SectionHeading({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            color: _PetDetailPalette.ink,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          subtitle,
-          style: const TextStyle(
-            fontSize: 12,
-            height: 1.55,
-            color: _PetDetailPalette.inkSoft,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PaperProgressBar extends StatelessWidget {
-  const _PaperProgressBar({required this.progress, required this.maxed});
-
-  final double progress;
-  final bool maxed;
-
-  @override
-  Widget build(BuildContext context) {
-    final safeProgress = progress.clamp(0.0, 1.0).toDouble();
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const knobSize = 24.0;
-        final knobLeft = math.max(
-          0.0,
-          safeProgress * (constraints.maxWidth - knobSize),
-        );
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: const [
-                Text(
-                  '开始成长',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: _PetDetailPalette.inkSoft,
-                  ),
-                ),
-                Spacer(),
-                Text(
-                  '成长终点',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: _PetDetailPalette.inkSoft,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 34,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Positioned.fill(
-                    child: Container(
-                      padding: const EdgeInsets.all(5),
-                      decoration: BoxDecoration(
-                        color: _PetDetailPalette.paper,
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                          color: _PetDetailPalette.ink.withValues(alpha: 0.14),
-                        ),
-                      ),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: FractionallySizedBox(
-                          widthFactor: maxed
-                              ? 1
-                              : math.max(safeProgress, 0.08).toDouble(),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [
-                                  _PetDetailPalette.green,
-                                  _PetDetailPalette.honey,
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: knobLeft,
-                    top: 5,
-                    child: Container(
-                      width: knobSize,
-                      height: knobSize,
-                      decoration: BoxDecoration(
-                        color: _PetDetailPalette.paperWarm,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: _PetDetailPalette.ink.withValues(alpha: 0.14),
-                        ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: _PetDetailPalette.paperShadow,
-                            blurRadius: 8,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        maxed
-                            ? Icons.workspace_premium_rounded
-                            : Icons.star_rounded,
-                        size: 15,
-                        color: _PetDetailPalette.honeyDeep,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _InfoPill extends StatelessWidget {
-  const _InfoPill({
-    required this.icon,
+class _InteractionData {
+  const _InteractionData({
     required this.label,
-    required this.background,
+    required this.icon,
+    this.highlight = false,
   });
 
-  final IconData icon;
   final String label;
-  final Color background;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: _PetDetailPalette.ink.withValues(alpha: 0.12),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 15, color: _PetDetailPalette.inkSoft),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: _PetDetailPalette.ink,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PaperBadge extends StatelessWidget {
-  const _PaperBadge({
-    required this.icon,
-    required this.label,
-    required this.background,
-    required this.foreground,
-  });
-
   final IconData icon;
-  final String label;
-  final Color background;
-  final Color foreground;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: foreground.withValues(alpha: 0.14)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: foreground),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              color: foreground,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PaperTapeLabel extends StatelessWidget {
-  const _PaperTapeLabel({
-    required this.text,
-    required this.background,
-    required this.foreground,
-  });
-
-  final String text;
-  final Color background;
-  final Color foreground;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w800,
-          color: foreground,
-        ),
-      ),
-    );
-  }
-}
-
-class _CircleInkButton extends StatelessWidget {
-  const _CircleInkButton({
-    required this.tooltip,
-    required this.icon,
-    required this.onTap,
-  });
-
-  final String tooltip;
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
-          child: Ink(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: _PetDetailPalette.paperMuted,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: _PetDetailPalette.ink.withValues(alpha: 0.14),
-              ),
-            ),
-            child: Icon(icon, size: 18, color: _PetDetailPalette.ink),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StickyNoteData {
-  const _StickyNoteData({
-    required this.title,
-    required this.value,
-    required this.note,
-    required this.icon,
-    required this.color,
-    required this.accent,
-    required this.angle,
-  });
-
-  final String title;
-  final String value;
-  final String note;
-  final IconData icon;
-  final Color color;
-  final Color accent;
-  final double angle;
-}
-
-class _StickyNoteCard extends StatelessWidget {
-  const _StickyNoteCard({required this.data});
-
-  final _StickyNoteData data;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: data.color,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: _PetDetailPalette.ink.withValues(alpha: 0.12),
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: _PetDetailPalette.paperShadow,
-            blurRadius: 10,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(data.icon, size: 18, color: data.accent),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  data.title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: data.accent,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            data.value,
-            style: TextStyle(
-              fontSize: 22,
-              height: 1.1,
-              fontWeight: FontWeight.w900,
-              color: data.accent,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            data.note,
-            style: const TextStyle(
-              fontSize: 11,
-              height: 1.5,
-              color: _PetDetailPalette.ink,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TapePiece extends StatelessWidget {
-  const _TapePiece({required this.width, required this.color});
-
-  final double width;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Transform.rotate(
-      angle: -0.1,
-      child: Container(
-        width: width,
-        height: 16,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(6),
-        ),
-      ),
-    );
-  }
-}
-
-class _WashBlob extends StatelessWidget {
-  const _WashBlob({
-    required this.width,
-    required this.height,
-    required this.color,
-  });
-
-  final double width;
-  final double height;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Container(
-        width: width,
-        height: height,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.22),
-          borderRadius: BorderRadius.circular(
-            math.max(width, height).toDouble(),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _BrickMarks extends StatelessWidget {
-  const _BrickMarks({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _BrickMark(width: 18, color: color),
-          const SizedBox(height: 8),
-          const Padding(
-            padding: EdgeInsets.only(left: 14),
-            child: _BrickMark(width: 12, color: _PetDetailPalette.paperShadow),
-          ),
-          const SizedBox(height: 26),
-          const Padding(
-            padding: EdgeInsets.only(left: 30),
-            child: _BrickMark(width: 20, color: _PetDetailPalette.paperShadow),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BrickMark extends StatelessWidget {
-  const _BrickMark({required this.width, required this.color});
-
-  final double width;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      height: 6,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(999),
-      ),
-    );
-  }
+  final bool highlight;
 }
