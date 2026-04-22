@@ -16,6 +16,19 @@ class MemberProfileColors {
   static const blueText = Color(0xFF48709C);
   static const coral = Color(0xFFCA765E);
   static const shadow = Color(0x14000000);
+  static const surface = Color(0xFFFFFCF7);
+  static const surfaceSoft = Color(0xFFFFF7EC);
+  static const border = Color(0xFFF0E5D6);
+  static const title = Color(0xFF4F331C);
+  static const orange = Color(0xFFE88C31);
+  static const orangeSoft = Color(0xFFFFE6B9);
+  static const pinkSoft = Color(0xFFF9DEDF);
+  static const pinkText = Color(0xFFC97979);
+  static const blueSoft = Color(0xFFDCE9FF);
+  static const greenTint = Color(0xFFE2EDD3);
+  static const greenTintText = Color(0xFF769656);
+  static const progressTrack = Color(0xFFD9D8D5);
+  static const progressFill = Color(0xFFFF7F62);
 }
 
 class MemberProfileGlow extends StatelessWidget {
