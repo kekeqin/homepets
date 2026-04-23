@@ -7,13 +7,11 @@ import '../../models/pet.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/family_provider.dart';
 import '../../widgets/app_modal_shell.dart';
+import '../member/widgets/member_avatar_picker_sheet.dart';
 import '../pet/pet_detail_screen.dart';
-import 'dialogs/add_member_dialog.dart';
-import 'dialogs/pet_name_dialog.dart';
-import 'dialogs/pet_selection_dialog.dart';
+import 'dialogs/add_member_flow_dialog.dart';
 import 'models/family_member_view_data.dart';
 import 'models/family_screen_state.dart';
-import '../member/widgets/member_avatar_picker_sheet.dart';
 import 'widgets/family_hint_card.dart';
 import 'widgets/family_member_grid.dart';
 
@@ -137,23 +135,8 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
     }
   }
 
-  Future<String?> _showAddMemberDialog() async {
-    return showAddMemberDialog(context);
-  }
-
-  Future<String?> _showPetSelectionDialog(String nickname) async {
-    return showPetSelectionDialog(context, nickname: nickname);
-  }
-
-  Future<String?> _showPetNameDialog({
-    required String memberNickname,
-    required String petType,
-  }) async {
-    return showPetNameDialog(
-      context,
-      memberNickname: memberNickname,
-      petType: petType,
-    );
+  Future<AddMemberFlowResult?> _showAddMemberFlowDialog() async {
+    return showAddMemberFlowDialog(context);
   }
 
   void _handleLeadingAction() {
@@ -406,8 +389,8 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
       return;
     }
 
-    final nickname = await _showAddMemberDialog();
-    if (nickname == null) {
+    final draft = await _showAddMemberFlowDialog();
+    if (draft == null) {
       return;
     }
 
@@ -415,51 +398,38 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
 
     try {
       final notifier = ref.read(familyProvider.notifier);
-      final member = await notifier.addMember(nickname);
+      final member = await notifier.addMember(draft.nickname);
       if (!mounted) {
         return;
       }
 
-      while (true) {
-        final selectedPetType = await _showPetSelectionDialog(member.nickname);
-        if (selectedPetType == null) {
-          await _loadFamily();
-          return;
-        }
-
-        final petName = await _showPetNameDialog(
-          memberNickname: member.nickname,
-          petType: selectedPetType,
+      try {
+        await notifier.assignMemberPet(
+          memberId: member.id,
+          petType: draft.petType,
+          petName: draft.petName,
         );
-        if (petName == null) {
-          await _loadFamily();
+        if (!mounted) {
           return;
         }
-
-        try {
-          await notifier.assignMemberPet(
-            memberId: member.id,
-            petType: selectedPetType,
-            petName: petName,
-          );
-          if (!mounted) {
-            return;
-          }
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('已添加 ${member.nickname}，并领养了 $petName')),
-          );
-          await _loadFamily();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('已添加 ${member.nickname}，并领养了 ${draft.petName}'),
+          ),
+        );
+        await _loadFamily();
+        return;
+      } catch (error) {
+        if (!mounted) {
           return;
-        } catch (error) {
-          if (!mounted) {
-            return;
-          }
-          showFriendlyApiErrorSnackBar(
-            context,
-            error,
-            fallbackMessage: '选择宠物失败，请重试',
-          );
         }
+        showFriendlyApiErrorSnackBar(
+          context,
+          error,
+          fallbackMessage: '选择宠物失败，请重试',
+        );
+        await _loadFamily();
+        return;
       }
     } catch (error) {
       if (!mounted) {
