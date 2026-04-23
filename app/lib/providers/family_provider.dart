@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/pet.dart';
 import '../screens/family/models/family_member_view_data.dart';
 import '../screens/family/models/family_screen_state.dart';
 import '../services/family_service.dart';
@@ -37,8 +38,11 @@ class FamilyNotifier extends StateNotifier<FamilyScreenState> {
 
     try {
       final result = await _familyService.fetchFamily(familyId);
-      final members = FamilyMemberViewData.listFromDynamic(result.memberMaps)
-        ..sort((a, b) => a.id.compareTo(b.id));
+      final pets = result.petMaps.map(Pet.fromJson).toList(growable: false);
+      final members = FamilyMemberViewData.listFromDynamic(
+        result.memberMaps,
+        pets: pets,
+      )..sort((a, b) => a.id.compareTo(b.id));
 
       state = state.copyWith(
         loading: false,
@@ -76,6 +80,30 @@ class FamilyNotifier extends StateNotifier<FamilyScreenState> {
       memberId: memberId,
       petType: petType,
       petName: petName,
+    );
+  }
+
+  Future<void> deleteMember({required int memberId}) async {
+    await _familyService.deleteMember(
+      familyId: _requireFamilyId(),
+      memberId: memberId,
+    );
+  }
+
+  Future<void> updateMemberAvatar({
+    required int memberId,
+    required String? avatarUrl,
+  }) async {
+    await _familyService.updateMemberAvatar(
+      memberId: memberId,
+      avatarUrl: avatarUrl,
+    );
+  }
+
+  Future<void> updateFamilyName(String familyName) async {
+    await _familyService.updateFamily(
+      familyId: _requireFamilyId(),
+      name: familyName,
     );
   }
 

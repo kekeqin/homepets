@@ -7,10 +7,12 @@ class HomeSceneScreen extends StatelessWidget {
   const HomeSceneScreen({
     super.key,
     this.openTasksPanelOnStart = false,
+    this.openFamilyPanelOnStart = false,
     this.openShopPanelOnStart = false,
   });
 
   final bool openTasksPanelOnStart;
+  final bool openFamilyPanelOnStart;
   final bool openShopPanelOnStart;
 
   @override
@@ -23,6 +25,7 @@ class HomeSceneScreen extends StatelessWidget {
     return HomeSceneFlameView(
       device: device,
       openTasksPanelOnStart: openTasksPanelOnStart,
+      openFamilyPanelOnStart: openFamilyPanelOnStart,
       openShopPanelOnStart: openShopPanelOnStart,
     );
   }

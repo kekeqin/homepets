@@ -14,16 +14,16 @@ class FamilyEmptyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+      padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFDF9),
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: const Color(0xFFF0E1D1)),
-        boxShadow: const [
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: const Color(0xFFF0DDCE), width: 1.3),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x12000000),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 18,
-            offset: Offset(0, 8),
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -31,53 +31,63 @@ class FamilyEmptyCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 58,
-            height: 58,
+            width: 72,
+            height: 72,
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF2E2),
+              color: const Color(0xFFFFF3E4),
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFE7D2BE)),
+              border: Border.all(color: const Color(0xFFF0D9C1)),
             ),
             child: const Icon(
               Icons.family_restroom_rounded,
-              color: Color(0xFFCE8F4B),
-              size: 30,
+              color: Color(0xFFE09A4E),
+              size: 34,
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           const Text(
-            '成员还没有加入',
+            '\u8fd8\u6ca1\u6709\u5bb6\u5ead\u6210\u5458',
             style: TextStyle(
               color: Color(0xFF734C2B),
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
-            canAddMembers ? '先添加一位家庭成员，主页就会热闹起来。' : '等家长添加成员后，这里会显示全家的成长卡片。',
+            canAddMembers
+                ? '\u5148\u9080\u8bf7\u4e00\u4f4d\u6210\u5458\uff0c'
+                      '\u8fd9\u91cc\u5c31\u4f1a\u5f00\u59cb\u8bb0\u5f55\u5168\u5bb6\u7684'
+                      '\u6210\u957f\u6545\u4e8b\u3002'
+                : '\u7b49\u5bb6\u957f\u6dfb\u52a0\u6210\u5458\u540e\uff0c'
+                      '\u8fd9\u91cc\u5c31\u4f1a\u51fa\u73b0\u5bb6\u5ead\u6210\u5458\u5361\u7247\u3002',
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Color(0xFF8F7356),
-              fontSize: 13,
+              fontSize: 14,
               height: 1.55,
+              fontWeight: FontWeight.w600,
             ),
           ),
           if (canAddMembers) ...[
-            const SizedBox(height: 18),
+            const SizedBox(height: 20),
             FilledButton.icon(
               onPressed: onAddTap,
               icon: const Icon(Icons.add_rounded),
-              label: const Text('添加成员'),
+              label: const Text('\u6dfb\u52a0\u6210\u5458'),
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFEAA35E),
+                backgroundColor: const Color(0xFFE6A35C),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 12,
+                  horizontal: 22,
+                  vertical: 14,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(999),
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ),

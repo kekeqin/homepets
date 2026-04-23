@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
-import '../screens/family/family_screen.dart';
 import '../screens/home/home_scene_screen.dart';
 import '../screens/onboarding/onboarding_screen.dart';
 import '../screens/profile/profile_screen.dart';
@@ -69,6 +68,8 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => HomeSceneScreen(
               openTasksPanelOnStart:
                   state.uri.queryParameters['panel'] == 'tasks',
+              openFamilyPanelOnStart:
+                  state.uri.queryParameters['panel'] == 'family',
               openShopPanelOnStart:
                   state.uri.queryParameters['panel'] == 'shop',
             ),
@@ -79,7 +80,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/family',
-            builder: (context, state) => const FamilyScreen(),
+            redirect: (context, state) => '/home?panel=family',
           ),
           GoRoute(
             path: '/shop',

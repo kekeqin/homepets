@@ -1,31 +1,73 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/api_error_helper.dart';
+import '../../models/pet.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/family_provider.dart';
-import '../member/member_detail_screen.dart';
+import '../../widgets/app_modal_shell.dart';
+import '../pet/pet_detail_screen.dart';
 import 'dialogs/add_member_dialog.dart';
 import 'dialogs/pet_name_dialog.dart';
 import 'dialogs/pet_selection_dialog.dart';
 import 'models/family_member_view_data.dart';
 import 'models/family_screen_state.dart';
+import '../member/widgets/member_avatar_picker_sheet.dart';
 import 'widgets/family_hint_card.dart';
 import 'widgets/family_member_grid.dart';
 
 class _FamilyPalette {
-  static const pageTop = Color(0xFFFFF2E4);
-  static const pageBottom = Color(0xFFFFFBF6);
-  static const shell = Color(0xFFFFF8F1);
-  static const shellBorder = Color(0xFFF0D9C2);
-  static const shellShadow = Color(0x2A7B4E20);
-  static const text = Color(0xFF6B3608);
-  static const muted = Color(0xFFA8774B);
-  static const accent = Color(0xFFE7A45D);
-  static const accentDark = Color(0xFFC17322);
+  static const pageTop = Color(0xFFF7ECE0);
+  static const pageBottom = Color(0xFFF0E1D0);
+  static const shellShadow = Color(0x1F6F4721);
+  static const stageTop = Color(0xFFFFFBF6);
+  static const stageBottom = Color(0xFFF7EEE2);
+  static const stageBorder = Color(0xFFE9D8C6);
+  static const sectionTop = Color(0xFFFFFCF8);
+  static const sectionBottom = Color(0xFFFAF2E7);
+  static const sectionLine = Color(0xFFF0E3D5);
+  static const chip = Color(0xFFFFFCF8);
+  static const chipBorder = Color(0xFFE8D8C6);
+  static const text = Color(0xFF73461F);
+  static const muted = Color(0xFF9A6F4D);
+  static const accent = Color(0xFFE4A259);
+  static const accentDark = Color(0xFFBD762E);
+}
+
+Future<void> showFamilyDialog(
+  BuildContext context, {
+  bool useRootNavigator = true,
+}) {
+  return showAppModalDialog<void>(
+    context: context,
+    useRootNavigator: useRootNavigator,
+    barrierLabel: 'family_overlay',
+    blurSigma: 7,
+    barrierTint: const Color(0x32674A30),
+    transitionDuration: const Duration(milliseconds: 220),
+    beginScale: 0.96,
+    beginYOffset: 16,
+    pageBuilder: (dialogContext) {
+      return AppModalShell(
+        layout: AppModalLayouts.family,
+        minimumSafeArea: const EdgeInsets.fromLTRB(14, 24, 14, 18),
+        borderRadius: const BorderRadius.all(Radius.circular(28)),
+        backgroundColor: Colors.transparent,
+        boxShadow: const [
+          BoxShadow(
+            color: _FamilyPalette.shellShadow,
+            blurRadius: 34,
+            offset: Offset(0, 16),
+          ),
+        ],
+        child: FamilyScreen(
+          embedded: true,
+          onClose: () => Navigator.of(dialogContext).pop(),
+        ),
+      );
+    },
+  );
 }
 
 class FamilyScreen extends ConsumerStatefulWidget {
@@ -44,6 +86,9 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
   static const _maxMembers = FamilyMemberGrid.maxDisplayMembers;
 
   bool _addingMember = false;
+  int? _updatingAvatarMemberId;
+  bool _updatingFamilyName = false;
+  int? _deletingMemberId;
 
   late final AnimationController _entryController;
   late final Animation<double> _contentOpacity;
@@ -87,24 +132,9 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
       showFriendlyApiErrorSnackBar(
         context,
         error,
-        fallbackMessage:
-            '\u52a0\u8f7d\u5bb6\u5ead\u4fe1\u606f\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5',
+        fallbackMessage: '加载家庭信息失败，请稍后重试',
       );
     }
-  }
-
-  Future<void> _openMemberDetail(FamilyMemberViewData member) async {
-    await showMemberDetailDialog(
-      context,
-      memberId: member.id,
-      nickname: member.nickname,
-      role: member.role,
-    );
-
-    if (!mounted) {
-      return;
-    }
-    await _loadFamily();
   }
 
   Future<String?> _showAddMemberDialog() async {
@@ -142,10 +172,10 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
 
   String _familyTitle(String familyName) {
     final trimmed = familyName.trim();
-    if (trimmed.isEmpty || trimmed == '\u5bb6\u5ead') {
-      return '\u5bb6\u5ead';
+    if (trimmed.isEmpty) {
+      return '家庭';
     }
-    return trimmed.endsWith('\u5bb6\u5ead') ? trimmed : '$trimmed\u5bb6\u5ead';
+    return trimmed;
   }
 
   int _petCount(List<FamilyMemberViewData> members) {
@@ -154,6 +184,202 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
 
   int _familyPoints(List<FamilyMemberViewData> members) {
     return members.fold(0, (sum, member) => sum + member.points);
+  }
+
+  Future<void> _openPetDetail(Pet pet) async {
+    await showPetDetailDialog(context, pet: pet);
+  }
+
+  bool _canEditFamilyTitle(AuthState authState) {
+    final user = authState.user;
+    if (authState.viewOnly || user == null) {
+      return false;
+    }
+    return user.isAdmin;
+  }
+
+  bool _canEditAvatarForMember(
+    AuthState authState,
+    FamilyMemberViewData member,
+  ) {
+    if (authState.viewOnly) {
+      return false;
+    }
+
+    final user = authState.user;
+    if (user == null) {
+      return false;
+    }
+
+    if (user.id == member.id) {
+      return true;
+    }
+
+    return user.isAdmin;
+  }
+
+  bool _canDeleteMember(AuthState authState, FamilyMemberViewData member) {
+    final user = authState.user;
+    if (authState.viewOnly || user == null || !user.isAdmin) {
+      return false;
+    }
+    return user.id != member.id;
+  }
+
+  Future<String?> _showFamilyNameDialog(String initialName) async {
+    return showDialog<String>(
+      context: context,
+      builder: (_) => _FamilyNameEditDialog(initialName: initialName),
+    );
+  }
+
+  Future<void> _onFamilyTitleEditTap(
+    AuthState authState,
+    FamilyScreenState familyState,
+  ) async {
+    if (_updatingFamilyName || !_canEditFamilyTitle(authState)) {
+      return;
+    }
+
+    final initialName = familyState.familyName.trim();
+    final nextName = await _showFamilyNameDialog(initialName);
+    final trimmedName = nextName?.trim();
+    if (!mounted || trimmedName == null || trimmedName == initialName) {
+      return;
+    }
+
+    setState(() => _updatingFamilyName = true);
+
+    try {
+      await ref.read(familyProvider.notifier).updateFamilyName(trimmedName);
+      await _loadFamily();
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('家庭名称已更新')));
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      showFriendlyApiErrorSnackBar(
+        context,
+        error,
+        fallbackMessage: '家庭名称更新失败，请稍后重试',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _updatingFamilyName = false);
+      }
+    }
+  }
+
+  Future<void> _onAvatarEditTap(
+    AuthState authState,
+    FamilyMemberViewData member,
+  ) async {
+    if (_updatingAvatarMemberId != null ||
+        !_canEditAvatarForMember(authState, member)) {
+      return;
+    }
+
+    final pickedAvatar = await showMemberAvatarPickerSheet(
+      context,
+      nickname: member.nickname,
+      initialAvatarValue: member.avatarUrl,
+    );
+    if (!mounted || pickedAvatar == member.avatarUrl) {
+      return;
+    }
+
+    setState(() => _updatingAvatarMemberId = member.id);
+
+    try {
+      await ref
+          .read(familyProvider.notifier)
+          .updateMemberAvatar(memberId: member.id, avatarUrl: pickedAvatar);
+      await _loadFamily();
+      if (authState.user?.id == member.id) {
+        await ref.read(authProvider.notifier).refreshUser();
+      }
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('头像已更新')));
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      showFriendlyApiErrorSnackBar(
+        context,
+        error,
+        fallbackMessage: '头像更新失败，请稍后重试',
+      );
+    } finally {
+      if (mounted && _updatingAvatarMemberId == member.id) {
+        setState(() => _updatingAvatarMemberId = null);
+      }
+    }
+  }
+
+  Future<void> _onMemberLongPress(
+    AuthState authState,
+    FamilyMemberViewData member,
+  ) async {
+    if (_deletingMemberId != null || !_canDeleteMember(authState, member)) {
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('删除成员'),
+        content: Text('确认删除“${member.nickname}”吗？该成员名下的宠物也会一起删除。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('删除', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) {
+      return;
+    }
+
+    setState(() => _deletingMemberId = member.id);
+
+    try {
+      await ref.read(familyProvider.notifier).deleteMember(memberId: member.id);
+      await _loadFamily();
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('已删除 ${member.nickname}')));
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      showFriendlyApiErrorSnackBar(
+        context,
+        error,
+        fallbackMessage: '删除成员失败，请稍后重试',
+      );
+    } finally {
+      if (mounted && _deletingMemberId == member.id) {
+        setState(() => _deletingMemberId = null);
+      }
+    }
   }
 
   Future<void> _onAddMemberTap(
@@ -167,24 +393,16 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
     final user = authState.user;
     final canManageMembers = user?.isAdmin == true && !authState.viewOnly;
     if (!canManageMembers || user?.familyId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            '\u53ea\u6709\u5bb6\u957f\u53ef\u4ee5\u6dfb\u52a0\u6210\u5458',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('只有家长可以添加成员')));
       return;
     }
 
     if (familyState.members.length >= _maxMembers) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            '\u5f53\u524d\u5bb6\u5ead\u6700\u591a\u652f\u6301 8 \u4f4d\u6210\u5458',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('当前家庭最多支持 8 位成员')));
       return;
     }
 
@@ -193,9 +411,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
       return;
     }
 
-    setState(() {
-      _addingMember = true;
-    });
+    setState(() => _addingMember = true);
 
     try {
       final notifier = ref.read(familyProvider.notifier);
@@ -230,11 +446,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
             return;
           }
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                '\u5df2\u6dfb\u52a0${member.nickname}\uff0c\u5e76\u9886\u517b\u4e86$petName',
-              ),
-            ),
+            SnackBar(content: Text('已添加 ${member.nickname}，并领养了 $petName')),
           );
           await _loadFamily();
           return;
@@ -245,8 +457,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
           showFriendlyApiErrorSnackBar(
             context,
             error,
-            fallbackMessage:
-                '\u9009\u62e9\u5ba0\u7269\u5931\u8d25\uff0c\u8bf7\u91cd\u8bd5',
+            fallbackMessage: '选择宠物失败，请重试',
           );
         }
       }
@@ -257,14 +468,11 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
       showFriendlyApiErrorSnackBar(
         context,
         error,
-        fallbackMessage:
-            '\u6dfb\u52a0\u6210\u5458\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5',
+        fallbackMessage: '添加成员失败，请稍后重试',
       );
     } finally {
       if (mounted) {
-        setState(() {
-          _addingMember = false;
-        });
+        setState(() => _addingMember = false);
       }
     }
   }
@@ -273,6 +481,11 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final familyState = ref.watch(familyProvider);
+
+    if (widget.embedded) {
+      return _buildBody(authState, familyState);
+    }
+
     final content = DecoratedBox(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -281,87 +494,15 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
           colors: [_FamilyPalette.pageTop, _FamilyPalette.pageBottom],
         ),
       ),
-      child: Stack(
-        children: [
-          const Positioned(
-            top: -120,
-            left: -70,
-            child: _BackdropOrb(size: 260, color: Color(0x33FFD9B2)),
-          ),
-          const Positioned(
-            right: -90,
-            top: 160,
-            child: _BackdropOrb(size: 220, color: Color(0x26F8C68C)),
-          ),
-          const Positioned(
-            left: -50,
-            bottom: 100,
-            child: _BackdropOrb(size: 170, color: Color(0x1FEBC39A)),
-          ),
-          SafeArea(bottom: false, child: _buildBody(authState, familyState)),
-        ],
-      ),
+      child: SafeArea(bottom: false, child: _buildBody(authState, familyState)),
     );
-
-    if (widget.embedded) {
-      return _buildEmbeddedShell(content);
-    }
 
     return Scaffold(backgroundColor: _FamilyPalette.pageBottom, body: content);
   }
 
-  Widget _buildEmbeddedShell(Widget child) {
-    return Material(
-      color: Colors.transparent,
-      child: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(8, 16, 8, 12),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final isTablet = constraints.maxWidth >= 900;
-            final borderRadius = BorderRadius.circular(isTablet ? 36 : 28);
-            final maxWidth = isTablet
-                ? math.min(constraints.maxWidth * 0.78, 920.0)
-                : math.min(constraints.maxWidth * 0.985, 520.0);
-            final maxHeight = isTablet
-                ? math.min(constraints.maxHeight * 0.95, 1020.0)
-                : math.min(constraints.maxHeight * 0.94, 900.0);
-
-            return Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: maxWidth,
-                  maxHeight: maxHeight,
-                ),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: _FamilyPalette.shell,
-                    borderRadius: borderRadius,
-                    border: Border.all(color: _FamilyPalette.shellBorder),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _FamilyPalette.shellShadow,
-                        blurRadius: 34,
-                        offset: const Offset(0, 16),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(borderRadius: borderRadius, child: child),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
   Widget _buildBody(AuthState authState, FamilyScreenState familyState) {
     if (!authState.isAuthenticated) {
-      return const FamilyHintCard(
-        title: '\u8bf7\u5148\u767b\u5f55',
-        message:
-            '\u767b\u5f55\u540e\u53ef\u67e5\u770b\u5bb6\u5ead\u6210\u5458\u3002',
-      );
+      return const FamilyHintCard(title: '请先登录', message: '登录后可查看家庭成员。');
     }
 
     if (familyState.loading) {
@@ -371,11 +512,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
     }
 
     if (!familyState.hasFamily) {
-      return const FamilyHintCard(
-        title: '\u6682\u672a\u52a0\u5165\u5bb6\u5ead',
-        message:
-            '\u5148\u521b\u5efa\u5bb6\u5ead\u6216\u901a\u8fc7\u9080\u8bf7\u7801\u52a0\u5165\u3002',
-      );
+      return const FamilyHintCard(title: '暂未加入家庭', message: '先创建家庭或通过邀请码加入吧。');
     }
 
     final members = familyState.members;
@@ -397,50 +534,46 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
           parent: BouncingScrollPhysics(),
         ),
         padding: EdgeInsets.fromLTRB(
-          widget.embedded ? 18 : 22,
-          widget.embedded ? 14 : 18,
-          widget.embedded ? 18 : 22,
-          widget.embedded ? 22 : 26,
+          widget.embedded ? 6 : 22,
+          widget.embedded ? 4 : 18,
+          widget.embedded ? 6 : 22,
+          widget.embedded ? 10 : 26,
         ),
         child: FadeTransition(
           opacity: _contentOpacity,
           child: SlideTransition(
             position: _contentOffset,
-            child: Column(
-              children: [
-                _FamilyHeaderBar(
-                  leadingIcon: widget.embedded
-                      ? Icons.close_rounded
-                      : Icons.arrow_back_rounded,
-                  leadingTooltip: widget.embedded
-                      ? '\u5173\u95ed'
-                      : '\u8fd4\u56de\u9996\u9875',
-                  onBack: _handleLeadingAction,
-                  showText: !widget.embedded,
-                  title: familyTitle,
-                  subtitle:
-                      '$familyPoints \u79ef\u5206 \u00b7 $petCount \u53ea\u5ba0\u7269',
-                ),
-                const SizedBox(height: 8),
-                _FamilyHeroShowcase(
-                  embedded: widget.embedded,
-                  canManageMembers: canManageMembers,
-                  addingMember: _addingMember,
-                  onAddMemberTap: onAddMemberTap,
-                ),
-                Transform.translate(
-                  offset: const Offset(0, -42),
-                  child: _FamilyMembersPanel(
-                    compact: widget.embedded,
-                    members: members,
-                    entryAnimation: _entryController,
-                    onMemberTap: _openMemberDetail,
-                    canManageMembers: canManageMembers,
-                    onAddMemberTap: onAddMemberTap,
-                    onRefresh: _loadFamily,
-                  ),
-                ),
-              ],
+            child: _FamilyStageCard(
+              embedded: widget.embedded,
+              title: familyTitle,
+              familyPoints: familyPoints,
+              petCount: petCount,
+              memberCount: members.length,
+              canManageMembers: canManageMembers,
+              addingMember: _addingMember,
+              onLeadingTap: _handleLeadingAction,
+              onAddMemberTap: onAddMemberTap,
+              canEditTitle: _canEditFamilyTitle(authState),
+              updatingTitle: _updatingFamilyName,
+              onEditTitleTap: () =>
+                  _onFamilyTitleEditTap(authState, familyState),
+              membersPanel: _FamilyMembersPanel(
+                compact: widget.embedded,
+                members: members,
+                entryAnimation: _entryController,
+                canManageMembers: canManageMembers,
+                onAddMemberTap: onAddMemberTap,
+                onPetTap: _openPetDetail,
+                canEditAvatar: (member) =>
+                    _canEditAvatarForMember(authState, member),
+                onAvatarEditTap: (member) =>
+                    _onAvatarEditTap(authState, member),
+                updatingAvatarMemberId: _updatingAvatarMemberId,
+                canDeleteMember: (member) =>
+                    _canDeleteMember(authState, member),
+                onMemberLongPress: (member) =>
+                    _onMemberLongPress(authState, member),
+              ),
             ),
           ),
         ),
@@ -449,8 +582,142 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
   }
 }
 
-class _BackdropOrb extends StatelessWidget {
-  const _BackdropOrb({required this.size, required this.color});
+class _FamilyStageCard extends StatelessWidget {
+  const _FamilyStageCard({
+    required this.embedded,
+    required this.title,
+    required this.familyPoints,
+    required this.petCount,
+    required this.memberCount,
+    required this.canManageMembers,
+    required this.addingMember,
+    required this.onLeadingTap,
+    required this.onAddMemberTap,
+    required this.canEditTitle,
+    required this.updatingTitle,
+    required this.onEditTitleTap,
+    required this.membersPanel,
+  });
+
+  final bool embedded;
+  final String title;
+  final int familyPoints;
+  final int petCount;
+  final int memberCount;
+  final bool canManageMembers;
+  final bool addingMember;
+  final VoidCallback onLeadingTap;
+  final VoidCallback onAddMemberTap;
+  final bool canEditTitle;
+  final bool updatingTitle;
+  final VoidCallback onEditTitleTap;
+  final Widget membersPanel;
+
+  @override
+  Widget build(BuildContext context) {
+    final cardRadius = BorderRadius.circular(embedded ? 30 : 34);
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [_FamilyPalette.stageTop, _FamilyPalette.stageBottom],
+        ),
+        borderRadius: cardRadius,
+        border: Border.all(color: _FamilyPalette.stageBorder, width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0x166B3608),
+            blurRadius: embedded ? 22 : 28,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: cardRadius,
+        child: Stack(
+          children: [
+            const Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0x80FFFFFF), Color(0x00FFFFFF)],
+                    stops: [0, 0.46],
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: -42,
+              left: -22,
+              child: _StageGlowOrb(
+                size: embedded ? 104 : 122,
+                color: const Color(0x26FFD9B3),
+              ),
+            ),
+            Positioned(
+              top: embedded ? 74 : 88,
+              right: -18,
+              child: _StageGlowOrb(
+                size: embedded ? 88 : 98,
+                color: const Color(0x1FDCECCE),
+              ),
+            ),
+            Positioned(
+              top: embedded ? 28 : 34,
+              right: embedded ? 62 : 68,
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: embedded ? 0.46 : 0.42,
+                  child: Image.asset(
+                    _FamilyScreenState._heroAsset,
+                    height: embedded ? 70 : 80,
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.high,
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                embedded ? 14 : 20,
+                embedded ? 14 : 20,
+                embedded ? 14 : 20,
+                embedded ? 14 : 18,
+              ),
+              child: Column(
+                children: [
+                  _QuietFamilyStageHeader(
+                    embedded: embedded,
+                    title: title,
+                    familyPoints: familyPoints,
+                    petCount: petCount,
+                    memberCount: memberCount,
+                    canManageMembers: canManageMembers,
+                    addingMember: addingMember,
+                    onLeadingTap: onLeadingTap,
+                    onAddMemberTap: onAddMemberTap,
+                    canEditTitle: canEditTitle,
+                    updatingTitle: updatingTitle,
+                    onEditTitleTap: onEditTitleTap,
+                  ),
+                  SizedBox(height: embedded ? 14 : 18),
+                  membersPanel,
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StageGlowOrb extends StatelessWidget {
+  const _StageGlowOrb({required this.size, required this.color});
 
   final double size;
   final Color color;
@@ -470,152 +737,369 @@ class _BackdropOrb extends StatelessWidget {
   }
 }
 
-class _FamilyHeaderBar extends StatelessWidget {
-  const _FamilyHeaderBar({
-    required this.leadingIcon,
-    required this.leadingTooltip,
-    required this.onBack,
-    required this.showText,
+// ignore: unused_element
+class _FamilyStageHeader extends StatelessWidget {
+  const _FamilyStageHeader({
+    required this.embedded,
     required this.title,
-    required this.subtitle,
+    required this.familyPoints,
+    required this.petCount,
+    required this.memberCount,
+    required this.canManageMembers,
+    required this.addingMember,
+    required this.onLeadingTap,
+    required this.onAddMemberTap,
   });
 
-  final IconData leadingIcon;
-  final String leadingTooltip;
-  final VoidCallback onBack;
-  final bool showText;
+  final bool embedded;
   final String title;
-  final String subtitle;
+  final int familyPoints;
+  final int petCount;
+  final int memberCount;
+  final bool canManageMembers;
+  final bool addingMember;
+  final VoidCallback onLeadingTap;
+  final VoidCallback onAddMemberTap;
 
   @override
   Widget build(BuildContext context) {
-    if (!showText) {
-      return Align(
-        alignment: Alignment.centerLeft,
-        child: _CircleIconButton(
-          icon: leadingIcon,
-          tooltip: leadingTooltip,
-          onTap: onBack,
+    final trailingWidth = embedded ? 40.0 : 46.0;
+
+    return Row(
+      children: [
+        _CircleIconButton(
+          icon: embedded ? Icons.close_rounded : Icons.arrow_back_rounded,
+          tooltip: embedded ? '关闭' : '返回首页',
+          onTap: onLeadingTap,
         ),
-      );
-    }
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: _FamilyPalette.text,
+              fontSize: embedded ? 24 : 28,
+              fontWeight: FontWeight.w900,
+              height: 1.0,
+            ),
+          ),
+        ),
+        canManageMembers
+            ? _HeroAddButton(
+                compact: embedded,
+                busy: addingMember,
+                onTap: onAddMemberTap,
+              )
+            : SizedBox(width: trailingWidth, height: trailingWidth),
+      ],
+    );
+  }
+}
+
+// ignore: unused_element
+class _FamilySnapshotPanel extends StatelessWidget {
+  const _FamilySnapshotPanel({
+    required this.embedded,
+    required this.familyPoints,
+    required this.petCount,
+    required this.memberCount,
+  });
+
+  final bool embedded;
+  final int familyPoints;
+  final int petCount;
+  final int memberCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final heroHeight = embedded ? 84.0 : 104.0;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.78),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFF0DCC9)),
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(
+        embedded ? 14 : 18,
+        embedded ? 14 : 16,
+        embedded ? 14 : 18,
+        embedded ? 14 : 16,
       ),
-      child: Row(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [_FamilyPalette.sectionTop, _FamilyPalette.sectionBottom],
+        ),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: _FamilyPalette.stageBorder),
+      ),
+      child: Stack(
+        alignment: Alignment.centerRight,
         children: [
-          _CircleIconButton(
-            icon: leadingIcon,
-            tooltip: leadingTooltip,
-            onTap: onBack,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
+          Padding(
+            padding: EdgeInsets.only(right: heroHeight * 0.9),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _FamilyPalette.text,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                  ),
+                _FamilyStatPill(
+                  icon: Icons.family_restroom_rounded,
+                  value: '$memberCount',
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _FamilyPalette.muted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
+                _FamilyStatPill(icon: Icons.pets_rounded, value: '$petCount'),
+                _FamilyStatPill(
+                  icon: Icons.auto_awesome_rounded,
+                  value: '$familyPoints',
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 38),
+          IgnorePointer(
+            child: Image.asset(
+              _FamilyScreenState._heroAsset,
+              height: heroHeight,
+              fit: BoxFit.contain,
+              alignment: Alignment.bottomCenter,
+              filterQuality: FilterQuality.high,
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _FamilyHeroShowcase extends StatelessWidget {
-  const _FamilyHeroShowcase({
-    required this.embedded,
-    required this.canManageMembers,
-    required this.addingMember,
-    required this.onAddMemberTap,
-  });
+// ignore: unused_element
+class _FamilyStatPill extends StatelessWidget {
+  const _FamilyStatPill({required this.icon, required this.value});
 
-  final bool embedded;
-  final bool canManageMembers;
-  final bool addingMember;
-  final VoidCallback onAddMemberTap;
+  final IconData icon;
+  final String value;
 
   @override
   Widget build(BuildContext context) {
-    final titleFontSize = embedded ? 36.0 : 56.0;
-    final heroImageHeight = embedded ? 226.0 : 382.0;
-
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        embedded ? 18 : 24,
-        embedded ? 2 : 8,
-        embedded ? 18 : 24,
-        0,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: _FamilyPalette.chip,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: _FamilyPalette.chipBorder),
       ),
-      child: Stack(
-        clipBehavior: Clip.none,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          if (canManageMembers)
-            Positioned(
-              top: embedded ? 8 : 10,
-              right: embedded ? 4 : 6,
-              child: _HeroAddButton(
-                busy: addingMember,
-                onTap: addingMember ? null : onAddMemberTap,
+          Icon(icon, size: 16, color: _FamilyPalette.muted),
+          const SizedBox(width: 6),
+          Text(
+            value,
+            style: const TextStyle(
+              color: _FamilyPalette.text,
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuietFamilyStageHeader extends StatelessWidget {
+  const _QuietFamilyStageHeader({
+    required this.embedded,
+    required this.title,
+    required this.familyPoints,
+    required this.petCount,
+    required this.memberCount,
+    required this.canManageMembers,
+    required this.addingMember,
+    required this.onLeadingTap,
+    required this.onAddMemberTap,
+    required this.canEditTitle,
+    required this.updatingTitle,
+    required this.onEditTitleTap,
+  });
+
+  final bool embedded;
+  final String title;
+  final int familyPoints;
+  final int petCount;
+  final int memberCount;
+  final bool canManageMembers;
+  final bool addingMember;
+  final VoidCallback onLeadingTap;
+  final VoidCallback onAddMemberTap;
+  final bool canEditTitle;
+  final bool updatingTitle;
+  final VoidCallback onEditTitleTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final trailingWidth = embedded ? 38.0 : 44.0;
+    final titleSize = embedded ? 21.0 : 24.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            _CircleIconButton(
+              icon: embedded ? Icons.close_rounded : Icons.arrow_back_rounded,
+              tooltip: embedded ? '关闭' : '返回首页',
+              onTap: onLeadingTap,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: _FamilyPalette.text,
+                        fontSize: titleSize,
+                        fontWeight: FontWeight.w800,
+                        height: 1.05,
+                      ),
+                    ),
+                  ),
+                  if (canEditTitle) ...[
+                    const SizedBox(width: 6),
+                    _HeaderEditButton(
+                      busy: updatingTitle,
+                      onTap: onEditTitleTap,
+                    ),
+                  ],
+                ],
               ),
             ),
-          Column(
+            const SizedBox(width: 8),
+            canManageMembers
+                ? _HeroAddButton(
+                    compact: embedded,
+                    busy: addingMember,
+                    onTap: onAddMemberTap,
+                  )
+                : SizedBox(width: trailingWidth, height: trailingWidth),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Padding(
+          padding: EdgeInsets.only(right: embedded ? 82 : 96),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              Transform.translate(
-                offset: Offset(0, embedded ? -4 : -6),
-                child: Text(
-                  '\u6211\u4eec\u7684\u5bb6',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: _FamilyPalette.text,
-                    fontSize: titleFontSize,
-                    fontWeight: FontWeight.w900,
-                    height: 1.0,
-                  ),
-                ),
+              _QuietStatPill(
+                compact: embedded,
+                icon: Icons.family_restroom_rounded,
+                value: '$memberCount',
               ),
-              SizedBox(height: embedded ? 0 : 4),
-              Transform.translate(
-                offset: Offset(0, embedded ? -26 : -30),
-                child: Align(
-                  alignment: Alignment.center,
-                  child: Image.asset(
-                    _FamilyScreenState._heroAsset,
-                    height: heroImageHeight,
-                    fit: BoxFit.contain,
-                    alignment: Alignment.bottomCenter,
-                    filterQuality: FilterQuality.high,
-                  ),
-                ),
+              _QuietStatPill(
+                compact: embedded,
+                icon: Icons.pets_rounded,
+                value: '$petCount',
+              ),
+              _QuietStatPill(
+                compact: embedded,
+                icon: Icons.auto_awesome_rounded,
+                value: '$familyPoints',
               ),
             ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HeaderEditButton extends StatelessWidget {
+  const _HeaderEditButton({required this.busy, required this.onTap});
+
+  final bool busy;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: busy ? null : onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Ink(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.78),
+            shape: BoxShape.circle,
+            border: Border.all(color: _FamilyPalette.sectionLine),
+          ),
+          child: Center(
+            child: busy
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: _FamilyPalette.muted,
+                    ),
+                  )
+                : const Icon(
+                    Icons.edit_rounded,
+                    size: 14,
+                    color: _FamilyPalette.muted,
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuietStatPill extends StatelessWidget {
+  const _QuietStatPill({
+    required this.compact,
+    required this.icon,
+    required this.value,
+  });
+
+  final bool compact;
+  final IconData icon;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 10 : 12,
+        vertical: compact ? 7 : 8,
+      ),
+      decoration: BoxDecoration(
+        color: _FamilyPalette.chip.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: _FamilyPalette.chipBorder),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0F8F673E),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: compact ? 15 : 16, color: _FamilyPalette.muted),
+          const SizedBox(width: 6),
+          Text(
+            value,
+            style: TextStyle(
+              color: _FamilyPalette.text,
+              fontSize: compact ? 13 : 14,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       ),
@@ -624,14 +1108,20 @@ class _FamilyHeroShowcase extends StatelessWidget {
 }
 
 class _HeroAddButton extends StatelessWidget {
-  const _HeroAddButton({required this.busy, required this.onTap});
+  const _HeroAddButton({
+    required this.compact,
+    required this.busy,
+    required this.onTap,
+  });
 
+  final bool compact;
   final bool busy;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    const buttonSize = 54.0;
+    final buttonSize = compact ? 38.0 : 44.0;
+    final iconSize = compact ? 20.0 : 22.0;
 
     return Material(
       color: Colors.transparent,
@@ -642,13 +1132,18 @@ class _HeroAddButton extends StatelessWidget {
           width: buttonSize,
           height: buttonSize,
           decoration: BoxDecoration(
-            color: _FamilyPalette.accent,
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFF0B668), _FamilyPalette.accent],
+            ),
             shape: BoxShape.circle,
+            border: Border.all(color: Colors.white.withValues(alpha: 0.6)),
             boxShadow: [
               BoxShadow(
-                color: _FamilyPalette.accent.withValues(alpha: 0.34),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
+                color: _FamilyPalette.accent.withValues(alpha: 0.22),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
               ),
             ],
           ),
@@ -662,10 +1157,75 @@ class _HeroAddButton extends StatelessWidget {
                       color: Colors.white,
                     ),
                   )
-                : const Icon(Icons.add_rounded, color: Colors.white, size: 30),
+                : Icon(Icons.add_rounded, color: Colors.white, size: iconSize),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _FamilyNameEditDialog extends StatefulWidget {
+  const _FamilyNameEditDialog({required this.initialName});
+
+  final String initialName;
+
+  @override
+  State<_FamilyNameEditDialog> createState() => _FamilyNameEditDialogState();
+}
+
+class _FamilyNameEditDialogState extends State<_FamilyNameEditDialog> {
+  late final TextEditingController _controller;
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialName);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final value = _controller.text.trim();
+    if (value.isEmpty) {
+      setState(() => _errorText = '家庭名称不能为空');
+      return;
+    }
+    Navigator.of(context).pop(value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('修改家庭名称'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        maxLength: 30,
+        onChanged: (_) {
+          if (_errorText != null) {
+            setState(() => _errorText = null);
+          }
+        },
+        onSubmitted: (_) => _submit(),
+        decoration: InputDecoration(
+          labelText: '家庭名称',
+          hintText: '例如：宠物岛',
+          errorText: _errorText,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('取消'),
+        ),
+        FilledButton(onPressed: _submit, child: const Text('保存')),
+      ],
     );
   }
 }
@@ -675,55 +1235,62 @@ class _FamilyMembersPanel extends StatelessWidget {
     required this.compact,
     required this.members,
     required this.entryAnimation,
-    required this.onMemberTap,
     required this.canManageMembers,
     required this.onAddMemberTap,
-    required this.onRefresh,
+    required this.onPetTap,
+    required this.canEditAvatar,
+    required this.onAvatarEditTap,
+    required this.updatingAvatarMemberId,
+    required this.canDeleteMember,
+    required this.onMemberLongPress,
   });
 
   final bool compact;
   final List<FamilyMemberViewData> members;
   final Animation<double> entryAnimation;
-  final ValueChanged<FamilyMemberViewData> onMemberTap;
   final bool canManageMembers;
   final VoidCallback onAddMemberTap;
-  final Future<void> Function() onRefresh;
+  final ValueChanged<Pet> onPetTap;
+  final bool Function(FamilyMemberViewData member) canEditAvatar;
+  final ValueChanged<FamilyMemberViewData> onAvatarEditTap;
+  final int? updatingAvatarMemberId;
+  final bool Function(FamilyMemberViewData member) canDeleteMember;
+  final ValueChanged<FamilyMemberViewData> onMemberLongPress;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        compact ? 8 : 10,
-        compact ? 0 : 0,
-        compact ? 8 : 10,
-        compact ? 6 : 6,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          FamilyMemberGrid(
-            members: members,
-            entryAnimation: entryAnimation,
-            onMemberTap: onMemberTap,
-            canAddMembers: canManageMembers,
-            onAddMemberTap: onAddMemberTap,
-          ),
-          if (!compact) ...[
-            const SizedBox(height: 16),
-            _FamilyActionBar(
-              canManageMembers: canManageMembers,
-              onAddMemberTap: onAddMemberTap,
-              onRefresh: onRefresh,
-            ),
-            const SizedBox(height: 14),
-            const _FamilyWarmthNote(),
-          ],
-        ],
+      padding: EdgeInsets.only(bottom: compact ? 0 : 2),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.fromLTRB(
+          compact ? 6 : 8,
+          compact ? 6 : 8,
+          compact ? 6 : 8,
+          compact ? 8 : 10,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.42),
+          borderRadius: BorderRadius.circular(compact ? 26 : 30),
+        ),
+        child: FamilyMemberGrid(
+          members: members,
+          entryAnimation: entryAnimation,
+          canAddMembers: canManageMembers,
+          onAddMemberTap: onAddMemberTap,
+          onPetTap: onPetTap,
+          canEditAvatar: canEditAvatar,
+          onAvatarEditTap: onAvatarEditTap,
+          updatingAvatarMemberId: updatingAvatarMemberId,
+          canDeleteMember: canDeleteMember,
+          onMemberLongPress: onMemberLongPress,
+        ),
       ),
     );
   }
 }
 
+// ignore: unused_element
 class _FamilyActionBar extends StatelessWidget {
   const _FamilyActionBar({
     required this.canManageMembers,
@@ -752,7 +1319,7 @@ class _FamilyActionBar extends StatelessWidget {
         child: FilledButton.icon(
           onPressed: () => onRefresh(),
           icon: const Icon(Icons.refresh_rounded),
-          label: const Text('\u5237\u65b0\u5bb6\u5ead'),
+          label: const Text('刷新家庭'),
           style: buttonStyle,
         ),
       );
@@ -764,7 +1331,7 @@ class _FamilyActionBar extends StatelessWidget {
           child: FilledButton.icon(
             onPressed: onAddMemberTap,
             icon: const Icon(Icons.add_rounded),
-            label: const Text('\u6dfb\u52a0\u6210\u5458'),
+            label: const Text('添加成员'),
             style: buttonStyle,
           ),
         ),
@@ -773,7 +1340,7 @@ class _FamilyActionBar extends StatelessWidget {
           child: FilledButton.icon(
             onPressed: () => onRefresh(),
             icon: const Icon(Icons.refresh_rounded),
-            label: const Text('\u5237\u65b0'),
+            label: const Text('刷新'),
             style: buttonStyle,
           ),
         ),
@@ -782,6 +1349,7 @@ class _FamilyActionBar extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _FamilyWarmthNote extends StatelessWidget {
   const _FamilyWarmthNote();
 
@@ -817,8 +1385,7 @@ class _FamilyWarmthNote extends StatelessWidget {
           const SizedBox(width: 14),
           const Expanded(
             child: Text(
-              '\u5bb6\u4eba\u548c\u5ba0\u7269\u7684\u6bcf\u4e00\u6b21\u4e92\u52a8\uff0c'
-              '\u90fd\u4f1a\u7559\u4e0b\u6e29\u6696\u7684\u6210\u957f\u8bb0\u5f55\u3002',
+              '家人和宠物的每一次互动，都会留下温暖的成长记录。',
               style: TextStyle(
                 color: _FamilyPalette.muted,
                 fontSize: 14,
@@ -852,14 +1419,21 @@ class _CircleIconButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(999),
         child: Ink(
-          width: 38,
-          height: 38,
+          width: 36,
+          height: 36,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.9),
+            color: Colors.white.withValues(alpha: 0.84),
             shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFFF0DCC9)),
+            border: Border.all(color: _FamilyPalette.sectionLine),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0F6B3608),
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
           ),
-          child: Icon(icon, color: _FamilyPalette.muted, size: 20),
+          child: Icon(icon, color: _FamilyPalette.muted, size: 18),
         ),
       ),
     );

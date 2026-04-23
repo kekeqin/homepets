@@ -1,10 +1,15 @@
 import '../core/api_client.dart';
 
 class FamilyLoadResult {
-  const FamilyLoadResult({required this.familyName, required this.memberMaps});
+  const FamilyLoadResult({
+    required this.familyName,
+    required this.memberMaps,
+    required this.petMaps,
+  });
 
   final String familyName;
   final List<Map<String, dynamic>> memberMaps;
+  final List<Map<String, dynamic>> petMaps;
 }
 
 class FamilyService {
@@ -16,11 +21,13 @@ class FamilyService {
     final responses = await Future.wait<dynamic>([
       _apiClient.dio.get('/api/families/$familyId'),
       _apiClient.dio.get('/api/families/$familyId/members'),
+      _apiClient.dio.get('/api/families/$familyId/pets'),
     ]);
 
     return FamilyLoadResult(
       familyName: _extractFamilyName(responses[0].data),
       memberMaps: _extractMemberMaps(responses[1].data),
+      petMaps: _extractMemberMaps(responses[2].data),
     );
   }
 
@@ -35,6 +42,13 @@ class FamilyService {
     return _extractMap(response.data, fallbackMessage: '成员信息返回异常');
   }
 
+  Future<void> deleteMember({
+    required int familyId,
+    required int memberId,
+  }) async {
+    await _apiClient.dio.delete('/api/families/$familyId/members/$memberId');
+  }
+
   Future<void> assignMemberPet({
     required int familyId,
     required int memberId,
@@ -45,6 +59,36 @@ class FamilyService {
       '/api/families/$familyId/members/$memberId/pet',
       data: {'pet_type': petType, 'name': petName},
     );
+  }
+
+  Future<void> updateMemberAvatar({
+    required int memberId,
+    required String? avatarUrl,
+  }) async {
+    await _apiClient.dio.put(
+      '/api/users/$memberId',
+      data: {'avatar_url': avatarUrl},
+    );
+  }
+
+  Future<Map<String, dynamic>> updateFamily({
+    required int familyId,
+    String? name,
+    String? petTitle,
+  }) async {
+    final data = <String, dynamic>{};
+    if (name != null) {
+      data['name'] = name;
+    }
+    if (petTitle != null) {
+      data['pet_title'] = petTitle;
+    }
+
+    final response = await _apiClient.dio.put(
+      '/api/families/$familyId',
+      data: data,
+    );
+    return _extractMap(response.data, fallbackMessage: '家庭信息返回异常');
   }
 
   String _extractFamilyName(dynamic payload) {

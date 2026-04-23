@@ -22,6 +22,7 @@ import '../../models/pet_artwork.dart';
 
 import '../../providers/auth_provider.dart';
 
+import '../family/family_screen.dart';
 import '../pet/pet_detail_screen.dart';
 import '../shop/shop_screen.dart';
 
@@ -75,11 +76,13 @@ class HomeSceneFlameView extends ConsumerStatefulWidget {
     super.key,
     required this.device,
     this.openTasksPanelOnStart = false,
+    this.openFamilyPanelOnStart = false,
     this.openShopPanelOnStart = false,
   });
 
   final HomeSceneDevice device;
   final bool openTasksPanelOnStart;
+  final bool openFamilyPanelOnStart;
   final bool openShopPanelOnStart;
 
   @override
@@ -98,7 +101,9 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
   List<Map<String, dynamic>> _homeTasks = const <Map<String, dynamic>>[];
   bool _didRequestInitialTaskPanel = false;
+  bool _didRequestInitialFamilyPanel = false;
   bool _didRequestInitialShopPanel = false;
+  bool _familyPanelVisible = false;
   bool _shopPanelVisible = false;
   bool _taskPanelVisible = false;
   bool _taskPanelExpanded = false;
@@ -136,6 +141,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
     _loadHomeTasks();
     _maybeOpenInitialTaskPanel();
+    _maybeOpenInitialFamilyPanel();
     _maybeOpenInitialShopPanel();
   }
 
@@ -201,6 +207,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       _syncGameTasksFromServer();
       _syncGamePetsFromServer();
       _didRequestInitialTaskPanel = false;
+      _didRequestInitialFamilyPanel = false;
       _didRequestInitialShopPanel = false;
     }
 
@@ -208,11 +215,16 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       _didRequestInitialTaskPanel = false;
     }
 
+    if (!oldWidget.openFamilyPanelOnStart && widget.openFamilyPanelOnStart) {
+      _didRequestInitialFamilyPanel = false;
+    }
+
     if (!oldWidget.openShopPanelOnStart && widget.openShopPanelOnStart) {
       _didRequestInitialShopPanel = false;
     }
 
     _maybeOpenInitialTaskPanel();
+    _maybeOpenInitialFamilyPanel();
     _maybeOpenInitialShopPanel();
   }
 
@@ -252,7 +264,41 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       return;
     }
 
-    context.go('/family');
+    _showFamilyPanel(clearRouteAfterClose: false);
+  }
+
+  void _maybeOpenInitialFamilyPanel() {
+    if (!widget.openFamilyPanelOnStart || _didRequestInitialFamilyPanel) {
+      return;
+    }
+
+    _didRequestInitialFamilyPanel = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _showFamilyPanel(clearRouteAfterClose: true);
+    });
+  }
+
+  Future<void> _showFamilyPanel({required bool clearRouteAfterClose}) async {
+    if (_familyPanelVisible) {
+      return;
+    }
+
+    _familyPanelVisible = true;
+    await showFamilyDialog(context);
+    _familyPanelVisible = false;
+
+    if (!mounted || !clearRouteAfterClose) {
+      return;
+    }
+
+    final routerState = GoRouterState.of(context);
+    if (routerState.matchedLocation == '/home' &&
+        routerState.uri.queryParameters['panel'] == 'family') {
+      context.go('/home');
+    }
   }
 
   void _openShop() {

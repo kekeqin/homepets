@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../models/pet.dart';
 import '../models/family_member_view_data.dart';
 import 'family_empty_card.dart';
 import 'family_member_card.dart';
@@ -9,36 +10,62 @@ class FamilyMemberGrid extends StatefulWidget {
     super.key,
     required this.members,
     required this.entryAnimation,
-    required this.onMemberTap,
     required this.canAddMembers,
     required this.onAddMemberTap,
+    this.onPetTap,
+    this.canEditAvatar,
+    this.onAvatarEditTap,
+    this.updatingAvatarMemberId,
+    this.canDeleteMember,
+    this.onMemberLongPress,
   });
 
   static const int maxDisplayMembers = 8;
 
   final List<FamilyMemberViewData> members;
   final Animation<double> entryAnimation;
-  final ValueChanged<FamilyMemberViewData> onMemberTap;
   final bool canAddMembers;
   final VoidCallback onAddMemberTap;
+  final ValueChanged<Pet>? onPetTap;
+  final bool Function(FamilyMemberViewData member)? canEditAvatar;
+  final ValueChanged<FamilyMemberViewData>? onAvatarEditTap;
+  final int? updatingAvatarMemberId;
+  final bool Function(FamilyMemberViewData member)? canDeleteMember;
+  final ValueChanged<FamilyMemberViewData>? onMemberLongPress;
 
   @override
   State<FamilyMemberGrid> createState() => _FamilyMemberGridState();
 }
 
 class _FamilyMemberGridState extends State<FamilyMemberGrid> {
-  static const int _collapsedMemberCount = 4;
+  static const int _visibleMemberCount = 4;
 
-  bool _expanded = false;
+  int _currentPage = 0;
+  double _dragDelta = 0;
+  bool _movingForward = true;
+
+  int get _pageCount => (widget.members.length / _visibleMemberCount).ceil();
 
   @override
   void didUpdateWidget(covariant FamilyMemberGrid oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.members.length <= _collapsedMemberCount && _expanded) {
+    final maxPageIndex = _pageCount > 0 ? _pageCount - 1 : 0;
+    if (_currentPage > maxPageIndex) {
       setState(() {
-        _expanded = false;
+        _currentPage = maxPageIndex;
       });
     }
+  }
+
+  void _setPage(int page) {
+    if (page < 0 || page >= _pageCount || page == _currentPage) {
+      return;
+    }
+
+    setState(() {
+      _movingForward = page > _currentPage;
+      _currentPage = page;
+    });
   }
 
   @override
@@ -50,17 +77,12 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
           >= 760 => 3,
           _ => 2,
         };
-        final spacing = constraints.maxWidth >= 760 ? 14.0 : 10.0;
+        final spacing = constraints.maxWidth >= 760 ? 14.0 : 12.0;
         final childAspectRatio = constraints.maxWidth >= 980
-            ? 1.16
+            ? 1.0
             : constraints.maxWidth >= 760
-            ? 1.12
-            : 1.08;
-        final hasOverflow = widget.members.length > _collapsedMemberCount;
-        final visibleMembers = hasOverflow && !_expanded
-            ? widget.members.take(_collapsedMemberCount).toList(growable: false)
-            : widget.members;
-        final remainingCount = widget.members.length - _collapsedMemberCount;
+            ? 0.92
+            : 0.84;
 
         if (widget.members.isEmpty) {
           return FamilyEmptyCard(
@@ -69,103 +91,126 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
           );
         }
 
+        final pages = <List<FamilyMemberViewData>>[
+          for (
+            var start = 0;
+            start < widget.members.length;
+            start += _visibleMemberCount
+          )
+            widget.members
+                .skip(start)
+                .take(_visibleMemberCount)
+                .toList(growable: false),
+        ];
+        final pageMembers = pages[_currentPage];
+
+        final grid = GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: pageMembers.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: spacing,
+            mainAxisSpacing: spacing,
+            childAspectRatio: childAspectRatio,
+          ),
+          itemBuilder: (context, index) {
+            final member = pageMembers[index];
+            return _AnimatedMemberCard(
+              index: index,
+              entryAnimation: widget.entryAnimation,
+              child: FamilyMemberCard(
+                member: member,
+                onPetTap: member.pet != null
+                    ? () => widget.onPetTap?.call(member.pet!)
+                    : null,
+                onAvatarEditTap:
+                    (widget.canEditAvatar?.call(member) ?? false) &&
+                        widget.onAvatarEditTap != null
+                    ? () => widget.onAvatarEditTap!.call(member)
+                    : null,
+                avatarEditBusy: widget.updatingAvatarMemberId == member.id,
+                onLongPress:
+                    (widget.canDeleteMember?.call(member) ?? false) &&
+                        widget.onMemberLongPress != null
+                    ? () => widget.onMemberLongPress!.call(member)
+                    : null,
+              ),
+            );
+          },
+        );
+
+        if (_pageCount <= 1) {
+          return grid;
+        }
+
         return Column(
           children: [
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: visibleMembers.length,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                crossAxisSpacing: spacing,
-                mainAxisSpacing: spacing,
-                childAspectRatio: childAspectRatio,
-              ),
-              itemBuilder: (context, index) {
-                final member = visibleMembers[index];
-                return _AnimatedMemberCard(
-                  index: index,
-                  entryAnimation: widget.entryAnimation,
-                  child: FamilyMemberCard(
-                    member: member,
-                    onDetailTap: () => widget.onMemberTap(member),
-                  ),
-                );
+            GestureDetector(
+              key: const Key('family_member_grid_swipe_area'),
+              behavior: HitTestBehavior.opaque,
+              onHorizontalDragStart: (_) => _dragDelta = 0,
+              onHorizontalDragUpdate: (details) {
+                _dragDelta += details.delta.dx;
               },
-            ),
-            if (hasOverflow) ...[
-              const SizedBox(height: 12),
-              _MemberOverflowToggle(
-                expanded: _expanded,
-                remainingCount: remainingCount,
-                onTap: () {
-                  setState(() {
-                    _expanded = !_expanded;
-                  });
+              onHorizontalDragEnd: (_) {
+                if (_dragDelta <= -36) {
+                  _setPage(_currentPage + 1);
+                } else if (_dragDelta >= 36) {
+                  _setPage(_currentPage - 1);
+                }
+                _dragDelta = 0;
+              },
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 240),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) {
+                  final offsetAnimation = Tween<Offset>(
+                    begin: Offset(_movingForward ? 0.05 : -0.05, 0),
+                    end: Offset.zero,
+                  ).animate(animation);
+
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: offsetAnimation,
+                      child: child,
+                    ),
+                  );
                 },
+                child: KeyedSubtree(
+                  key: ValueKey<int>(_currentPage),
+                  child: grid,
+                ),
               ),
-            ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              key: const Key('family_member_grid_page_dots'),
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (var index = 0; index < _pageCount; index++)
+                  GestureDetector(
+                    onTap: () => _setPage(index),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 220),
+                      width: index == _currentPage ? 14 : 5,
+                      height: 5,
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      decoration: BoxDecoration(
+                        color: index == _currentPage
+                            ? const Color(0xFFE0A25B)
+                            : const Color(0xFFE7DACB),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ],
         );
       },
-    );
-  }
-}
-
-class _MemberOverflowToggle extends StatelessWidget {
-  const _MemberOverflowToggle({
-    required this.expanded,
-    required this.remainingCount,
-    required this.onTap,
-  });
-
-  final bool expanded;
-  final int remainingCount;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.center,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          key: const Key('family_member_grid_toggle'),
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(999),
-          child: Ink(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF2E2),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: const Color(0xFFF0DCC6)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  expanded
-                      ? '\u6536\u8d77'
-                      : '\u67e5\u770b\u5176\u4f59 $remainingCount \u4f4d',
-                  style: const TextStyle(
-                    color: Color(0xFFC07B33),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Icon(
-                  expanded
-                      ? Icons.keyboard_arrow_up_rounded
-                      : Icons.keyboard_arrow_down_rounded,
-                  size: 18,
-                  color: const Color(0xFFC07B33),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

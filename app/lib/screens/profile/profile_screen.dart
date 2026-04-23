@@ -159,12 +159,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             title: '成员主页',
             onTap: () => _openMemberHome(context),
           ),
-          _MenuItem(
-            icon: Icons.badge_outlined,
-            iconColor: _AppColors.tertiary,
-            title: '我的成员详情',
-            onTap: () => _openMyMemberProfile(context),
-          ),
+          if (_showMyMemberProfileEntry)
+            _MenuItem(
+              icon: Icons.badge_outlined,
+              iconColor: _AppColors.tertiary,
+              title: '我的成员详情',
+              onTap: () => _openMyMemberProfile(context),
+            ),
           _MenuItem(
             icon: Icons.info_outline,
             iconColor: _AppColors.tertiary,
@@ -198,21 +199,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  bool get _showMyMemberProfileEntry => false;
+
   void _openMyMemberProfile(BuildContext context) {
     final user = ref.read(authProvider).user;
     if (user == null) {
       return;
     }
 
-    Navigator.push(
+    showMemberDetailDialog(
       context,
-      MaterialPageRoute(
-        builder: (_) => MemberDetailScreen(
-          memberId: user.id,
-          nickname: user.nickname,
-          role: user.isAdmin ? 'admin' : 'member',
-        ),
-      ),
+      memberId: user.id,
+      nickname: user.nickname,
+      role: user.isAdmin ? 'admin' : 'member',
     );
   }
 
@@ -246,14 +245,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   );
                   if (dialogCtx.mounted) Navigator.pop(dialogCtx);
                   await ref.read(authProvider.notifier).refreshUser();
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text('修改成功')),
-                  );
+                  messenger.showSnackBar(const SnackBar(content: Text('修改成功')));
                 } catch (e) {
                   if (dialogCtx.mounted) {
-                    ScaffoldMessenger.of(dialogCtx).showSnackBar(
-                      SnackBar(content: Text('修改失败: $e')),
-                    );
+                    ScaffoldMessenger.of(
+                      dialogCtx,
+                    ).showSnackBar(SnackBar(content: Text('修改失败: $e')));
                   }
                 }
               },
