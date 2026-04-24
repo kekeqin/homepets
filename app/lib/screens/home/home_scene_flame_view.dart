@@ -1974,6 +1974,8 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     return showAppModalDialog<_TaskEditorResult>(
       context: context,
       barrierLabel: 'task_editor_dialog',
+      blurSigma: 7,
+      barrierTint: const Color(0x32674A30),
       transitionDuration: const Duration(milliseconds: 220),
       beginScale: 0.96,
       beginYOffset: 16,
