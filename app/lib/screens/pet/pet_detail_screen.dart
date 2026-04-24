@@ -13,6 +13,8 @@ Future<void> showPetDetailDialog(
     context: context,
     useRootNavigator: useRootNavigator,
     barrierLabel: '宠物详情',
+    blurSigma: 7,
+    barrierTint: const Color(0x32674A30),
     transitionDuration: const Duration(milliseconds: 260),
     beginScale: 0.92,
     beginYOffset: 22,

@@ -21,6 +21,7 @@ import '../../models/pet.dart';
 import '../../models/pet_artwork.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../widgets/app_modal_shell.dart';
 
 import '../family/family_screen.dart';
 import '../pet/pet_detail_screen.dart';
@@ -1289,16 +1290,18 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: _taskPanelBackdropInteractive ? _hideTaskPanel : null,
-                  child: ColoredBox(
-                    color: Colors.black.withValues(
-                      alpha: 0.42 * backdropOpacity,
-                    ),
-                    child: ClipRect(
-                      child: BackdropFilter(
-                        filter: ui.ImageFilter.blur(
-                          sigmaX: 5.5 * backdropOpacity,
-                          sigmaY: 5.5 * backdropOpacity,
-                        ),
+                  child: ClipRect(
+                    child: BackdropFilter(
+                      filter: ui.ImageFilter.blur(
+                        sigmaX: 7 * backdropOpacity,
+                        sigmaY: 7 * backdropOpacity,
+                      ),
+                      child: ColoredBox(
+                        color: Color.lerp(
+                          Colors.transparent,
+                          const Color(0x32674A30),
+                          backdropOpacity,
+                        )!,
                         child: const SizedBox.expand(),
                       ),
                     ),
@@ -1968,36 +1971,17 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
     int? initialTaskPoints,
   }) {
-    return showGeneralDialog<_TaskEditorResult>(
+    return showAppModalDialog<_TaskEditorResult>(
       context: context,
-
       barrierLabel: 'task_editor_dialog',
-
-      barrierDismissible: true,
-
-      barrierColor: Colors.black.withValues(alpha: 0.14),
-
-      transitionDuration: const Duration(milliseconds: 160),
-
-      pageBuilder: (context, animation, secondaryAnimation) {
+      transitionDuration: const Duration(milliseconds: 220),
+      beginScale: 0.96,
+      beginYOffset: 16,
+      pageBuilder: (dialogContext) {
         return _TaskEditorSpriteDialog(
           isEditing: isEditing,
-
           initialTaskLabel: initialTaskLabel,
-
           initialTaskPoints: initialTaskPoints,
-        );
-      },
-
-      transitionBuilder: (context, animation, secondaryAnimation, child) {
-        return FadeTransition(
-          opacity: animation,
-
-          child: ScaleTransition(
-            scale: Tween<double>(begin: 0.96, end: 1).animate(animation),
-
-            child: child,
-          ),
         );
       },
     );
@@ -2670,280 +2654,251 @@ class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
 
     return Material(
       color: Colors.transparent,
-      child: Stack(
-        children: [
-          Positioned.fill(
+      child: SafeArea(
+        child: AnimatedPadding(
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOutCubic,
+          padding: EdgeInsets.only(bottom: viewInsets.bottom * 0.85),
+          child: Center(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: () => Navigator.of(context).pop(),
-              child: BackdropFilter(
-                filter: ui.ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                child: ColoredBox(
-                  color: const Color(0xB3261A10).withValues(alpha: 0.46),
-                ),
-              ),
-            ),
-          ),
-          SafeArea(
-            child: AnimatedPadding(
-              duration: const Duration(milliseconds: 150),
-              curve: Curves.easeOutCubic,
-              padding: EdgeInsets.only(bottom: viewInsets.bottom * 0.85),
-              child: Center(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => FocusScope.of(context).unfocus(),
-                  child: SizedBox(
-                    width: panelWidth,
-                    height: panelHeight,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Positioned.fill(
-                          child: IgnorePointer(
-                            child: Transform.scale(
-                              scale: frameScale,
-                              child: Image.asset(
-                                _taskEditorPanelAsset,
-                                width: _taskEditorAssetWidth,
-                                height: _taskEditorAssetHeight,
-                                fit: BoxFit.fill,
-                                alignment: Alignment.center,
-                              ),
-                            ),
+              onTap: () => FocusScope.of(context).unfocus(),
+              child: SizedBox(
+                width: panelWidth,
+                height: panelHeight,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: Transform.scale(
+                          scale: frameScale,
+                          child: Image.asset(
+                            _taskEditorPanelAsset,
+                            width: _taskEditorAssetWidth,
+                            height: _taskEditorAssetHeight,
+                            fit: BoxFit.fill,
+                            alignment: Alignment.center,
                           ),
                         ),
-                        Positioned.fill(
-                          child: Padding(
-                            padding: contentPadding,
-                            child: LayoutBuilder(
-                              builder: (context, constraints) {
-                                return SingleChildScrollView(
-                                  padding: EdgeInsets.only(
-                                    bottom: viewInsets.bottom > 0 ? 8 : 0,
-                                  ),
-                                  child: ConstrainedBox(
-                                    constraints: BoxConstraints(
-                                      minHeight: constraints.maxHeight,
-                                    ),
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 8,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0x1AF8F1E6),
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                            border: Border.all(
-                                              color: const Color(0xFF2F2218),
-                                              width: 1.2,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            widget.isEditing
-                                                ? '\u7f16\u8f91\u4efb\u52a1'
-                                                : '\u6dfb\u52a0\u4efb\u52a1',
-                                            textAlign: TextAlign.center,
-                                            style: const TextStyle(
-                                              color: Color(0xFF4D3623),
-                                              fontWeight: FontWeight.w900,
-                                              fontSize: 18,
-                                            ),
-                                          ),
+                      ),
+                    ),
+                    Positioned.fill(
+                      child: Padding(
+                        padding: contentPadding,
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            return SingleChildScrollView(
+                              padding: EdgeInsets.only(
+                                bottom: viewInsets.bottom > 0 ? 8 : 0,
+                              ),
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minHeight: constraints.maxHeight,
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0x1AF8F1E6),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: const Color(0xFF2F2218),
+                                          width: 1.2,
                                         ),
-                                        const SizedBox(height: 6),
-                                        Container(
-                                          padding: const EdgeInsets.fromLTRB(
-                                            12,
-                                            8,
-                                            10,
-                                            8,
+                                      ),
+                                      child: Text(
+                                        widget.isEditing
+                                            ? '\u7f16\u8f91\u4efb\u52a1'
+                                            : '\u6dfb\u52a0\u4efb\u52a1',
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          color: Color(0xFF4D3623),
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 18,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Container(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        12,
+                                        8,
+                                        10,
+                                        8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0x1AF8F1E6),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: const Color(0xFF2F2218),
+                                          width: 1.1,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          _TaskEditorField(
+                                            label: '\u4efb\u52a1\u540d',
+                                            controller: _taskNameController,
+                                            hintText:
+                                                '\u4f8b\u5982\uff1a\u6574\u7406\u73a9\u5177',
+                                            maxLength: _taskTitleMaxLength,
+                                            textInputAction:
+                                                TextInputAction.next,
                                           ),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0x1AF8F1E6),
-                                            borderRadius: BorderRadius.circular(
-                                              10,
-                                            ),
-                                            border: Border.all(
-                                              color: const Color(0xFF2F2218),
-                                              width: 1.1,
-                                            ),
+                                          const SizedBox(height: 6),
+                                          const Divider(
+                                            height: 1,
+                                            thickness: 1,
+                                            color: Color(0xFF3E2E21),
                                           ),
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              _TaskEditorField(
-                                                label: '\u4efb\u52a1\u540d',
-                                                controller: _taskNameController,
-                                                hintText:
-                                                    '\u4f8b\u5982\uff1a\u6574\u7406\u73a9\u5177',
-                                                maxLength: _taskTitleMaxLength,
-                                                textInputAction:
-                                                    TextInputAction.next,
-                                              ),
-                                              const SizedBox(height: 6),
-                                              const Divider(
-                                                height: 1,
-                                                thickness: 1,
-                                                color: Color(0xFF3E2E21),
-                                              ),
-                                              const SizedBox(height: 6),
-                                              _TaskEditorField(
-                                                label: '\u79ef\u5206',
-                                                controller:
-                                                    _taskPointsController,
-                                                hintText:
-                                                    '\u4f8b\u5982\uff1a10',
-                                                keyboardType:
-                                                    TextInputType.number,
-                                                maxLength: 4,
-                                                inputFormatters: [
-                                                  FilteringTextInputFormatter
-                                                      .digitsOnly,
-                                                  LengthLimitingTextInputFormatter(
-                                                    4,
-                                                  ),
-                                                ],
-                                                textInputAction:
-                                                    TextInputAction.done,
+                                          const SizedBox(height: 6),
+                                          _TaskEditorField(
+                                            label: '\u79ef\u5206',
+                                            controller: _taskPointsController,
+                                            hintText: '\u4f8b\u5982\uff1a10',
+                                            keyboardType: TextInputType.number,
+                                            maxLength: 4,
+                                            inputFormatters: [
+                                              FilteringTextInputFormatter
+                                                  .digitsOnly,
+                                              LengthLimitingTextInputFormatter(
+                                                4,
                                               ),
                                             ],
+                                            textInputAction:
+                                                TextInputAction.done,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    if (_validationMessage != null)
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 6,
+                                        ),
+                                        child: Text(
+                                          _validationMessage!,
+                                          style: const TextStyle(
+                                            color: Color(0xFF8A3228),
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 12,
                                           ),
                                         ),
-                                        const SizedBox(height: 6),
-                                        if (_validationMessage != null)
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                              bottom: 6,
+                                      ),
+                                    if (widget.isEditing)
+                                      Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: TextButton.icon(
+                                          onPressed: _requestDelete,
+                                          style: TextButton.styleFrom(
+                                            foregroundColor: const Color(
+                                              0xFF9C5F4F,
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 4,
+                                              vertical: 2,
+                                            ),
+                                            tapTargetSize:
+                                                MaterialTapTargetSize
+                                                    .shrinkWrap,
+                                          ),
+                                          icon: const Icon(
+                                            Icons.delete_outline_rounded,
+                                            size: 18,
+                                          ),
+                                          label: const Text(
+                                            '\u5220\u9664\u4efb\u52a1',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    if (widget.isEditing)
+                                      const SizedBox(height: 6),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: OutlinedButton(
+                                            onPressed: () =>
+                                                Navigator.of(context).pop(),
+                                            style: OutlinedButton.styleFrom(
+                                              foregroundColor: const Color(
+                                                0xFF5C4A38,
+                                              ),
+                                              side: const BorderSide(
+                                                color: Color(0xFF8E6C4D),
+                                                width: 1.3,
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              backgroundColor: const Color(
+                                                0xFFF0E6D3,
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 9,
+                                                  ),
+                                            ),
+                                            child: const Text(
+                                              '\u53d6\u6d88',
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: FilledButton(
+                                            onPressed: _save,
+                                            style: FilledButton.styleFrom(
+                                              backgroundColor: const Color(
+                                                0xFFB67B56,
+                                              ),
+                                              foregroundColor: Colors.white,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 9,
+                                                  ),
                                             ),
                                             child: Text(
-                                              _validationMessage!,
-                                              style: const TextStyle(
-                                                color: Color(0xFF8A3228),
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 12,
-                                              ),
+                                              widget.isEditing
+                                                  ? '\u4fdd\u5b58\u4fee\u6539'
+                                                  : '\u6dfb\u52a0\u4efb\u52a1',
                                             ),
                                           ),
-                                        if (widget.isEditing)
-                                          Align(
-                                            alignment: Alignment.centerLeft,
-                                            child: TextButton.icon(
-                                              onPressed: _requestDelete,
-                                              style: TextButton.styleFrom(
-                                                foregroundColor: const Color(
-                                                  0xFF9C5F4F,
-                                                ),
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 4,
-                                                      vertical: 2,
-                                                    ),
-                                                tapTargetSize:
-                                                    MaterialTapTargetSize
-                                                        .shrinkWrap,
-                                              ),
-                                              icon: const Icon(
-                                                Icons.delete_outline_rounded,
-                                                size: 18,
-                                              ),
-                                              label: const Text(
-                                                '\u5220\u9664\u4efb\u52a1',
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        if (widget.isEditing)
-                                          const SizedBox(height: 6),
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: OutlinedButton(
-                                                onPressed: () =>
-                                                    Navigator.of(context).pop(),
-                                                style: OutlinedButton.styleFrom(
-                                                  foregroundColor: const Color(
-                                                    0xFF5C4A38,
-                                                  ),
-                                                  side: const BorderSide(
-                                                    color: Color(0xFF8E6C4D),
-                                                    width: 1.3,
-                                                  ),
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          12,
-                                                        ),
-                                                  ),
-                                                  backgroundColor: const Color(
-                                                    0xFFF0E6D3,
-                                                  ),
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        vertical: 9,
-                                                      ),
-                                                ),
-                                                child: const Text(
-                                                  '\u53d6\u6d88',
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 10),
-                                            Expanded(
-                                              child: FilledButton(
-                                                onPressed: _save,
-                                                style: FilledButton.styleFrom(
-                                                  backgroundColor: const Color(
-                                                    0xFFB67B56,
-                                                  ),
-                                                  foregroundColor: Colors.white,
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          12,
-                                                        ),
-                                                  ),
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        vertical: 9,
-                                                      ),
-                                                ),
-                                                child: Text(
-                                                  widget.isEditing
-                                                      ? '\u4fdd\u5b58\u4fee\u6539'
-                                                      : '\u6dfb\u52a0\u4efb\u52a1',
-                                                ),
-                                              ),
-                                            ),
-                                          ],
                                         ),
                                       ],
                                     ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
