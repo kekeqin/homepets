@@ -25,15 +25,49 @@ Future<String?> showMemberAvatarPickerSheet(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    '更换头像',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      color: MemberProfileColors.text,
-                    ),
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(sheetContext).pop(),
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF8A7356),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: const Text('取消'),
+                      ),
+                      const Expanded(
+                        child: Center(
+                          child: Text(
+                            '更换头像',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: MemberProfileColors.text,
+                            ),
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(
+                          sheetContext,
+                        ).pop(selectedAvatarValue),
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF9B6415),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: const Text('保存'),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
+                  const Divider(
+                    height: 1,
+                    thickness: 0.8,
+                    color: Color(0x1AA87500),
+                  ),
+                  const SizedBox(height: 16),
                   Center(
                     child: UserAvatar(
                       nickname: nickname,
@@ -88,26 +122,6 @@ Future<String?> showMemberAvatarPickerSheet(
                             ),
                           ),
                         ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.of(sheetContext).pop(),
-                          child: const Text('取消'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: () => Navigator.of(
-                            sheetContext,
-                          ).pop(selectedAvatarValue),
-                          child: const Text('保存'),
-                        ),
-                      ),
                     ],
                   ),
                 ],

@@ -71,6 +71,7 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
+    - assets/scenes/
     - assets/images/pets/
     - assets/images/pets/pets/
     - assets/images/pets/act/
@@ -83,7 +84,6 @@ flutter:
     - "assets/images/pets/dog/wagging tail/"
     - assets/images/ui/
     - assets/images/ui/sprites/
-    - assets/scenes/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

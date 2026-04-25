@@ -35,18 +35,19 @@ const List<_PetCandidatePoint> _homePetCandidatePoints = <_PetCandidatePoint>[
   _PetCandidatePoint(centerX: 0.395, centerY: 0.745),
   // 8. Bottom-right marker shifted up to the latest red-dot position.
   _PetCandidatePoint(centerX: 0.84, centerY: 0.865),
-  // 9. Bookshelf marker tuned to keep the pet resting on the top board surface.
+  // 9. Bookshelf marker tuned to keep the pet resting on the top board surface
+  // while still reading clearly at the back of the room.
   _PetCandidatePoint(
     centerX: 0.668,
-    centerY: 0.398,
-    widthScale: 0.74,
-    heightScale: 0.76,
+    centerY: 0.406,
+    widthScale: 0.86,
+    heightScale: 0.88,
     preferRestPose: true,
     contactShadow: _PetContactShadowSpec(
-      widthFactor: 0.70,
-      heightFactor: 0.10,
-      centerYFactor: 0.985,
-      opacity: 0.17,
+      widthFactor: 0.78,
+      heightFactor: 0.12,
+      centerYFactor: 0.992,
+      opacity: 0.19,
       blurSigmaFactor: 0.045,
     ),
   ),
@@ -1156,6 +1157,15 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           onTap: onOpenFamily,
         ),
         _SceneSpriteSpec(
+          rect: const _RectFactor(0.382, 0.176, 0.142, 0.064),
+          referenceSpace: _UiReferenceSpace.background,
+          assetPath: 'images/ui/pay.png',
+          behavior: _SceneSpriteBehavior.wallBadge,
+          ambientPhase: 1.1,
+          entryDelay: 0.34,
+          entryOffset: 70,
+        ),
+        _SceneSpriteSpec(
           rect: const _RectFactor(0.704, 0.104, 0.178, 0.154),
           referenceSpace: _UiReferenceSpace.background,
           assetPath: 'images/ui/shop_basket.png',
@@ -1220,6 +1230,15 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           entryDelay: 0.24,
           entryOffset: 46,
           onTap: onOpenFamily,
+        ),
+        _SceneSpriteSpec(
+          rect: const _RectFactor(0.382, 0.182, 0.134, 0.060),
+          referenceSpace: _UiReferenceSpace.background,
+          assetPath: 'images/ui/pay.png',
+          behavior: _SceneSpriteBehavior.wallBadge,
+          ambientPhase: 1.2,
+          entryDelay: 0.27,
+          entryOffset: 46,
         ),
         _SceneSpriteSpec(
           rect: const _RectFactor(0.694, 0.106, 0.184, 0.154),
@@ -3095,7 +3114,13 @@ class _IconTileComponent extends _AnimatedSceneComponent {
   }
 }
 
-enum _SceneSpriteBehavior { taskNote, shopBasket, familyPhoto, staticOverlay }
+enum _SceneSpriteBehavior {
+  taskNote,
+  shopBasket,
+  familyPhoto,
+  wallBadge,
+  staticOverlay,
+}
 
 class _SceneSpriteComponent extends _AnimatedSceneComponent
     with HasGameReference<HomeSceneGame> {
@@ -3203,6 +3228,8 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
         math.sin((_ambientTime * 1.5) + ambientPhase) * 0.014,
       _SceneSpriteBehavior.familyPhoto =>
         math.sin((_ambientTime * 1.3) + ambientPhase) * 0.008,
+      _SceneSpriteBehavior.wallBadge =>
+        math.sin((_ambientTime * 1.5) + ambientPhase) * 0.014,
       _SceneSpriteBehavior.staticOverlay => 0,
     };
   }
@@ -3239,6 +3266,7 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
         progress < 0.5
             ? 0.078 * Curves.easeOut.transform(progress / 0.5)
             : 0.078 * (1 - Curves.easeIn.transform((progress - 0.5) / 0.5)),
+      _SceneSpriteBehavior.wallBadge => 0,
       _SceneSpriteBehavior.staticOverlay => 0,
     };
   }
@@ -3248,6 +3276,7 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
       _SceneSpriteBehavior.taskNote => 0.22,
       _SceneSpriteBehavior.shopBasket => 0.22,
       _SceneSpriteBehavior.familyPhoto => 0.24,
+      _SceneSpriteBehavior.wallBadge => 0,
       _SceneSpriteBehavior.staticOverlay => 0,
     };
   }
@@ -3257,6 +3286,7 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
       _SceneSpriteBehavior.taskNote => 0.18,
       _SceneSpriteBehavior.shopBasket => 0.20,
       _SceneSpriteBehavior.familyPhoto => 0.21,
+      _SceneSpriteBehavior.wallBadge => 0,
       _SceneSpriteBehavior.staticOverlay => 0,
     };
   }
@@ -3266,6 +3296,7 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
       _SceneSpriteBehavior.taskNote => Anchor.topCenter,
       _SceneSpriteBehavior.shopBasket => Anchor.topCenter,
       _SceneSpriteBehavior.familyPhoto => Anchor.center,
+      _SceneSpriteBehavior.wallBadge => Anchor.topCenter,
       _SceneSpriteBehavior.staticOverlay => Anchor.center,
     };
   }
@@ -3894,6 +3925,7 @@ class _TaskPanelOverlay extends PositionComponent
   late final Vector2 _basePanelSize;
   late final SpriteComponent _panelBoard;
   late final _TaskPanelActionButton _addTaskButton;
+  late final _TaskPanelCloseButton _closeButton;
   late final PositionComponent _titleComponent;
   final List<_TaskPanelItem> _taskItems = <_TaskPanelItem>[];
   _TaskPanelActionButton? _nextPageButton;
@@ -3978,6 +4010,16 @@ class _TaskPanelOverlay extends PositionComponent
     );
     _panelBoard = boardComponent;
     _panelRoot.add(boardComponent);
+
+    final closeButton =
+        _TaskPanelCloseButton(
+            size: Vector2.all(_basePanelSize.x * 0.13),
+            onPressed: startExit,
+          )
+          ..anchor = Anchor.center
+          ..position = _closeButtonPosition();
+    _closeButton = closeButton;
+    add(closeButton);
     _panelRoot.add(
       MoveEffect.to(
         panelTargetPosition,
@@ -4323,6 +4365,15 @@ class _TaskPanelOverlay extends PositionComponent
     _panelRoot.size = nextSize;
     _panelBoard.size = nextSize;
     _panelBoard.position = nextSize / 2;
+    _closeButton.position = _closeButtonPosition();
+  }
+
+  Vector2 _closeButtonPosition() {
+    final panelCenter = _openPanelTargetPosition();
+    return Vector2(
+      panelCenter.x + (_basePanelSize.x * 0.43),
+      panelCenter.y - (_basePanelSize.y * 0.43),
+    );
   }
 
   void _clampCurrentPage() {
@@ -4649,6 +4700,7 @@ class _TaskPanelOverlay extends PositionComponent
     _sceneSize = sceneSize.clone();
     size = _sceneSize.clone();
     _backdropLayer?.size = _sceneSize.clone();
+    _closeButton.position = _closeButtonPosition();
   }
 
   void startExit() {
@@ -4661,6 +4713,7 @@ class _TaskPanelOverlay extends PositionComponent
       _animateContentExit(item);
     }
     _animateContentExit(_titleComponent);
+    _animateContentExit(_closeButton, startDelay: 0.01);
     _animateContentExit(_addTaskButton, startDelay: 0.02);
     final nextPageButton = _nextPageButton;
     if (nextPageButton != null) {
@@ -4737,6 +4790,56 @@ class _TaskPanelLayout {
   final double addButtonCenterY;
   final double? nextPageButtonCenterY;
   final double titleCenterY;
+}
+
+class _TaskPanelCloseButton extends PositionComponent with TapCallbacks {
+  _TaskPanelCloseButton({required Vector2 size, required this.onPressed})
+    : super(size: size, priority: 4);
+
+  final VoidCallback onPressed;
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+
+    final center = Offset(size.x * 0.5, size.y * 0.5);
+    final radius = math.min(size.x, size.y) * 0.5;
+    final fillPaint = Paint()..color = const Color(0xFFFFF3DC);
+    final borderPaint = Paint()
+      ..color = const Color(0xFFA36A22)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(1.8, size.x * 0.064);
+    final iconPaint = Paint()
+      ..color = const Color(0xFF8A5414)
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = math.max(2.2, size.x * 0.082);
+    final shadowPaint = Paint()
+      ..color = const Color(0x4D6D451E)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+
+    canvas.drawCircle(center.translate(0, size.y * 0.08), radius, shadowPaint);
+    canvas.drawCircle(center, radius, fillPaint);
+    canvas.drawCircle(center, radius, borderPaint);
+
+    final inset = size.x * 0.32;
+    canvas.drawLine(
+      Offset(inset, inset),
+      Offset(size.x - inset, size.y - inset),
+      iconPaint,
+    );
+    canvas.drawLine(
+      Offset(size.x - inset, inset),
+      Offset(inset, size.y - inset),
+      iconPaint,
+    );
+  }
+
+  @override
+  void onTapDown(TapDownEvent event) {
+    onPressed();
+    super.onTapDown(event);
+  }
 }
 
 class _TaskPanelActionButton extends PositionComponent

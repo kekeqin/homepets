@@ -542,6 +542,31 @@ void main() {
       }
     });
 
+    test('keeps bookshelf cats larger and grounded on the top board', () {
+      final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+      final rect = game.debugPetRectForCandidate(
+        candidateIndex: 8,
+        assetPath: 'images/pets/pets/cat_lying.png',
+      );
+
+      expect(
+        rect.width,
+        greaterThan(0.10),
+        reason: 'Bookshelf cats should read clearly against the back wall.',
+      );
+      expect(
+        rect.bottom,
+        greaterThan(0.44),
+        reason:
+            'Bookshelf cats should sit on the shelf board instead of float.',
+      );
+      expect(
+        rect.bottom,
+        lessThan(0.46),
+        reason: 'Bookshelf cats should not sink into the top shelf board.',
+      );
+    });
+
     test('renders the floor armchair-adjacent pet above the seat front', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
 

@@ -82,6 +82,7 @@ class _PetDetailViewState extends ConsumerState<PetDetailView> {
               recentTasks: _buildRecentTasks(),
               statusLabel: _statusStampLabel(pet),
               loading: _loading,
+              onClose: widget.onClose,
             ),
           ),
         ),
@@ -207,6 +208,7 @@ class _ProfileCard extends StatelessWidget {
     required this.recentTasks,
     required this.statusLabel,
     required this.loading,
+    required this.onClose,
   });
 
   final Pet pet;
@@ -216,6 +218,7 @@ class _ProfileCard extends StatelessWidget {
   final List<_InteractionData> recentTasks;
   final String statusLabel;
   final bool loading;
+  final VoidCallback? onClose;
 
   @override
   Widget build(BuildContext context) {
@@ -301,7 +304,41 @@ class _ProfileCard extends StatelessWidget {
           right: 0,
           child: Center(child: _NameBanner(text: pet.name)),
         ),
+        if (onClose != null)
+          Positioned(
+            top: -14,
+            right: 14,
+            child: _PetDetailCloseButton(onPressed: onClose!),
+          ),
       ],
+    );
+  }
+}
+
+class _PetDetailCloseButton extends StatelessWidget {
+  const _PetDetailCloseButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xFFFFF9EF),
+      shape: const CircleBorder(
+        side: BorderSide(color: _PetDetailColors.line, width: 2.5),
+      ),
+      elevation: 4,
+      shadowColor: _PetDetailColors.shadow,
+      child: IconButton(
+        onPressed: onPressed,
+        tooltip: '关闭',
+        icon: const Icon(Icons.close_rounded),
+        color: _PetDetailColors.ink,
+        iconSize: 19,
+        constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+        padding: EdgeInsets.zero,
+        splashRadius: 20,
+      ),
     );
   }
 }

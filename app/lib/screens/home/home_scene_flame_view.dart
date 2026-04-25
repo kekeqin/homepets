@@ -32,8 +32,6 @@ import 'task_panel_sprite_catalog.dart';
 
 enum _TaskPanelRowAction { edit, delete, complete }
 
-const String _taskEditorPanelAsset = 'assets/images/ui/task_editor_panel.png';
-
 const String _taskContextMenuBoardAsset =
     'assets/images/ui/task_context_menu_board_compact.png';
 
@@ -45,10 +43,6 @@ const String _taskContextMenuDeleteButtonAsset =
 
 const String _taskContextMenuCompleteButtonAsset =
     'assets/images/ui/task_context_menu_btn_cancel.png';
-
-const double _taskEditorAssetWidth = 399;
-
-const double _taskEditorAssetHeight = 307;
 
 const int _taskTitleMaxLength = 200;
 
@@ -1364,6 +1358,16 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                                   ),
                                 ),
                               ),
+                              Positioned(
+                                top: panelRect.height * 0.035,
+                                right: panelRect.width * 0.075,
+                                child: Opacity(
+                                  opacity: contentOpacity,
+                                  child: _TaskPanelCloseButton(
+                                    onPressed: _hideTaskPanel,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -2291,6 +2295,33 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   }
 }
 
+class _TaskPanelCloseButton extends StatelessWidget {
+  const _TaskPanelCloseButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xFFFFF3DC),
+      shape: const CircleBorder(
+        side: BorderSide(color: Color(0xFFA36A22), width: 1.6),
+      ),
+      elevation: 3,
+      shadowColor: const Color(0x4D6D451E),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onPressed,
+        child: const SizedBox(
+          width: 32,
+          height: 32,
+          child: Icon(Icons.close_rounded, size: 20, color: Color(0xFF8A5414)),
+        ),
+      ),
+    );
+  }
+}
+
 class _TaskContextSpriteMenu extends StatelessWidget {
   const _TaskContextSpriteMenu({required this.anchorInOverlay});
 
@@ -2635,24 +2666,8 @@ class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.sizeOf(context);
     final viewInsets = MediaQuery.viewInsetsOf(context);
-    final panelAspectRatio = _taskEditorAssetWidth / _taskEditorAssetHeight;
-    final panelWidth = math.min(screenSize.width * 0.995, 560.0);
-    final basePanelHeight = panelWidth / panelAspectRatio;
-    final heightBoostFactor = basePanelHeight < 320 ? 1.12 : 1.06;
-    final panelHeight = math.min(
-      screenSize.height * 0.9,
-      basePanelHeight * heightBoostFactor,
-    );
-
-    final horizontalInset = math.max(34.0, panelWidth * 0.10);
-    final verticalInset = math.max(34.0, panelHeight * 0.10);
-    final contentPadding = EdgeInsets.fromLTRB(
-      horizontalInset,
-      verticalInset,
-      horizontalInset,
-      verticalInset,
-    );
-    final frameScale = basePanelHeight < 320 ? 1.10 : 1.06;
+    final panelWidth = math.min(screenSize.width * 0.74, 360.0);
+    final panelHeight = math.min(screenSize.height * 0.62, 520.0);
 
     return Material(
       color: Colors.transparent,
@@ -2660,7 +2675,7 @@ class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
         child: AnimatedPadding(
           duration: const Duration(milliseconds: 150),
           curve: Curves.easeOutCubic,
-          padding: EdgeInsets.only(bottom: viewInsets.bottom * 0.85),
+          padding: EdgeInsets.only(bottom: viewInsets.bottom * 0.72),
           child: Center(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -2672,227 +2687,22 @@ class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
                   clipBehavior: Clip.none,
                   children: [
                     Positioned.fill(
-                      child: IgnorePointer(
-                        child: Transform.scale(
-                          scale: frameScale,
-                          child: Image.asset(
-                            _taskEditorPanelAsset,
-                            width: _taskEditorAssetWidth,
-                            height: _taskEditorAssetHeight,
-                            fit: BoxFit.fill,
-                            alignment: Alignment.center,
-                          ),
-                        ),
+                      child: _TaskEditorCard(
+                        isEditing: widget.isEditing,
+                        validationMessage: _validationMessage,
+                        taskNameController: _taskNameController,
+                        taskPointsController: _taskPointsController,
+                        onSave: _save,
+                        onDelete: _requestDelete,
+                        onCancel: () => Navigator.of(context).pop(),
+                        bottomInset: viewInsets.bottom > 0 ? 8 : 0,
                       ),
                     ),
-                    Positioned.fill(
-                      child: Padding(
-                        padding: contentPadding,
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            return SingleChildScrollView(
-                              padding: EdgeInsets.only(
-                                bottom: viewInsets.bottom > 0 ? 8 : 0,
-                              ),
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  minHeight: constraints.maxHeight,
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0x1AF8F1E6),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: const Color(0xFF2F2218),
-                                          width: 1.2,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        widget.isEditing
-                                            ? '\u7f16\u8f91\u4efb\u52a1'
-                                            : '\u6dfb\u52a0\u4efb\u52a1',
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(
-                                          color: Color(0xFF4D3623),
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 18,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Container(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        12,
-                                        8,
-                                        10,
-                                        8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0x1AF8F1E6),
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(
-                                          color: const Color(0xFF2F2218),
-                                          width: 1.1,
-                                        ),
-                                      ),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          _TaskEditorField(
-                                            label: '\u4efb\u52a1\u540d',
-                                            controller: _taskNameController,
-                                            hintText:
-                                                '\u4f8b\u5982\uff1a\u6574\u7406\u73a9\u5177',
-                                            maxLength: _taskTitleMaxLength,
-                                            textInputAction:
-                                                TextInputAction.next,
-                                          ),
-                                          const SizedBox(height: 6),
-                                          const Divider(
-                                            height: 1,
-                                            thickness: 1,
-                                            color: Color(0xFF3E2E21),
-                                          ),
-                                          const SizedBox(height: 6),
-                                          _TaskEditorField(
-                                            label: '\u79ef\u5206',
-                                            controller: _taskPointsController,
-                                            hintText: '\u4f8b\u5982\uff1a10',
-                                            keyboardType: TextInputType.number,
-                                            maxLength: 4,
-                                            inputFormatters: [
-                                              FilteringTextInputFormatter
-                                                  .digitsOnly,
-                                              LengthLimitingTextInputFormatter(
-                                                4,
-                                              ),
-                                            ],
-                                            textInputAction:
-                                                TextInputAction.done,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    if (_validationMessage != null)
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          bottom: 6,
-                                        ),
-                                        child: Text(
-                                          _validationMessage!,
-                                          style: const TextStyle(
-                                            color: Color(0xFF8A3228),
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
-                                    if (widget.isEditing)
-                                      Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: TextButton.icon(
-                                          onPressed: _requestDelete,
-                                          style: TextButton.styleFrom(
-                                            foregroundColor: const Color(
-                                              0xFF9C5F4F,
-                                            ),
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 4,
-                                              vertical: 2,
-                                            ),
-                                            tapTargetSize:
-                                                MaterialTapTargetSize
-                                                    .shrinkWrap,
-                                          ),
-                                          icon: const Icon(
-                                            Icons.delete_outline_rounded,
-                                            size: 18,
-                                          ),
-                                          label: const Text(
-                                            '\u5220\u9664\u4efb\u52a1',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    if (widget.isEditing)
-                                      const SizedBox(height: 6),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: OutlinedButton(
-                                            onPressed: () =>
-                                                Navigator.of(context).pop(),
-                                            style: OutlinedButton.styleFrom(
-                                              foregroundColor: const Color(
-                                                0xFF5C4A38,
-                                              ),
-                                              side: const BorderSide(
-                                                color: Color(0xFF8E6C4D),
-                                                width: 1.3,
-                                              ),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                              backgroundColor: const Color(
-                                                0xFFF0E6D3,
-                                              ),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 9,
-                                                  ),
-                                            ),
-                                            child: const Text(
-                                              '\u53d6\u6d88',
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: FilledButton(
-                                            onPressed: _save,
-                                            style: FilledButton.styleFrom(
-                                              backgroundColor: const Color(
-                                                0xFFB67B56,
-                                              ),
-                                              foregroundColor: Colors.white,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 9,
-                                                  ),
-                                            ),
-                                            child: Text(
-                                              widget.isEditing
-                                                  ? '\u4fdd\u5b58\u4fee\u6539'
-                                                  : '\u6dfb\u52a0\u4efb\u52a1',
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                    Positioned(
+                      top: -10,
+                      right: -10,
+                      child: _TaskEditorCloseButton(
+                        onPressed: () => Navigator.of(context).pop(),
                       ),
                     ),
                   ],
@@ -2904,6 +2714,290 @@ class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
       ),
     );
   }
+}
+
+class _TaskEditorCloseButton extends StatelessWidget {
+  const _TaskEditorCloseButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xFFF8F1E6),
+      shape: const CircleBorder(
+        side: BorderSide(color: Color(0xFF2F2218), width: 1.4),
+      ),
+      elevation: 3,
+      shadowColor: const Color(0x66342217),
+      child: IconButton(
+        onPressed: onPressed,
+        tooltip: '关闭',
+        icon: const Icon(Icons.close_rounded),
+        color: const Color(0xFF4D3623),
+        iconSize: 20,
+        constraints: const BoxConstraints.tightFor(width: 38, height: 38),
+        padding: EdgeInsets.zero,
+        splashRadius: 22,
+      ),
+    );
+  }
+}
+
+class _TaskEditorCard extends StatelessWidget {
+  const _TaskEditorCard({
+    required this.isEditing,
+    required this.validationMessage,
+    required this.taskNameController,
+    required this.taskPointsController,
+    required this.onSave,
+    required this.onDelete,
+    required this.onCancel,
+    required this.bottomInset,
+  });
+
+  final bool isEditing;
+  final String? validationMessage;
+  final TextEditingController taskNameController;
+  final TextEditingController taskPointsController;
+  final VoidCallback onSave;
+  final VoidCallback onDelete;
+  final VoidCallback onCancel;
+  final double bottomInset;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      foregroundPainter: _SoftPanelBorderPainter(),
+      child: ClipPath(
+        clipper: _SoftPanelClipper(),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFFF7E9CF), Color(0xFFEBD6B2)],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF3A2514).withValues(alpha: 0.18),
+                blurRadius: 22,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(22, 32, 22, 22 + bottomInset),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _TaskEditorTitle(isEditing: isEditing),
+                const SizedBox(height: 18),
+                _TaskEditorField(
+                  label: '任务名',
+                  controller: taskNameController,
+                  hintText: '整理玩具',
+                  maxLength: _taskTitleMaxLength,
+                  textInputAction: TextInputAction.next,
+                ),
+                const SizedBox(height: 16),
+                _TaskEditorField(
+                  label: '积分奖励',
+                  controller: taskPointsController,
+                  hintText: '10',
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  textInputAction: TextInputAction.done,
+                ),
+                if (validationMessage != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    validationMessage!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFFB85F54),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+                if (isEditing) ...[
+                  const SizedBox(height: 12),
+                  TextButton.icon(
+                    onPressed: onDelete,
+                    label: const Text('删除任务'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFFB85F54),
+                      textStyle: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                  ),
+                ] else
+                  const SizedBox(height: 14),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: onCancel,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF5A3A21),
+                          side: const BorderSide(
+                            color: Color(0xFF6B4B32),
+                            width: 2,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(28),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          textStyle: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        child: const Text('取消'),
+                      ),
+                    ),
+                    const SizedBox(width: 18),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: onSave,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFFE39B55),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(28),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          elevation: 0,
+                          textStyle: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        child: Text(isEditing ? '保存修改' : '添加任务'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SoftPanelBorderPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = _SoftPanelClipper().getClip(size);
+    final shadowPaint = Paint()
+      ..color = const Color(0x333A2514)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 5
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+    final borderPaint = Paint()
+      ..color = const Color(0xFF6B4B32)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.2
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(path.shift(const Offset(0, 2)), shadowPaint);
+    canvas.drawPath(path, borderPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _TaskEditorTitle extends StatelessWidget {
+  const _TaskEditorTitle({required this.isEditing});
+
+  final bool isEditing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          isEditing ? '编辑任务' : '添加任务',
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Color(0xFF4D3623),
+            fontSize: 25,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SoftPanelClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    return Path()
+      ..moveTo(size.width * 0.08, size.height * 0.02)
+      ..cubicTo(
+        size.width * 0.22,
+        0,
+        size.width * 0.72,
+        0.03,
+        size.width * 0.92,
+        size.height * 0.02,
+      )
+      ..cubicTo(
+        size.width,
+        size.height * 0.04,
+        size.width * 0.98,
+        size.height * 0.24,
+        size.width * 0.99,
+        size.height * 0.50,
+      )
+      ..cubicTo(
+        size.width,
+        size.height * 0.78,
+        size.width,
+        size.height * 0.96,
+        size.width * 0.92,
+        size.height * 0.98,
+      )
+      ..cubicTo(
+        size.width * 0.70,
+        size.height,
+        size.width * 0.24,
+        size.height * 0.97,
+        size.width * 0.08,
+        size.height * 0.98,
+      )
+      ..cubicTo(
+        0,
+        size.height * 0.94,
+        size.width * 0.01,
+        size.height * 0.72,
+        size.width * 0.02,
+        size.height * 0.48,
+      )
+      ..cubicTo(
+        size.width * 0.01,
+        size.height * 0.22,
+        0,
+        size.height * 0.05,
+        size.width * 0.08,
+        size.height * 0.02,
+      )
+      ..close();
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
 
 class _TaskEditorField extends StatelessWidget {
@@ -2939,79 +3033,66 @@ class _TaskEditorField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-
-      children: [
-        Text(
-          label,
-
-          style: const TextStyle(
-            color: Color(0xFF4D3623),
-
-            fontWeight: FontWeight.w800,
-
-            fontSize: 13,
+    return Container(
+      height: 82,
+      padding: const EdgeInsets.fromLTRB(18, 12, 18, 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2E1C2).withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0xFF7A5A3D), width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFFA37A4F),
+              fontWeight: FontWeight.w900,
+              fontSize: 14,
+            ),
           ),
-        ),
+          const Spacer(),
+          TextField(
+            controller: controller,
 
-        const SizedBox(height: 4),
+            keyboardType: keyboardType,
 
-        SizedBox(
-          height: 44,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: Image.asset(
-                  'assets/images/ui/task_row_field_idle.png',
-                  fit: BoxFit.fill,
-                ),
+            inputFormatters: inputFormatters,
+
+            maxLength: maxLength,
+
+            textInputAction: textInputAction,
+
+            cursorColor: const Color(0xFF2F2218),
+
+            style: const TextStyle(
+              color: Color(0xFF4E3A27),
+
+              fontWeight: FontWeight.w900,
+
+              fontSize: 18,
+            ),
+
+            decoration: InputDecoration(
+              hintText: hintText,
+
+              hintStyle: const TextStyle(
+                color: Color(0xA36F563D),
+                fontSize: 15,
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 6, 18, 4),
-                child: TextField(
-                  controller: controller,
 
-                  keyboardType: keyboardType,
+              counterText: '',
 
-                  inputFormatters: inputFormatters,
+              border: InputBorder.none,
 
-                  maxLength: maxLength,
+              isCollapsed: true,
 
-                  textInputAction: textInputAction,
-
-                  cursorColor: const Color(0xFF2F2218),
-
-                  style: const TextStyle(
-                    color: Color(0xFF4E3A27),
-
-                    fontWeight: FontWeight.w700,
-
-                    fontSize: 14,
-                  ),
-
-                  decoration: InputDecoration(
-                    hintText: hintText,
-
-                    hintStyle: const TextStyle(
-                      color: Color(0xA36F563D),
-                      fontSize: 13,
-                    ),
-
-                    counterText: '',
-
-                    border: InputBorder.none,
-
-                    isCollapsed: true,
-
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-              ),
-            ],
+              contentPadding: EdgeInsets.zero,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

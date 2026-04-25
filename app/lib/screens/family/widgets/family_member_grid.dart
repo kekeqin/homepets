@@ -185,29 +185,31 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
                 ),
               ),
             ),
-            const SizedBox(height: 14),
-            Row(
-              key: const Key('family_member_grid_page_dots'),
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (var index = 0; index < _pageCount; index++)
-                  GestureDetector(
-                    onTap: () => _setPage(index),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 220),
-                      width: index == _currentPage ? 14 : 5,
-                      height: 5,
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      decoration: BoxDecoration(
-                        color: index == _currentPage
-                            ? const Color(0xFFE0A25B)
-                            : const Color(0xFFE7DACB),
-                        borderRadius: BorderRadius.circular(999),
+            if (_pageCount > 1) ...[
+              const SizedBox(height: 14),
+              Row(
+                key: const Key('family_member_grid_page_dots'),
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (var index = 0; index < _pageCount; index++)
+                    GestureDetector(
+                      onTap: () => _setPage(index),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 220),
+                        width: index == _currentPage ? 14 : 5,
+                        height: 5,
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        decoration: BoxDecoration(
+                          color: index == _currentPage
+                              ? const Color(0xFFE0A25B)
+                              : const Color(0xFFE7DACB),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
                       ),
                     ),
-                  ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ],
         );
       },

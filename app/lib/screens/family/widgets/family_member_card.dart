@@ -77,19 +77,6 @@ class FamilyMemberCard extends StatelessWidget {
     return '还没有宠物';
   }
 
-  String get _petSubtitle {
-    final pet = member.pet;
-    if (pet != null) {
-      return pet.levelName;
-    }
-
-    if (member.needsPetSelection) {
-      return '先为这位成员选择一只宠物';
-    }
-
-    return '完成任务后会在这里开始成长';
-  }
-
   String get _progressLeadingLabel {
     final pet = member.pet;
     if (pet != null) {
@@ -109,7 +96,6 @@ class FamilyMemberCard extends StatelessWidget {
     if (levelThreshold == null || levelThreshold == 0) {
       return '已满级';
     }
-
     return '${pet.experience}/$levelThreshold';
   }
 
@@ -145,10 +131,6 @@ class FamilyMemberCard extends StatelessWidget {
         final petTitleFontSize = isCompactCard
             ? 12.5
             : (isWideCard ? 14.0 : 13.0);
-        final petSubtitleFontSize = isCompactCard
-            ? 10.5
-            : (isWideCard ? 11.5 : 11.0);
-
         final card = DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -193,23 +175,56 @@ class FamilyMemberCard extends StatelessWidget {
                         Stack(
                           clipBehavior: Clip.none,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(3),
-                              decoration: BoxDecoration(
-                                color: palette.avatarShell,
+                            Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                key: Key(
+                                  'family_member_avatar_edit_button_${member.id}',
+                                ),
+                                onTap: avatarEditBusy ? null : onAvatarEditTap,
                                 borderRadius: BorderRadius.circular(
                                   avatarShellRadius,
                                 ),
-                                border: Border.all(
-                                  color: palette.border.withValues(alpha: 0.72),
+                                child: Ink(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                    color: palette.avatarShell,
+                                    borderRadius: BorderRadius.circular(
+                                      avatarShellRadius,
+                                    ),
+                                    border: Border.all(
+                                      color: palette.border.withValues(
+                                        alpha: 0.72,
+                                      ),
+                                    ),
+                                  ),
+                                  child: avatarEditBusy
+                                      ? SizedBox(
+                                          width: avatarSize,
+                                          height: avatarSize,
+                                          child: Center(
+                                            child: SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: palette.accent,
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                      : UserAvatar(
+                                          nickname: member.nickname,
+                                          avatarValue: member.avatarUrl,
+                                          size: avatarSize,
+                                          backgroundColor: const Color(
+                                            0xFFF8F1E8,
+                                          ),
+                                          foregroundColor: const Color(
+                                            0xFF7B5432,
+                                          ),
+                                        ),
                                 ),
-                              ),
-                              child: UserAvatar(
-                                nickname: member.nickname,
-                                avatarValue: member.avatarUrl,
-                                size: avatarSize,
-                                backgroundColor: const Color(0xFFF8F1E8),
-                                foregroundColor: const Color(0xFF7B5432),
                               ),
                             ),
                             if (member.role == 'admin')
@@ -217,19 +232,6 @@ class FamilyMemberCard extends StatelessWidget {
                                 top: -2,
                                 right: -2,
                                 child: _AdminBadge(accent: palette.accent),
-                              ),
-                            if (onAvatarEditTap != null)
-                              Positioned(
-                                right: -4,
-                                bottom: -4,
-                                child: _AvatarEditBadge(
-                                  badgeKey: Key(
-                                    'family_member_avatar_edit_button_${member.id}',
-                                  ),
-                                  accent: palette.accent,
-                                  busy: avatarEditBusy,
-                                  onTap: onAvatarEditTap!,
-                                ),
                               ),
                           ],
                         ),
@@ -268,26 +270,22 @@ class FamilyMemberCard extends StatelessWidget {
                     Expanded(
                       child: LayoutBuilder(
                         builder: (context, petConstraints) {
-                          final canShowSubtitle =
-                              !isCompactCard && petConstraints.maxHeight >= 118;
                           final localPreviewSize =
-                              (petConstraints.maxHeight *
-                                      (canShowSubtitle ? 0.52 : 0.62))
+                              (petConstraints.maxHeight * 0.56)
                                   .clamp(40.0, previewSize)
                                   .toDouble();
-                          final localStageGap = petConstraints.maxHeight < 116
-                              ? 4.0
-                              : (isCompactCard
-                                    ? 6.0
-                                    : (isWideCard ? 10.0 : 8.0));
+                          final localStageGap = isCompactCard
+                              ? 6.0
+                              : (isWideCard ? 10.0 : 8.0);
                           final localTitleSize = petConstraints.maxHeight < 116
                               ? petTitleFontSize - 1
                               : petTitleFontSize;
 
                           return Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.start,
                             children: [
-                              Expanded(
+                              SizedBox(
+                                height: localPreviewSize,
                                 child: Center(
                                   child: _PetPreviewBadge(
                                     assetPath: _petPreviewAssetPath,
@@ -313,20 +311,6 @@ class FamilyMemberCard extends StatelessWidget {
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
-                              if (canShowSubtitle) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  _petSubtitle,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: palette.text.withValues(alpha: 0.56),
-                                    fontSize: petSubtitleFontSize,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
                             ],
                           );
                         },
@@ -402,60 +386,6 @@ class _AdminBadge extends StatelessWidget {
         border: Border.all(color: accent.withValues(alpha: 0.24)),
       ),
       child: Icon(Icons.star_rounded, size: 12, color: accent),
-    );
-  }
-}
-
-class _AvatarEditBadge extends StatelessWidget {
-  const _AvatarEditBadge({
-    required this.badgeKey,
-    required this.accent,
-    required this.busy,
-    required this.onTap,
-  });
-
-  final Key badgeKey;
-  final Color accent;
-  final bool busy;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        key: badgeKey,
-        onTap: busy ? null : onTap,
-        customBorder: const CircleBorder(),
-        child: Ink(
-          width: 22,
-          height: 22,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            border: Border.all(color: accent.withValues(alpha: 0.24)),
-            boxShadow: [
-              BoxShadow(
-                color: accent.withValues(alpha: 0.18),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Center(
-            child: busy
-                ? SizedBox(
-                    width: 12,
-                    height: 12,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 1.8,
-                      color: accent,
-                    ),
-                  )
-                : Icon(Icons.edit_rounded, size: 12, color: accent),
-          ),
-        ),
-      ),
     );
   }
 }

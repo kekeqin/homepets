@@ -637,15 +637,16 @@ class _FamilyStageCard extends StatelessWidget {
               ),
             ),
             Positioned(
-              top: embedded ? 28 : 34,
-              right: embedded ? 62 : 68,
+              top: embedded ? 10 : 18,
+              right: embedded ? 24 : 36,
               child: IgnorePointer(
                 child: Opacity(
-                  opacity: embedded ? 0.46 : 0.42,
+                  opacity: embedded ? 0.72 : 0.64,
                   child: Image.asset(
                     _FamilyScreenState._heroAsset,
-                    height: embedded ? 70 : 80,
+                    height: embedded ? 124 : 136,
                     fit: BoxFit.contain,
+                    isAntiAlias: true,
                     filterQuality: FilterQuality.high,
                   ),
                 ),
@@ -674,7 +675,7 @@ class _FamilyStageCard extends StatelessWidget {
                     updatingTitle: updatingTitle,
                     onEditTitleTap: onEditTitleTap,
                   ),
-                  SizedBox(height: embedded ? 14 : 18),
+                  SizedBox(height: embedded ? 8 : 12),
                   membersPanel,
                 ],
               ),
@@ -809,8 +810,8 @@ class _FamilySnapshotPanel extends StatelessWidget {
           Padding(
             padding: EdgeInsets.only(right: heroHeight * 0.9),
             child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: 10,
+              runSpacing: 10,
               children: [
                 _FamilyStatPill(
                   icon: Icons.family_restroom_rounded,
@@ -849,7 +850,9 @@ class _FamilyStatPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      height: 36,
+      constraints: const BoxConstraints(minWidth: 58),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: _FamilyPalette.chip,
         borderRadius: BorderRadius.circular(999),
@@ -857,6 +860,7 @@ class _FamilyStatPill extends StatelessWidget {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, size: 16, color: _FamilyPalette.muted),
           const SizedBox(width: 6),
@@ -905,20 +909,14 @@ class _QuietFamilyStageHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final trailingWidth = embedded ? 38.0 : 44.0;
     final titleSize = embedded ? 21.0 : 24.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _CircleIconButton(
-              icon: embedded ? Icons.close_rounded : Icons.arrow_back_rounded,
-              tooltip: embedded ? '关闭' : '返回首页',
-              onTap: onLeadingTap,
-            ),
-            const SizedBox(width: 12),
             Expanded(
               child: Row(
                 children: [
@@ -945,41 +943,44 @@ class _QuietFamilyStageHeader extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 8),
-            canManageMembers
-                ? _HeroAddButton(
-                    compact: embedded,
-                    busy: addingMember,
-                    onTap: onAddMemberTap,
-                  )
-                : SizedBox(width: trailingWidth, height: trailingWidth),
+            const SizedBox(width: 12),
+            _CircleIconButton(
+              icon: embedded ? Icons.close_rounded : Icons.arrow_back_rounded,
+              tooltip: embedded ? '\u5173\u95ed' : '\u8fd4\u56de\u9996\u9875',
+              onTap: onLeadingTap,
+            ),
           ],
         ),
         const SizedBox(height: 12),
-        Padding(
-          padding: EdgeInsets.only(right: embedded ? 82 : 96),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _QuietStatPill(
-                compact: embedded,
-                icon: Icons.family_restroom_rounded,
-                value: '$memberCount',
-              ),
-              _QuietStatPill(
-                compact: embedded,
-                icon: Icons.pets_rounded,
-                value: '$petCount',
-              ),
-              _QuietStatPill(
-                compact: embedded,
-                icon: Icons.auto_awesome_rounded,
-                value: '$familyPoints',
-              ),
-            ],
-          ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _QuietStatPill(
+              compact: embedded,
+              icon: Icons.family_restroom_rounded,
+              value: '$memberCount',
+            ),
+            _QuietStatPill(
+              compact: embedded,
+              icon: Icons.pets_rounded,
+              value: '$petCount',
+            ),
+            _QuietStatPill(
+              compact: embedded,
+              icon: Icons.auto_awesome_rounded,
+              value: '$familyPoints',
+            ),
+          ],
         ),
+        if (canManageMembers) ...[
+          SizedBox(height: embedded ? 8 : 10),
+          _HeroAddButton(
+            compact: embedded,
+            busy: addingMember,
+            onTap: onAddMemberTap,
+          ),
+        ],
       ],
     );
   }
@@ -1090,8 +1091,8 @@ class _HeroAddButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final buttonSize = compact ? 38.0 : 44.0;
-    final iconSize = compact ? 20.0 : 22.0;
+    final height = compact ? 28.0 : 32.0;
+    final iconSize = compact ? 15.0 : 17.0;
 
     return Material(
       color: Colors.transparent,
@@ -1099,35 +1100,50 @@ class _HeroAddButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(999),
         child: Ink(
-          width: buttonSize,
-          height: buttonSize,
+          height: height,
+          width: compact ? 124 : 136,
+          padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 14),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFFF0B668), _FamilyPalette.accent],
-            ),
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.6)),
+            color: const Color(0xFFFFE2B8),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: const Color(0xFFFFC982)),
             boxShadow: [
               BoxShadow(
-                color: _FamilyPalette.accent.withValues(alpha: 0.22),
-                blurRadius: 12,
-                offset: const Offset(0, 6),
+                color: _FamilyPalette.accent.withValues(alpha: 0.12),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
           child: Center(
             child: busy
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
+                ? SizedBox(
+                    width: compact ? 15 : 17,
+                    height: compact ? 15 : 17,
                     child: CircularProgressIndicator(
-                      strokeWidth: 2.2,
-                      color: Colors.white,
+                      strokeWidth: compact ? 1.8 : 2,
+                      color: _FamilyPalette.accentDark,
                     ),
                   )
-                : Icon(Icons.add_rounded, color: Colors.white, size: iconSize),
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.add_rounded,
+                        color: _FamilyPalette.accentDark,
+                        size: iconSize,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '\u6dfb\u52a0\u6210\u5458',
+                        style: TextStyle(
+                          color: _FamilyPalette.accentDark,
+                          fontSize: compact ? 12 : 13,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
           ),
         ),
       ),
