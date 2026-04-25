@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../models/pet_artwork.dart';
 
+const String _closeIconAsset = 'assets/images/ui/close_icon_simple.png';
+
 class AddMemberFlowResult {
   const AddMemberFlowResult({
     required this.nickname,
@@ -17,6 +19,7 @@ class AddMemberFlowResult {
 Future<AddMemberFlowResult?> showAddMemberFlowDialog(BuildContext context) {
   return showDialog<AddMemberFlowResult>(
     context: context,
+    barrierColor: const Color(0x4D5A3A21),
     builder: (_) => const AddMemberFlowDialog(),
   );
 }
@@ -32,7 +35,7 @@ class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
   final TextEditingController _nicknameController = TextEditingController();
   final TextEditingController _petNameController = TextEditingController();
 
-  String? _selectedPetType;
+  String? _selectedPetType = selectablePetTypes.first;
   String? _nicknameError;
   String? _petTypeError;
   String? _petNameError;
@@ -95,268 +98,503 @@ class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final viewportHeight = MediaQuery.sizeOf(context).height;
+    final dense = viewportHeight < 700;
+
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 344),
+        constraints: BoxConstraints(
+          maxWidth: 390,
+          maxHeight: viewportHeight * 0.92,
+        ),
         child: DecoratedBox(
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Color(0xFFFFF5E5), Color(0xFFF8EAD0)],
+              colors: [_AddMemberPalette.paperTop, _AddMemberPalette.paper],
             ),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFFFFD8A2), width: 1.2),
-            boxShadow: [
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(color: _AddMemberPalette.ink, width: 1.8),
+            boxShadow: const [
               BoxShadow(
-                color: const Color(0xFF5A3A21).withValues(alpha: 0.18),
-                blurRadius: 24,
-                offset: const Offset(0, 12),
+                color: Color(0x2A5A3A21),
+                blurRadius: 28,
+                offset: Offset(0, 14),
               ),
             ],
           ),
-          child: Stack(
-            children: [
-              SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Center(
-                      child: Text(
-                        '添加成员',
-                        style: TextStyle(
-                          color: Color(0xFF5A3A21),
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(32),
+            child: Stack(
+              children: [
+                SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(
+                    dense ? 22 : 26,
+                    dense ? 22 : 28,
+                    dense ? 22 : 26,
+                    dense ? 18 : 24,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(child: _DialogTitle(dense: dense)),
+                      SizedBox(height: dense ? 18 : 28),
+                      _SectionLabel(text: '成员名称', dense: dense),
+                      SizedBox(height: dense ? 8 : 10),
+                      TextField(
+                        key: const Key('family_add_member_nickname_field'),
+                        controller: _nicknameController,
+                        maxLength: 20,
+                        autofocus: true,
+                        textInputAction: TextInputAction.next,
+                        style: const TextStyle(
+                          color: _AddMemberPalette.ink,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        onChanged: (_) {
+                          if (_nicknameError != null) {
+                            setState(() => _nicknameError = null);
+                          }
+                        },
+                        decoration: _inputDecoration(
+                          dense: dense,
+                          hintText: '小宝',
+                          errorText: _nicknameError,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                    const _SectionLabel(text: '成员名称'),
-                    const SizedBox(height: 6),
-                    TextField(
-                      key: const Key('family_add_member_nickname_field'),
-                      controller: _nicknameController,
-                      maxLength: 20,
-                      autofocus: true,
-                      onChanged: (_) {
-                        if (_nicknameError != null) {
-                          setState(() => _nicknameError = null);
-                        }
-                      },
-                      decoration: _inputDecoration(
-                        hintText: '小宝',
-                        errorText: _nicknameError,
+                      _DashedDivider(dense: dense),
+                      _SectionLabel(text: '选择宠物', dense: dense),
+                      SizedBox(height: dense ? 10 : 12),
+                      _PetOptionGrid(
+                        dense: dense,
+                        selectedPetType: _selectedPetType,
+                        onSelect: _selectPetType,
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    const _SectionLabel(text: '选择宠物'),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      child: Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 8,
-                        runSpacing: 8,
+                      if (_petTypeError != null) ...[
+                        const SizedBox(height: 8),
+                        Center(child: _ErrorText(_petTypeError!)),
+                      ],
+                      _DashedDivider(dense: dense),
+                      _SectionLabel(text: '宠物名字', dense: dense),
+                      SizedBox(height: dense ? 8 : 10),
+                      TextField(
+                        key: const Key('family_add_member_pet_name_field'),
+                        controller: _petNameController,
+                        maxLength: 20,
+                        textInputAction: TextInputAction.done,
+                        style: const TextStyle(
+                          color: _AddMemberPalette.ink,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        onChanged: (_) {
+                          _petNameDirty = true;
+                          if (_petNameError != null) {
+                            setState(() => _petNameError = null);
+                          }
+                        },
+                        onSubmitted: (_) => _submit(),
+                        decoration: _inputDecoration(
+                          dense: dense,
+                          hintText: '团团',
+                          errorText: _petNameError,
+                        ),
+                      ),
+                      SizedBox(height: dense ? 16 : 24),
+                      Row(
                         children: [
-                          for (final petType in selectablePetTypes)
-                            _buildPetOption(petType),
+                          Expanded(
+                            flex: 8,
+                            child: _DialogActionButton(
+                              label: '取消',
+                              dense: dense,
+                              variant: _DialogActionButtonVariant.secondary,
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 13,
+                            child: _DialogActionButton(
+                              key: const Key('family_add_member_submit_button'),
+                              label: '确认添加',
+                              dense: dense,
+                              variant: _DialogActionButtonVariant.primary,
+                              onPressed: _submit,
+                            ),
+                          ),
                         ],
                       ),
-                    ),
-                    if (_petTypeError != null) ...[
-                      const SizedBox(height: 8),
-                      Center(child: _ErrorText(_petTypeError!)),
                     ],
-                    const SizedBox(height: 12),
-                    const _SectionLabel(text: '宠物名字'),
-                    const SizedBox(height: 6),
-                    TextField(
-                      key: const Key('family_add_member_pet_name_field'),
-                      controller: _petNameController,
-                      maxLength: 20,
-                      onChanged: (_) {
-                        _petNameDirty = true;
-                        if (_petNameError != null) {
-                          setState(() => _petNameError = null);
-                        }
-                      },
-                      decoration: _inputDecoration(
-                        hintText: '团团',
-                        errorText: _petNameError,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            style: TextButton.styleFrom(
-                              foregroundColor: const Color(0xFF8A7356),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                            ),
-                            child: const Text('取消'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton(
-                            key: const Key('family_add_member_submit_button'),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: const Color(0xFF9B6415),
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size.fromHeight(40),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              elevation: 0,
-                            ),
-                            onPressed: _submit,
-                            child: const Text('确认添加'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-              Positioned(
-                top: 10,
-                right: 10,
-                child: _DialogCloseButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: _DialogCloseButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPetOption(String petType) {
-    final selected = _selectedPetType == petType;
-    final poseIndex = deterministicPetPoseIndex(petType, petType.hashCode);
-    final assetPath = petAvatarAssetPath(petType, poseIndex);
-
-    return GestureDetector(
-      key: Key('family_add_member_pet_type_$petType'),
-      onTap: () => _selectPetType(petType),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        width: 78,
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
-        decoration: BoxDecoration(
-          color: selected
-              ? const Color(0xFFFFF1D8)
-              : Colors.white.withValues(alpha: 0.78),
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(
-            color: selected ? const Color(0xFF9B6415) : const Color(0xFFE6D6C2),
-            width: selected ? 2 : 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(
-                0x22000000,
-              ).withValues(alpha: selected ? 0.12 : 0.06),
-              blurRadius: selected ? 8 : 5,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              padding: const EdgeInsets.all(5),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.92),
-                shape: BoxShape.circle,
-              ),
-              child: Image.asset(assetPath, fit: BoxFit.contain),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              petTypeLabel(petType),
-              style: TextStyle(
-                color: selected
-                    ? const Color(0xFF7A5733)
-                    : const Color(0xFF6C4C33),
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-              ),
-            ),
-            if (selected) ...[
-              const SizedBox(height: 3),
-              const Icon(
-                Icons.check_circle_rounded,
-                size: 14,
-                color: Color(0xFF2E7D32),
-              ),
-            ],
-          ],
         ),
       ),
     );
   }
 
   InputDecoration _inputDecoration({
+    required bool dense,
     required String hintText,
     required String? errorText,
   }) {
+    final borderRadius = BorderRadius.circular(18);
+
     return InputDecoration(
       hintText: hintText,
       errorText: errorText,
-      counterStyle: TextStyle(
-        color: const Color(0xFF7A5733).withValues(alpha: 0.56),
-        fontSize: 11,
+      counterText: '',
+      isDense: true,
+      hintStyle: TextStyle(
+        color: _AddMemberPalette.ink.withValues(alpha: 0.38),
+        fontSize: 17,
+        fontWeight: FontWeight.w900,
+      ),
+      errorStyle: const TextStyle(
+        color: _AddMemberPalette.error,
+        fontSize: 12,
+        fontWeight: FontWeight.w800,
       ),
       filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.82),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+      fillColor: Colors.white.withValues(alpha: 0.42),
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: 18,
+        vertical: dense ? 12 : 16,
+      ),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(15),
-        borderSide: BorderSide(
-          color: const Color(0xFF7A5733).withValues(alpha: 0.22),
-        ),
+        borderRadius: borderRadius,
+        borderSide: const BorderSide(color: _AddMemberPalette.line, width: 1.6),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(15),
-        borderSide: BorderSide(
-          color: const Color(0xFF7A5733).withValues(alpha: 0.22),
+        borderRadius: borderRadius,
+        borderSide: const BorderSide(color: _AddMemberPalette.line, width: 1.6),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: const BorderSide(color: _AddMemberPalette.ink, width: 1.8),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: const BorderSide(
+          color: _AddMemberPalette.error,
+          width: 1.6,
         ),
       ),
-      focusedBorder: const OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(15)),
-        borderSide: BorderSide(color: Color(0xFF9B6415), width: 1.4),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: const BorderSide(
+          color: _AddMemberPalette.error,
+          width: 1.8,
+        ),
+      ),
+    );
+  }
+}
+
+class _AddMemberPalette {
+  const _AddMemberPalette._();
+
+  static const paperTop = Color(0xFFFFF8E9);
+  static const paper = Color(0xFFFFF0D8);
+  static const card = Color(0xFFFFF8EC);
+  static const ink = Color(0xFF5A3A21);
+  static const line = Color(0xFF9B7A5C);
+  static const mutedLine = Color(0xFFE3CBAE);
+  static const labelPill = Color(0xFFFFEED8);
+  static const sage = Color(0xFFB7BE72);
+  static const sageDark = Color(0xFF767B33);
+  static const error = Color(0xFFB0483D);
+}
+
+class _DialogTitle extends StatelessWidget {
+  const _DialogTitle({required this.dense});
+
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      '添加成员',
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        color: _AddMemberPalette.ink,
+        fontSize: dense ? 26 : 30,
+        fontWeight: FontWeight.w900,
+        height: 1,
       ),
     );
   }
 }
 
 class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.text});
+  const _SectionLabel({required this.text, required this.dense});
 
   final String text;
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
-        color: Color(0xFF5A3A21),
-        fontSize: 14,
+      style: TextStyle(
+        color: _AddMemberPalette.ink,
+        fontSize: dense ? 18 : 21,
         fontWeight: FontWeight.w900,
+        height: 1.1,
+      ),
+    );
+  }
+}
+
+class _PetOptionGrid extends StatelessWidget {
+  const _PetOptionGrid({
+    required this.dense,
+    required this.selectedPetType,
+    required this.onSelect,
+  });
+
+  final bool dense;
+  final String? selectedPetType;
+  final ValueChanged<String> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 300;
+        final cardWidth = compact ? 82.0 : 92.0;
+        final cardHeight = dense ? 86.0 : (compact ? 108.0 : 118.0);
+
+        return SizedBox(
+          width: double.infinity,
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            spacing: compact ? 9 : 12,
+            runSpacing: dense ? 10 : (compact ? 12 : 16),
+            children: [
+              for (final petType in selectablePetTypes)
+                _PetOptionCard(
+                  width: cardWidth,
+                  height: cardHeight,
+                  petType: petType,
+                  selected: selectedPetType == petType,
+                  onTap: () => onSelect(petType),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _PetOptionCard extends StatelessWidget {
+  const _PetOptionCard({
+    required this.width,
+    required this.height,
+    required this.petType,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final double width;
+  final double height;
+  final String petType;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final poseIndex = deterministicPetPoseIndex(petType, petType.hashCode);
+    final assetPath = petAvatarAssetPath(petType, poseIndex);
+    final dense = height < 100;
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '选择${petTypeLabel(petType)}',
+      child: GestureDetector(
+        key: Key('family_add_member_pet_type_$petType'),
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: SizedBox(
+          width: width,
+          height: height,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                width: width,
+                height: height,
+                padding: EdgeInsets.fromLTRB(8, dense ? 6 : 8, 8, 10),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? const Color(0xFFFFF8D8)
+                      : _AddMemberPalette.card.withValues(alpha: 0.78),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: selected
+                        ? _AddMemberPalette.sageDark
+                        : _AddMemberPalette.mutedLine,
+                    width: selected ? 2.2 : 1.5,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(top: selected ? 1 : 3),
+                        child: Image.asset(
+                          assetPath,
+                          fit: BoxFit.contain,
+                          filterQuality: FilterQuality.high,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: dense ? 4 : 6),
+                    Container(
+                      width: double.infinity,
+                      height: dense ? 24 : 29,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: _AddMemberPalette.labelPill.withValues(
+                          alpha: 0.82,
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: _AddMemberPalette.line.withValues(alpha: 0.3),
+                          width: 1.2,
+                        ),
+                      ),
+                      child: Text(
+                        petTypeLabel(petType),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _AddMemberPalette.ink,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          height: 1,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (selected)
+                Positioned(
+                  top: dense ? -8 : -10,
+                  right: dense ? -6 : -8,
+                  child: Container(
+                    width: dense ? 27 : 31,
+                    height: dense ? 27 : 31,
+                    decoration: BoxDecoration(
+                      color: _AddMemberPalette.sage,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: _AddMemberPalette.sageDark,
+                        width: 1.4,
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.check_rounded,
+                      color: Colors.white,
+                      size: dense ? 19 : 22,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+enum _DialogActionButtonVariant { primary, secondary }
+
+class _DialogActionButton extends StatelessWidget {
+  const _DialogActionButton({
+    super.key,
+    required this.label,
+    required this.dense,
+    required this.variant,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool dense;
+  final _DialogActionButtonVariant variant;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = variant == _DialogActionButtonVariant.primary;
+    final radius = BorderRadius.circular(24);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: radius,
+        child: Ink(
+          height: dense ? 46 : 54,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: primary
+                  ? const [Color(0xFFC7CE82), Color(0xFFAEB762)]
+                  : const [Color(0xFFFFF4E3), Color(0xFFFFE7CA)],
+            ),
+            borderRadius: radius,
+            border: Border.all(
+              color: primary
+                  ? _AddMemberPalette.sageDark
+                  : _AddMemberPalette.line.withValues(alpha: 0.48),
+              width: primary ? 1.7 : 1.4,
+            ),
+            boxShadow: primary
+                ? const [
+                    BoxShadow(
+                      color: Color(0x4A6E7437),
+                      offset: Offset(0, 4),
+                      blurRadius: 0,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Center(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: _AddMemberPalette.ink,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                height: 1,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -369,22 +607,64 @@ class _DialogCloseButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: const Color(0xFFFFF3DC),
-      shape: const CircleBorder(
-        side: BorderSide(color: Color(0xFFFFC982), width: 1.2),
-      ),
-      child: InkWell(
-        customBorder: const CircleBorder(),
+    return Tooltip(
+      message: '关闭',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onPressed,
-        child: const SizedBox(
-          width: 30,
-          height: 30,
-          child: Icon(Icons.close_rounded, size: 18, color: Color(0xFF8A5414)),
+        child: Image.asset(
+          _closeIconAsset,
+          width: 40,
+          height: 40,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.high,
         ),
       ),
     );
   }
+}
+
+class _DashedDivider extends StatelessWidget {
+  const _DashedDivider({required this.dense});
+
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: dense ? 12 : 24),
+      child: SizedBox(
+        height: 2,
+        width: double.infinity,
+        child: const CustomPaint(painter: _DashedDividerPainter()),
+      ),
+    );
+  }
+}
+
+class _DashedDividerPainter extends CustomPainter {
+  const _DashedDividerPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const dashWidth = 10.0;
+    const dashGap = 7.0;
+    final paint = Paint()
+      ..color = _AddMemberPalette.mutedLine
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = 2;
+
+    var startX = 0.0;
+    final y = size.height / 2;
+    while (startX < size.width) {
+      final endX = (startX + dashWidth).clamp(0.0, size.width);
+      canvas.drawLine(Offset(startX, y), Offset(endX, y), paint);
+      startX += dashWidth + dashGap;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedDividerPainter oldDelegate) => false;
 }
 
 class _ErrorText extends StatelessWidget {
@@ -397,7 +677,7 @@ class _ErrorText extends StatelessWidget {
     return Text(
       text,
       style: const TextStyle(
-        color: Color(0xFFB0483D),
+        color: _AddMemberPalette.error,
         fontSize: 12,
         fontWeight: FontWeight.w800,
       ),
