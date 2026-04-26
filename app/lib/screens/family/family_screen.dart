@@ -348,7 +348,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('已删除 ${member.nickname}')));
+      ).showSnackBar(SnackBar(content: Text('已删除${member.nickname}')));
     } catch (error) {
       if (!mounted) {
         return;
