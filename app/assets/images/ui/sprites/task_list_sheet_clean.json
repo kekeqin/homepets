@@ -1,0 +1,79 @@
+{
+  "frames": {
+    "panel_blank.png": {
+      "frame": { "x": 525, "y": 49, "w": 447, "h": 649 },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 447, "h": 649 },
+      "sourceSize": { "w": 447, "h": 649 }
+    },
+    "title_task_list.png": {
+      "frame": { "x": 1066, "y": 43, "w": 317, "h": 137 },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 317, "h": 137 },
+      "sourceSize": { "w": 317, "h": 137 }
+    },
+    "close_button.png": {
+      "frame": { "x": 1170, "y": 214, "w": 76, "h": 82 },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 76, "h": 82 },
+      "sourceSize": { "w": 76, "h": 82 }
+    },
+    "task_row_blank.png": {
+      "frame": { "x": 917, "y": 796, "w": 479, "h": 92 },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 479, "h": 92 },
+      "sourceSize": { "w": 479, "h": 92 }
+    },
+    "add_task_button.png": {
+      "frame": { "x": 530, "y": 800, "w": 290, "h": 94 },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 290, "h": 94 },
+      "sourceSize": { "w": 290, "h": 94 }
+    },
+    "checkbox_checked.png": {
+      "frame": { "x": 70, "y": 741, "w": 68, "h": 72 },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 68, "h": 72 },
+      "sourceSize": { "w": 68, "h": 72 }
+    },
+    "checkbox_empty.png": {
+      "frame": { "x": 233, "y": 742, "w": 67, "h": 71 },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 67, "h": 71 },
+      "sourceSize": { "w": 67, "h": 71 }
+    },
+    "arrow_left.png": {
+      "frame": { "x": 68, "y": 893, "w": 85, "h": 83 },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 85, "h": 83 },
+      "sourceSize": { "w": 85, "h": 83 }
+    },
+    "arrow_right.png": {
+      "frame": { "x": 244, "y": 892, "w": 83, "h": 84 },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 83, "h": 84 },
+      "sourceSize": { "w": 83, "h": 84 }
+    },
+    "plus_icon.png": {
+      "frame": { "x": 658, "y": 942, "w": 63, "h": 68 },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 63, "h": 68 },
+      "sourceSize": { "w": 63, "h": 68 }
+    }
+  },
+  "meta": {
+    "image": "task_list_sheet_clean.png",
+    "size": { "w": 1448, "h": 1086 },
+    "scale": "1"
+  }
+}

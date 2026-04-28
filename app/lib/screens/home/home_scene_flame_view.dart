@@ -50,21 +50,26 @@ const int _taskPointsMin = 1;
 
 const int _taskPointsMax = 1000;
 
-const String _taskPanelBoardAsset = 'assets/images/ui/task.png';
 const String _taskPanelNoteAsset = 'assets/images/ui/task_note.png';
-const String _taskPanelStickerAsset = 'assets/images/ui/task_add_sticker.png';
-const String _taskPanelRowFieldAsset =
-    'assets/images/ui/task_row_field_idle.png';
-const String _taskPanelCheckboxEmptyAsset =
-    'assets/images/ui/task_checkbox_empty.png';
-const String _taskPanelCheckboxCheckedAsset =
-    'assets/images/ui/task_checkbox_checked.png';
-const Rect _taskPanelBoardCropRect = Rect.fromLTWH(431, 326, 492, 792);
-const Size _taskPanelBoardSourceSize = Size(1024, 1536);
-const double _taskPanelBoardAspectRatio = 492 / 792;
-const double _taskPanelBoardHeightRatio = 792 / 492;
+const String _taskDeletePanelAsset = 'assets/images/ui/task_delete/panel.png';
+const String _taskDeleteTrashAsset = 'assets/images/ui/task_delete/trash.png';
+const String _taskDeleteTitleAsset =
+    'assets/images/ui/task_delete/title_text.png';
+const String _taskDeleteWarningAsset =
+    'assets/images/ui/task_delete/restore_warning_text.png';
+const String _taskDeleteNoteAsset = 'assets/images/ui/task_delete/note.png';
+const String _taskDeleteCatAsset = 'assets/images/ui/task_delete/cat_head.png';
+const String _taskDeleteCancelButtonAsset =
+    'assets/images/ui/task_delete/cancel_button.png';
+const String _taskDeleteCancelButtonPressedAsset =
+    'assets/images/ui/task_delete/cancel_button_pressed.png';
+const String _taskDeleteButtonAsset =
+    'assets/images/ui/task_delete/delete_button.png';
+const String _taskDeleteButtonPressedAsset =
+    'assets/images/ui/task_delete/delete_button_pressed.png';
+const double _taskPanelBoardAspectRatio = 447 / 649;
+const double _taskPanelBoardHeightRatio = 649 / 447;
 const Duration _taskPanelTransitionDuration = Duration(milliseconds: 320);
-const String _taskPanelAddButtonLabel = '+ \u6dfb\u52a0\u4efb\u52a1';
 
 class HomeSceneFlameView extends ConsumerStatefulWidget {
   const HomeSceneFlameView({
@@ -108,9 +113,13 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   int _taskPanelPageIndex = 0;
   Rect? _taskPanelOriginRect;
   bool _didPrecacheTaskPanelAssets = false;
+  bool _taskPanelSpriteImageReady = false;
   String? _taskPanelPressedInteractionKey;
+  OverlayEntry? _topSnackBarEntry;
 
   static const int _taskPanelPageSize = 4;
+
+  static const Duration _topSnackBarDuration = Duration(milliseconds: 1800);
 
   bool get _isAdmin {
     final user = ref.read(authProvider).user;
@@ -154,26 +163,74 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     _didPrecacheTaskPanelAssets = true;
     for (final assetPath in <String>[
       _taskPanelNoteAsset,
-      _taskPanelBoardAsset,
-      _taskPanelStickerAsset,
-      _taskPanelRowFieldAsset,
-      _taskPanelCheckboxEmptyAsset,
-      _taskPanelCheckboxCheckedAsset,
-      TaskPanelSpriteCatalog.atlasAsset.imageAsset,
+      TaskListSheetSpriteCatalog.atlasAsset.imageAsset,
     ]) {
-      precacheImage(AssetImage(assetPath), context);
+      _safePrecacheImage(assetPath);
     }
   }
 
   void _preloadTaskPanelSpriteAtlas() {
-    TaskPanelSpriteCatalog.atlasAsset.load().then((atlas) {
+    TaskListSheetSpriteCatalog.atlasAsset
+        .load()
+        .then((atlas) {
+          if (!mounted) {
+            _taskPanelSpriteAtlas = atlas;
+            return;
+          }
+
+          setState(() => _taskPanelSpriteAtlas = atlas);
+        })
+        .catchError((Object error, StackTrace stackTrace) {
+          debugPrint('Task panel sprite atlas failed to load: $error');
+        });
+  }
+
+  void _safePrecacheImage(String assetPath) {
+    precacheImage(AssetImage(assetPath), context)
+        .then((_) {
+          if (!mounted ||
+              assetPath != TaskListSheetSpriteCatalog.atlasAsset.imageAsset) {
+            return;
+          }
+
+          setState(() => _taskPanelSpriteImageReady = true);
+        })
+        .catchError((Object error, StackTrace stackTrace) {
+          debugPrint('Home scene image asset failed to precache: $assetPath');
+          debugPrint('$error');
+        });
+  }
+
+  Future<bool> _ensureTaskPanelSpritesReady() async {
+    if (_taskPanelSpriteAtlas != null && _taskPanelSpriteImageReady) {
+      return true;
+    }
+
+    try {
+      final atlas =
+          _taskPanelSpriteAtlas ??
+          await TaskListSheetSpriteCatalog.atlasAsset.load();
       if (!mounted) {
-        _taskPanelSpriteAtlas = atlas;
-        return;
+        return false;
       }
 
-      setState(() => _taskPanelSpriteAtlas = atlas);
-    });
+      await precacheImage(
+        AssetImage(TaskListSheetSpriteCatalog.atlasAsset.imageAsset),
+        context,
+      );
+      if (!mounted) {
+        return false;
+      }
+
+      setState(() {
+        _taskPanelSpriteAtlas = atlas;
+        _taskPanelSpriteImageReady = true;
+      });
+      return true;
+    } catch (error) {
+      debugPrint('Task panel clean sprite assets are not available: $error');
+      return false;
+    }
   }
 
   @override
@@ -232,11 +289,15 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
       onOpenShop: _openShop,
 
+      onOpenPaywall: _openPaywall,
+
       onTaskItemLongPress: _showTaskPanelRowActions,
 
       onTaskAddTap: _handleTaskAddTap,
 
-      onOpenPetDetail: _openPetDetail,
+      onOpenPetDetail: (petId, avatarAssetPath) {
+        _openPetDetail(petId, avatarAssetPath);
+      },
     );
   }
 
@@ -302,6 +363,14 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     }
 
     _showShopPanel(clearRouteAfterClose: false);
+  }
+
+  void _openPaywall() {
+    if (!mounted) {
+      return;
+    }
+
+    context.push('/paywall');
   }
 
   void _maybeOpenInitialShopPanel() {
@@ -430,6 +499,15 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     bool clearRouteAfterClose = false,
   }) async {
     if (!mounted || _taskPanelVisible) {
+      return;
+    }
+
+    final spritesReady = await _ensureTaskPanelSpritesReady();
+    if (!mounted || _taskPanelVisible) {
+      return;
+    }
+    if (!spritesReady) {
+      _showTopSnackBar('任务面板资源未加载，请完全重启应用后再试');
       return;
     }
 
@@ -581,30 +659,19 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     return curve.transform(normalized.toDouble());
   }
 
-  Widget _buildTaskPanelBoardLayer() {
+  Widget _buildTaskPanelBoardLayer(TaskListSheetSpriteCatalog? sprites) {
+    if (sprites == null) {
+      return const SizedBox.shrink();
+    }
+
     return Center(
       child: AspectRatio(
         aspectRatio: _taskPanelBoardAspectRatio,
-        child: FittedBox(
+        child: SpriteFrameImage(
+          imageAsset: sprites.imageAsset,
+          sheetSize: sprites.sheetSize,
+          frame: sprites.panelBlank,
           fit: BoxFit.fill,
-          child: SizedBox(
-            width: _taskPanelBoardCropRect.width,
-            height: _taskPanelBoardCropRect.height,
-            child: Stack(
-              children: [
-                Positioned(
-                  left: -_taskPanelBoardCropRect.left,
-                  top: -_taskPanelBoardCropRect.top,
-                  child: Image.asset(
-                    _taskPanelBoardAsset,
-                    width: _taskPanelBoardSourceSize.width,
-                    height: _taskPanelBoardSourceSize.height,
-                    fit: BoxFit.fill,
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
       ),
     );
@@ -688,7 +755,8 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
               color: textColor,
               fontSize: fontSize,
               fontWeight: FontWeight.w600,
-              letterSpacing: 0.1,
+              height: 1,
+              letterSpacing: 0,
             ),
           ),
         ),
@@ -697,523 +765,353 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   }
 
   Widget _buildTaskPanelExpandedContent(
-    TaskPanelSpriteCatalog? taskPanelSprites,
+    TaskListSheetSpriteCatalog? taskPanelSprites,
   ) {
+    if (taskPanelSprites == null) {
+      return const SizedBox.shrink();
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final panelSize = constraints.biggest;
-        final rowHeight = panelSize.height * 0.106;
-        final rowFieldInset = rowHeight * 0.05;
-        final rowTextSize = panelSize.width * 0.045;
-        final pointsLabelWidth = math.max(
-          54.0,
-          math.min(panelSize.width * 0.16, 68.0),
-        );
-        final pointsLabelTextSize = panelSize.width * 0.033;
-        final titleWidth =
-            panelSize.width * (taskPanelSprites == null ? 0.42 : 0.46);
-        final titleAspectRatio =
-            taskPanelSprites?.titleBanner.aspectRatio ?? (648 / 262);
-        final actionButtonAspectRatio =
-            taskPanelSprites?.primaryButton.aspectRatio ?? (648 / 262);
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            panelSize.width * 0.12,
-            panelSize.height * 0.07,
-            panelSize.width * 0.12,
-            panelSize.height * 0.08,
-          ),
-          child: Column(
-            children: [
-              SizedBox(
-                width: titleWidth,
-                child: AspectRatio(
-                  aspectRatio: titleAspectRatio,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Positioned.fill(
-                        child: taskPanelSprites == null
-                            ? Image.asset(
-                                _taskPanelStickerAsset,
-                                fit: BoxFit.fill,
-                              )
-                            : SpriteFrameImage(
-                                imageAsset: taskPanelSprites.imageAsset,
-                                sheetSize: taskPanelSprites.sheetSize,
-                                frame: taskPanelSprites.titleBanner,
-                                fit: BoxFit.fill,
-                              ),
-                      ),
-                      Positioned(
-                        top: -panelSize.height * 0.022,
-                        left: 0,
-                        right: 0,
-                        child: Center(
-                          child: taskPanelSprites == null
-                              ? Container(
-                                  width: panelSize.height * 0.038,
-                                  height: panelSize.height * 0.038,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    gradient: const LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: [
-                                        Color(0xFFF3C97D),
-                                        Color(0xFFC78E49),
-                                      ],
-                                    ),
-                                    border: Border.all(
-                                      color: const Color(0xB87A5330),
-                                      width: 1.1,
-                                    ),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                        color: Color(0x22000000),
-                                        blurRadius: 4,
-                                        offset: Offset(0, 1.5),
-                                      ),
-                                    ],
-                                  ),
-                                )
-                              : SizedBox(
-                                  width: panelSize.height * 0.065,
-                                  height: panelSize.height * 0.078,
-                                  child: SpriteFrameImage(
-                                    imageAsset: taskPanelSprites.imageAsset,
-                                    sheetSize: taskPanelSprites.sheetSize,
-                                    frame: taskPanelSprites.pushPin,
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
-                        ),
-                      ),
-                      if (taskPanelSprites == null)
-                        Center(
-                          child: Text(
-                            '\u4efb\u52a1\u6e05\u5355',
-                            style: TextStyle(
-                              color: const Color(0xFF5B4327),
-                              fontSize: panelSize.width * 0.062,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+        final titleWidth = panelSize.width * 0.72;
+        final titleHeight = titleWidth / taskPanelSprites.title.aspectRatio;
+        final rowWidth = panelSize.width * 0.86;
+        final rowHeight = panelSize.height * 0.112;
+        final rowLeft = (panelSize.width - rowWidth) * 0.5;
+        final rowsTop = panelSize.height * 0.216;
+        final rowGap = panelSize.height * 0.030;
+        final pageButtonSize = panelSize.width * 0.135;
+        final pageControlsCenterY = panelSize.height * 0.788;
+        final addButtonWidth = panelSize.width * 0.54;
+        final addButtonHeight =
+            addButtonWidth / taskPanelSprites.addTaskButton.aspectRatio;
+        final addButtonBottom = panelSize.height * 0.055;
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              top: -panelSize.height * 0.020,
+              left: (panelSize.width - titleWidth) * 0.5,
+              width: titleWidth,
+              height: titleHeight,
+              child: SpriteFrameImage(
+                imageAsset: taskPanelSprites.imageAsset,
+                sheetSize: taskPanelSprites.sheetSize,
+                frame: taskPanelSprites.title,
+                fit: BoxFit.fill,
+              ),
+            ),
+            for (var index = 0; index < _visibleTaskPanelTasks.length; index++)
+              Positioned(
+                left: rowLeft,
+                top: rowsTop + (index * (rowHeight + rowGap)),
+                width: rowWidth,
+                height: rowHeight,
+                child: _buildTaskPanelTaskRow(
+                  sprites: taskPanelSprites,
+                  task: _visibleTaskPanelTasks[index],
+                  index: index,
                 ),
               ),
-              SizedBox(height: panelSize.height * 0.026),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.only(bottom: panelSize.height * 0.018),
-                  child: Column(
-                    children: [
-                      for (
-                        var index = 0;
-                        index < _visibleTaskPanelTasks.length;
-                        index++
-                      )
-                        Builder(
-                          builder: (context) {
-                            final task = _visibleTaskPanelTasks[index];
-                            final taskTitle = _taskPanelTaskTitle(task);
-                            final taskPointsLabel = _taskPanelTaskPointsLabel(
-                              task,
-                            );
-                            final completed = _taskPanelTaskCompleted(task);
-                            final checkboxPressKey = _taskPanelInteractionKey(
-                              task,
-                              index,
-                              area: 'checkbox',
-                            );
-                            final bodyPressKey = _taskPanelInteractionKey(
-                              task,
-                              index,
-                              area: 'body',
-                            );
-                            final isCheckboxPressed =
-                                _isTaskPanelInteractionPressed(
-                                  checkboxPressKey,
-                                );
-                            final isBodyPressed =
-                                _isTaskPanelInteractionPressed(bodyPressKey);
-                            final titleColor = const Color(
-                              0xFF5A4228,
-                            ).withValues(alpha: completed ? 0.66 : 1);
-                            final rowFieldOpacity =
-                                (index.isEven ? 0.96 : 0.88) *
-                                (completed ? 0.76 : 1);
-                            final checkboxOpacity = completed
-                                ? 0.70
-                                : (isCheckboxPressed ? 0.82 : 1.0);
-                            return Padding(
-                              padding: EdgeInsets.only(
-                                bottom: panelSize.height * 0.012,
-                              ),
-                              child: SizedBox(
-                                height: rowHeight,
-                                child: Stack(
-                                  children: [
-                                    Positioned(
-                                      left: 0,
-                                      top: rowHeight * 0.18,
-                                      child: AnimatedSlide(
-                                        duration: const Duration(
-                                          milliseconds: 90,
-                                        ),
-                                        curve: Curves.easeOutCubic,
-                                        offset: isCheckboxPressed
-                                            ? const Offset(0, 0.05)
-                                            : Offset.zero,
-                                        child: AnimatedScale(
-                                          duration: const Duration(
-                                            milliseconds: 90,
-                                          ),
-                                          curve: Curves.easeOutCubic,
-                                          scale: isCheckboxPressed ? 0.92 : 1,
-                                          child: SizedBox(
-                                            width: rowHeight * 0.58,
-                                            height: rowHeight * 0.58,
-                                            child: taskPanelSprites == null
-                                                ? Opacity(
-                                                    opacity: checkboxOpacity,
-                                                    child: Image.asset(
-                                                      completed
-                                                          ? _taskPanelCheckboxCheckedAsset
-                                                          : _taskPanelCheckboxEmptyAsset,
-                                                    ),
-                                                  )
-                                                : Opacity(
-                                                    opacity: checkboxOpacity,
-                                                    child: SpriteFrameImage(
-                                                      imageAsset:
-                                                          taskPanelSprites
-                                                              .imageAsset,
-                                                      sheetSize:
-                                                          taskPanelSprites
-                                                              .sheetSize,
-                                                      frame: completed
-                                                          ? taskPanelSprites
-                                                                .checkboxChecked
-                                                          : taskPanelSprites
-                                                                .checkboxEmpty,
-                                                      fit: BoxFit.contain,
-                                                    ),
-                                                  ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      left: rowHeight * 0.78,
-                                      right: 0,
-                                      top: rowFieldInset,
-                                      bottom: rowFieldInset,
-                                      child: AnimatedSlide(
-                                        duration: const Duration(
-                                          milliseconds: 90,
-                                        ),
-                                        curve: Curves.easeOutCubic,
-                                        offset: isBodyPressed
-                                            ? const Offset(0, 0.02)
-                                            : Offset.zero,
-                                        child: AnimatedScale(
-                                          duration: const Duration(
-                                            milliseconds: 90,
-                                          ),
-                                          curve: Curves.easeOutCubic,
-                                          alignment: Alignment.centerLeft,
-                                          scale: isBodyPressed ? 0.992 : 1,
-                                          child: Stack(
-                                            children: [
-                                              Positioned.fill(
-                                                child: taskPanelSprites == null
-                                                    ? Opacity(
-                                                        opacity: completed
-                                                            ? 0.76
-                                                            : 1,
-                                                        child: Image.asset(
-                                                          _taskPanelRowFieldAsset,
-                                                          fit: BoxFit.fill,
-                                                        ),
-                                                      )
-                                                    : Opacity(
-                                                        opacity:
-                                                            rowFieldOpacity,
-                                                        child: SpriteFrameImage(
-                                                          imageAsset:
-                                                              taskPanelSprites
-                                                                  .imageAsset,
-                                                          sheetSize:
-                                                              taskPanelSprites
-                                                                  .sheetSize,
-                                                          frame:
-                                                              taskPanelSprites
-                                                                  .rowField,
-                                                          fit: BoxFit.fill,
-                                                        ),
-                                                      ),
-                                              ),
-                                              Positioned(
-                                                left: rowHeight * 0.28,
-                                                right:
-                                                    pointsLabelWidth +
-                                                    rowHeight * 0.30,
-                                                top: 0,
-                                                bottom: 0,
-                                                child: Align(
-                                                  alignment:
-                                                      Alignment.centerLeft,
-                                                  child: Text(
-                                                    taskTitle,
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: TextStyle(
-                                                      color: titleColor,
-                                                      fontSize: rowTextSize,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                              Positioned(
-                                                right: rowHeight * 0.16,
-                                                top: 0,
-                                                bottom: 0,
-                                                child:
-                                                    _buildTaskPanelPointsText(
-                                                      label: taskPointsLabel,
-                                                      width: pointsLabelWidth,
-                                                      fontSize:
-                                                          pointsLabelTextSize,
-                                                      completed: completed,
-                                                    ),
-                                              ),
-                                              Positioned.fill(
-                                                child: IgnorePointer(
-                                                  child: AnimatedOpacity(
-                                                    duration: const Duration(
-                                                      milliseconds: 90,
-                                                    ),
-                                                    curve: Curves.easeOutCubic,
-                                                    opacity: isBodyPressed
-                                                        ? 1
-                                                        : 0,
-                                                    child: DecoratedBox(
-                                                      decoration: BoxDecoration(
-                                                        color:
-                                                            const Color(
-                                                              0xFF765A3C,
-                                                            ).withValues(
-                                                              alpha: 0.05,
-                                                            ),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              rowHeight * 0.20,
-                                                            ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      left: 0,
-                                      top: rowHeight * 0.08,
-                                      width: rowHeight * 0.74,
-                                      height: rowHeight * 0.84,
-                                      child: GestureDetector(
-                                        behavior: HitTestBehavior.opaque,
-                                        onTapDown: (_) =>
-                                            _setTaskPanelInteractionPressed(
-                                              checkboxPressKey,
-                                            ),
-                                        onTapCancel: () =>
-                                            _clearTaskPanelInteractionPressed(
-                                              checkboxPressKey,
-                                            ),
-                                        onTapUp: (_) =>
-                                            _clearTaskPanelInteractionPressed(
-                                              checkboxPressKey,
-                                              delayed: true,
-                                            ),
-                                        onTap: () =>
-                                            _completeTaskByLabel(taskTitle),
-                                        child: const SizedBox.expand(),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      left: rowHeight * 0.78,
-                                      right: 0,
-                                      top: rowFieldInset,
-                                      bottom: rowFieldInset,
-                                      child: GestureDetector(
-                                        behavior: HitTestBehavior.opaque,
-                                        onTapDown: (_) =>
-                                            _setTaskPanelInteractionPressed(
-                                              bodyPressKey,
-                                            ),
-                                        onTapCancel: () =>
-                                            _clearTaskPanelInteractionPressed(
-                                              bodyPressKey,
-                                            ),
-                                        onTapUp: (_) =>
-                                            _clearTaskPanelInteractionPressed(
-                                              bodyPressKey,
-                                              delayed: true,
-                                            ),
-                                        onTap: () =>
-                                            _editTaskByLabel(taskTitle),
-                                        child: const SizedBox.expand(),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      if (_visibleTaskPanelTasks.isEmpty)
-                        Padding(
-                          padding: EdgeInsets.symmetric(
-                            vertical: panelSize.height * 0.04,
-                          ),
-                          child: taskPanelSprites == null
-                              ? Text(
-                                  '\u4eca\u5929\u8fd8\u6ca1\u6709\u4efb\u52a1',
-                                  style: TextStyle(
-                                    color: const Color(0xFF7A624A),
-                                    fontSize: panelSize.width * 0.05,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                )
-                              : SizedBox(
-                                  width: panelSize.width * 0.58,
-                                  child: AspectRatio(
-                                    aspectRatio:
-                                        taskPanelSprites.emptyState.aspectRatio,
-                                    child: Stack(
-                                      children: [
-                                        Positioned.fill(
-                                          child: Opacity(
-                                            opacity: 0.84,
-                                            child: SpriteFrameImage(
-                                              imageAsset:
-                                                  taskPanelSprites.imageAsset,
-                                              sheetSize:
-                                                  taskPanelSprites.sheetSize,
-                                              frame:
-                                                  taskPanelSprites.emptyState,
-                                              fit: BoxFit.fill,
-                                            ),
-                                          ),
-                                        ),
-                                        Center(
-                                          child: Text(
-                                            '\u4eca\u5929\u8fd8\u6ca1\u6709\u4efb\u52a1',
-                                            style: TextStyle(
-                                              color: const Color(0xFF7A624A),
-                                              fontSize: panelSize.width * 0.048,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                        ),
-                    ],
-                  ),
+            if (_visibleTaskPanelTasks.isEmpty)
+              Positioned(
+                left: rowLeft,
+                top: rowsTop + rowHeight + rowGap,
+                width: rowWidth,
+                height: rowHeight,
+                child: _buildTaskPanelEmptyRow(taskPanelSprites),
+              ),
+            if (_taskPanelPageCount > 1) ...[
+              Positioned(
+                left: panelSize.width * 0.115,
+                top: pageControlsCenterY - (pageButtonSize * 0.5),
+                width: pageButtonSize,
+                height: pageButtonSize,
+                child: _buildTaskPanelSpriteButton(
+                  sprites: taskPanelSprites,
+                  frame: taskPanelSprites.arrowLeft,
+                  semanticsLabel: '\u4e0a\u4e00\u9875',
+                  enabled: _canGoToPreviousTaskPage,
+                  onTap: _goToPreviousTaskPage,
                 ),
               ),
-              SizedBox(height: panelSize.height * 0.010),
-              if (_taskPanelPageCount > 1)
-                Padding(
-                  padding: EdgeInsets.only(bottom: panelSize.height * 0.010),
+              Positioned(
+                left: panelSize.width * 0.5 - (panelSize.width * 0.11),
+                top: pageControlsCenterY - (pageButtonSize * 0.27),
+                width: panelSize.width * 0.22,
+                height: pageButtonSize * 0.54,
+                child: Center(
                   child: Text(
                     _taskPanelPageIndicatorLabel,
                     style: TextStyle(
-                      color: const Color(0xFF6A5237),
-                      fontSize: panelSize.width * 0.040,
-                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF5A4228),
+                      fontSize: panelSize.width * 0.058,
+                      fontWeight: FontWeight.w800,
+                      height: 1,
+                      letterSpacing: 0,
                     ),
                   ),
                 ),
-              SizedBox(
-                width: panelSize.width * 0.86,
-                height: panelSize.width * 0.16,
-                child: Row(
-                  children: [
-                    _buildTaskPanelArrowButton(
-                      icon: Icons.chevron_left_rounded,
-                      size: panelSize.width * 0.095,
-                      visible: _taskPanelPageCount > 1,
-                      enabled: _canGoToPreviousTaskPage,
-                      onTap: _goToPreviousTaskPage,
-                    ),
-                    const Spacer(),
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: _handleTaskAddTap,
-                      child: SizedBox(
-                        width: panelSize.width * 0.56,
-                        child: AspectRatio(
-                          aspectRatio: actionButtonAspectRatio,
-                          child: Stack(
-                            children: [
-                              Positioned.fill(
-                                child: taskPanelSprites == null
-                                    ? Image.asset(
-                                        _taskPanelStickerAsset,
-                                        fit: BoxFit.fill,
-                                      )
-                                    : SpriteFrameImage(
-                                        imageAsset: taskPanelSprites.imageAsset,
-                                        sheetSize: taskPanelSprites.sheetSize,
-                                        frame: taskPanelSprites.primaryButton,
-                                        fit: BoxFit.fill,
-                                      ),
-                              ),
-                              Center(
-                                child: Text(
-                                  _taskPanelAddButtonLabel,
-                                  style: TextStyle(
-                                    color: const Color(0xFF5A4228),
-                                    fontSize: panelSize.width * 0.045,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    _buildTaskPanelArrowButton(
-                      icon: Icons.chevron_right_rounded,
-                      size: panelSize.width * 0.095,
-                      visible: _taskPanelPageCount > 1,
-                      enabled: _canGoToNextTaskPage,
-                      onTap: _goToNextTaskPage,
-                    ),
-                  ],
+              ),
+              Positioned(
+                right: panelSize.width * 0.115,
+                top: pageControlsCenterY - (pageButtonSize * 0.5),
+                width: pageButtonSize,
+                height: pageButtonSize,
+                child: _buildTaskPanelSpriteButton(
+                  sprites: taskPanelSprites,
+                  frame: taskPanelSprites.arrowRight,
+                  semanticsLabel: '\u4e0b\u4e00\u9875',
+                  enabled: _canGoToNextTaskPage,
+                  onTap: _goToNextTaskPage,
                 ),
               ),
             ],
-          ),
+            Positioned(
+              bottom: addButtonBottom,
+              left: (panelSize.width - addButtonWidth) * 0.5,
+              width: addButtonWidth,
+              height: addButtonHeight,
+              child: _buildTaskPanelAddButton(
+                sprites: taskPanelSprites,
+                onTap: _handleTaskAddTap,
+              ),
+            ),
+          ],
         );
       },
+    );
+  }
+
+  Widget _buildTaskPanelTaskRow({
+    required TaskListSheetSpriteCatalog sprites,
+    required Map<String, dynamic> task,
+    required int index,
+  }) {
+    final taskTitle = _taskPanelTaskTitle(task);
+    final completed = _taskPanelTaskCompleted(task);
+    final checkboxPressKey = _taskPanelInteractionKey(
+      task,
+      index,
+      area: 'checkbox',
+    );
+    final bodyPressKey = _taskPanelInteractionKey(task, index, area: 'body');
+    final isCheckboxPressed = _isTaskPanelInteractionPressed(checkboxPressKey);
+    final isBodyPressed = _isTaskPanelInteractionPressed(bodyPressKey);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final rowSize = constraints.biggest;
+        final checkboxSize = rowSize.height * 0.58;
+        final titleFontSize = rowSize.height * 0.34;
+        final titleColor = const Color(
+          0xFF4D3721,
+        ).withValues(alpha: completed ? 0.56 : 1);
+        final rowOpacity =
+            (completed ? 0.86 : 1.0) * (isBodyPressed ? 0.94 : 1.0);
+        final checkboxOpacity = completed
+            ? 0.92
+            : (isCheckboxPressed ? 0.82 : 1.0);
+        final pointsLabelWidth = math.max(
+          48.0,
+          math.min(rowSize.width * 0.18, 72.0),
+        );
+
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: AnimatedScale(
+                duration: const Duration(milliseconds: 90),
+                curve: Curves.easeOutCubic,
+                alignment: Alignment.center,
+                scale: isBodyPressed ? 0.992 : 1,
+                child: Opacity(
+                  opacity: rowOpacity,
+                  child: SpriteFrameImage(
+                    imageAsset: sprites.imageAsset,
+                    sheetSize: sprites.sheetSize,
+                    frame: sprites.taskRowBlank,
+                    fit: BoxFit.fill,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: rowSize.width * 0.050,
+              top: (rowSize.height - checkboxSize) * 0.5,
+              width: checkboxSize,
+              height: checkboxSize,
+              child: AnimatedSlide(
+                duration: const Duration(milliseconds: 90),
+                curve: Curves.easeOutCubic,
+                offset: isCheckboxPressed ? const Offset(0, 0.05) : Offset.zero,
+                child: AnimatedScale(
+                  duration: const Duration(milliseconds: 90),
+                  curve: Curves.easeOutCubic,
+                  scale: isCheckboxPressed ? 0.92 : 1,
+                  child: Opacity(
+                    opacity: checkboxOpacity,
+                    child: SpriteFrameImage(
+                      imageAsset: sprites.imageAsset,
+                      sheetSize: sprites.sheetSize,
+                      frame: completed
+                          ? sprites.checkboxChecked
+                          : sprites.checkboxEmpty,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: rowSize.width * 0.175,
+              right: pointsLabelWidth + (rowSize.width * 0.080),
+              top: 0,
+              bottom: 0,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  taskTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: titleColor,
+                    fontSize: titleFontSize,
+                    fontWeight: FontWeight.w800,
+                    height: 1,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              right: rowSize.width * 0.055,
+              top: 0,
+              bottom: 0,
+              child: _buildTaskPanelPointsText(
+                label: _taskPanelTaskPointsLabel(task),
+                width: pointsLabelWidth,
+                fontSize: rowSize.height * 0.30,
+                completed: completed,
+              ),
+            ),
+            Positioned(
+              left: 0,
+              top: 0,
+              width: rowSize.width * 0.16,
+              bottom: 0,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (_) =>
+                    _setTaskPanelInteractionPressed(checkboxPressKey),
+                onTapCancel: () =>
+                    _clearTaskPanelInteractionPressed(checkboxPressKey),
+                onTapUp: (_) => _clearTaskPanelInteractionPressed(
+                  checkboxPressKey,
+                  delayed: true,
+                ),
+                onTap: () => _completeTaskByLabel(taskTitle),
+                child: const SizedBox.expand(),
+              ),
+            ),
+            Positioned(
+              left: rowSize.width * 0.15,
+              right: 0,
+              top: 0,
+              bottom: 0,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (_) => _setTaskPanelInteractionPressed(bodyPressKey),
+                onTapCancel: () =>
+                    _clearTaskPanelInteractionPressed(bodyPressKey),
+                onTapUp: (_) => _clearTaskPanelInteractionPressed(
+                  bodyPressKey,
+                  delayed: true,
+                ),
+                onTap: () => _editTaskByLabel(taskTitle),
+                child: const SizedBox.expand(),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildTaskPanelEmptyRow(TaskListSheetSpriteCatalog sprites) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Opacity(
+          opacity: 0.82,
+          child: SpriteFrameImage(
+            imageAsset: sprites.imageAsset,
+            sheetSize: sprites.sheetSize,
+            frame: sprites.taskRowBlank,
+            fit: BoxFit.fill,
+          ),
+        ),
+        const Center(
+          child: Text(
+            '\u4eca\u5929\u8fd8\u6ca1\u6709\u4efb\u52a1',
+            style: TextStyle(
+              color: Color(0xFF7A624A),
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTaskPanelSpriteButton({
+    required TaskListSheetSpriteCatalog sprites,
+    required SpriteAtlasFrame frame,
+    required String semanticsLabel,
+    required VoidCallback onTap,
+    bool enabled = true,
+  }) {
+    return Semantics(
+      button: true,
+      label: semanticsLabel,
+      enabled: enabled,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: enabled ? onTap : null,
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 120),
+          opacity: enabled ? 1 : 0.34,
+          child: SpriteFrameImage(
+            imageAsset: sprites.imageAsset,
+            sheetSize: sprites.sheetSize,
+            frame: frame,
+            fit: BoxFit.contain,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTaskPanelAddButton({
+    required TaskListSheetSpriteCatalog sprites,
+    required VoidCallback onTap,
+  }) {
+    return Semantics(
+      button: true,
+      label: '\u6dfb\u52a0\u4efb\u52a1',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: SpriteFrameImage(
+          imageAsset: sprites.imageAsset,
+          sheetSize: sprites.sheetSize,
+          frame: sprites.addTaskButton,
+          fit: BoxFit.fill,
+        ),
+      ),
     );
   }
 
@@ -1225,7 +1123,10 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     final expandedRect = _expandedTaskPanelRect(size);
     final taskPanelSprites = _taskPanelSpriteAtlas == null
         ? null
-        : TaskPanelSpriteCatalog(_taskPanelSpriteAtlas!);
+        : TaskListSheetSpriteCatalog(_taskPanelSpriteAtlas!);
+    if (taskPanelSprites == null) {
+      return const SizedBox.shrink();
+    }
 
     return Positioned.fill(
       child: AnimatedBuilder(
@@ -1293,7 +1194,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                       child: ColoredBox(
                         color: Color.lerp(
                           Colors.transparent,
-                          const Color(0x32674A30),
+                          HomePetsDialogTheme.barrierTint,
                           backdropOpacity,
                         )!,
                         child: const SizedBox.expand(),
@@ -1318,13 +1219,17 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                         child: DecoratedBox(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(
-                              ui.lerpDouble(18, 28, panelProgress)!,
+                              ui.lerpDouble(
+                                18,
+                                HomePetsDialogTheme.borderRadius.topLeft.x,
+                                panelProgress,
+                              )!,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(
-                                  0xFF3A2514,
-                                ).withValues(alpha: panelShadowOpacity),
+                                color: HomePetsDialogTheme.shadow.withValues(
+                                  alpha: panelShadowOpacity,
+                                ),
                                 blurRadius: panelShadowBlur,
                                 offset: Offset(0, panelShadowOffset),
                               ),
@@ -1345,7 +1250,9 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                                 offset: Offset(0, boardSlide),
                                 child: Opacity(
                                   opacity: boardOpacity,
-                                  child: _buildTaskPanelBoardLayer(),
+                                  child: _buildTaskPanelBoardLayer(
+                                    taskPanelSprites,
+                                  ),
                                 ),
                               ),
                               IgnorePointer(
@@ -1359,11 +1266,14 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                                 ),
                               ),
                               Positioned(
-                                top: panelRect.height * 0.035,
-                                right: panelRect.width * 0.075,
+                                top: -panelRect.height * 0.028,
+                                right: -panelRect.width * 0.012,
+                                width: panelRect.width * 0.155,
+                                height: panelRect.width * 0.167,
                                 child: Opacity(
                                   opacity: contentOpacity,
                                   child: _TaskPanelCloseButton(
+                                    sprites: taskPanelSprites,
                                     onPressed: _hideTaskPanel,
                                   ),
                                 ),
@@ -1379,57 +1289,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
             ],
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildTaskPanelArrowButton({
-    required IconData icon,
-    required double size,
-    required bool visible,
-    required bool enabled,
-    required VoidCallback onTap,
-  }) {
-    if (!visible) {
-      return SizedBox.square(dimension: size);
-    }
-
-    final radius = BorderRadius.circular(size * 0.28);
-    return SizedBox.square(
-      dimension: size,
-      child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 120),
-        opacity: enabled ? 1 : 0.34,
-        child: Material(
-          color: Colors.transparent,
-          child: Ink(
-            decoration: BoxDecoration(
-              color: const Color(0xFFF7EAD2),
-              borderRadius: radius,
-              border: Border.all(color: const Color(0xFFB59A7C), width: 1.2),
-              boxShadow: enabled
-                  ? const [
-                      BoxShadow(
-                        color: Color(0x14000000),
-                        blurRadius: 4,
-                        offset: Offset(0, 1.5),
-                      ),
-                    ]
-                  : null,
-            ),
-            child: InkWell(
-              borderRadius: radius,
-              onTap: enabled ? onTap : null,
-              child: Center(
-                child: Icon(
-                  icon,
-                  size: size * 0.62,
-                  color: const Color(0xFF6A5237),
-                ),
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -1699,9 +1558,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('\u4efb\u52a1\u5b8c\u6210\u6210\u529f')),
-      );
+      _showTopSnackBar('任务完成成功');
     } catch (error) {
       if (mounted) {
         showFriendlyApiErrorSnackBar(
@@ -1994,36 +1851,19 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   }
 
   Future<bool> _confirmDeleteTask(String taskLabel) async {
-    final result = await showDialog<bool>(
+    final result = await showAppModalDialog<bool>(
       context: context,
-
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('\u5220\u9664\u4efb\u52a1'),
-
-          content: Text(
-            '\u786e\u8ba4\u5220\u9664\u4efb\u52a1\u300c$taskLabel\u300d\u5417\uff1f',
-          ),
-
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-
-              child: const Text('\u53d6\u6d88'),
-            ),
-
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFB86A57),
-
-                foregroundColor: Colors.white,
-              ),
-
-              child: const Text('\u5220\u9664'),
-            ),
-          ],
+      barrierLabel: 'task_delete_confirm_dialog',
+      blurSigma: 6,
+      barrierTint: const Color(0x663C2A1D),
+      transitionDuration: const Duration(milliseconds: 220),
+      beginScale: 0.94,
+      beginYOffset: 18,
+      pageBuilder: (dialogContext) {
+        return _TaskDeleteConfirmDialog(
+          taskLabel: taskLabel,
+          onCancel: () => Navigator.of(dialogContext).pop(false),
+          onDelete: () => Navigator.of(dialogContext).pop(true),
         );
       },
     );
@@ -2210,11 +2050,11 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     return null;
   }
 
-  Future<void> _openPetDetail(int petId) async {
+  Future<void> _openPetDetail(int petId, String avatarAssetPath) async {
     final selectedPet = _findPetById(petId);
 
     if (selectedPet != null) {
-      await _showPetDetailDialog(selectedPet);
+      await _showPetDetailDialog(selectedPet, avatarAssetPath: avatarAssetPath);
       return;
     }
 
@@ -2231,23 +2071,104 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       return;
     }
 
-    await _showPetDetailDialog(refreshedPet);
+    await _showPetDetailDialog(refreshedPet, avatarAssetPath: avatarAssetPath);
   }
 
-  Future<void> _showPetDetailDialog(Pet pet) async {
+  Future<void> _showPetDetailDialog(
+    Pet pet, {
+    required String avatarAssetPath,
+  }) async {
     if (!mounted) {
       return;
     }
 
-    await showPetDetailDialog(context, pet: pet);
+    await showPetDetailDialog(
+      context,
+      pet: pet,
+      avatarAssetPath: avatarAssetPath,
+    );
     if (!mounted) {
       return;
     }
     await _loadFamilyPets();
   }
 
+  void _showTopSnackBar(String message) {
+    _topSnackBarEntry?.remove();
+
+    final overlay = Overlay.maybeOf(context, rootOverlay: true);
+    if (overlay == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+      return;
+    }
+
+    final topPadding = MediaQuery.paddingOf(context).top;
+    final entry = OverlayEntry(
+      builder: (context) {
+        return Positioned(
+          top: topPadding + 14,
+          left: 16,
+          right: 16,
+          child: SafeArea(
+            bottom: false,
+            child: Material(
+              color: Colors.transparent,
+              child: IgnorePointer(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3A2B22).withValues(alpha: 0.94),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.18),
+                          blurRadius: 18,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 12,
+                      ),
+                      child: Text(
+                        message,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    _topSnackBarEntry = entry;
+    overlay.insert(entry);
+    Future<void>.delayed(_topSnackBarDuration, () {
+      if (_topSnackBarEntry != entry) {
+        return;
+      }
+      entry.remove();
+      _topSnackBarEntry = null;
+    });
+  }
+
   @override
   void dispose() {
+    _topSnackBarEntry?.remove();
+    _topSnackBarEntry = null;
     _taskPanelController.dispose();
     _game.startExitAnimation();
 
@@ -2296,27 +2217,28 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 }
 
 class _TaskPanelCloseButton extends StatelessWidget {
-  const _TaskPanelCloseButton({required this.onPressed});
+  const _TaskPanelCloseButton({required this.sprites, required this.onPressed});
 
+  final TaskListSheetSpriteCatalog? sprites;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: const Color(0xFFFFF3DC),
-      shape: const CircleBorder(
-        side: BorderSide(color: Color(0xFFA36A22), width: 1.6),
-      ),
-      elevation: 3,
-      shadowColor: const Color(0x4D6D451E),
-      child: InkWell(
-        customBorder: const CircleBorder(),
+    final resolvedSprites = sprites;
+    return Semantics(
+      button: true,
+      label: '关闭',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onPressed,
-        child: const SizedBox(
-          width: 32,
-          height: 32,
-          child: Icon(Icons.close_rounded, size: 20, color: Color(0xFF8A5414)),
-        ),
+        child: resolvedSprites == null
+            ? const SizedBox.shrink()
+            : SpriteFrameImage(
+                imageAsset: resolvedSprites.imageAsset,
+                sheetSize: resolvedSprites.sheetSize,
+                frame: resolvedSprites.closeButton,
+                fit: BoxFit.contain,
+              ),
       ),
     );
   }
@@ -2559,6 +2481,261 @@ class _TaskContextSpriteButtonState extends State<_TaskContextSpriteButton> {
   }
 }
 
+class _TaskDeleteConfirmDialog extends StatelessWidget {
+  const _TaskDeleteConfirmDialog({
+    required this.taskLabel,
+    required this.onCancel,
+    required this.onDelete,
+  });
+
+  final String taskLabel;
+  final VoidCallback onCancel;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final screenSize = MediaQuery.sizeOf(context);
+    final panelSide = math.min(
+      math.min(screenSize.width * 0.82, 368.0),
+      screenSize.height * 0.72,
+    );
+
+    return Material(
+      color: Colors.transparent,
+      child: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+        child: Center(
+          child: Transform.translate(
+            offset: Offset(0, screenSize.height * 0.025),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {},
+              child: SizedBox.square(
+                dimension: panelSide,
+                child: _TaskDeleteConfirmPanel(
+                  taskLabel: taskLabel,
+                  onCancel: onCancel,
+                  onDelete: onDelete,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TaskDeleteConfirmPanel extends StatelessWidget {
+  const _TaskDeleteConfirmPanel({
+    required this.taskLabel,
+    required this.onCancel,
+    required this.onDelete,
+  });
+
+  final String taskLabel;
+  final VoidCallback onCancel;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final side = constraints.maxWidth;
+        final messageFontSize = taskLabel.runes.length > 10
+            ? side * 0.034
+            : side * 0.039;
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: Image.asset(
+                _taskDeletePanelAsset,
+                fit: BoxFit.fill,
+                filterQuality: FilterQuality.high,
+              ),
+            ),
+            Positioned(
+              top: side * 0.052,
+              left: side * 0.5 - side * 0.086,
+              width: side * 0.172,
+              height: side * 0.185,
+              child: Image.asset(
+                _taskDeleteTrashAsset,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
+              ),
+            ),
+            Positioned(
+              top: side * 0.255,
+              left: side * 0.5 - side * 0.205,
+              width: side * 0.41,
+              height: side * 0.116,
+              child: Image.asset(
+                _taskDeleteTitleAsset,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
+              ),
+            ),
+            Positioned(
+              top: side * 0.383,
+              left: side * 0.06,
+              right: side * 0.06,
+              height: side * 0.105,
+              child: Center(
+                child: Text(
+                  '确认删除任务「$taskLabel」吗？',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: const Color(0xFF4D3322),
+                    fontSize: messageFontSize,
+                    fontWeight: FontWeight.w800,
+                    height: 1.14,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: side * 0.492,
+              left: 0,
+              right: 0,
+              height: side * 0.065,
+              child: Center(
+                child: SizedBox(
+                  width: side * 0.43,
+                  child: AspectRatio(
+                    aspectRatio: 226 / 30,
+                    child: Image.asset(
+                      _taskDeleteWarningAsset,
+                      fit: BoxFit.contain,
+                      alignment: Alignment.center,
+                      filterQuality: FilterQuality.high,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: side * 0.565,
+              left: side * 0.31,
+              width: side * 0.38,
+              height: side * 0.19,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    width: side * 0.16,
+                    height: side * 0.17,
+                    child: Image.asset(
+                      _taskDeleteNoteAsset,
+                      fit: BoxFit.contain,
+                      filterQuality: FilterQuality.high,
+                    ),
+                  ),
+                  Positioned(
+                    right: side * 0.005,
+                    top: side * 0.012,
+                    width: side * 0.215,
+                    height: side * 0.170,
+                    child: Image.asset(
+                      _taskDeleteCatAsset,
+                      fit: BoxFit.contain,
+                      filterQuality: FilterQuality.high,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              left: side * 0.095,
+              bottom: side * 0.074,
+              width: side * 0.39,
+              height: side * 0.166,
+              child: _TaskDeleteActionButton(
+                label: '取消',
+                assetPath: _taskDeleteCancelButtonAsset,
+                pressedAssetPath: _taskDeleteCancelButtonPressedAsset,
+                onPressed: onCancel,
+              ),
+            ),
+            Positioned(
+              right: side * 0.095,
+              bottom: side * 0.074,
+              width: side * 0.39,
+              height: side * 0.166,
+              child: _TaskDeleteActionButton(
+                label: '删除',
+                assetPath: _taskDeleteButtonAsset,
+                pressedAssetPath: _taskDeleteButtonPressedAsset,
+                onPressed: onDelete,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _TaskDeleteActionButton extends StatefulWidget {
+  const _TaskDeleteActionButton({
+    required this.label,
+    required this.assetPath,
+    required this.pressedAssetPath,
+    required this.onPressed,
+  });
+
+  final String label;
+  final String assetPath;
+  final String pressedAssetPath;
+  final VoidCallback onPressed;
+
+  @override
+  State<_TaskDeleteActionButton> createState() =>
+      _TaskDeleteActionButtonState();
+}
+
+class _TaskDeleteActionButtonState extends State<_TaskDeleteActionButton> {
+  bool _pressed = false;
+
+  void _setPressed(bool pressed) {
+    if (_pressed == pressed) {
+      return;
+    }
+    setState(() => _pressed = pressed);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: widget.label,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onPressed,
+        onTapDown: (_) => _setPressed(true),
+        onTapCancel: () => _setPressed(false),
+        onTapUp: (_) => _setPressed(false),
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 90),
+          curve: Curves.easeOutCubic,
+          scale: _pressed ? 0.985 : 1,
+          child: Image.asset(
+            _pressed ? widget.pressedAssetPath : widget.assetPath,
+            fit: BoxFit.fill,
+            filterQuality: FilterQuality.high,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _TaskEditorResult {
   const _TaskEditorResult({required this.taskLabel, required this.points})
     : deleteRequested = false;
@@ -2598,11 +2775,13 @@ class _TaskEditorSpriteDialog extends StatefulWidget {
 class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
   late final TextEditingController _taskNameController;
   late final TextEditingController _taskPointsController;
+  late final Future<SpriteAtlas> _spriteAtlasFuture;
   String? _validationMessage;
 
   @override
   void initState() {
     super.initState();
+    _spriteAtlasFuture = TaskEditorSheetSpriteCatalog.atlasAsset.load();
     _taskNameController = TextEditingController(
       text: widget.initialTaskLabel ?? '',
     );
@@ -2666,8 +2845,14 @@ class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.sizeOf(context);
     final viewInsets = MediaQuery.viewInsetsOf(context);
-    final panelWidth = math.min(screenSize.width * 0.74, 360.0);
-    final panelHeight = math.min(screenSize.height * 0.62, 520.0);
+    final maxPanelWidth = math.min(screenSize.width * 0.86, 390.0);
+    final maxPanelHeight = screenSize.height * 0.76;
+    final panelAspectRatio = TaskEditorSheetSpriteCatalog.panelBlankAspectRatio;
+    final panelWidth = math.min(
+      maxPanelWidth,
+      maxPanelHeight * panelAspectRatio,
+    );
+    final panelHeight = panelWidth / panelAspectRatio;
 
     return Material(
       color: Colors.transparent,
@@ -2683,29 +2868,45 @@ class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
               child: SizedBox(
                 width: panelWidth,
                 height: panelHeight,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Positioned.fill(
-                      child: _TaskEditorCard(
-                        isEditing: widget.isEditing,
-                        validationMessage: _validationMessage,
-                        taskNameController: _taskNameController,
-                        taskPointsController: _taskPointsController,
-                        onSave: _save,
-                        onDelete: _requestDelete,
-                        onCancel: () => Navigator.of(context).pop(),
-                        bottomInset: viewInsets.bottom > 0 ? 8 : 0,
-                      ),
-                    ),
-                    Positioned(
-                      top: -10,
-                      right: -10,
-                      child: _TaskEditorCloseButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                    ),
-                  ],
+                child: FutureBuilder<SpriteAtlas>(
+                  future: _spriteAtlasFuture,
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const SizedBox.shrink();
+                    }
+
+                    final sprites = TaskEditorSheetSpriteCatalog(
+                      snapshot.requireData,
+                    );
+                    return Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Positioned.fill(
+                          child: _TaskEditorSpriteCard(
+                            sprites: sprites,
+                            isEditing: widget.isEditing,
+                            validationMessage: _validationMessage,
+                            taskNameController: _taskNameController,
+                            taskPointsController: _taskPointsController,
+                            onSave: _save,
+                            onDelete: _requestDelete,
+                            onCancel: () => Navigator.of(context).pop(),
+                            bottomInset: viewInsets.bottom > 0 ? 8 : 0,
+                          ),
+                        ),
+                        Positioned(
+                          top: -panelHeight * 0.040,
+                          right: -panelWidth * 0.012,
+                          width: panelWidth * 0.145,
+                          height: panelWidth * 0.148,
+                          child: _TaskEditorCloseButton(
+                            sprites: sprites,
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
@@ -2717,33 +2918,443 @@ class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
 }
 
 class _TaskEditorCloseButton extends StatelessWidget {
-  const _TaskEditorCloseButton({required this.onPressed});
+  const _TaskEditorCloseButton({
+    required this.sprites,
+    required this.onPressed,
+  });
 
+  final TaskEditorSheetSpriteCatalog sprites;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: const Color(0xFFF8F1E6),
-      shape: const CircleBorder(
-        side: BorderSide(color: Color(0xFF2F2218), width: 1.4),
-      ),
-      elevation: 3,
-      shadowColor: const Color(0x66342217),
-      child: IconButton(
-        onPressed: onPressed,
-        tooltip: '关闭',
-        icon: const Icon(Icons.close_rounded),
-        color: const Color(0xFF4D3623),
-        iconSize: 20,
-        constraints: const BoxConstraints.tightFor(width: 38, height: 38),
-        padding: EdgeInsets.zero,
-        splashRadius: 22,
+    return Semantics(
+      button: true,
+      label: '关闭',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onPressed,
+        child: SpriteFrameImage(
+          imageAsset: sprites.imageAsset,
+          sheetSize: sprites.sheetSize,
+          frame: sprites.closeButton,
+          fit: BoxFit.contain,
+        ),
       ),
     );
   }
 }
 
+class _TaskEditorSpriteCard extends StatelessWidget {
+  const _TaskEditorSpriteCard({
+    required this.sprites,
+    required this.isEditing,
+    required this.validationMessage,
+    required this.taskNameController,
+    required this.taskPointsController,
+    required this.onSave,
+    required this.onDelete,
+    required this.onCancel,
+    required this.bottomInset,
+  });
+
+  final TaskEditorSheetSpriteCatalog sprites;
+  final bool isEditing;
+  final String? validationMessage;
+  final TextEditingController taskNameController;
+  final TextEditingController taskPointsController;
+  final VoidCallback onSave;
+  final VoidCallback onDelete;
+  final VoidCallback onCancel;
+  final double bottomInset;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final panelSize = constraints.biggest;
+        final titleWidth = panelSize.width * 0.40;
+        final nameFieldWidth = panelSize.width * 0.66;
+        final pointsFieldWidth = panelSize.width * 0.60;
+        final fieldHeight = panelSize.height * 0.112;
+        final nameFieldLeft = panelSize.width * 0.17;
+        final pointsFieldLeft = panelSize.width * 0.20;
+        final buttonTop = panelSize.height * (bottomInset > 0 ? 0.798 : 0.812);
+        final buttonHeight = panelSize.height * 0.145;
+        final cancelButtonWidth = panelSize.width * 0.36;
+        final saveButtonWidth = panelSize.width * 0.39;
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: SpriteFrameImage(
+                imageAsset: sprites.imageAsset,
+                sheetSize: sprites.sheetSize,
+                frame: sprites.panelBlank,
+                fit: BoxFit.fill,
+              ),
+            ),
+            Positioned(
+              top: panelSize.height * 0.115,
+              left: (panelSize.width - titleWidth) * 0.5,
+              width: titleWidth,
+              height: titleWidth / sprites.titleEditTask.aspectRatio,
+              child: Center(
+                child: Text(
+                  isEditing
+                      ? '\u7f16\u8f91\u4efb\u52a1'
+                      : '\u6dfb\u52a0\u4efb\u52a1',
+                  style: TextStyle(
+                    color: const Color(0xFF4D3623),
+                    fontSize: panelSize.width * 0.075,
+                    fontWeight: FontWeight.w900,
+                    height: 1,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: panelSize.height * 0.258,
+              left: panelSize.width * 0.17,
+              width: panelSize.width * 0.168,
+              height:
+                  panelSize.width * 0.18 / sprites.labelTaskName.aspectRatio,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '\u4efb\u52a1\u540d',
+                  style: TextStyle(
+                    color: const Color(0xFF4D3623),
+                    fontSize: panelSize.width * 0.048,
+                    fontWeight: FontWeight.w900,
+                    height: 1,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: panelSize.height * 0.335,
+              left: nameFieldLeft,
+              width: nameFieldWidth,
+              height: fieldHeight,
+              child: _TaskEditorSpriteField(
+                sprites: sprites,
+                frame: sprites.taskNameField,
+                controller: taskNameController,
+                hintText: '\u6574\u7406\u73a9\u5177',
+                maxLength: _taskTitleMaxLength,
+                textInputAction: TextInputAction.next,
+              ),
+            ),
+            Positioned(
+              top: panelSize.height * 0.485,
+              left: panelSize.width * 0.17,
+              width: panelSize.width * 0.373,
+              height:
+                  panelSize.width *
+                  0.38 /
+                  sprites.labelRewardPoints.aspectRatio,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '\u5b8c\u6210\u53ef\u83b7\u5f97\u79ef\u5206',
+                  style: TextStyle(
+                    color: const Color(0xFF4D3623),
+                    fontSize: panelSize.width * 0.046,
+                    fontWeight: FontWeight.w900,
+                    height: 1,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: panelSize.height * 0.574,
+              left: pointsFieldLeft,
+              width: pointsFieldWidth,
+              height: fieldHeight,
+              child: _TaskEditorSpriteField(
+                sprites: sprites,
+                frame: sprites.pointsField,
+                controller: taskPointsController,
+                hintText: '10',
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                textInputAction: TextInputAction.done,
+              ),
+            ),
+            if (validationMessage != null)
+              Positioned(
+                top: panelSize.height * 0.704,
+                left: panelSize.width * 0.10,
+                right: panelSize.width * 0.10,
+                child: Text(
+                  validationMessage!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: const Color(0xFFB85F54),
+                    fontSize: panelSize.width * 0.035,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            if (isEditing)
+              Positioned(
+                top: panelSize.height * 0.717,
+                left: panelSize.width * 0.28,
+                width: panelSize.width * 0.44,
+                height: panelSize.height * 0.085,
+                child: _TaskEditorDeleteSpriteButton(
+                  sprites: sprites,
+                  onTap: onDelete,
+                ),
+              ),
+            Positioned(
+              top: buttonTop,
+              left: panelSize.width * 0.09,
+              width: cancelButtonWidth,
+              height: buttonHeight,
+              child: _TaskEditorSpriteImageButton(
+                sprites: sprites,
+                backgroundFrame: sprites.cancelButtonBg,
+                fallbackText: '\u53d6\u6d88',
+                semanticsLabel: '\u53d6\u6d88',
+                onTap: onCancel,
+              ),
+            ),
+            Positioned(
+              top: buttonTop,
+              right: panelSize.width * 0.09,
+              width: saveButtonWidth,
+              height: buttonHeight,
+              child: _TaskEditorSpriteImageButton(
+                sprites: sprites,
+                backgroundFrame: sprites.saveButtonBg,
+                fallbackText: isEditing
+                    ? '\u4fdd\u5b58\u4fee\u6539'
+                    : '\u521b\u5efa\u4efb\u52a1',
+                semanticsLabel: isEditing
+                    ? '\u4fdd\u5b58\u4fee\u6539'
+                    : '\u521b\u5efa\u4efb\u52a1',
+                onTap: onSave,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _TaskEditorSpriteField extends StatelessWidget {
+  const _TaskEditorSpriteField({
+    required this.sprites,
+    required this.frame,
+    required this.controller,
+    required this.hintText,
+    this.keyboardType,
+    this.inputFormatters,
+    this.maxLength,
+    this.textInputAction,
+  });
+
+  final TaskEditorSheetSpriteCatalog sprites;
+  final SpriteAtlasFrame frame;
+  final TextEditingController controller;
+  final String hintText;
+  final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final int? maxLength;
+  final TextInputAction? textInputAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        SpriteFrameImage(
+          imageAsset: sprites.imageAsset,
+          sheetSize: sprites.sheetSize,
+          frame: frame,
+          fit: BoxFit.fill,
+        ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                constraints.maxWidth * 0.070,
+                0,
+                constraints.maxWidth * 0.060,
+                0,
+              ),
+              child: Center(
+                child: TextField(
+                  controller: controller,
+                  keyboardType: keyboardType,
+                  inputFormatters: inputFormatters,
+                  maxLength: maxLength,
+                  textInputAction: textInputAction,
+                  cursorColor: const Color(0xFF2F2218),
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: const Color(0xFF4E3A27),
+                    fontWeight: FontWeight.w900,
+                    fontSize: constraints.maxHeight * 0.44,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: hintText,
+                    hintStyle: TextStyle(
+                      color: const Color(0xA36F563D),
+                      fontSize: constraints.maxHeight * 0.38,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    counterText: '',
+                    border: InputBorder.none,
+                    isCollapsed: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _TaskEditorSpriteImageButton extends StatefulWidget {
+  const _TaskEditorSpriteImageButton({
+    required this.sprites,
+    required this.backgroundFrame,
+    required this.semanticsLabel,
+    required this.onTap,
+    this.fallbackText,
+  });
+
+  final TaskEditorSheetSpriteCatalog sprites;
+  final SpriteAtlasFrame backgroundFrame;
+  final String? fallbackText;
+  final String semanticsLabel;
+  final VoidCallback onTap;
+
+  @override
+  State<_TaskEditorSpriteImageButton> createState() =>
+      _TaskEditorSpriteImageButtonState();
+}
+
+class _TaskEditorSpriteImageButtonState
+    extends State<_TaskEditorSpriteImageButton> {
+  bool _pressed = false;
+
+  void _setPressed(bool pressed) {
+    if (_pressed == pressed) {
+      return;
+    }
+    setState(() => _pressed = pressed);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: widget.semanticsLabel,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        onTapDown: (_) => _setPressed(true),
+        onTapCancel: () => _setPressed(false),
+        onTapUp: (_) => _setPressed(false),
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 90),
+          curve: Curves.easeOutCubic,
+          scale: _pressed ? 0.985 : 1,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              SpriteFrameImage(
+                imageAsset: widget.sprites.imageAsset,
+                sheetSize: widget.sprites.sheetSize,
+                frame: widget.backgroundFrame,
+                fit: BoxFit.fill,
+              ),
+              if (widget.fallbackText != null)
+                Center(
+                  child: Text(
+                    widget.fallbackText!,
+                    style: const TextStyle(
+                      color: Color(0xFF4D3623),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      height: 1,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TaskEditorDeleteSpriteButton extends StatelessWidget {
+  const _TaskEditorDeleteSpriteButton({
+    required this.sprites,
+    required this.onTap,
+  });
+
+  final TaskEditorSheetSpriteCatalog sprites;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: '\u5220\u9664\u4efb\u52a1',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 34,
+              child: AspectRatio(
+                aspectRatio: sprites.trashIcon.aspectRatio,
+                child: SpriteFrameImage(
+                  imageAsset: sprites.imageAsset,
+                  sheetSize: sprites.sheetSize,
+                  frame: sprites.trashIcon,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              '\u5220\u9664\u4efb\u52a1',
+              style: TextStyle(
+                color: Color(0xFFC85445),
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                height: 1,
+                letterSpacing: 0,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ignore: unused_element
 class _TaskEditorCard extends StatelessWidget {
   const _TaskEditorCard({
     required this.isEditing,
@@ -2803,7 +3414,7 @@ class _TaskEditorCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 _TaskEditorField(
-                  label: '积分奖励',
+                  label: '完成可获得积分',
                   controller: taskPointsController,
                   hintText: '10',
                   keyboardType: TextInputType.number,
@@ -2879,7 +3490,7 @@ class _TaskEditorCard extends StatelessWidget {
                             fontWeight: FontWeight.w900,
                           ),
                         ),
-                        child: Text(isEditing ? '保存修改' : '添加任务'),
+                        child: Text(isEditing ? '保存修改' : '创建任务'),
                       ),
                     ),
                   ],

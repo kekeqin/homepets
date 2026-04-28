@@ -54,5 +54,57 @@ void main() {
         'images/ui/sprites/task.png',
       );
     });
+
+    test('loads the clean task list sheet atlas', () async {
+      final atlas = await TaskListSheetSpriteCatalog.atlasAsset.load();
+      final sprites = TaskListSheetSpriteCatalog(atlas);
+
+      expect(
+        sprites.panelBlank.textureRect,
+        const Rect.fromLTWH(525, 49, 447, 649),
+      );
+      expect(
+        sprites.title.textureRect,
+        const Rect.fromLTWH(1066, 43, 317, 137),
+      );
+      expect(
+        sprites.taskRowBlank.textureRect,
+        const Rect.fromLTWH(917, 796, 479, 92),
+      );
+      expect(
+        sprites.addTaskButton.textureRect,
+        const Rect.fromLTWH(530, 800, 290, 94),
+      );
+      expect(
+        TaskListSheetSpriteCatalog.atlasAsset.flameImageAsset,
+        'images/ui/sprites/task_list_sheet_clean.png',
+      );
+    });
+
+    test('loads the clean task editor sheet atlas', () async {
+      final atlas = await TaskEditorSheetSpriteCatalog.atlasAsset.load();
+      final sprites = TaskEditorSheetSpriteCatalog(atlas);
+
+      expect(
+        sprites.panelBlank.textureRect,
+        const Rect.fromLTWH(31, 54, 627, 632),
+      );
+      expect(
+        sprites.closeButton.textureRect,
+        const Rect.fromLTWH(808, 69, 98, 100),
+      );
+      expect(
+        sprites.taskNameField.textureRect,
+        const Rect.fromLTWH(997, 283, 412, 71),
+      );
+      expect(
+        sprites.saveButtonBg.textureRect,
+        const Rect.fromLTWH(727, 941, 275, 104),
+      );
+      expect(
+        TaskEditorSheetSpriteCatalog.atlasAsset.flameImageAsset,
+        'images/ui/sprites/edit_task_sheet_clean_alpha.png',
+      );
+    });
   });
 }

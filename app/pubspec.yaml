@@ -83,6 +83,7 @@ flutter:
     - "assets/images/pets/dog/turning the face and smiling/"
     - "assets/images/pets/dog/wagging tail/"
     - assets/images/ui/
+    - assets/images/ui/task_delete/
     - assets/images/ui/sprites/
 
   # To add assets to your application, add an assets section, like this:
