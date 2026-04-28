@@ -128,6 +128,16 @@ bool _assetNameContainsAny(String assetName, Iterable<String> keywords) {
   return keywords.any(assetName.contains);
 }
 
+String _detailAvatarAssetPathForHomeAssetPath(String assetPath) {
+  if (assetPath.startsWith('assets/')) {
+    return assetPath;
+  }
+  if (assetPath.startsWith('images/')) {
+    return 'assets/$assetPath';
+  }
+  return assetPath;
+}
+
 double _homePetScaleForAssetPath(String assetPath) {
   return _homePetScaleByAssetPath[assetPath] ?? 1;
 }
@@ -1075,7 +1085,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   final void Function(String taskLabel, Offset globalPosition)?
   onTaskItemLongPress;
   final Future<void> Function()? onTaskAddTap;
-  final void Function(int petId)? onOpenPetDetail;
+  final void Function(int petId, String avatarAssetPath)? onOpenPetDetail;
   late final _SceneProfile _profile;
 
   late Vector2 _sceneSize;
@@ -1381,6 +1391,15 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     });
   }
 
+  Map<int, String> debugPetDetailAvatarAssetPaths() {
+    return Map<int, String>.unmodifiable(
+      debugCurrentPetPoseAssetPaths().map(
+        (petId, assetPath) =>
+            MapEntry(petId, _detailAvatarAssetPathForHomeAssetPath(assetPath)),
+      ),
+    );
+  }
+
   Map<int, List<Rect>> debugPetPoseVariantRects() {
     _syncPetPlacements();
     final layout = _petLayoutProfile();
@@ -1658,6 +1677,10 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
         pet.petId,
         poseVariants.length,
       );
+      final detailAvatarAssetPath = _detailAvatarAssetPathForHomeAssetPath(
+        poseVariants[initialPoseIndex].assetPath,
+      );
+
       return _PetSpriteSpec(
         rect: poseVariants[initialPoseIndex].rect,
         referenceSpace: _UiReferenceSpace.background,
@@ -1667,7 +1690,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
         renderPriority: candidate.renderPriority,
         entryDelay: _petEntryDelayFor(index),
         entryOffset: _petEntryOffsetFor(device),
-        onTap: () => onOpenPetDetail?.call(pet.petId),
+        onTap: () => onOpenPetDetail?.call(pet.petId, detailAvatarAssetPath),
       );
     });
   }

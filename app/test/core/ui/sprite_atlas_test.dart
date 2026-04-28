@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:homepets/core/ui/sprite_atlas.dart';
 import 'package:homepets/screens/home/task_panel_sprite_catalog.dart';
+import 'package:homepets/screens/pet/pet_detail_sprite_catalog.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -104,6 +105,45 @@ void main() {
       expect(
         TaskEditorSheetSpriteCatalog.atlasAsset.flameImageAsset,
         'images/ui/sprites/edit_task_sheet_clean_alpha.png',
+      );
+    });
+
+    test('loads the clean pet detail sheet atlas', () async {
+      final atlas = await PetDetailSheetSpriteCatalog.atlasAsset.load();
+
+      expect(
+        atlas
+            .frame(PetDetailSheetSpriteCatalog.panelBlankFrameName)
+            .textureRect,
+        const Rect.fromLTWH(20, 48, 499, 793),
+      );
+      expect(
+        atlas
+            .frame(PetDetailSheetSpriteCatalog.nameBannerFrameName)
+            .textureRect,
+        const Rect.fromLTWH(548, 50, 401, 130),
+      );
+      expect(
+        atlas
+            .frame(PetDetailSheetSpriteCatalog.portraitFrameBlankFrameName)
+            .textureRect,
+        const Rect.fromLTWH(531, 216, 262, 379),
+      );
+      expect(
+        atlas
+            .frame(PetDetailSheetSpriteCatalog.recentPanelFrameName)
+            .textureRect,
+        const Rect.fromLTWH(41, 875, 533, 396),
+      );
+      expect(
+        atlas
+            .frame(PetDetailSheetSpriteCatalog.achievementTagFrameName)
+            .textureRect,
+        const Rect.fromLTWH(824, 886, 245, 358),
+      );
+      expect(
+        PetDetailSheetSpriteCatalog.atlasAsset.flameImageAsset,
+        'images/ui/sprites/pet_detail_sheet_clean_alpha.png',
       );
     });
   });

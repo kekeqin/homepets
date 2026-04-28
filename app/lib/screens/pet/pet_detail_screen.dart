@@ -7,6 +7,7 @@ import 'widgets/pet_detail_view.dart';
 Future<void> showPetDetailDialog(
   BuildContext context, {
   required Pet pet,
+  String? avatarAssetPath,
   bool useRootNavigator = true,
 }) {
   return showAppModalDialog<void>(
@@ -22,17 +23,17 @@ Future<void> showPetDetailDialog(
       return AppModalShell(
         layout: AppModalLayouts.petDetail,
         minimumSafeArea: const EdgeInsets.fromLTRB(12, 16, 12, 16),
-        backgroundColor: Colors.transparent,
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF20303A).withValues(alpha: 0.22),
-            blurRadius: 26,
-            offset: const Offset(0, 10),
+            color: const Color(0x28604429),
+            blurRadius: 30,
+            offset: const Offset(0, 14),
           ),
         ],
         clipChild: false,
         child: PetDetailView(
           pet: pet,
+          avatarAssetPath: avatarAssetPath,
           embedded: true,
           onClose: () => Navigator.of(dialogContext).pop(),
         ),
@@ -42,9 +43,10 @@ Future<void> showPetDetailDialog(
 }
 
 class PetDetailScreen extends StatelessWidget {
-  const PetDetailScreen({super.key, required this.pet});
+  const PetDetailScreen({super.key, required this.pet, this.avatarAssetPath});
 
   final Pet pet;
+  final String? avatarAssetPath;
 
   @override
   Widget build(BuildContext context) {
@@ -52,6 +54,7 @@ class PetDetailScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFDCE5EA),
       body: PetDetailView(
         pet: pet,
+        avatarAssetPath: avatarAssetPath,
         onClose: () => Navigator.of(context).maybePop(),
       ),
     );

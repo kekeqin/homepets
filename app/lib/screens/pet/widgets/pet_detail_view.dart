@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/ui/sprite_atlas.dart';
 import '../../../models/pet.dart';
+import '../../../models/pet_artwork.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../services/pet_detail_service.dart';
-import '../../../widgets/pet_avatar.dart';
 import '../models/pet_history_entry.dart';
+import '../pet_detail_sprite_catalog.dart';
 
 class PetDetailView extends ConsumerStatefulWidget {
   const PetDetailView({
     super.key,
     required this.pet,
+    this.avatarAssetPath,
     this.embedded = false,
     this.onClose,
   });
 
   final Pet pet;
+  final String? avatarAssetPath;
   final bool embedded;
   final VoidCallback? onClose;
 
@@ -59,23 +63,27 @@ class _PetDetailViewState extends ConsumerState<PetDetailView> {
   @override
   Widget build(BuildContext context) {
     final pet = widget.pet;
+    final horizontalPadding = widget.embedded ? 8.0 : 20.0;
     final content = SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
-        widget.embedded ? 12 : 20,
-        widget.embedded ? 24 : 24,
-        widget.embedded ? 12 : 20,
-        widget.embedded ? 18 : 28,
+        horizontalPadding,
+        widget.embedded ? 28 : 32,
+        horizontalPadding,
+        widget.embedded ? 16 : 28,
       ),
       child: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: widget.embedded ? 412 : 448),
           child: DefaultTextStyle.merge(
             style: const TextStyle(
+              color: _PetDetailColors.ink,
               decoration: TextDecoration.none,
               decorationColor: Colors.transparent,
+              fontWeight: FontWeight.w800,
             ),
             child: _ProfileCard(
               pet: pet,
+              avatarAssetPath: widget.avatarAssetPath,
               stageLabel: _stageLabel(pet),
               growthValue: _growthValueLabel(pet),
               feedCountLabel: _feedCountLabel(),
@@ -148,22 +156,14 @@ class _PetDetailViewState extends ConsumerState<PetDetailView> {
 
   List<_InteractionData> _buildRecentTasks() {
     final tasks = <_InteractionData>[];
-    final icons = <IconData>[
-      Icons.pan_tool_alt_rounded,
-      Icons.content_cut_rounded,
-      Icons.sports_baseball_rounded,
-    ];
 
     for (final entry in _history) {
       if (entry.eventType != 'task') {
         continue;
       }
+      final trimmedTitle = entry.title.trim();
       tasks.add(
-        _InteractionData(
-          label: entry.title.trim().isEmpty ? '完成任务' : entry.title.trim(),
-          icon: icons[tasks.length % icons.length],
-          highlight: tasks.isEmpty,
-        ),
+        _InteractionData(label: trimmedTitle.isEmpty ? '未命名任务' : trimmedTitle),
       );
       if (tasks.length == 3) {
         break;
@@ -186,22 +186,20 @@ class _PetDetailViewState extends ConsumerState<PetDetailView> {
 }
 
 class _PetDetailColors {
-  static const background = Color(0xFFDCE5EA);
-  static const paper = Color(0xFFF3EBDD);
-  static const paperSoft = Color(0xFFE9DFCF);
-  static const accent = Color(0xFFC9B7A1);
-  static const accentStrong = Color(0xFFAA9577);
-  static const highlight = Color(0xFFDDD2BF);
-  static const ink = Color(0xFF5B4632);
-  static const line = Color(0xFF6A5237);
-  static const green = Color(0xFF869A77);
-  static const greenTrack = Color(0xFFD2C9BA);
-  static const shadow = Color(0x16212A30);
+  static const background = Color(0xFFF3E0C4);
+  static const ink = Color(0xFF684328);
+  static const softInk = Color(0xFF88613E);
+  static const progressTrack = Color(0xFFFFF6D9);
+  static const progressBorder = Color(0xFF536F2B);
+  static const progressFill = Color(0xFF9ABC4D);
+  static const progressFillDark = Color(0xFF86A941);
+  static const shadow = Color(0x28604429);
 }
 
 class _ProfileCard extends StatelessWidget {
   const _ProfileCard({
     required this.pet,
+    required this.avatarAssetPath,
     required this.stageLabel,
     required this.growthValue,
     required this.feedCountLabel,
@@ -212,6 +210,7 @@ class _ProfileCard extends StatelessWidget {
   });
 
   final Pet pet;
+  final String? avatarAssetPath;
   final String stageLabel;
   final String growthValue;
   final String feedCountLabel;
@@ -222,95 +221,94 @@ class _ProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(16, 38, 16, 16),
-          decoration: BoxDecoration(
-            color: _PetDetailColors.paper,
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: _PetDetailColors.line, width: 3),
-            boxShadow: const [
-              BoxShadow(
-                color: _PetDetailColors.shadow,
-                blurRadius: 16,
-                offset: Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
+    return AspectRatio(
+      aspectRatio: 499 / 793,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final height = constraints.maxHeight;
+
+          double x(double value) => width * value / 412;
+          double y(double value) => height * value / 655;
+
+          return Stack(
+            clipBehavior: Clip.none,
             children: [
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isCompact = constraints.maxWidth < 310;
-
-                  if (isCompact) {
-                    return Column(
-                      children: [
-                        _PortraitFrame(pet: pet),
-                        const SizedBox(height: 12),
-                        _MetricColumn(
-                          stageLabel: stageLabel,
-                          level: pet.level,
-                          growthValue: growthValue,
-                          feedCountLabel: feedCountLabel,
-                          progress: pet.progress,
-                        ),
-                      ],
-                    );
-                  }
-
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: _PortraitFrame(pet: pet)),
-                      const SizedBox(width: 12),
-                      SizedBox(
-                        width: 124,
-                        child: _MetricColumn(
-                          stageLabel: stageLabel,
-                          level: pet.level,
-                          growthValue: growthValue,
-                          feedCountLabel: feedCountLabel,
-                          progress: pet.progress,
-                        ),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: const BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: _PetDetailColors.shadow,
+                        blurRadius: 22,
+                        offset: Offset(0, 10),
                       ),
                     ],
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: _RecentTasksPanel(
-                      tasks: recentTasks,
-                      loading: loading,
-                    ),
                   ),
-                  const SizedBox(width: 12),
-                  _AchievementTag(level: pet.level, statusLabel: statusLabel),
-                ],
+                  child: const _PetDetailSprite(
+                    frame: PetDetailSheetSpriteCatalog.panelBlank,
+                    fit: BoxFit.fill,
+                  ),
+                ),
               ),
+              Positioned(
+                top: y(-18),
+                left: x(76),
+                width: x(260),
+                height: y(86),
+                child: _NameBanner(text: pet.name),
+              ),
+              Positioned(
+                left: x(34),
+                top: y(94),
+                width: x(186),
+                height: y(268),
+                child: _PortraitFrame(
+                  pet: pet,
+                  avatarAssetPath: avatarAssetPath,
+                ),
+              ),
+              Positioned(
+                left: x(226),
+                top: y(98),
+                width: x(166),
+                child: _MetricColumn(
+                  stageLabel: stageLabel,
+                  level: pet.level,
+                  growthValue: growthValue,
+                  feedCountLabel: feedCountLabel,
+                  progress: pet.progress,
+                ),
+              ),
+              Positioned(
+                left: x(30),
+                top: y(401),
+                width: x(248),
+                height: y(207),
+                child: _RecentTasksPanel(tasks: recentTasks, loading: loading),
+              ),
+              Positioned(
+                left: x(274),
+                top: y(388),
+                width: x(128),
+                height: y(205),
+                child: _AchievementTag(
+                  level: pet.level,
+                  statusLabel: statusLabel,
+                ),
+              ),
+              if (onClose != null)
+                Positioned(
+                  top: y(18),
+                  right: x(16),
+                  width: x(52),
+                  height: x(52),
+                  child: _PetDetailCloseButton(onPressed: onClose!),
+                ),
             ],
-          ),
-        ),
-        Positioned(
-          top: -18,
-          left: 0,
-          right: 0,
-          child: Center(child: _NameBanner(text: pet.name)),
-        ),
-        if (onClose != null)
-          Positioned(
-            top: -14,
-            right: 14,
-            child: _PetDetailCloseButton(onPressed: onClose!),
-          ),
-      ],
+          );
+        },
+      ),
     );
   }
 }
@@ -322,59 +320,104 @@ class _PetDetailCloseButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: const Color(0xFFFFF9EF),
-      shape: const CircleBorder(
-        side: BorderSide(color: _PetDetailColors.line, width: 2.5),
-      ),
-      elevation: 4,
-      shadowColor: _PetDetailColors.shadow,
-      child: IconButton(
-        onPressed: onPressed,
-        tooltip: '关闭',
-        icon: const Icon(Icons.close_rounded),
-        color: _PetDetailColors.ink,
-        iconSize: 19,
-        constraints: const BoxConstraints.tightFor(width: 36, height: 36),
-        padding: EdgeInsets.zero,
-        splashRadius: 20,
+    return Semantics(
+      button: true,
+      label: '关闭',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onPressed,
+        child: const SizedBox.expand(),
       ),
     );
   }
 }
 
-class _PortraitFrame extends StatelessWidget {
-  const _PortraitFrame({required this.pet});
+class _NameBanner extends StatelessWidget {
+  const _NameBanner({required this.text});
 
-  final Pet pet;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 228,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: _PetDetailColors.paper,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _PetDetailColors.line, width: 3),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: _PetDetailColors.paperSoft,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: _PetDetailColors.line, width: 3),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x143D5A66),
-              blurRadius: 20,
-              spreadRadius: 1,
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const _PetDetailSprite(
+          frame: PetDetailSheetSpriteCatalog.nameBanner,
+          fit: BoxFit.fill,
+        ),
+        Align(
+          alignment: const Alignment(0, -0.12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 60),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                text,
+                maxLines: 1,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 28,
+                  height: 1,
+                  fontWeight: FontWeight.w900,
+                  color: _PetDetailColors.ink,
+                ),
+              ),
             ),
-          ],
+          ),
         ),
-        child: Center(
-          child: PetAvatar(pet: pet, size: 132, showBackground: false),
+      ],
+    );
+  }
+}
+
+class _PortraitFrame extends StatelessWidget {
+  const _PortraitFrame({required this.pet, required this.avatarAssetPath});
+
+  final Pet pet;
+  final String? avatarAssetPath;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const _PetDetailSprite(
+          frame: PetDetailSheetSpriteCatalog.portraitFrameBlank,
+          fit: BoxFit.fill,
         ),
-      ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
+          child: Center(
+            child: _PetPoseImage(pet: pet, assetPath: avatarAssetPath),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PetPoseImage extends StatelessWidget {
+  const _PetPoseImage({required this.pet, required this.assetPath});
+
+  final Pet pet;
+  final String? assetPath;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolvedAssetPath =
+        assetPath ??
+        petAvatarAssetPath(
+          pet.petType,
+          deterministicPetPoseIndex(pet.petType, pet.id),
+        );
+
+    return Image.asset(
+      resolvedAssetPath,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.high,
+      errorBuilder: (_, _, _) =>
+          const Icon(Icons.pets_rounded, size: 82, color: Color(0xFF628222)),
     );
   }
 }
@@ -399,22 +442,25 @@ class _MetricColumn extends StatelessWidget {
     return Column(
       children: [
         _MetricCard(
+          frame: PetDetailSheetSpriteCatalog.stageCard,
           title: '成长阶段',
-          icon: Icons.spa_outlined,
           value: '$stageLabel (LV$level)',
           progress: progress,
+          height: 100,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 11),
         _MetricCard(
+          frame: PetDetailSheetSpriteCatalog.growthCard,
           title: '成长值',
-          icon: Icons.star_border_rounded,
           value: growthValue,
+          height: 82,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         _MetricCard(
+          frame: PetDetailSheetSpriteCatalog.feedCard,
           title: '喂养次数',
-          icon: Icons.lunch_dining_outlined,
           value: feedCountLabel,
+          height: 82,
         ),
       ],
     );
@@ -423,72 +469,107 @@ class _MetricColumn extends StatelessWidget {
 
 class _MetricCard extends StatelessWidget {
   const _MetricCard({
+    required this.frame,
     required this.title,
-    required this.icon,
     required this.value,
+    required this.height,
     this.progress,
   });
 
+  final SpriteAtlasFrame frame;
   final String title;
-  final IconData icon;
   final String value;
+  final double height;
   final double? progress;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      decoration: BoxDecoration(
-        color: _PetDetailColors.paper,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _PetDetailColors.line, width: 3),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return SizedBox(
+      height: height,
+      child: Stack(
+        fit: StackFit.expand,
         children: [
-          Row(
-            children: [
-              Icon(icon, size: 18, color: _PetDetailColors.ink),
-              const SizedBox(width: 5),
-              Expanded(
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                    color: _PetDetailColors.ink,
-                  ),
-                ),
+          _PetDetailSprite(frame: frame, fit: BoxFit.fill),
+          Positioned(
+            left: 51,
+            top: progress == null ? 17 : 15,
+            right: 10,
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                color: _PetDetailColors.ink,
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
-              color: _PetDetailColors.ink,
             ),
           ),
-          if (progress != null) ...[
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(999),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 8,
-                backgroundColor: _PetDetailColors.greenTrack,
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                  _PetDetailColors.green,
+          Positioned(
+            left: 51,
+            top: progress == null ? 40 : 40,
+            right: 8,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                value,
+                maxLines: 1,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: _PetDetailColors.ink,
                 ),
               ),
             ),
-          ],
+          ),
+          if (progress != null)
+            Positioned(
+              left: 18,
+              right: 12,
+              bottom: 14,
+              height: 12,
+              child: _SpriteProgressBar(value: progress!),
+            ),
         ],
+      ),
+    );
+  }
+}
+
+class _SpriteProgressBar extends StatelessWidget {
+  const _SpriteProgressBar({required this.value});
+
+  final double value;
+
+  @override
+  Widget build(BuildContext context) {
+    final clampedValue = value.clamp(0.0, 1.0).toDouble();
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: _PetDetailColors.progressTrack,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: _PetDetailColors.progressBorder, width: 1.6),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(1.5),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: FractionallySizedBox(
+            alignment: Alignment.centerLeft,
+            widthFactor: clampedValue,
+            child: const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    _PetDetailColors.progressFill,
+                    _PetDetailColors.progressFillDark,
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -503,89 +584,79 @@ class _RecentTasksPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Stack(
-      clipBehavior: Clip.none,
+      fit: StackFit.expand,
       children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(10, 30, 10, 10),
-          decoration: BoxDecoration(
-            color: _PetDetailColors.paper,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: _PetDetailColors.line, width: 3),
-          ),
-          child: Column(
-            children: [
-              if (loading && tasks.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  child: CircularProgressIndicator(
-                    color: _PetDetailColors.green,
-                  ),
-                )
-              else if (tasks.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 14),
-                  child: Text(
-                    '还没有完成任务',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: _PetDetailColors.ink,
-                    ),
-                  ),
-                )
-              else
-                for (var index = 0; index < tasks.length; index++) ...[
-                  _InteractionRow(data: tasks[index]),
-                  if (index != tasks.length - 1) const SizedBox(height: 8),
-                ],
-            ],
-          ),
+        const _PetDetailSprite(
+          frame: PetDetailSheetSpriteCatalog.recentPanel,
+          fit: BoxFit.fill,
         ),
-        const Positioned(
-          top: -12,
-          left: 0,
-          child: _RibbonLabel(text: '最近互动TOP3'),
-        ),
+        if (loading && tasks.isEmpty)
+          const Positioned(
+            left: 40,
+            top: 98,
+            right: 24,
+            child: Text(
+              '加载中...',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+                color: _PetDetailColors.softInk,
+              ),
+            ),
+          )
+        else if (tasks.isEmpty)
+          const Positioned(
+            left: 42,
+            top: 98,
+            right: 24,
+            child: Text(
+              '还没有完成任务',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+                color: _PetDetailColors.softInk,
+              ),
+            ),
+          )
+        else
+          for (var index = 0; index < tasks.length; index++)
+            _InteractionRow(
+              data: tasks[index],
+              top: <double>[52, 94, 136][index],
+            ),
       ],
     );
   }
 }
 
 class _InteractionRow extends StatelessWidget {
-  const _InteractionRow({required this.data});
+  const _InteractionRow({required this.data, required this.top});
 
   final _InteractionData data;
+  final double top;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(
-        color: data.highlight
-            ? _PetDetailColors.highlight
-            : _PetDetailColors.paperSoft,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _PetDetailColors.line, width: 2.5),
-      ),
-      child: Row(
-        children: [
-          Icon(data.icon, size: 18, color: _PetDetailColors.ink),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              data.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w900,
-                color: _PetDetailColors.ink,
-              ),
-            ),
+    return Positioned(
+      left: 42,
+      top: top,
+      right: 24,
+      height: 34,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          data.label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 18,
+            height: 1,
+            fontWeight: FontWeight.w900,
+            color: _PetDetailColors.ink,
           ),
-        ],
+        ),
       ),
     );
   }
@@ -594,66 +665,70 @@ class _InteractionRow extends StatelessWidget {
 class _AchievementTag extends StatelessWidget {
   const _AchievementTag({required this.level, required this.statusLabel});
 
+  static const _assetPath = 'assets/images/ui/sprites/label_blank.png';
+  static const _aspectRatio = 266 / 368;
+
   final int level;
   final String statusLabel;
 
   @override
   Widget build(BuildContext context) {
-    return Transform.rotate(
-      angle: 0.14,
-      child: Container(
-        width: 78,
-        padding: const EdgeInsets.fromLTRB(10, 14, 10, 12),
-        decoration: BoxDecoration(
-          color: _PetDetailColors.paper,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: _PetDetailColors.line, width: 3),
-        ),
+    return Center(
+      child: AspectRatio(
+        aspectRatio: _aspectRatio,
         child: Stack(
-          clipBehavior: Clip.none,
+          fit: StackFit.expand,
           children: [
-            const Positioned(
-              top: -10,
-              right: -4,
-              child: Icon(
-                Icons.star_rounded,
-                size: 24,
-                color: _PetDetailColors.accentStrong,
-              ),
+            Image.asset(
+              _assetPath,
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.high,
             ),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'LV$level',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                    color: _PetDetailColors.ink,
-                  ),
+            Align(
+              alignment: const Alignment(0.1, 0.42),
+              child: Transform.rotate(
+                angle: 0.12,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 70,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'LV$level',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            height: 1,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFFD46F35),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      statusLabel,
+                      style: const TextStyle(
+                        fontSize: 19,
+                        height: 1,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF6E9245),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      '成就',
+                      style: TextStyle(
+                        fontSize: 19,
+                        height: 1,
+                        fontWeight: FontWeight.w900,
+                        color: _PetDetailColors.ink,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  statusLabel,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                    color: _PetDetailColors.ink,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                const Text(
-                  '成就',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                    color: _PetDetailColors.ink,
-                  ),
-                ),
-              ],
+              ),
             ),
           ],
         ),
@@ -662,83 +737,26 @@ class _AchievementTag extends StatelessWidget {
   }
 }
 
-class _NameBanner extends StatelessWidget {
-  const _NameBanner({required this.text});
+class _PetDetailSprite extends StatelessWidget {
+  const _PetDetailSprite({required this.frame, this.fit = BoxFit.contain});
 
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return _BannerShell(
-      backgroundColor: _PetDetailColors.accent,
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w900,
-          color: _PetDetailColors.ink,
-        ),
-      ),
-    );
-  }
-}
-
-class _RibbonLabel extends StatelessWidget {
-  const _RibbonLabel({required this.text});
-
-  final String text;
+  final SpriteAtlasFrame frame;
+  final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
-    return _BannerShell(
-      backgroundColor: _PetDetailColors.accent,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w900,
-          color: _PetDetailColors.ink,
-        ),
-      ),
-    );
-  }
-}
-
-class _BannerShell extends StatelessWidget {
-  const _BannerShell({
-    required this.backgroundColor,
-    required this.padding,
-    required this.child,
-  });
-
-  final Color backgroundColor;
-  final EdgeInsetsGeometry padding;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: padding,
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _PetDetailColors.line, width: 3),
-      ),
-      child: child,
+    return SpriteFrameImage(
+      imageAsset: PetDetailSheetSpriteCatalog.imageAsset,
+      sheetSize: PetDetailSheetSpriteCatalog.sheetSize,
+      frame: frame,
+      fit: fit,
+      filterQuality: FilterQuality.high,
     );
   }
 }
 
 class _InteractionData {
-  const _InteractionData({
-    required this.label,
-    required this.icon,
-    this.highlight = false,
-  });
+  const _InteractionData({required this.label});
 
   final String label;
-  final IconData icon;
-  final bool highlight;
 }

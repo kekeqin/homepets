@@ -8,6 +8,7 @@ class PetAvatar extends StatelessWidget {
   final double size;
   final bool showBackground;
   final int? poseSeed;
+  final String? assetPath;
 
   const PetAvatar({
     super.key,
@@ -15,19 +16,22 @@ class PetAvatar extends StatelessWidget {
     this.size = 48,
     this.showBackground = true,
     this.poseSeed,
+    this.assetPath,
   });
 
   @override
   Widget build(BuildContext context) {
     final seed = poseSeed ?? pet.id;
-    final assetPath = petAvatarAssetPath(
-      pet.petType,
-      deterministicPetPoseIndex(pet.petType, seed),
-    );
+    final resolvedAssetPath =
+        assetPath ??
+        petAvatarAssetPath(
+          pet.petType,
+          deterministicPetPoseIndex(pet.petType, seed),
+        );
     final avatarChild = Padding(
       padding: EdgeInsets.all(showBackground ? size * 0.08 : 0),
       child: Image.asset(
-        assetPath,
+        resolvedAssetPath,
         fit: BoxFit.contain,
         errorBuilder: (_, _, _) => Icon(
           Icons.pets_rounded,

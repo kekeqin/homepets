@@ -169,6 +169,23 @@ void main() {
       expect(secondAssets, firstAssets);
     });
 
+    test('uses current homepage sprite asset for detail avatar', () {
+      final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+      game.replacePetEntries(const <HomeScenePetSeed>[
+        HomeScenePetSeed(petId: 11, petType: 'cat'),
+        HomeScenePetSeed(petId: 22, petType: 'dog'),
+        HomeScenePetSeed(petId: 33, petType: 'hamster'),
+      ]);
+
+      final currentAssets = game.debugCurrentPetPoseAssetPaths();
+      final detailAssets = game.debugPetDetailAvatarAssetPaths();
+
+      expect(detailAssets.length, currentAssets.length);
+      for (final entry in currentAssets.entries) {
+        expect(detailAssets[entry.key], 'assets/${entry.value}');
+      }
+    });
+
     test('keeps cat and dog off lying poses on the homepage', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
       game.replacePetEntries(const <HomeScenePetSeed>[
