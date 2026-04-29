@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:homepets/models/pet.dart';
+import 'package:homepets/models/pet_artwork.dart';
 import 'package:homepets/screens/family/models/family_member_view_data.dart';
 import 'package:homepets/screens/family/widgets/family_member_card.dart';
 import 'package:homepets/screens/family/widgets/family_member_grid.dart';
@@ -140,6 +141,56 @@ void main() {
       await tester.pump();
 
       expect(tapped, isTrue);
+    });
+
+    testWidgets('uses attached pet data for pet preview image', (tester) async {
+      final pet = Pet(
+        id: 42,
+        name: 'buddy',
+        petType: 'rabbit',
+        petForm: 'pet',
+        level: 2,
+        experience: 30,
+        ownerId: 1,
+        familyId: 99,
+      );
+      final expectedAssetPath = petAvatarAssetPath(
+        pet.petType,
+        deterministicPetPoseIndex(pet.petType, pet.id),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 220,
+              height: 220,
+              child: FamilyMemberCard(
+                member: FamilyMemberViewData(
+                  id: 1,
+                  nickname: 'member-1',
+                  role: 'member',
+                  petId: 7,
+                  petType: 'dog',
+                  petForm: pet.petForm,
+                  pet: pet,
+                ),
+                onPetTap: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final previewImage = tester.widget<Image>(
+        find.descendant(
+          of: find.byKey(const Key('family_member_pet_button_1')),
+          matching: find.byType(Image),
+        ),
+      );
+      final imageProvider = previewImage.image as AssetImage;
+
+      expect(imageProvider.assetName, expectedAssetPath);
     });
 
     testWidgets('taps avatar edit badge to trigger avatar edit callback', (

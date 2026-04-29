@@ -56,15 +56,53 @@ class AppModalLayouts {
   );
 
   static const family = AppModalLayout(
-    mobileWidthFactor: 0.88,
-    mobileMaxWidth: 448,
-    mobileHeightFactor: 0.80,
-    mobileMaxHeight: 720,
+    mobileWidthFactor: 0.98,
+    mobileMaxWidth: 520,
+    mobileHeightFactor: 0.96,
+    mobileMaxHeight: 840,
     tabletWidthFactor: 0.72,
     tabletMaxWidth: 860,
     tabletHeightFactor: 0.86,
     tabletMaxHeight: 880,
   );
+
+  static const taskPanel = AppModalLayout(
+    mobileWidthFactor: 0.72,
+    mobileMaxWidth: 360,
+    mobileHeightFactor: 0.64,
+    mobileMaxHeight: 520,
+    tabletWidthFactor: 0.38,
+    tabletMaxWidth: 420,
+    tabletHeightFactor: 0.72,
+    tabletMaxHeight: 620,
+  );
+}
+
+class HomePetsDialogTheme {
+  const HomePetsDialogTheme._();
+
+  static const surfaceTop = Color(0xFFFFF4E5);
+  static const surfaceBottom = Color(0xFFF3E0C4);
+  static const panelBorder = Color(0xFFE1C7A7);
+  static const primaryText = Color(0xFF684328);
+  static const secondaryText = Color(0xFF98745A);
+  static const accent = Color(0xFFD99955);
+  static const accentDark = Color(0xFFA86C35);
+  static const sage = Color(0xFF8DA66A);
+  static const shadow = Color(0x28604429);
+  static const barrierTint = Color(0x32674A30);
+  static const borderRadius = BorderRadius.all(Radius.circular(28));
+  static const closeIconAsset = 'assets/images/ui/close_icon_simple.png';
+
+  static const shellGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [surfaceTop, surfaceBottom],
+  );
+
+  static const shellShadow = [
+    BoxShadow(color: shadow, blurRadius: 30, offset: Offset(0, 14)),
+  ];
 }
 
 Future<T?> showAppModalDialog<T>({
@@ -158,6 +196,7 @@ class AppModalShell extends StatelessWidget {
     this.minimumSafeArea = const EdgeInsets.fromLTRB(16, 24, 16, 24),
     this.borderRadius = const BorderRadius.all(Radius.circular(30)),
     this.backgroundColor,
+    this.gradient,
     this.border,
     this.boxShadow,
     this.clipChild = true,
@@ -168,6 +207,7 @@ class AppModalShell extends StatelessWidget {
   final EdgeInsets minimumSafeArea;
   final BorderRadius borderRadius;
   final Color? backgroundColor;
+  final Gradient? gradient;
   final BoxBorder? border;
   final List<BoxShadow>? boxShadow;
   final bool clipChild;
@@ -181,10 +221,14 @@ class AppModalShell extends StatelessWidget {
       current = ClipRRect(borderRadius: borderRadius, child: current);
     }
 
-    if (backgroundColor != null || border != null || boxShadow != null) {
+    if (backgroundColor != null ||
+        gradient != null ||
+        border != null ||
+        boxShadow != null) {
       current = DecoratedBox(
         decoration: BoxDecoration(
           color: backgroundColor,
+          gradient: gradient,
           borderRadius: borderRadius,
           border: border,
           boxShadow: boxShadow,

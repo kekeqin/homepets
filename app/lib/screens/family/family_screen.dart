@@ -10,27 +10,26 @@ import '../../widgets/app_modal_shell.dart';
 import '../member/widgets/member_avatar_picker_sheet.dart';
 import '../pet/pet_detail_screen.dart';
 import 'dialogs/add_member_flow_dialog.dart';
+import 'dialogs/delete_member_dialog.dart';
 import 'models/family_member_view_data.dart';
 import 'models/family_screen_state.dart';
 import 'widgets/family_hint_card.dart';
 import 'widgets/family_member_grid.dart';
+import 'widgets/family_sprite_slice.dart';
 
 class _FamilyPalette {
-  static const pageTop = Color(0xFFF7ECE0);
-  static const pageBottom = Color(0xFFF0E1D0);
-  static const shellShadow = Color(0x1F6F4721);
-  static const stageTop = Color(0xFFFFFBF6);
-  static const stageBottom = Color(0xFFF7EEE2);
-  static const stageBorder = Color(0xFFE9D8C6);
-  static const sectionTop = Color(0xFFFFFCF8);
-  static const sectionBottom = Color(0xFFFAF2E7);
-  static const sectionLine = Color(0xFFF0E3D5);
-  static const chip = Color(0xFFFFFCF8);
-  static const chipBorder = Color(0xFFE8D8C6);
-  static const text = Color(0xFF73461F);
-  static const muted = Color(0xFF9A6F4D);
-  static const accent = Color(0xFFE4A259);
-  static const accentDark = Color(0xFFBD762E);
+  static const pageTop = Color(0xFFFFF0DC);
+  static const pageBottom = Color(0xFFF1DDBF);
+  static const stageBorder = Color(0xFFE1C7A7);
+  static const sectionTop = Color(0xFFFFF7EA);
+  static const sectionBottom = Color(0xFFF6E5CC);
+  static const sectionLine = Color(0xFFE7D0B1);
+  static const chip = Color(0xFFFFF2DE);
+  static const chipBorder = Color(0xFFE2C7A4);
+  static const text = Color(0xFF684328);
+  static const muted = Color(0xFF98745A);
+  static const accent = Color(0xFFD99955);
+  static const accentDark = Color(0xFFA86C35);
 }
 
 Future<void> showFamilyDialog(
@@ -42,23 +41,15 @@ Future<void> showFamilyDialog(
     useRootNavigator: useRootNavigator,
     barrierLabel: 'family_overlay',
     blurSigma: 7,
-    barrierTint: const Color(0x32674A30),
+    barrierTint: HomePetsDialogTheme.barrierTint,
     transitionDuration: const Duration(milliseconds: 220),
     beginScale: 0.96,
     beginYOffset: 16,
     pageBuilder: (dialogContext) {
       return AppModalShell(
         layout: AppModalLayouts.family,
-        minimumSafeArea: const EdgeInsets.fromLTRB(14, 24, 14, 18),
-        borderRadius: const BorderRadius.all(Radius.circular(28)),
-        backgroundColor: Colors.transparent,
-        boxShadow: const [
-          BoxShadow(
-            color: _FamilyPalette.shellShadow,
-            blurRadius: 34,
-            offset: Offset(0, 16),
-          ),
-        ],
+        minimumSafeArea: const EdgeInsets.fromLTRB(8, 10, 8, 8),
+        boxShadow: HomePetsDialogTheme.shellShadow,
         child: FamilyScreen(
           embedded: true,
           onClose: () => Navigator.of(dialogContext).pop(),
@@ -80,7 +71,6 @@ class FamilyScreen extends ConsumerStatefulWidget {
 
 class _FamilyScreenState extends ConsumerState<FamilyScreen>
     with SingleTickerProviderStateMixin {
-  static const _heroAsset = 'assets/images/ui/family_man_trim.png';
   static const _maxMembers = FamilyMemberGrid.maxDisplayMembers;
 
   bool _addingMember = false;
@@ -316,25 +306,11 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
       return;
     }
 
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('删除成员'),
-        content: Text('确认删除“${member.nickname}”吗？该成员名下的宠物也会一起删除。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('删除', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+    final confirm = await showDeleteMemberDialog(
+      context,
+      memberName: member.nickname,
     );
-
-    if (confirm != true) {
+    if (!confirm) {
       return;
     }
 
@@ -413,9 +389,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
           return;
         }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('已添加 ${member.nickname}，并领养了 ${draft.petName}'),
-          ),
+          SnackBar(content: Text('已添加${member.nickname}，并领养了${draft.petName}')),
         );
         await _loadFamily();
         return;
@@ -585,123 +559,63 @@ class _FamilyStageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cardRadius = BorderRadius.circular(embedded ? 30 : 34);
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [_FamilyPalette.stageTop, _FamilyPalette.stageBottom],
-        ),
-        borderRadius: cardRadius,
-        border: Border.all(color: _FamilyPalette.stageBorder, width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0x166B3608),
-            blurRadius: embedded ? 22 : 28,
-            offset: const Offset(0, 14),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: cardRadius,
-        child: Stack(
-          children: [
-            const Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0x80FFFFFF), Color(0x00FFFFFF)],
-                    stops: [0, 0.46],
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              top: -42,
-              left: -22,
-              child: _StageGlowOrb(
-                size: embedded ? 104 : 122,
-                color: const Color(0x26FFD9B3),
-              ),
-            ),
-            Positioned(
-              top: embedded ? 74 : 88,
-              right: -18,
-              child: _StageGlowOrb(
-                size: embedded ? 88 : 98,
-                color: const Color(0x1FDCECCE),
-              ),
-            ),
-            Positioned(
-              top: embedded ? 10 : 18,
-              right: embedded ? 24 : 36,
-              child: IgnorePointer(
-                child: Opacity(
-                  opacity: embedded ? 0.72 : 0.64,
-                  child: Image.asset(
-                    _FamilyScreenState._heroAsset,
-                    height: embedded ? 124 : 136,
-                    fit: BoxFit.contain,
-                    isAntiAlias: true,
-                    filterQuality: FilterQuality.high,
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                embedded ? 14 : 20,
-                embedded ? 14 : 20,
-                embedded ? 14 : 20,
-                embedded ? 14 : 18,
-              ),
-              child: Column(
-                children: [
-                  _QuietFamilyStageHeader(
-                    embedded: embedded,
-                    title: title,
-                    familyPoints: familyPoints,
-                    petCount: petCount,
-                    memberCount: memberCount,
-                    canManageMembers: canManageMembers,
-                    addingMember: addingMember,
-                    onLeadingTap: onLeadingTap,
-                    onAddMemberTap: onAddMemberTap,
-                    canEditTitle: canEditTitle,
-                    updatingTitle: updatingTitle,
-                    onEditTitleTap: onEditTitleTap,
-                  ),
-                  SizedBox(height: embedded ? 8 : 12),
-                  membersPanel,
-                ],
-              ),
+    return AspectRatio(
+      aspectRatio: 0.585,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          borderRadius: BorderRadius.all(Radius.circular(32)),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x245C3516),
+              blurRadius: 18,
+              offset: Offset(0, 8),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30),
+          child: FamilySpritePanel(
+            skin: FamilySpriteSkins.outerPanel,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final width = constraints.maxWidth;
+                final height = constraints.maxHeight;
 
-class _StageGlowOrb extends StatelessWidget {
-  const _StageGlowOrb({required this.size, required this.color});
-
-  final double size;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(colors: [color, color.withValues(alpha: 0)]),
+                return Stack(
+                  clipBehavior: Clip.hardEdge,
+                  children: [
+                    Positioned(
+                      left: width * 0.06,
+                      right: width * 0.055,
+                      top: height * 0.034,
+                      height: height * 0.246,
+                      child: _QuietFamilyStageHeader(
+                        embedded: embedded,
+                        title: title,
+                        familyPoints: familyPoints,
+                        petCount: petCount,
+                        memberCount: memberCount,
+                        canManageMembers: canManageMembers,
+                        addingMember: addingMember,
+                        onLeadingTap: onLeadingTap,
+                        onAddMemberTap: onAddMemberTap,
+                        canEditTitle: canEditTitle,
+                        updatingTitle: updatingTitle,
+                        onEditTitleTap: onEditTitleTap,
+                      ),
+                    ),
+                    Positioned(
+                      left: width * 0.034,
+                      right: width * 0.034,
+                      top: height * 0.287,
+                      height: height * 0.653,
+                      child: membersPanel,
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
         ),
       ),
     );
@@ -826,12 +740,12 @@ class _FamilySnapshotPanel extends StatelessWidget {
             ),
           ),
           IgnorePointer(
-            child: Image.asset(
-              _FamilyScreenState._heroAsset,
+            child: SizedBox(
               height: heroHeight,
-              fit: BoxFit.contain,
-              alignment: Alignment.bottomCenter,
-              filterQuality: FilterQuality.high,
+              width: heroHeight * 1.18,
+              child: const FamilySpriteSlice(
+                region: FamilySpriteRegions.heroIllustration,
+              ),
             ),
           ),
         ],
@@ -909,79 +823,112 @@ class _QuietFamilyStageHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final titleSize = embedded ? 21.0 : 24.0;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth;
+        final compact = embedded || maxWidth < 430;
+        final titleSize = compact ? 27.0 : 34.0;
+        final heroWidth = (maxWidth * (maxWidth < 380 ? 0.45 : 0.44))
+            .clamp(142.0, compact ? 196.0 : 260.0)
+            .toDouble();
+        final heroHeight = heroWidth / 1.18;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        return Stack(
+          clipBehavior: Clip.none,
           children: [
-            Expanded(
-              child: Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: _FamilyPalette.text,
-                        fontSize: titleSize,
-                        fontWeight: FontWeight.w800,
-                        height: 1.05,
-                      ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: compact ? 3 : 6),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: _FamilyPalette.text,
+                                  fontSize: titleSize,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1,
+                                ),
+                              ),
+                            ),
+                            if (canEditTitle) ...[
+                              const SizedBox(width: 6),
+                              _HeaderEditButton(
+                                busy: updatingTitle,
+                                onTap: onEditTitleTap,
+                              ),
+                            ],
+                          ],
+                        ),
+                        SizedBox(height: compact ? 12 : 14),
+                        Wrap(
+                          spacing: compact ? 7 : 8,
+                          runSpacing: compact ? 7 : 8,
+                          children: [
+                            _QuietStatPill(
+                              compact: compact,
+                              iconRegion: FamilySpriteRegions.statMemberIcon,
+                              value: '$memberCount',
+                            ),
+                            _QuietStatPill(
+                              compact: compact,
+                              iconRegion: FamilySpriteRegions.statPetIcon,
+                              value: '$petCount',
+                            ),
+                            _QuietStatPill(
+                              compact: compact,
+                              iconRegion: FamilySpriteRegions.starIcon,
+                              value: '$familyPoints',
+                            ),
+                          ],
+                        ),
+                        if (canManageMembers) ...[
+                          SizedBox(height: compact ? 12 : 14),
+                          _HeroAddButton(
+                            compact: compact,
+                            busy: addingMember,
+                            onTap: onAddMemberTap,
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                  if (canEditTitle) ...[
-                    const SizedBox(width: 6),
-                    _HeaderEditButton(
-                      busy: updatingTitle,
-                      onTap: onEditTitleTap,
+                ),
+                SizedBox(width: compact ? 2 : 12),
+                Padding(
+                  padding: EdgeInsets.only(top: compact ? 10 : 12),
+                  child: SizedBox(
+                    width: heroWidth,
+                    height: heroHeight,
+                    child: const FamilySpriteSlice(
+                      region: FamilySpriteRegions.heroIllustration,
                     ),
-                  ],
-                ],
+                  ),
+                ),
+              ],
+            ),
+            Positioned(
+              top: embedded ? -12 : -6,
+              right: embedded ? -16 : -8,
+              child: _CircleIconButton(
+                icon: embedded ? Icons.close_rounded : Icons.arrow_back_rounded,
+                tooltip: embedded ? '\u5173\u95ed' : '\u8fd4\u56de\u9996\u9875',
+                onTap: onLeadingTap,
               ),
             ),
-            const SizedBox(width: 12),
-            _CircleIconButton(
-              icon: embedded ? Icons.close_rounded : Icons.arrow_back_rounded,
-              tooltip: embedded ? '\u5173\u95ed' : '\u8fd4\u56de\u9996\u9875',
-              onTap: onLeadingTap,
-            ),
           ],
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            _QuietStatPill(
-              compact: embedded,
-              icon: Icons.family_restroom_rounded,
-              value: '$memberCount',
-            ),
-            _QuietStatPill(
-              compact: embedded,
-              icon: Icons.pets_rounded,
-              value: '$petCount',
-            ),
-            _QuietStatPill(
-              compact: embedded,
-              icon: Icons.auto_awesome_rounded,
-              value: '$familyPoints',
-            ),
-          ],
-        ),
-        if (canManageMembers) ...[
-          SizedBox(height: embedded ? 8 : 10),
-          _HeroAddButton(
-            compact: embedded,
-            busy: addingMember,
-            onTap: onAddMemberTap,
-          ),
-        ],
-      ],
+        );
+      },
     );
   }
 }
@@ -999,30 +946,21 @@ class _HeaderEditButton extends StatelessWidget {
       child: InkWell(
         onTap: busy ? null : onTap,
         borderRadius: BorderRadius.circular(999),
-        child: Ink(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.78),
-            shape: BoxShape.circle,
-            border: Border.all(color: _FamilyPalette.sectionLine),
-          ),
-          child: Center(
-            child: busy
-                ? const SizedBox(
+        child: SizedBox(
+          width: 31,
+          height: 31,
+          child: busy
+              ? const Center(
+                  child: SizedBox(
                     width: 14,
                     height: 14,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       color: _FamilyPalette.muted,
                     ),
-                  )
-                : const Icon(
-                    Icons.edit_rounded,
-                    size: 14,
-                    color: _FamilyPalette.muted,
                   ),
-          ),
+                )
+              : const FamilySpriteSlice(region: FamilySpriteRegions.editIcon),
         ),
       ),
     );
@@ -1032,47 +970,70 @@ class _HeaderEditButton extends StatelessWidget {
 class _QuietStatPill extends StatelessWidget {
   const _QuietStatPill({
     required this.compact,
-    required this.icon,
+    required this.iconRegion,
     required this.value,
   });
 
   final bool compact;
-  final IconData icon;
+  final Rect iconRegion;
   final String value;
 
   @override
   Widget build(BuildContext context) {
+    final isStar = iconRegion == FamilySpriteRegions.starIcon;
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: compact ? 10 : 12,
-        vertical: compact ? 7 : 8,
-      ),
+      width: compact ? (isStar ? 86 : 72) : (isStar ? 98 : 84),
+      height: compact ? 38 : 42,
+      padding: EdgeInsets.symmetric(horizontal: compact ? 9 : 11),
       decoration: BoxDecoration(
-        color: _FamilyPalette.chip.withValues(alpha: 0.94),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFFFFBF0), Color(0xFFFFEED4)],
+        ),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: _FamilyPalette.chipBorder),
+        border: Border.all(color: const Color(0xFF8D5B2E), width: 1.4),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0F8F673E),
-            blurRadius: 10,
-            offset: Offset(0, 4),
+            color: Color(0x168A5A2C),
+            blurRadius: 5,
+            offset: Offset(0, 2),
           ),
         ],
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: compact ? 15 : 16, color: _FamilyPalette.muted),
-          const SizedBox(width: 6),
-          Text(
-            value,
-            style: TextStyle(
-              color: _FamilyPalette.text,
-              fontSize: compact ? 13 : 14,
-              fontWeight: FontWeight.w800,
+          _buildIcon(compact),
+          const SizedBox(width: 5),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                value,
+                maxLines: 1,
+                style: TextStyle(
+                  color: _FamilyPalette.text,
+                  fontSize: compact ? 13 : 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildIcon(bool compact) {
+    final size = compact ? 17.0 : 20.0;
+    return SizedBox(
+      width: size,
+      height: size,
+      child: FamilySpriteSlice(
+        region: iconRegion,
+        fit: BoxFit.contain,
+        sampleInset: 2,
       ),
     );
   }
@@ -1091,59 +1052,32 @@ class _HeroAddButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final height = compact ? 28.0 : 32.0;
-    final iconSize = compact ? 15.0 : 17.0;
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(999),
-        child: Ink(
-          height: height,
-          width: compact ? 124 : 136,
-          padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 14),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFE2B8),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: const Color(0xFFFFC982)),
-            boxShadow: [
-              BoxShadow(
-                color: _FamilyPalette.accent.withValues(alpha: 0.12),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
+        child: SizedBox(
+          width: compact ? 158 : 182,
+          height: compact ? 52 : 58,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              const FamilySpriteSlice(
+                region: FamilySpriteRegions.addMemberButton,
               ),
-            ],
-          ),
-          child: Center(
-            child: busy
-                ? SizedBox(
-                    width: compact ? 15 : 17,
-                    height: compact ? 15 : 17,
+              if (busy)
+                Center(
+                  child: SizedBox(
+                    width: compact ? 17 : 20,
+                    height: compact ? 17 : 20,
                     child: CircularProgressIndicator(
                       strokeWidth: compact ? 1.8 : 2,
                       color: _FamilyPalette.accentDark,
                     ),
-                  )
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.add_rounded,
-                        color: _FamilyPalette.accentDark,
-                        size: iconSize,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '\u6dfb\u52a0\u6210\u5458',
-                        style: TextStyle(
-                          color: _FamilyPalette.accentDark,
-                          fontSize: compact ? 12 : 13,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
                   ),
+                ),
+            ],
           ),
         ),
       ),
@@ -1247,29 +1181,27 @@ class _FamilyMembersPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(bottom: compact ? 0 : 2),
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.fromLTRB(
-          compact ? 6 : 8,
-          compact ? 6 : 8,
-          compact ? 6 : 8,
-          compact ? 8 : 10,
-        ),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.42),
-          borderRadius: BorderRadius.circular(compact ? 26 : 30),
-        ),
-        child: FamilyMemberGrid(
-          members: members,
-          entryAnimation: entryAnimation,
-          canAddMembers: canManageMembers,
-          onAddMemberTap: onAddMemberTap,
-          onPetTap: onPetTap,
-          canEditAvatar: canEditAvatar,
-          onAvatarEditTap: onAvatarEditTap,
-          updatingAvatarMemberId: updatingAvatarMemberId,
-          canDeleteMember: canDeleteMember,
-          onMemberLongPress: onMemberLongPress,
+      child: FamilySpritePanel(
+        skin: FamilySpriteSkins.contentPanel,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            compact ? 18 : 24,
+            compact ? 17 : 24,
+            compact ? 18 : 24,
+            compact ? 16 : 24,
+          ),
+          child: FamilyMemberGrid(
+            members: members,
+            entryAnimation: entryAnimation,
+            canAddMembers: canManageMembers,
+            onAddMemberTap: onAddMemberTap,
+            onPetTap: onPetTap,
+            canEditAvatar: canEditAvatar,
+            onAvatarEditTap: onAvatarEditTap,
+            updatingAvatarMemberId: updatingAvatarMemberId,
+            canDeleteMember: canDeleteMember,
+            onMemberLongPress: onMemberLongPress,
+          ),
         ),
       ),
     );
@@ -1399,6 +1331,22 @@ class _CircleIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (icon == Icons.close_rounded) {
+      return Tooltip(
+        message: tooltip,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Image.asset(
+            HomePetsDialogTheme.closeIconAsset,
+            width: 65,
+            height: 65,
+            filterQuality: FilterQuality.high,
+          ),
+        ),
+      );
+    }
+
     return Tooltip(
       message: tooltip,
       child: InkWell(
