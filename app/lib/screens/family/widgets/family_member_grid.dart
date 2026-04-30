@@ -121,7 +121,7 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
                   .clamp(118.0, double.infinity)
                   .toDouble()
             : double.infinity;
-        final targetCardHeight = cardWidth / (compact ? 0.82 : 0.80);
+        final targetCardHeight = cardWidth / (compact ? 0.78 : 0.78);
         final cardHeight = hasBoundedHeight
             ? math.min(slotHeight, targetCardHeight)
             : targetCardHeight;

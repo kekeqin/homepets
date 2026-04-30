@@ -171,21 +171,21 @@ class FamilyMemberCard extends StatelessWidget {
           constraints.maxWidth,
           constraints.maxHeight,
         );
-        final scale = (shortestSide / 190).clamp(0.66, 0.94).toDouble();
-        final cornerRadius = 24 * scale;
+        final scale = (shortestSide / 176).clamp(0.72, 0.98).toDouble();
+        final cornerRadius = 23 * scale;
         final padding = EdgeInsets.fromLTRB(
-          9 * scale,
           8 * scale,
-          9 * scale,
+          7 * scale,
           8 * scale,
+          7 * scale,
         );
-        final avatarSize = (43 * scale).clamp(29.0, 44.0).toDouble();
-        final nameSize = (16 * scale).clamp(11.2, 16.0).toDouble();
-        final scoreWidth = (58 * scale).clamp(44.0, 62.0).toDouble();
-        final scoreHeight = (27 * scale).clamp(21.0, 29.0).toDouble();
-        final labelHeight = (31 * scale).clamp(23.0, 33.0).toDouble();
+        final avatarSize = (43 * scale).clamp(31.0, 45.0).toDouble();
+        final nameSize = (15.5 * scale).clamp(11.8, 16.0).toDouble();
+        final scoreWidth = (58 * scale).clamp(46.0, 62.0).toDouble();
+        final scoreHeight = (27 * scale).clamp(22.0, 29.0).toDouble();
+        final labelHeight = (31 * scale).clamp(24.0, 33.0).toDouble();
         final progressHeight = (10 * scale).clamp(7.0, 10.0).toDouble();
-        final metaSize = (12 * scale).clamp(9.0, 12.0).toDouble();
+        final metaSize = (12 * scale).clamp(9.5, 12.0).toDouble();
 
         final card = DecoratedBox(
           decoration: BoxDecoration(
@@ -195,7 +195,10 @@ class FamilyMemberCard extends StatelessWidget {
               colors: [style.backgroundTop, style.backgroundBottom],
             ),
             borderRadius: BorderRadius.circular(cornerRadius),
-            border: Border.all(color: style.border, width: 1.15 * scale),
+            border: Border.all(
+              color: style.border.withValues(alpha: 0.55),
+              width: 0.85 * scale,
+            ),
             boxShadow: [
               BoxShadow(
                 color: style.outline.withValues(alpha: 0.06),
@@ -204,95 +207,100 @@ class FamilyMemberCard extends StatelessWidget {
               ),
             ],
           ),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(cornerRadius),
-                      gradient: RadialGradient(
-                        center: const Alignment(-0.18, -0.38),
-                        radius: 1.04,
-                        colors: [style.highlight, Colors.transparent],
-                        stops: const [0, 1],
+          child: FamilySpritePanel(
+            skin: style.skin,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(cornerRadius),
+                        gradient: RadialGradient(
+                          center: const Alignment(-0.18, -0.38),
+                          radius: 1.04,
+                          colors: [style.highlight, Colors.transparent],
+                          stops: const [0, 1],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: padding,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      height: avatarSize,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          _MemberPortraitButton(
-                            member: member,
-                            size: avatarSize,
-                            fallbackRegion: _fallbackPortraitRegion,
-                            busy: avatarEditBusy,
-                            onTap: onAvatarEditTap,
-                          ),
-                          SizedBox(width: 7 * scale),
-                          Expanded(
-                            child: Text(
-                              member.nickname,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: style.text,
-                                fontSize: nameSize,
-                                height: 1,
-                                fontWeight: FontWeight.w900,
+                Padding(
+                  padding: padding,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        height: avatarSize,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            _MemberPortraitButton(
+                              member: member,
+                              size: avatarSize,
+                              fallbackRegion: _fallbackPortraitRegion,
+                              busy: avatarEditBusy,
+                              onTap: onAvatarEditTap,
+                            ),
+                            SizedBox(width: 6 * scale),
+                            Expanded(
+                              child: Text(
+                                member.nickname,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: style.text,
+                                  fontSize: nameSize,
+                                  height: 1,
+                                  fontWeight: FontWeight.w900,
+                                ),
                               ),
                             ),
-                          ),
-                          SizedBox(width: 3 * scale),
-                          _PointsBadge(
-                            points: member.points,
-                            width: scoreWidth,
-                            height: scoreHeight,
-                            scale: scale,
-                            outlineColor: style.outline,
-                          ),
-                        ],
+                            SizedBox(width: 2 * scale),
+                            _PointsBadge(
+                              points: member.points,
+                              width: scoreWidth,
+                              height: scoreHeight,
+                              scale: scale,
+                              outlineColor: style.outline,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 2 * scale),
-                    Expanded(
-                      child: _PetStage(
-                        assetPath: _petPreviewAssetPath,
-                        title: _petTitle,
-                        labelHeight: labelHeight,
-                        textColor: style.text,
+                      SizedBox(height: 2 * scale),
+                      Expanded(
+                        child: _PetStage(
+                          assetPath: _petPreviewAssetPath,
+                          title: _petTitle,
+                          labelHeight: labelHeight,
+                          textColor: style.text,
+                          accentColor: style.accent,
+                          seatColor: style.seatColor,
+                          seatBorderColor: style.seatBorderColor,
+                          scale: scale,
+                          badgeKey: Key(
+                            'family_member_pet_button_${member.id}',
+                          ),
+                          onTap: member.pet != null ? onPetTap : null,
+                        ),
+                      ),
+                      SizedBox(height: 3 * scale),
+                      _ProgressFooter(
+                        leadingLabel: _progressLeadingLabel,
+                        trailingLabel: _progressTrailingLabel,
+                        value: _progressValue,
                         accentColor: style.accent,
-                        seatColor: style.seatColor,
-                        seatBorderColor: style.seatBorderColor,
+                        textColor: style.text,
+                        progressHeight: progressHeight,
+                        metaSize: metaSize,
                         scale: scale,
-                        badgeKey: Key('family_member_pet_button_${member.id}'),
-                        onTap: member.pet != null ? onPetTap : null,
                       ),
-                    ),
-                    SizedBox(height: 3 * scale),
-                    _ProgressFooter(
-                      leadingLabel: _progressLeadingLabel,
-                      trailingLabel: _progressTrailingLabel,
-                      value: _progressValue,
-                      accentColor: style.accent,
-                      textColor: style.text,
-                      progressHeight: progressHeight,
-                      metaSize: metaSize,
-                      scale: scale,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
 
@@ -425,7 +433,7 @@ class _PetStage extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final labelWidth = math.min(constraints.maxWidth * 0.78, 120 * scale);
+        final labelWidth = math.min(constraints.maxWidth * 0.80, 126 * scale);
         final resolvedLabelHeight = math.min(
           labelHeight,
           math.max(18 * scale, constraints.maxHeight * 0.32),
@@ -437,10 +445,10 @@ class _PetStage extends StatelessWidget {
         );
         final stageSize = [
           stageAreaHeight,
-          constraints.maxWidth * 0.80,
-          116 * scale,
+          constraints.maxWidth * 0.86,
+          128 * scale,
         ].reduce(math.min);
-        final petSize = math.min(stageSize * 0.98, stageAreaHeight * 0.98);
+        final petSize = math.min(stageSize * 1.05, stageAreaHeight * 1.02);
 
         return Column(
           mainAxisAlignment: MainAxisAlignment.end,
@@ -738,6 +746,7 @@ class _PointsBadge extends StatelessWidget {
 
 class _MemberCardStyle {
   const _MemberCardStyle({
+    required this.skin,
     required this.backgroundTop,
     required this.backgroundBottom,
     required this.border,
@@ -750,6 +759,7 @@ class _MemberCardStyle {
   });
 
   static const warm = _MemberCardStyle(
+    skin: FamilySpriteSkins.memberCardWarm,
     backgroundTop: Color(0xFFFFF7E6),
     backgroundBottom: Color(0xFFFFE7BF),
     border: Color(0xFFE4B36F),
@@ -762,6 +772,7 @@ class _MemberCardStyle {
   );
 
   static const green = _MemberCardStyle(
+    skin: FamilySpriteSkins.memberCardGreen,
     backgroundTop: Color(0xFFFCFBDD),
     backgroundBottom: Color(0xFFEFF3C8),
     border: Color(0xFFC9CA82),
@@ -774,6 +785,7 @@ class _MemberCardStyle {
   );
 
   static const blue = _MemberCardStyle(
+    skin: FamilySpriteSkins.memberCardBlue,
     backgroundTop: Color(0xFFF9FCFC),
     backgroundBottom: Color(0xFFE7F0F3),
     border: Color(0xFFC5D2D6),
@@ -786,6 +798,7 @@ class _MemberCardStyle {
   );
 
   static const pink = _MemberCardStyle(
+    skin: FamilySpriteSkins.memberCardPink,
     backgroundTop: Color(0xFFFFF1EA),
     backgroundBottom: Color(0xFFFFDDD3),
     border: Color(0xFFE9B29F),
@@ -797,6 +810,7 @@ class _MemberCardStyle {
     seatBorderColor: Color(0xFFD8B783),
   );
 
+  final FamilySpritePanelSkin skin;
   final Color backgroundTop;
   final Color backgroundBottom;
   final Color border;

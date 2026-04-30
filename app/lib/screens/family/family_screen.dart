@@ -885,7 +885,7 @@ class _QuietFamilyStageHeader extends StatelessWidget {
                         ),
                         SizedBox(height: compact ? 6 : 9),
                         SizedBox(
-                          height: compact ? 25 : 31,
+                          height: compact ? 27 : 31,
                           child: FittedBox(
                             alignment: Alignment.centerLeft,
                             fit: BoxFit.scaleDown,
@@ -1004,9 +1004,9 @@ class _QuietStatPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final isStar = iconRegion == FamilySpriteRegions.starIcon;
     return Container(
-      width: compact ? (isStar ? 52 : 42) : (isStar ? 68 : 56),
-      height: compact ? 25 : 31,
-      padding: EdgeInsets.symmetric(horizontal: compact ? 5 : 8),
+      width: compact ? (isStar ? 56 : 46) : (isStar ? 68 : 56),
+      height: compact ? 27 : 31,
+      padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 8),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topCenter,
@@ -1039,7 +1039,7 @@ class _QuietStatPill extends StatelessWidget {
                 maxLines: 1,
                 style: TextStyle(
                   color: _FamilyPalette.text,
-                  fontSize: compact ? 11 : 13,
+                  fontSize: compact ? 12 : 13,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -1051,7 +1051,7 @@ class _QuietStatPill extends StatelessWidget {
   }
 
   Widget _buildIcon(bool compact) {
-    final size = compact ? 13.0 : 16.0;
+    final size = compact ? 14.0 : 16.0;
     final icon = iconRegion == FamilySpriteRegions.statMemberIcon
         ? Icons.groups_rounded
         : iconRegion == FamilySpriteRegions.statPetIcon
@@ -1728,13 +1728,13 @@ class _CircleIconButton extends StatelessWidget {
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
           child: SizedBox(
-            width: 36,
-            height: 36,
+            width: 40,
+            height: 40,
             child: Center(
               child: Image.asset(
                 HomePetsDialogTheme.closeIconAsset,
-                width: 31,
-                height: 31,
+                width: 34,
+                height: 34,
                 filterQuality: FilterQuality.high,
               ),
             ),
