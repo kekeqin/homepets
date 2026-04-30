@@ -7,6 +7,7 @@ import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/home/home_scene_screen.dart';
 import '../screens/onboarding/onboarding_screen.dart';
+import '../screens/paywall/paywall_screen.dart';
 import '../screens/profile/profile_screen.dart';
 
 class _RouterRefreshNotifier extends ChangeNotifier {
@@ -85,6 +86,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/shop',
             redirect: (context, state) => '/home?panel=shop',
+          ),
+          GoRoute(
+            path: '/paywall',
+            builder: (context, state) => const PaywallScreen(),
           ),
           GoRoute(
             path: '/profile',

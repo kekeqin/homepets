@@ -49,9 +49,8 @@ Future<String?> showMemberAvatarPickerSheet(
                         ),
                       ),
                       TextButton(
-                        onPressed: () => Navigator.of(
-                          sheetContext,
-                        ).pop(selectedAvatarValue),
+                        onPressed: () =>
+                            Navigator.of(sheetContext).pop(selectedAvatarValue),
                         style: TextButton.styleFrom(
                           foregroundColor: const Color(0xFF9B6415),
                           padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -157,10 +156,10 @@ class _AvatarOptionChip extends StatelessWidget {
         width: 72,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFE1F7D8) : Colors.white,
+          color: selected ? const Color(0xFFF1E7D2) : const Color(0xFFFFF7EA),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: selected ? const Color(0xFF006B1B) : const Color(0xFFE3D7B8),
+            color: selected ? const Color(0xFFD99955) : const Color(0xFFE2CBAA),
             width: selected ? 2 : 1.2,
           ),
         ),
@@ -174,8 +173,8 @@ class _AvatarOptionChip extends StatelessWidget {
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
                 color: selected
-                    ? const Color(0xFF006B1B)
-                    : const Color(0xFF755700),
+                    ? const Color(0xFFA86C35)
+                    : const Color(0xFF6B4328),
               ),
             ),
           ],

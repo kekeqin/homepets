@@ -1,4 +1,4 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -477,7 +477,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen>
               widget.embedded ? Icons.close_rounded : Icons.arrow_back_rounded,
             ),
             color: _ShopPalette.text,
-            tooltip: widget.embedded ? '????' : '????',
+            tooltip: widget.embedded ? '关闭' : '返回首页',
             visualDensity: VisualDensity.compact,
           ),
           const SizedBox(width: 2),

@@ -171,21 +171,21 @@ class FamilyMemberCard extends StatelessWidget {
           constraints.maxWidth,
           constraints.maxHeight,
         );
-        final scale = (shortestSide / 170).clamp(0.66, 1.0).toDouble();
+        final scale = (shortestSide / 190).clamp(0.66, 0.94).toDouble();
         final cornerRadius = 24 * scale;
         final padding = EdgeInsets.fromLTRB(
-          12 * scale,
-          11 * scale,
-          12 * scale,
-          10 * scale,
+          9 * scale,
+          8 * scale,
+          9 * scale,
+          8 * scale,
         );
-        final avatarSize = 38 * scale;
-        final nameSize = 16 * scale;
-        final scoreWidth = 68 * scale;
-        final scoreHeight = 30 * scale;
-        final labelHeight = 34 * scale;
-        final progressHeight = 11 * scale;
-        final metaSize = 10.8 * scale;
+        final avatarSize = (43 * scale).clamp(29.0, 44.0).toDouble();
+        final nameSize = (16 * scale).clamp(11.2, 16.0).toDouble();
+        final scoreWidth = (58 * scale).clamp(44.0, 62.0).toDouble();
+        final scoreHeight = (27 * scale).clamp(21.0, 29.0).toDouble();
+        final labelHeight = (31 * scale).clamp(23.0, 33.0).toDouble();
+        final progressHeight = (10 * scale).clamp(7.0, 10.0).toDouble();
+        final metaSize = (12 * scale).clamp(9.0, 12.0).toDouble();
 
         final card = DecoratedBox(
           decoration: BoxDecoration(
@@ -195,12 +195,12 @@ class FamilyMemberCard extends StatelessWidget {
               colors: [style.backgroundTop, style.backgroundBottom],
             ),
             borderRadius: BorderRadius.circular(cornerRadius),
-            border: Border.all(color: style.border, width: 1.05 * scale),
+            border: Border.all(color: style.border, width: 1.15 * scale),
             boxShadow: [
               BoxShadow(
-                color: style.outline.withValues(alpha: 0.10),
-                blurRadius: 12 * scale,
-                offset: Offset(0, 4 * scale),
+                color: style.outline.withValues(alpha: 0.06),
+                blurRadius: 6 * scale,
+                offset: Offset(0, 2 * scale),
               ),
             ],
           ),
@@ -217,17 +217,6 @@ class FamilyMemberCard extends StatelessWidget {
                         colors: [style.highlight, Colors.transparent],
                         stops: const [0, 1],
                       ),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: CustomPaint(
-                    painter: _HandDrawnCardBorderPainter(
-                      color: style.outline,
-                      radius: cornerRadius,
-                      scale: scale,
                     ),
                   ),
                 ),
@@ -249,7 +238,7 @@ class FamilyMemberCard extends StatelessWidget {
                             busy: avatarEditBusy,
                             onTap: onAvatarEditTap,
                           ),
-                          SizedBox(width: 8 * scale),
+                          SizedBox(width: 7 * scale),
                           Expanded(
                             child: Text(
                               member.nickname,
@@ -263,7 +252,7 @@ class FamilyMemberCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          SizedBox(width: 5 * scale),
+                          SizedBox(width: 3 * scale),
                           _PointsBadge(
                             points: member.points,
                             width: scoreWidth,
@@ -274,7 +263,7 @@ class FamilyMemberCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    SizedBox(height: 4 * scale),
+                    SizedBox(height: 2 * scale),
                     Expanded(
                       child: _PetStage(
                         assetPath: _petPreviewAssetPath,
@@ -289,7 +278,7 @@ class FamilyMemberCard extends StatelessWidget {
                         onTap: member.pet != null ? onPetTap : null,
                       ),
                     ),
-                    SizedBox(height: 5 * scale),
+                    SizedBox(height: 3 * scale),
                     _ProgressFooter(
                       leadingLabel: _progressLeadingLabel,
                       trailingLabel: _progressTrailingLabel,
@@ -318,60 +307,6 @@ class FamilyMemberCard extends StatelessWidget {
         );
       },
     );
-  }
-}
-
-class _HandDrawnCardBorderPainter extends CustomPainter {
-  const _HandDrawnCardBorderPainter({
-    required this.color,
-    required this.radius,
-    required this.scale,
-  });
-
-  final Color color;
-  final double radius;
-  final double scale;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (size.width <= 0 || size.height <= 0) {
-      return;
-    }
-
-    final inset = 1.1 * scale;
-    final rect = Rect.fromLTWH(
-      inset,
-      inset,
-      size.width - inset * 2,
-      size.height - inset * 2,
-    );
-    final outer = RRect.fromRectAndRadius(rect, Radius.circular(radius));
-    final inner = RRect.fromRectAndRadius(
-      rect.deflate(2.1 * scale).shift(Offset(0.35 * scale, -0.25 * scale)),
-      Radius.circular(math.max(0, radius - 3 * scale)),
-    );
-
-    final paint = Paint()
-      ..isAntiAlias = true
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..strokeWidth = 1.55 * scale
-      ..color = color.withValues(alpha: 0.70);
-
-    canvas.drawRRect(outer, paint);
-
-    paint
-      ..strokeWidth = 0.75 * scale
-      ..color = color.withValues(alpha: 0.25);
-    canvas.drawRRect(inner, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _HandDrawnCardBorderPainter oldDelegate) {
-    return oldDelegate.color != color ||
-        oldDelegate.radius != radius ||
-        oldDelegate.scale != scale;
   }
 }
 
@@ -415,17 +350,17 @@ class _MemberPortraitButton extends StatelessWidget {
                 end: Alignment.bottomCenter,
                 colors: [Color(0xFFFFFCF3), Color(0xFFFFECCC)],
               ),
-              border: Border.all(color: const Color(0xFF9B6D3D), width: 1.2),
+              border: Border.all(color: const Color(0xFF9B6D3D), width: 1.0),
               boxShadow: const [
                 BoxShadow(
-                  color: Color(0x1A8A5A2C),
-                  blurRadius: 4,
-                  offset: Offset(0, 2),
+                  color: Color(0x128A5A2C),
+                  blurRadius: 3,
+                  offset: Offset(0, 1),
                 ),
               ],
             ),
             child: Padding(
-              padding: EdgeInsets.all(size * 0.08),
+              padding: EdgeInsets.all(size * 0.055),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -490,22 +425,22 @@ class _PetStage extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final labelWidth = math.min(constraints.maxWidth * 0.82, 128 * scale);
+        final labelWidth = math.min(constraints.maxWidth * 0.78, 120 * scale);
         final resolvedLabelHeight = math.min(
           labelHeight,
-          math.max(20 * scale, constraints.maxHeight * 0.34),
+          math.max(18 * scale, constraints.maxHeight * 0.32),
         );
-        final stageGap = 3 * scale;
+        final stageGap = 2 * scale;
         final stageAreaHeight = math.max(
           0.0,
           constraints.maxHeight - resolvedLabelHeight - stageGap,
         );
         final stageSize = [
           stageAreaHeight,
-          constraints.maxWidth * 0.72,
-          106 * scale,
+          constraints.maxWidth * 0.80,
+          116 * scale,
         ].reduce(math.min);
-        final petSize = math.min(stageSize * 0.92, stageAreaHeight);
+        final petSize = math.min(stageSize * 0.98, stageAreaHeight * 0.98);
 
         return Column(
           mainAxisAlignment: MainAxisAlignment.end,
@@ -525,7 +460,7 @@ class _PetStage extends StatelessWidget {
                     ),
                   ),
                   Positioned(
-                    bottom: stageSize * 0.08,
+                    bottom: stageSize * 0.055,
                     child: _PetPreviewButton(
                       key: badgeKey,
                       assetPath: assetPath,
@@ -617,18 +552,18 @@ class _PetNameLabel extends StatelessWidget {
           end: Alignment.bottomCenter,
           colors: [Color(0xFFFFFFF7), Color(0xFFFFF0CE)],
         ),
-        borderRadius: BorderRadius.circular(18 * scale),
-        border: Border.all(color: borderColor, width: 1.35 * scale),
+        borderRadius: BorderRadius.circular(16 * scale),
+        border: Border.all(color: borderColor, width: 1.05 * scale),
         boxShadow: [
           BoxShadow(
             color: borderColor.withValues(alpha: 0.13),
-            blurRadius: 5 * scale,
-            offset: Offset(0, 2 * scale),
+            blurRadius: 4 * scale,
+            offset: Offset(0, 1.5 * scale),
           ),
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 12 * scale),
+        padding: EdgeInsets.symmetric(horizontal: 9 * scale),
         child: Center(
           child: FittedBox(
             fit: BoxFit.scaleDown,
@@ -637,7 +572,7 @@ class _PetNameLabel extends StatelessWidget {
               maxLines: 1,
               style: TextStyle(
                 color: textColor,
-                fontSize: 15.5 * scale,
+                fontSize: 13.5 * scale,
                 height: 1,
                 fontWeight: FontWeight.w900,
               ),
@@ -673,62 +608,50 @@ class _ProgressFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: math.max(22 * scale, progressHeight + 8 * scale),
-      child: Row(
+      height: math.max(28 * scale, progressHeight + 16 * scale),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          Container(
-            constraints: BoxConstraints(minWidth: 32 * scale),
-            height: 18 * scale,
-            padding: EdgeInsets.symmetric(horizontal: 6 * scale),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.56),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: accentColor.withValues(alpha: 0.38),
-                width: 1 * scale,
-              ),
-            ),
-            child: Center(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  leadingLabel,
-                  maxLines: 1,
-                  style: TextStyle(
-                    color: accentColor,
-                    fontSize: metaSize,
-                    height: 1,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: 5 * scale),
-          Expanded(
+          SizedBox(
+            width: double.infinity,
             child: FamilySpriteProgressBar(
               value: value,
               height: progressHeight,
             ),
           ),
-          SizedBox(width: 5 * scale),
-          ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 58 * scale),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerRight,
-              child: Text(
-                trailingLabel,
+          SizedBox(height: 3 * scale),
+          Row(
+            children: [
+              Text(
+                leadingLabel,
                 maxLines: 1,
-                textAlign: TextAlign.right,
                 style: TextStyle(
-                  color: textColor.withValues(alpha: 0.78),
+                  color: accentColor,
                   fontSize: metaSize,
                   height: 1,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
-            ),
+              const Spacer(),
+              Flexible(
+                flex: 2,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    trailingLabel,
+                    maxLines: 1,
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      color: textColor.withValues(alpha: 0.82),
+                      fontSize: metaSize,
+                      height: 1,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -761,10 +684,13 @@ class _PointsBadge extends StatelessWidget {
           gradient: const LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFFFFBF1), Color(0xFFFFF1DC)],
+            colors: [Color(0xFFFFFCF3), Color(0xFFFFEFD2)],
           ),
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: outlineColor, width: 1.25 * scale),
+          border: Border.all(
+            color: const Color(0xFF8D5B2E),
+            width: 1.05 * scale,
+          ),
           boxShadow: [
             BoxShadow(
               color: outlineColor.withValues(alpha: 0.10),
@@ -774,19 +700,19 @@ class _PointsBadge extends StatelessWidget {
           ],
         ),
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 7 * scale),
+          padding: EdgeInsets.symmetric(horizontal: 5 * scale),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               SizedBox(
-                width: 18 * scale,
-                height: 18 * scale,
+                width: 15 * scale,
+                height: 15 * scale,
                 child: const FamilySpriteSlice(
                   region: FamilySpriteRegions.starIcon,
                   sampleInset: 2,
                 ),
               ),
-              SizedBox(width: 3 * scale),
+              SizedBox(width: 2 * scale),
               Flexible(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
@@ -795,7 +721,7 @@ class _PointsBadge extends StatelessWidget {
                     maxLines: 1,
                     style: TextStyle(
                       color: const Color(0xFF704524),
-                      fontSize: 13.5 * scale,
+                      fontSize: 12.6 * scale,
                       height: 1,
                       fontWeight: FontWeight.w900,
                     ),
@@ -824,10 +750,10 @@ class _MemberCardStyle {
   });
 
   static const warm = _MemberCardStyle(
-    backgroundTop: Color(0xFFFFFAEA),
-    backgroundBottom: Color(0xFFFFE8BE),
-    border: Color(0xFFEEC27B),
-    outline: Color(0xFF986538),
+    backgroundTop: Color(0xFFFFF7E6),
+    backgroundBottom: Color(0xFFFFE7BF),
+    border: Color(0xFFE4B36F),
+    outline: Color(0xFF8D6037),
     text: Color(0xFF6B4224),
     accent: Color(0xFF789541),
     highlight: Color(0x38FFFFFF),
@@ -836,10 +762,10 @@ class _MemberCardStyle {
   );
 
   static const green = _MemberCardStyle(
-    backgroundTop: Color(0xFFFAFADB),
-    backgroundBottom: Color(0xFFEFF3BE),
-    border: Color(0xFFC5C971),
-    outline: Color(0xFF8A7538),
+    backgroundTop: Color(0xFFFCFBDD),
+    backgroundBottom: Color(0xFFEFF3C8),
+    border: Color(0xFFC9CA82),
+    outline: Color(0xFF81713A),
     text: Color(0xFF5C5E31),
     accent: Color(0xFF769642),
     highlight: Color(0x34FFFFFF),
@@ -848,10 +774,10 @@ class _MemberCardStyle {
   );
 
   static const blue = _MemberCardStyle(
-    backgroundTop: Color(0xFFF6FAFC),
-    backgroundBottom: Color(0xFFE5EEF2),
-    border: Color(0xFFC1D0D6),
-    outline: Color(0xFF846A42),
+    backgroundTop: Color(0xFFF9FCFC),
+    backgroundBottom: Color(0xFFE7F0F3),
+    border: Color(0xFFC5D2D6),
+    outline: Color(0xFF7D6844),
     text: Color(0xFF5B5D51),
     accent: Color(0xFF789544),
     highlight: Color(0x30FFFFFF),
@@ -860,10 +786,10 @@ class _MemberCardStyle {
   );
 
   static const pink = _MemberCardStyle(
-    backgroundTop: Color(0xFFFFF5EC),
-    backgroundBottom: Color(0xFFFFDFD5),
-    border: Color(0xFFEFB6A5),
-    outline: Color(0xFF9A6548),
+    backgroundTop: Color(0xFFFFF1EA),
+    backgroundBottom: Color(0xFFFFDDD3),
+    border: Color(0xFFE9B29F),
+    outline: Color(0xFF926044),
     text: Color(0xFF75482F),
     accent: Color(0xFF9B7949),
     highlight: Color(0x30FFFFFF),
@@ -906,12 +832,12 @@ class _PetCircleStage extends StatelessWidget {
           ],
         ),
         shape: BoxShape.circle,
-        border: Border.all(color: borderColor, width: 1.2 * scale),
+        border: Border.all(color: borderColor, width: 1.0 * scale),
         boxShadow: [
           BoxShadow(
-            color: borderColor.withValues(alpha: 0.14),
-            blurRadius: 8 * scale,
-            offset: Offset(0, 3 * scale),
+            color: borderColor.withValues(alpha: 0.10),
+            blurRadius: 6 * scale,
+            offset: Offset(0, 2 * scale),
           ),
         ],
       ),

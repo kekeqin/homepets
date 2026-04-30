@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../../models/pet.dart';
 import '../models/member_profile_view_data.dart';
@@ -80,7 +80,7 @@ class MemberProfileBadgeGrid extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    unlocked ? badge.label : '???',
+                    unlocked ? badge.label : '未解锁',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 11,

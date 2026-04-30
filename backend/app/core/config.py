@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
 
+    REVENUECAT_SECRET_API_KEY: str | None = None
+    REVENUECAT_PROJECT_ID: str | None = None
+    REVENUECAT_WEBHOOK_AUTH: str | None = None
+    REVENUECAT_ENTITLEMENT_ID: str = "premium"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
     @property

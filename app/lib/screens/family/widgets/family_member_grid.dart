@@ -1,9 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../models/pet.dart';
 import '../models/family_member_view_data.dart';
 import 'family_empty_card.dart';
 import 'family_member_card.dart';
+import 'family_sprite_slice.dart';
 
 class FamilyMemberGrid extends StatefulWidget {
   const FamilyMemberGrid({
@@ -73,7 +76,8 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
     return LayoutBuilder(
       builder: (context, constraints) {
         const crossAxisCount = 2;
-        final spacing = constraints.maxWidth >= 760 ? 18.0 : 8.0;
+        final compact = constraints.maxWidth < 430;
+        final spacing = constraints.maxWidth >= 760 ? 14.0 : 10.0;
 
         if (widget.members.isEmpty) {
           return FamilyEmptyCard(
@@ -94,24 +98,38 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
                 .toList(growable: false),
         ];
         final pageMembers = pages[_currentPage];
-        final dotsHeight = _pageCount > 1 ? 52.0 : 0.0;
+        const pageGap = 4.0;
+        const pageDotsRowHeight = 22.0;
+        final dotsHeight = _pageCount > 1 ? pageGap + pageDotsRowHeight : 0.0;
+        final gridWidthFactor = compact
+            ? 0.96
+            : constraints.maxWidth >= 760
+            ? 0.90
+            : 0.94;
+        final gridWidth = (constraints.maxWidth * gridWidthFactor)
+            .clamp(0.0, constraints.maxWidth)
+            .toDouble();
         final cardWidth =
-            (constraints.maxWidth - spacing * (crossAxisCount - 1)) /
-            crossAxisCount;
+            (gridWidth - spacing * (crossAxisCount - 1)) / crossAxisCount;
         final hasBoundedHeight =
             constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
         final availableGridHeight = hasBoundedHeight
             ? (constraints.maxHeight - dotsHeight).clamp(0.0, double.infinity)
             : double.infinity;
-        final cardHeight = hasBoundedHeight
-            ? ((availableGridHeight - spacing - 4) / 2)
-                  .clamp(96.0, double.infinity)
+        final slotHeight = hasBoundedHeight
+            ? ((availableGridHeight - spacing) / 2)
+                  .clamp(118.0, double.infinity)
                   .toDouble()
-            : cardWidth / 0.78;
+            : double.infinity;
+        final targetCardHeight = cardWidth / (compact ? 0.82 : 0.80);
+        final cardHeight = hasBoundedHeight
+            ? math.min(slotHeight, targetCardHeight)
+            : targetCardHeight;
         final gridHeight = cardHeight * 2 + spacing;
         final childAspectRatio = cardWidth / cardHeight;
 
         final grid = SizedBox(
+          width: gridWidth,
           height: gridHeight,
           child: GridView.builder(
             padding: EdgeInsets.zero,
@@ -152,15 +170,21 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
         );
 
         if (_pageCount <= 1) {
-          return grid;
+          return SizedBox(
+            width: double.infinity,
+            height: hasBoundedHeight ? constraints.maxHeight : gridHeight,
+            child: Align(alignment: Alignment.center, child: grid),
+          );
         }
 
         return SizedBox(
-          height: hasBoundedHeight ? constraints.maxHeight : gridHeight + 34,
-          child: Stack(
+          height: hasBoundedHeight
+              ? constraints.maxHeight
+              : gridHeight + dotsHeight,
+          child: Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 42),
+              SizedBox(
+                height: gridHeight,
                 child: GestureDetector(
                   key: const Key('family_member_grid_swipe_area'),
                   behavior: HitTestBehavior.opaque,
@@ -201,36 +225,35 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
                   ),
                 ),
               ),
-              Positioned(
+              const SizedBox(height: pageGap),
+              SizedBox(
                 key: const Key('family_member_grid_page_dots'),
-                left: 0,
-                right: 0,
-                bottom: 11,
+                height: pageDotsRowHeight,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const _PageDivider(),
-                    const SizedBox(width: 14),
+                    const SizedBox(width: 10),
                     _PageDot(
                       active: _currentPage == 0,
                       onTap: () => _setPage(0),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 7),
                     Text(
                       '${_currentPage + 1}/$_pageCount',
                       style: const TextStyle(
                         color: Color(0xFF7D5A36),
-                        fontSize: 18,
+                        fontSize: 14,
                         height: 1,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 7),
                     _PageDot(
                       active: _currentPage == _pageCount - 1,
                       onTap: () => _setPage(_pageCount - 1),
                     ),
-                    const SizedBox(width: 14),
+                    const SizedBox(width: 10),
                     const _PageDivider(),
                   ],
                 ),
@@ -249,8 +272,8 @@ class _PageDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 52,
-      height: 2,
+      width: 36,
+      height: 1.5,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: const Color(0xFFE9B66F).withValues(alpha: 0.68),
@@ -275,21 +298,14 @@ class _PageDot extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         scale: active ? 1 : 0.9,
         child: SizedBox(
-          width: 18,
-          height: 18,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: active ? const Color(0xFF93A83B) : const Color(0xFFFFDCA6),
-              border: Border.all(color: const Color(0xFF8D5B2E), width: 1.1),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF8D5B2E).withValues(alpha: 0.12),
-                  blurRadius: 3,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
+          width: 12,
+          height: 12,
+          child: FamilySpriteSlice(
+            region: active
+                ? FamilySpriteRegions.pageDotActive
+                : FamilySpriteRegions.pageDotInactive,
+            fit: BoxFit.contain,
+            sampleInset: 1,
           ),
         ),
       ),

@@ -56,14 +56,14 @@ class AppModalLayouts {
   );
 
   static const family = AppModalLayout(
-    mobileWidthFactor: 0.98,
-    mobileMaxWidth: 520,
-    mobileHeightFactor: 0.96,
-    mobileMaxHeight: 840,
-    tabletWidthFactor: 0.72,
-    tabletMaxWidth: 860,
-    tabletHeightFactor: 0.86,
-    tabletMaxHeight: 880,
+    mobileWidthFactor: 0.86,
+    mobileMaxWidth: 360,
+    mobileHeightFactor: 0.94,
+    mobileMaxHeight: 720,
+    tabletWidthFactor: 0.42,
+    tabletMaxWidth: 420,
+    tabletHeightFactor: 0.88,
+    tabletMaxHeight: 760,
   );
 
   static const taskPanel = AppModalLayout(

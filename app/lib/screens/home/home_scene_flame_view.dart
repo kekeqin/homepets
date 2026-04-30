@@ -2037,7 +2037,10 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
       setState(() => _pets = pets);
       _syncGamePetsFromServer();
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      debugPrint('Failed to load home scene pets: $error');
+      debugPrint('$stackTrace');
+    }
   }
 
   Pet? _findPetById(int petId) {
@@ -2177,6 +2180,18 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<int?>(authProvider.select((state) => state.user?.familyId), (
+      previous,
+      next,
+    ) {
+      if (previous == next) {
+        return;
+      }
+
+      _loadFamilyPets();
+      _loadHomeTasks();
+    });
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = constraints.biggest;

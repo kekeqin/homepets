@@ -62,6 +62,12 @@ coverage/
 # Logs / runtime
 *.log
 *.pid
+run/
 
 # Local debug artifacts
 checkbox_debug.png
+.codex/
+.android/
+.android_home/
+homepets_*.png
+homepets_*_preview.wav

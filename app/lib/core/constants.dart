@@ -4,3 +4,20 @@ class ApiConstants {
   static const String tokenKey = 'access_token';
   static const String onboardingKey = 'onboarding_done';
 }
+
+class RevenueCatConstants {
+  static const String testStorePublicSdkKey =
+      'test_NFtgmTDZrduESWajnYMSIvXsQeR';
+  static const String iosPublicSdkKey = String.fromEnvironment(
+    'REVENUECAT_IOS_API_KEY',
+    defaultValue: testStorePublicSdkKey,
+  );
+  static const String androidPublicSdkKey = String.fromEnvironment(
+    'REVENUECAT_ANDROID_API_KEY',
+    defaultValue: testStorePublicSdkKey,
+  );
+  static const String entitlementId = String.fromEnvironment(
+    'REVENUECAT_ENTITLEMENT_ID',
+    defaultValue: 'premium',
+  );
+}

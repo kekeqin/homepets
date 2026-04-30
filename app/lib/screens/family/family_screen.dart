@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -200,9 +202,20 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
   }
 
   Future<String?> _showFamilyNameDialog(String initialName) async {
-    return showDialog<String>(
+    return showAppModalDialog<String>(
       context: context,
-      builder: (_) => _FamilyNameEditDialog(initialName: initialName),
+      barrierLabel: 'edit_family_name_dialog',
+      blurSigma: 6,
+      barrierTint: const Color(0x544D3523),
+      beginScale: 0.96,
+      beginYOffset: 16,
+      pageBuilder: (dialogContext) {
+        return _FamilyNameEditDialog(
+          initialName: initialName,
+          onCancel: () => Navigator.of(dialogContext).pop(),
+          onSubmit: (value) => Navigator.of(dialogContext).pop(value),
+        );
+      },
     );
   }
 
@@ -560,20 +573,20 @@ class _FamilyStageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
-      aspectRatio: 0.585,
+      aspectRatio: 0.592,
       child: DecoratedBox(
         decoration: const BoxDecoration(
-          borderRadius: BorderRadius.all(Radius.circular(32)),
+          borderRadius: BorderRadius.all(Radius.circular(30)),
           boxShadow: [
             BoxShadow(
-              color: Color(0x245C3516),
-              blurRadius: 18,
-              offset: Offset(0, 8),
+              color: Color(0x205C3516),
+              blurRadius: 14,
+              offset: Offset(0, 7),
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(28),
           child: FamilySpritePanel(
             skin: FamilySpriteSkins.outerPanel,
             child: LayoutBuilder(
@@ -585,10 +598,10 @@ class _FamilyStageCard extends StatelessWidget {
                   clipBehavior: Clip.hardEdge,
                   children: [
                     Positioned(
-                      left: width * 0.06,
-                      right: width * 0.055,
-                      top: height * 0.034,
-                      height: height * 0.246,
+                      left: width * 0.058,
+                      right: width * 0.048,
+                      top: height * 0.038,
+                      height: height * 0.218,
                       child: _QuietFamilyStageHeader(
                         embedded: embedded,
                         title: title,
@@ -605,10 +618,10 @@ class _FamilyStageCard extends StatelessWidget {
                       ),
                     ),
                     Positioned(
-                      left: width * 0.034,
-                      right: width * 0.034,
-                      top: height * 0.287,
-                      height: height * 0.653,
+                      left: width * 0.032,
+                      right: width * 0.032,
+                      top: height * 0.268,
+                      height: height * 0.696,
                       child: membersPanel,
                     ),
                   ],
@@ -827,9 +840,9 @@ class _QuietFamilyStageHeader extends StatelessWidget {
       builder: (context, constraints) {
         final maxWidth = constraints.maxWidth;
         final compact = embedded || maxWidth < 430;
-        final titleSize = compact ? 27.0 : 34.0;
-        final heroWidth = (maxWidth * (maxWidth < 380 ? 0.45 : 0.44))
-            .clamp(142.0, compact ? 196.0 : 260.0)
+        final titleSize = compact ? 30.0 : 34.0;
+        final heroWidth = (maxWidth * (maxWidth < 380 ? 0.39 : 0.41))
+            .clamp(112.0, compact ? 142.0 : 190.0)
             .toDouble();
         final heroHeight = heroWidth / 1.18;
 
@@ -841,7 +854,7 @@ class _QuietFamilyStageHeader extends StatelessWidget {
               children: [
                 Expanded(
                   child: Padding(
-                    padding: EdgeInsets.only(top: compact ? 3 : 6),
+                    padding: EdgeInsets.only(top: compact ? 0 : 2),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
@@ -862,7 +875,7 @@ class _QuietFamilyStageHeader extends StatelessWidget {
                               ),
                             ),
                             if (canEditTitle) ...[
-                              const SizedBox(width: 6),
+                              SizedBox(width: compact ? 3 : 5),
                               _HeaderEditButton(
                                 busy: updatingTitle,
                                 onTap: onEditTitleTap,
@@ -870,30 +883,39 @@ class _QuietFamilyStageHeader extends StatelessWidget {
                             ],
                           ],
                         ),
-                        SizedBox(height: compact ? 12 : 14),
-                        Wrap(
-                          spacing: compact ? 7 : 8,
-                          runSpacing: compact ? 7 : 8,
-                          children: [
-                            _QuietStatPill(
-                              compact: compact,
-                              iconRegion: FamilySpriteRegions.statMemberIcon,
-                              value: '$memberCount',
+                        SizedBox(height: compact ? 6 : 9),
+                        SizedBox(
+                          height: compact ? 25 : 31,
+                          child: FittedBox(
+                            alignment: Alignment.centerLeft,
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _QuietStatPill(
+                                  compact: compact,
+                                  iconRegion:
+                                      FamilySpriteRegions.statMemberIcon,
+                                  value: '$memberCount',
+                                ),
+                                SizedBox(width: compact ? 4 : 6),
+                                _QuietStatPill(
+                                  compact: compact,
+                                  iconRegion: FamilySpriteRegions.statPetIcon,
+                                  value: '$petCount',
+                                ),
+                                SizedBox(width: compact ? 4 : 6),
+                                _QuietStatPill(
+                                  compact: compact,
+                                  iconRegion: FamilySpriteRegions.starIcon,
+                                  value: '$familyPoints',
+                                ),
+                              ],
                             ),
-                            _QuietStatPill(
-                              compact: compact,
-                              iconRegion: FamilySpriteRegions.statPetIcon,
-                              value: '$petCount',
-                            ),
-                            _QuietStatPill(
-                              compact: compact,
-                              iconRegion: FamilySpriteRegions.starIcon,
-                              value: '$familyPoints',
-                            ),
-                          ],
+                          ),
                         ),
                         if (canManageMembers) ...[
-                          SizedBox(height: compact ? 12 : 14),
+                          SizedBox(height: compact ? 7 : 10),
                           _HeroAddButton(
                             compact: compact,
                             busy: addingMember,
@@ -904,9 +926,9 @@ class _QuietFamilyStageHeader extends StatelessWidget {
                     ),
                   ),
                 ),
-                SizedBox(width: compact ? 2 : 12),
+                SizedBox(width: compact ? 4 : 10),
                 Padding(
-                  padding: EdgeInsets.only(top: compact ? 10 : 12),
+                  padding: EdgeInsets.only(top: compact ? 4 : 8),
                   child: SizedBox(
                     width: heroWidth,
                     height: heroHeight,
@@ -918,8 +940,8 @@ class _QuietFamilyStageHeader extends StatelessWidget {
               ],
             ),
             Positioned(
-              top: embedded ? -12 : -6,
-              right: embedded ? -16 : -8,
+              top: embedded ? -4 : -5,
+              right: embedded ? -6 : -7,
               child: _CircleIconButton(
                 icon: embedded ? Icons.close_rounded : Icons.arrow_back_rounded,
                 tooltip: embedded ? '\u5173\u95ed' : '\u8fd4\u56de\u9996\u9875',
@@ -947,15 +969,15 @@ class _HeaderEditButton extends StatelessWidget {
         onTap: busy ? null : onTap,
         borderRadius: BorderRadius.circular(999),
         child: SizedBox(
-          width: 31,
-          height: 31,
+          width: 24,
+          height: 23,
           child: busy
               ? const Center(
                   child: SizedBox(
-                    width: 14,
-                    height: 14,
+                    width: 12,
+                    height: 12,
                     child: CircularProgressIndicator(
-                      strokeWidth: 2,
+                      strokeWidth: 1.7,
                       color: _FamilyPalette.muted,
                     ),
                   ),
@@ -982,17 +1004,20 @@ class _QuietStatPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final isStar = iconRegion == FamilySpriteRegions.starIcon;
     return Container(
-      width: compact ? (isStar ? 86 : 72) : (isStar ? 98 : 84),
-      height: compact ? 38 : 42,
-      padding: EdgeInsets.symmetric(horizontal: compact ? 9 : 11),
+      width: compact ? (isStar ? 52 : 42) : (isStar ? 68 : 56),
+      height: compact ? 25 : 31,
+      padding: EdgeInsets.symmetric(horizontal: compact ? 5 : 8),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFFFFFBF0), Color(0xFFFFEED4)],
+          colors: [Color(0xFFFFFBF0), Color(0xFFFFF0D8)],
         ),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFF8D5B2E), width: 1.4),
+        border: Border.all(
+          color: const Color(0xFF8D5B2E),
+          width: compact ? 1.0 : 1.2,
+        ),
         boxShadow: const [
           BoxShadow(
             color: Color(0x168A5A2C),
@@ -1005,7 +1030,7 @@ class _QuietStatPill extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _buildIcon(compact),
-          const SizedBox(width: 5),
+          SizedBox(width: compact ? 2 : 4),
           Flexible(
             child: FittedBox(
               fit: BoxFit.scaleDown,
@@ -1014,7 +1039,7 @@ class _QuietStatPill extends StatelessWidget {
                 maxLines: 1,
                 style: TextStyle(
                   color: _FamilyPalette.text,
-                  fontSize: compact ? 13 : 16,
+                  fontSize: compact ? 11 : 13,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -1026,15 +1051,20 @@ class _QuietStatPill extends StatelessWidget {
   }
 
   Widget _buildIcon(bool compact) {
-    final size = compact ? 17.0 : 20.0;
+    final size = compact ? 13.0 : 16.0;
+    final icon = iconRegion == FamilySpriteRegions.statMemberIcon
+        ? Icons.groups_rounded
+        : iconRegion == FamilySpriteRegions.statPetIcon
+        ? Icons.pets_rounded
+        : Icons.star_rounded;
+    final color = iconRegion == FamilySpriteRegions.starIcon
+        ? const Color(0xFFFFC943)
+        : const Color(0xFF8A6438);
+
     return SizedBox(
       width: size,
       height: size,
-      child: FamilySpriteSlice(
-        region: iconRegion,
-        fit: BoxFit.contain,
-        sampleInset: 2,
-      ),
+      child: Icon(icon, size: size, color: color),
     );
   }
 }
@@ -1058,8 +1088,8 @@ class _HeroAddButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(999),
         child: SizedBox(
-          width: compact ? 158 : 182,
-          height: compact ? 52 : 58,
+          width: compact ? 128 : 154,
+          height: compact ? 42 : 50,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -1069,10 +1099,10 @@ class _HeroAddButton extends StatelessWidget {
               if (busy)
                 Center(
                   child: SizedBox(
-                    width: compact ? 17 : 20,
-                    height: compact ? 17 : 20,
+                    width: compact ? 15 : 18,
+                    height: compact ? 15 : 18,
                     child: CircularProgressIndicator(
-                      strokeWidth: compact ? 1.8 : 2,
+                      strokeWidth: compact ? 1.7 : 1.9,
                       color: _FamilyPalette.accentDark,
                     ),
                   ),
@@ -1085,16 +1115,54 @@ class _HeroAddButton extends StatelessWidget {
   }
 }
 
+const String _familyNameDialogAsset =
+    'assets/images/ui/sprites/edit_family_name_dialog_sprites_clean.png';
+const Size _familyNameDialogSheetSize = Size(1448, 1086);
+
+const Rect _familyNameDialogPanelRegion = Rect.fromLTWH(749, 82, 647, 406);
+const Rect _familyNameDialogTitleRegion = Rect.fromLTWH(62, 622, 238, 38);
+const Rect _familyNameDialogFieldLabelRegion = Rect.fromLTWH(412, 625, 99, 24);
+const Rect _familyNameDialogInputBoxRegion = Rect.fromLTWH(743, 615, 275, 48);
+const Rect _familyNameDialogHelperTextRegion = Rect.fromLTWH(90, 807, 144, 23);
+const Rect _familyNameDialogBottomCancelRegion = Rect.fromLTWH(
+  495,
+  1001,
+  58,
+  29,
+);
+const Rect _familyNameDialogBottomSaveRegion = Rect.fromLTWH(624, 971, 190, 73);
+
+const double _familyNameDialogDesignWidth = 647;
+const double _familyNameDialogDesignHeight = 406;
+const AppModalLayout _familyNameDialogLayout = AppModalLayout(
+  mobileWidthFactor: 0.92,
+  mobileMaxWidth: 430,
+  mobileHeightFactor: 0.52,
+  mobileMaxHeight: 300,
+  tabletWidthFactor: 0.48,
+  tabletMaxWidth: 560,
+  tabletHeightFactor: 0.46,
+  tabletMaxHeight: 390,
+);
+
 class _FamilyNameEditDialog extends StatefulWidget {
-  const _FamilyNameEditDialog({required this.initialName});
+  const _FamilyNameEditDialog({
+    required this.initialName,
+    required this.onCancel,
+    required this.onSubmit,
+  });
 
   final String initialName;
+  final VoidCallback onCancel;
+  final ValueChanged<String> onSubmit;
 
   @override
   State<_FamilyNameEditDialog> createState() => _FamilyNameEditDialogState();
 }
 
 class _FamilyNameEditDialogState extends State<_FamilyNameEditDialog> {
+  static const _maxLength = 30;
+
   late final TextEditingController _controller;
   String? _errorText;
 
@@ -1116,35 +1184,357 @@ class _FamilyNameEditDialogState extends State<_FamilyNameEditDialog> {
       setState(() => _errorText = '家庭名称不能为空');
       return;
     }
-    Navigator.of(context).pop(value);
+    widget.onSubmit(value);
+  }
+
+  void _handleChanged(String value) {
+    if (_errorText != null) {
+      setState(() => _errorText = null);
+      return;
+    }
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('修改家庭名称'),
-      content: TextField(
-        controller: _controller,
-        autofocus: true,
-        maxLength: 30,
-        onChanged: (_) {
-          if (_errorText != null) {
-            setState(() => _errorText = null);
-          }
+    return AppModalShell(
+      layout: _familyNameDialogLayout,
+      minimumSafeArea: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+      clipChild: false,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxWidth = constraints.maxWidth.isFinite
+              ? constraints.maxWidth
+              : _familyNameDialogDesignWidth;
+          final maxHeight = constraints.maxHeight.isFinite
+              ? constraints.maxHeight
+              : _familyNameDialogDesignHeight;
+          final aspect =
+              _familyNameDialogDesignWidth / _familyNameDialogDesignHeight;
+          final dialogWidth = math.min(maxWidth, maxHeight * aspect);
+          final dialogHeight = dialogWidth / aspect;
+
+          return Center(
+            child: SizedBox(
+              width: dialogWidth,
+              height: dialogHeight,
+              child: FittedBox(
+                fit: BoxFit.contain,
+                child: SizedBox(
+                  width: _familyNameDialogDesignWidth,
+                  height: _familyNameDialogDesignHeight,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      const Positioned.fill(
+                        child: FamilySpriteSlice(
+                          assetPath: _familyNameDialogAsset,
+                          sheetSize: _familyNameDialogSheetSize,
+                          region: _familyNameDialogPanelRegion,
+                          fit: BoxFit.fill,
+                          sampleInset: 0,
+                        ),
+                      ),
+                      const Positioned(
+                        left: 50,
+                        top: 47,
+                        width: 238,
+                        height: 38,
+                        child: FamilySpriteSlice(
+                          assetPath: _familyNameDialogAsset,
+                          sheetSize: _familyNameDialogSheetSize,
+                          region: _familyNameDialogTitleRegion,
+                          fit: BoxFit.contain,
+                          alignment: Alignment.centerLeft,
+                          sampleInset: 0,
+                        ),
+                      ),
+                      const Positioned(
+                        left: 52,
+                        top: 116,
+                        width: 99,
+                        height: 24,
+                        child: FamilySpriteSlice(
+                          assetPath: _familyNameDialogAsset,
+                          sheetSize: _familyNameDialogSheetSize,
+                          region: _familyNameDialogFieldLabelRegion,
+                          fit: BoxFit.contain,
+                          alignment: Alignment.centerLeft,
+                          sampleInset: 0,
+                        ),
+                      ),
+                      const Positioned(
+                        left: 52,
+                        top: 153,
+                        width: 520,
+                        height: 86,
+                        child: FamilySpriteSlice(
+                          assetPath: _familyNameDialogAsset,
+                          sheetSize: _familyNameDialogSheetSize,
+                          region: _familyNameDialogInputBoxRegion,
+                          fit: BoxFit.fill,
+                          sampleInset: 0,
+                        ),
+                      ),
+                      Positioned(
+                        left: 74,
+                        top: 167,
+                        width: 476,
+                        height: 58,
+                        child: _FamilyNameTextField(
+                          controller: _controller,
+                          maxLength: _maxLength,
+                          onChanged: _handleChanged,
+                          onSubmitted: _submit,
+                        ),
+                      ),
+                      Positioned(
+                        left: 52,
+                        top: 258,
+                        width: 220,
+                        height: 28,
+                        child: _FamilyNameHelperText(errorText: _errorText),
+                      ),
+                      Positioned(
+                        right: 52,
+                        top: 256,
+                        width: 110,
+                        height: 32,
+                        child: _FamilyNameCharCount(
+                          count: _controller.text.length,
+                          maxLength: _maxLength,
+                        ),
+                      ),
+                      Positioned(
+                        left: 247,
+                        top: 301,
+                        width: 322,
+                        height: 97,
+                        child: _FamilyNameDialogActions(
+                          onCancel: widget.onCancel,
+                          onSave: _submit,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
         },
-        onSubmitted: (_) => _submit(),
-        decoration: InputDecoration(
-          labelText: '家庭名称',
-          hintText: '例如：宠物岛',
-          errorText: _errorText,
+      ),
+    );
+  }
+}
+
+class _FamilyNameTextField extends StatelessWidget {
+  const _FamilyNameTextField({
+    required this.controller,
+    required this.maxLength,
+    required this.onChanged,
+    required this.onSubmitted,
+  });
+
+  final TextEditingController controller;
+  final int maxLength;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onSubmitted;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      key: const Key('family_name_edit_field'),
+      controller: controller,
+      autofocus: true,
+      maxLength: maxLength,
+      maxLines: 1,
+      textInputAction: TextInputAction.done,
+      style: const TextStyle(
+        color: Color(0xFF4A3527),
+        fontSize: 31,
+        fontWeight: FontWeight.w900,
+        height: 1.1,
+      ),
+      cursorColor: const Color(0xFF6E4B2C),
+      cursorWidth: 2.4,
+      onChanged: onChanged,
+      onSubmitted: (_) => onSubmitted(),
+      buildCounter:
+          (
+            context, {
+            required currentLength,
+            required isFocused,
+            required maxLength,
+          }) {
+            return const SizedBox.shrink();
+          },
+      decoration: const InputDecoration(
+        isCollapsed: true,
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        contentPadding: EdgeInsets.only(top: 12),
+        counterText: '',
+      ),
+    );
+  }
+}
+
+class _FamilyNameHelperText extends StatelessWidget {
+  const _FamilyNameHelperText({required this.errorText});
+
+  final String? errorText;
+
+  @override
+  Widget build(BuildContext context) {
+    final error = errorText;
+    if (error != null) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          error,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Color(0xFFB95740),
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            height: 1,
+          ),
+        ),
+      );
+    }
+
+    return const Align(
+      alignment: Alignment.centerLeft,
+      child: FamilySpriteSlice(
+        assetPath: _familyNameDialogAsset,
+        sheetSize: _familyNameDialogSheetSize,
+        region: _familyNameDialogHelperTextRegion,
+        fit: BoxFit.contain,
+        alignment: Alignment.centerLeft,
+        sampleInset: 0,
+      ),
+    );
+  }
+}
+
+class _FamilyNameCharCount extends StatelessWidget {
+  const _FamilyNameCharCount({required this.count, required this.maxLength});
+
+  final int count;
+  final int maxLength;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Text(
+        '$count / $maxLength',
+        maxLines: 1,
+        style: const TextStyle(
+          color: Color(0xFF9A7D60),
+          fontSize: 24,
+          fontWeight: FontWeight.w900,
+          height: 1,
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+    );
+  }
+}
+
+class _FamilyNameDialogActions extends StatefulWidget {
+  const _FamilyNameDialogActions({
+    required this.onCancel,
+    required this.onSave,
+  });
+
+  final VoidCallback onCancel;
+  final VoidCallback onSave;
+
+  @override
+  State<_FamilyNameDialogActions> createState() =>
+      _FamilyNameDialogActionsState();
+}
+
+class _FamilyNameDialogActionsState extends State<_FamilyNameDialogActions> {
+  bool _savePressed = false;
+
+  void _setSavePressed(bool value) {
+    if (_savePressed == value) {
+      return;
+    }
+    setState(() => _savePressed = value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const Positioned(
+          left: 0,
+          top: 51,
+          width: 58,
+          height: 29,
+          child: FamilySpriteSlice(
+            assetPath: _familyNameDialogAsset,
+            sheetSize: _familyNameDialogSheetSize,
+            region: _familyNameDialogBottomCancelRegion,
+            fit: BoxFit.contain,
+            alignment: Alignment.centerLeft,
+            sampleInset: 0,
+          ),
         ),
-        FilledButton(onPressed: _submit, child: const Text('保存')),
+        Positioned(
+          left: 129,
+          top: 21,
+          width: 190,
+          height: 73,
+          child: AnimatedScale(
+            scale: _savePressed ? 0.97 : 1,
+            duration: const Duration(milliseconds: 90),
+            curve: Curves.easeOutCubic,
+            child: const FamilySpriteSlice(
+              assetPath: _familyNameDialogAsset,
+              sheetSize: _familyNameDialogSheetSize,
+              region: _familyNameDialogBottomSaveRegion,
+              fit: BoxFit.contain,
+              sampleInset: 0,
+            ),
+          ),
+        ),
+        Positioned(
+          left: 0,
+          top: 42,
+          width: 104,
+          height: 58,
+          child: Semantics(
+            button: true,
+            label: '取消',
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: widget.onCancel,
+            ),
+          ),
+        ),
+        Positioned(
+          left: 119,
+          top: 14,
+          width: 202,
+          height: 76,
+          child: Semantics(
+            button: true,
+            label: '保存',
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTapDown: (_) => _setSavePressed(true),
+              onTapUp: (_) => _setSavePressed(false),
+              onTapCancel: () => _setSavePressed(false),
+              onTap: widget.onSave,
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -1180,15 +1570,15 @@ class _FamilyMembersPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: compact ? 0 : 2),
+      padding: EdgeInsets.only(bottom: compact ? 1 : 2),
       child: FamilySpritePanel(
         skin: FamilySpriteSkins.contentPanel,
         child: Padding(
           padding: EdgeInsets.fromLTRB(
-            compact ? 18 : 24,
-            compact ? 17 : 24,
-            compact ? 18 : 24,
-            compact ? 16 : 24,
+            compact ? 12 : 16,
+            compact ? 10 : 14,
+            compact ? 12 : 16,
+            compact ? 14 : 16,
           ),
           child: FamilyMemberGrid(
             members: members,
@@ -1337,11 +1727,17 @@ class _CircleIconButton extends StatelessWidget {
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
-          child: Image.asset(
-            HomePetsDialogTheme.closeIconAsset,
-            width: 65,
-            height: 65,
-            filterQuality: FilterQuality.high,
+          child: SizedBox(
+            width: 36,
+            height: 36,
+            child: Center(
+              child: Image.asset(
+                HomePetsDialogTheme.closeIconAsset,
+                width: 31,
+                height: 31,
+                filterQuality: FilterQuality.high,
+              ),
+            ),
           ),
         ),
       );

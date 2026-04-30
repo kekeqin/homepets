@@ -5,6 +5,7 @@ import '../../core/api_error_helper.dart';
 import '../../models/pet.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/member_profile_service.dart';
+import '../family/dialogs/delete_member_dialog.dart';
 import '../pet/pet_detail_screen.dart';
 import 'models/member_profile_view_data.dart';
 import 'widgets/member_avatar_picker_sheet.dart';
@@ -97,6 +98,11 @@ class _MemberProfileIpadScreenState
   }
 
   Future<void> _deleteMember() async {
+    final confirm = await showDeleteMemberDialog(
+      context,
+      memberName: widget.nickname,
+    );
+    /*
     final confirm = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -114,7 +120,8 @@ class _MemberProfileIpadScreenState
         ],
       ),
     );
-    if (confirm != true) {
+    */
+    if (!confirm) {
       return;
     }
 

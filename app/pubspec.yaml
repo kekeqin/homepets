@@ -50,6 +50,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   flame: ^1.36.0
   flame_riverpod: ^5.4.21
+  purchases_flutter: ^10.0.1
 
 dev_dependencies:
   flutter_test:

@@ -7,6 +7,7 @@ import '../../core/api_error_helper.dart';
 import '../../models/pet.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/member_profile_service.dart';
+import '../family/dialogs/delete_member_dialog.dart';
 import '../../widgets/pet_avatar.dart';
 import '../../widgets/user_avatar.dart';
 import '../pet/pet_detail_screen.dart';
@@ -90,6 +91,11 @@ class _MemberProfileScreenState extends ConsumerState<MemberProfileScreen> {
   }
 
   Future<void> _deleteMember() async {
+    final confirm = await showDeleteMemberDialog(
+      context,
+      memberName: widget.nickname,
+    );
+    /*
     final confirm = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -108,7 +114,8 @@ class _MemberProfileScreenState extends ConsumerState<MemberProfileScreen> {
       ),
     );
 
-    if (confirm != true) {
+    */
+    if (!confirm) {
       return;
     }
 

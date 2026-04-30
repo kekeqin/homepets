@@ -14,6 +14,10 @@ import '../../../models/pet_artwork.dart';
 
 enum HomeSceneDevice { mobile, tablet }
 
+const Map<String, String> _homeSceneAssetFallbacks = <String, String>{
+  'scenes/4.png': 'scenes/4.jpg',
+};
+
 const List<_PetCandidatePoint> _homePetCandidatePoints = <_PetCandidatePoint>[
   // 1. Couch marker slightly higher on the left seat cushion.
   _PetCandidatePoint(centerX: 0.34, centerY: 0.585),
@@ -1066,6 +1070,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     this.onTaskTap,
     this.onOpenFamily,
     this.onOpenShop,
+    this.onOpenPaywall,
     this.onTaskItemLongPress,
     this.onTaskAddTap,
     this.onOpenPetDetail,
@@ -1075,6 +1080,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       onTaskTap: onTaskTap ?? _showTaskPanel,
       onOpenFamily: onOpenFamily,
       onOpenShop: onOpenShop,
+      onOpenPaywall: onOpenPaywall,
     );
   }
 
@@ -1082,6 +1088,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   final VoidCallback? onTaskTap;
   final VoidCallback? onOpenFamily;
   final VoidCallback? onOpenShop;
+  final VoidCallback? onOpenPaywall;
   final void Function(String taskLabel, Offset globalPosition)?
   onTaskItemLongPress;
   final Future<void> Function()? onTaskAddTap;
@@ -1121,17 +1128,20 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     required VoidCallback onTaskTap,
     VoidCallback? onOpenFamily,
     VoidCallback? onOpenShop,
+    VoidCallback? onOpenPaywall,
   }) {
     return switch (device) {
       HomeSceneDevice.mobile => _mobileProfile(
         onTaskTap: onTaskTap,
         onOpenFamily: onOpenFamily,
         onOpenShop: onOpenShop,
+        onOpenPaywall: onOpenPaywall,
       ),
       HomeSceneDevice.tablet => _tabletProfile(
         onTaskTap: onTaskTap,
         onOpenFamily: onOpenFamily,
         onOpenShop: onOpenShop,
+        onOpenPaywall: onOpenPaywall,
       ),
     };
   }
@@ -1140,9 +1150,10 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     required VoidCallback onTaskTap,
     VoidCallback? onOpenFamily,
     VoidCallback? onOpenShop,
+    VoidCallback? onOpenPaywall,
   }) {
     return _SceneProfile(
-      backgroundAsset: 'scenes/4.jpg',
+      backgroundAsset: 'scenes/4.png',
       backgroundFit: _SceneBackgroundFit.contain,
       backgroundFillColor: const Color(0xFFF4E3CF),
       specs: <_UiSpec>[
@@ -1174,6 +1185,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           ambientPhase: 1.1,
           entryDelay: 0.34,
           entryOffset: 70,
+          onTap: onOpenPaywall,
         ),
         _SceneSpriteSpec(
           rect: const _RectFactor(0.704, 0.104, 0.178, 0.154),
@@ -1188,7 +1200,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
         _SceneSpriteSpec(
           rect: _rightArmchairFrontOccluderRect,
           referenceSpace: _UiReferenceSpace.background,
-          assetPath: 'scenes/4.jpg',
+          assetPath: 'scenes/4.png',
           behavior: _SceneSpriteBehavior.staticOverlay,
           ambientPhase: 0,
           cropRect: _rightArmchairFrontOccluderRect,
@@ -1199,7 +1211,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
         _SceneSpriteSpec(
           rect: _rightArmchairSideOccluderRect,
           referenceSpace: _UiReferenceSpace.background,
-          assetPath: 'scenes/4.jpg',
+          assetPath: 'scenes/4.png',
           behavior: _SceneSpriteBehavior.staticOverlay,
           ambientPhase: 0,
           cropRect: _rightArmchairSideOccluderRect,
@@ -1215,9 +1227,10 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     required VoidCallback onTaskTap,
     VoidCallback? onOpenFamily,
     VoidCallback? onOpenShop,
+    VoidCallback? onOpenPaywall,
   }) {
     return _SceneProfile(
-      backgroundAsset: 'scenes/4.jpg',
+      backgroundAsset: 'scenes/4.png',
       backgroundFit: _SceneBackgroundFit.contain,
       backgroundFillColor: const Color(0xFFF4E3CF),
       specs: <_UiSpec>[
@@ -1249,6 +1262,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           ambientPhase: 1.2,
           entryDelay: 0.27,
           entryOffset: 46,
+          onTap: onOpenPaywall,
         ),
         _SceneSpriteSpec(
           rect: const _RectFactor(0.694, 0.106, 0.184, 0.154),
@@ -1263,7 +1277,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
         _SceneSpriteSpec(
           rect: _rightArmchairFrontOccluderRect,
           referenceSpace: _UiReferenceSpace.background,
-          assetPath: 'scenes/4.jpg',
+          assetPath: 'scenes/4.png',
           behavior: _SceneSpriteBehavior.staticOverlay,
           ambientPhase: 0,
           cropRect: _rightArmchairFrontOccluderRect,
@@ -1274,7 +1288,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
         _SceneSpriteSpec(
           rect: _rightArmchairSideOccluderRect,
           referenceSpace: _UiReferenceSpace.background,
-          assetPath: 'scenes/4.jpg',
+          assetPath: 'scenes/4.png',
           behavior: _SceneSpriteBehavior.staticOverlay,
           ambientPhase: 0,
           cropRect: _rightArmchairSideOccluderRect,
@@ -2298,7 +2312,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     images.prefix = 'assets/';
 
     final backgroundSprite = Sprite(
-      await images.load(_profile.backgroundAsset),
+      await _loadSceneImage(_profile.backgroundAsset),
     );
     _background = _SceneBackgroundComponent(
       sprite: backgroundSprite,
@@ -2324,7 +2338,23 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       if (spec is! _SceneSpriteSpec) {
         continue;
       }
-      await images.load(spec.assetPath);
+      await _loadSceneImage(spec.assetPath);
+    }
+  }
+
+  Future<ui.Image> _loadSceneImage(String assetPath) async {
+    try {
+      return await images.load(assetPath);
+    } on FlutterError catch (error) {
+      final fallbackAssetPath = _homeSceneAssetFallbacks[assetPath];
+      if (fallbackAssetPath == null) {
+        rethrow;
+      }
+      debugPrint(
+        'HomeSceneGame asset $assetPath missing from bundle; '
+        'falling back to $fallbackAssetPath. ${error.message}',
+      );
+      return images.load(fallbackAssetPath);
     }
   }
 
@@ -3162,7 +3192,11 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
          size: Vector2(rect.width, rect.height),
          anchor: _anchorForBehavior(behavior),
          priority: renderPriority,
-         pressedScale: behavior == _SceneSpriteBehavior.taskNote ? 0.94 : 1,
+         pressedScale:
+             behavior == _SceneSpriteBehavior.taskNote ||
+                 behavior == _SceneSpriteBehavior.wallBadge
+             ? 0.94
+             : 1,
        );
 
   final String assetPath;
@@ -3181,7 +3215,7 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    final image = await game.images.load(assetPath);
+    final image = await game._loadSceneImage(assetPath);
     final clip = cropRect;
     if (clip == null) {
       _sprite = Sprite(image);
@@ -3289,7 +3323,8 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
         progress < 0.5
             ? 0.078 * Curves.easeOut.transform(progress / 0.5)
             : 0.078 * (1 - Curves.easeIn.transform((progress - 0.5) / 0.5)),
-      _SceneSpriteBehavior.wallBadge => 0,
+      _SceneSpriteBehavior.wallBadge =>
+        math.sin(progress * math.pi * 2.0) * 0.040 * (1 - (progress * 0.3)),
       _SceneSpriteBehavior.staticOverlay => 0,
     };
   }
@@ -3299,7 +3334,7 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
       _SceneSpriteBehavior.taskNote => 0.22,
       _SceneSpriteBehavior.shopBasket => 0.22,
       _SceneSpriteBehavior.familyPhoto => 0.24,
-      _SceneSpriteBehavior.wallBadge => 0,
+      _SceneSpriteBehavior.wallBadge => 0.20,
       _SceneSpriteBehavior.staticOverlay => 0,
     };
   }
@@ -3309,7 +3344,7 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
       _SceneSpriteBehavior.taskNote => 0.18,
       _SceneSpriteBehavior.shopBasket => 0.20,
       _SceneSpriteBehavior.familyPhoto => 0.21,
-      _SceneSpriteBehavior.wallBadge => 0,
+      _SceneSpriteBehavior.wallBadge => 0.12,
       _SceneSpriteBehavior.staticOverlay => 0,
     };
   }
