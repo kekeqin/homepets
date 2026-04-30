@@ -8,16 +8,32 @@ class ApiConstants {
 class RevenueCatConstants {
   static const String testStorePublicSdkKey =
       'test_NFtgmTDZrduESWajnYMSIvXsQeR';
-  static const String iosPublicSdkKey = String.fromEnvironment(
+  static const String _iosPublicSdkKey = String.fromEnvironment(
     'REVENUECAT_IOS_API_KEY',
-    defaultValue: testStorePublicSdkKey,
   );
-  static const String androidPublicSdkKey = String.fromEnvironment(
+  static const String _androidPublicSdkKey = String.fromEnvironment(
     'REVENUECAT_ANDROID_API_KEY',
-    defaultValue: testStorePublicSdkKey,
   );
   static const String entitlementId = String.fromEnvironment(
     'REVENUECAT_ENTITLEMENT_ID',
     defaultValue: 'premium',
   );
+
+  static const bool _useTestStoreKey = bool.fromEnvironment(
+    'REVENUECAT_USE_TEST_STORE',
+    defaultValue: !bool.fromEnvironment('dart.vm.product'),
+  );
+
+  static String get iosPublicSdkKey => _publicSdkKeyFor(_iosPublicSdkKey);
+
+  static String get androidPublicSdkKey =>
+      _publicSdkKeyFor(_androidPublicSdkKey);
+
+  static String _publicSdkKeyFor(String configuredKey) {
+    final trimmed = configuredKey.trim();
+    if (trimmed.isNotEmpty) {
+      return trimmed;
+    }
+    return _useTestStoreKey ? testStorePublicSdkKey : '';
+  }
 }

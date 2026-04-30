@@ -22,6 +22,9 @@ import '../../models/pet_artwork.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../widgets/app_modal_shell.dart';
+import '../../widgets/homepets_button.dart';
+import '../../widgets/homepets_dialog.dart';
+import '../../widgets/homepets_select_field.dart';
 
 import '../family/family_screen.dart';
 import '../pet/pet_detail_screen.dart';
@@ -1641,58 +1644,27 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
   Future<int?> _showCompletionMemberDialog(List<Map<String, dynamic>> members) {
     final initialMemberId = _asInt(members.first['id'], fallback: -1);
+    final options = members
+        .map(
+          (member) => HomePetsSelectOption<int>(
+            value: _asInt(member['id'], fallback: -1),
+            label: _memberDisplayName(member),
+          ),
+        )
+        .where((option) => option.value > 0)
+        .toList();
 
-    return showDialog<int>(
+    return showAppModalDialog<int>(
       context: context,
-
-      builder: (dialogContext) {
-        var selectedMemberId = initialMemberId > 0 ? initialMemberId : null;
-
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('\u9009\u62e9\u5b8c\u6210\u4eba\u5458'),
-
-              content: DropdownButtonFormField<int>(
-                isExpanded: true,
-
-                initialValue: selectedMemberId,
-
-                decoration: const InputDecoration(
-                  labelText: '\u5b8c\u6210\u6210\u5458',
-                ),
-
-                items: members
-                    .map(
-                      (member) => DropdownMenuItem<int>(
-                        value: _asInt(member['id'], fallback: -1),
-
-                        child: Text(_memberDisplayName(member)),
-                      ),
-                    )
-                    .toList(),
-
-                onChanged: (value) =>
-                    setDialogState(() => selectedMemberId = value),
-              ),
-
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-
-                  child: const Text('\u53d6\u6d88'),
-                ),
-
-                FilledButton(
-                  onPressed: selectedMemberId == null
-                      ? null
-                      : () => Navigator.of(dialogContext).pop(selectedMemberId),
-
-                  child: const Text('\u786e\u8ba4\u5b8c\u6210'),
-                ),
-              ],
-            );
-          },
+      barrierLabel: 'completion_member_dialog',
+      blurSigma: 6,
+      barrierTint: HomePetsDialogTheme.barrierTint,
+      beginScale: 0.95,
+      beginYOffset: 16,
+      pageBuilder: (dialogContext) {
+        return _CompletionMemberSelectContent(
+          initialMemberId: initialMemberId > 0 ? initialMemberId : null,
+          options: options,
         );
       },
     );
@@ -2765,6 +2737,63 @@ class _TaskEditorResult {
   final int points;
 
   final bool deleteRequested;
+}
+
+class _CompletionMemberSelectContent extends StatefulWidget {
+  const _CompletionMemberSelectContent({
+    required this.initialMemberId,
+    required this.options,
+  });
+
+  final int? initialMemberId;
+  final List<HomePetsSelectOption<int>> options;
+
+  @override
+  State<_CompletionMemberSelectContent> createState() =>
+      _CompletionMemberSelectContentState();
+}
+
+class _CompletionMemberSelectContentState
+    extends State<_CompletionMemberSelectContent> {
+  late int? _selectedMemberId;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedMemberId = widget.initialMemberId;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return HomePetsDialog(
+      title: '\u9009\u62e9\u5b8c\u6210\u4eba\u5458',
+      actions: [
+        SizedBox(
+          width: 98,
+          child: HomePetsButton(
+            label: '\u53d6\u6d88',
+            variant: HomePetsButtonVariant.secondary,
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        SizedBox(
+          width: 126,
+          child: HomePetsButton(
+            label: '\u786e\u8ba4\u5b8c\u6210',
+            onPressed: _selectedMemberId == null
+                ? null
+                : () => Navigator.of(context).pop(_selectedMemberId),
+          ),
+        ),
+      ],
+      child: HomePetsSelectField<int>(
+        label: '\u5b8c\u6210\u6210\u5458',
+        value: _selectedMemberId,
+        options: widget.options,
+        onChanged: (value) => setState(() => _selectedMemberId = value),
+      ),
+    );
+  }
 }
 
 class _TaskEditorSpriteDialog extends StatefulWidget {
