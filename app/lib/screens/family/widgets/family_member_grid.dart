@@ -77,7 +77,7 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
       builder: (context, constraints) {
         const crossAxisCount = 2;
         final compact = constraints.maxWidth < 430;
-        final spacing = constraints.maxWidth >= 760 ? 14.0 : 10.0;
+        final spacing = constraints.maxWidth >= 760 ? 18.0 : 12.0;
 
         if (widget.members.isEmpty) {
           return FamilyEmptyCard(
@@ -99,13 +99,16 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
         ];
         final pageMembers = pages[_currentPage];
         const pageGap = 4.0;
-        const pageDotsRowHeight = 22.0;
-        final dotsHeight = _pageCount > 1 ? pageGap + pageDotsRowHeight : 0.0;
+        const pageDotsRowHeight = 20.0;
+        const bottomBreathingRoom = 0.0;
+        final dotsHeight = _pageCount > 1
+            ? pageGap + pageDotsRowHeight + bottomBreathingRoom
+            : 0.0;
         final gridWidthFactor = compact
-            ? 0.96
+            ? 1.0
             : constraints.maxWidth >= 760
-            ? 0.90
-            : 0.94;
+            ? 0.94
+            : 1.0;
         final gridWidth = (constraints.maxWidth * gridWidthFactor)
             .clamp(0.0, constraints.maxWidth)
             .toDouble();
@@ -121,7 +124,7 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
                   .clamp(118.0, double.infinity)
                   .toDouble()
             : double.infinity;
-        final targetCardHeight = cardWidth / (compact ? 0.78 : 0.78);
+        final targetCardHeight = cardWidth / 0.82;
         final cardHeight = hasBoundedHeight
             ? math.min(slotHeight, targetCardHeight)
             : targetCardHeight;
@@ -233,27 +236,27 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const _PageDivider(),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     _PageDot(
                       active: _currentPage == 0,
                       onTap: () => _setPage(0),
                     ),
-                    const SizedBox(width: 7),
+                    const SizedBox(width: 6),
                     Text(
                       '${_currentPage + 1}/$_pageCount',
                       style: const TextStyle(
                         color: Color(0xFF7D5A36),
-                        fontSize: 14,
+                        fontSize: 15,
                         height: 1,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(width: 7),
+                    const SizedBox(width: 6),
                     _PageDot(
                       active: _currentPage == _pageCount - 1,
                       onTap: () => _setPage(_pageCount - 1),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     const _PageDivider(),
                   ],
                 ),

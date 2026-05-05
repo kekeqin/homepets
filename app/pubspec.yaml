@@ -86,6 +86,7 @@ flutter:
     - assets/images/ui/
     - assets/images/ui/task_delete/
     - assets/images/ui/sprites/
+    - assets/images/ui/sprites/family_home_parts/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

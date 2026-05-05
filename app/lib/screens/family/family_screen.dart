@@ -50,7 +50,7 @@ Future<void> showFamilyDialog(
     pageBuilder: (dialogContext) {
       return AppModalShell(
         layout: AppModalLayouts.family,
-        minimumSafeArea: const EdgeInsets.fromLTRB(8, 10, 8, 8),
+        minimumSafeArea: const EdgeInsets.fromLTRB(4, 10, 4, 8),
         boxShadow: HomePetsDialogTheme.shellShadow,
         child: FamilyScreen(
           embedded: true,
@@ -147,8 +147,9 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
 
   String _familyTitle(String familyName) {
     final trimmed = familyName.trim();
-    if (trimmed.isEmpty) {
-      return '家庭';
+    final hasChineseText = RegExp(r'[\u4e00-\u9fff]').hasMatch(trimmed);
+    if (trimmed.isEmpty || !hasChineseText) {
+      return '温暖小家';
     }
     return trimmed;
   }
@@ -491,10 +492,10 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
           parent: BouncingScrollPhysics(),
         ),
         padding: EdgeInsets.fromLTRB(
-          widget.embedded ? 6 : 22,
-          widget.embedded ? 4 : 18,
-          widget.embedded ? 6 : 22,
-          widget.embedded ? 10 : 26,
+          widget.embedded ? 0 : 22,
+          widget.embedded ? 0 : 18,
+          widget.embedded ? 0 : 22,
+          widget.embedded ? 0 : 26,
         ),
         child: FadeTransition(
           opacity: _contentOpacity,
@@ -573,10 +574,11 @@ class _FamilyStageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
-      aspectRatio: 0.592,
+      aspectRatio: 0.565,
       child: DecoratedBox(
-        decoration: const BoxDecoration(
-          borderRadius: BorderRadius.all(Radius.circular(30)),
+        decoration: BoxDecoration(
+          borderRadius: const BorderRadius.all(Radius.circular(30)),
+          border: Border.all(color: const Color(0xFF6F4327), width: 2.2),
           boxShadow: [
             BoxShadow(
               color: Color(0x205C3516),
@@ -598,10 +600,10 @@ class _FamilyStageCard extends StatelessWidget {
                   clipBehavior: Clip.hardEdge,
                   children: [
                     Positioned(
-                      left: width * 0.058,
-                      right: width * 0.048,
-                      top: height * 0.038,
-                      height: height * 0.218,
+                      left: width * 0.070,
+                      right: width * 0.058,
+                      top: height * 0.045,
+                      height: height * 0.258,
                       child: _QuietFamilyStageHeader(
                         embedded: embedded,
                         title: title,
@@ -618,10 +620,10 @@ class _FamilyStageCard extends StatelessWidget {
                       ),
                     ),
                     Positioned(
-                      left: width * 0.032,
-                      right: width * 0.032,
-                      top: height * 0.268,
-                      height: height * 0.696,
+                      left: width * 0.040,
+                      right: width * 0.040,
+                      top: height * 0.300,
+                      height: height * 0.665,
                       child: membersPanel,
                     ),
                   ],
@@ -840,9 +842,9 @@ class _QuietFamilyStageHeader extends StatelessWidget {
       builder: (context, constraints) {
         final maxWidth = constraints.maxWidth;
         final compact = embedded || maxWidth < 430;
-        final titleSize = compact ? 30.0 : 34.0;
-        final heroWidth = (maxWidth * (maxWidth < 380 ? 0.39 : 0.41))
-            .clamp(112.0, compact ? 142.0 : 190.0)
+        final titleSize = compact ? 38.0 : 44.0;
+        final heroWidth = (maxWidth * (maxWidth < 380 ? 0.47 : 0.46))
+            .clamp(146.0, compact ? 188.0 : 228.0)
             .toDouble();
         final heroHeight = heroWidth / 1.18;
 
@@ -883,9 +885,9 @@ class _QuietFamilyStageHeader extends StatelessWidget {
                             ],
                           ],
                         ),
-                        SizedBox(height: compact ? 6 : 9),
+                        SizedBox(height: compact ? 8 : 10),
                         SizedBox(
-                          height: compact ? 27 : 31,
+                          height: compact ? 36 : 40,
                           child: FittedBox(
                             alignment: Alignment.centerLeft,
                             fit: BoxFit.scaleDown,
@@ -898,13 +900,13 @@ class _QuietFamilyStageHeader extends StatelessWidget {
                                       FamilySpriteRegions.statMemberIcon,
                                   value: '$memberCount',
                                 ),
-                                SizedBox(width: compact ? 4 : 6),
+                                SizedBox(width: compact ? 5 : 7),
                                 _QuietStatPill(
                                   compact: compact,
                                   iconRegion: FamilySpriteRegions.statPetIcon,
                                   value: '$petCount',
                                 ),
-                                SizedBox(width: compact ? 4 : 6),
+                                SizedBox(width: compact ? 5 : 7),
                                 _QuietStatPill(
                                   compact: compact,
                                   iconRegion: FamilySpriteRegions.starIcon,
@@ -915,7 +917,7 @@ class _QuietFamilyStageHeader extends StatelessWidget {
                           ),
                         ),
                         if (canManageMembers) ...[
-                          SizedBox(height: compact ? 7 : 10),
+                          SizedBox(height: compact ? 11 : 14),
                           _HeroAddButton(
                             compact: compact,
                             busy: addingMember,
@@ -928,7 +930,7 @@ class _QuietFamilyStageHeader extends StatelessWidget {
                 ),
                 SizedBox(width: compact ? 4 : 10),
                 Padding(
-                  padding: EdgeInsets.only(top: compact ? 4 : 8),
+                  padding: EdgeInsets.only(top: compact ? 1 : 7),
                   child: SizedBox(
                     width: heroWidth,
                     height: heroHeight,
@@ -1004,9 +1006,9 @@ class _QuietStatPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final isStar = iconRegion == FamilySpriteRegions.starIcon;
     return Container(
-      width: compact ? (isStar ? 56 : 46) : (isStar ? 68 : 56),
-      height: compact ? 27 : 31,
-      padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 8),
+      width: compact ? (isStar ? 74 : 64) : (isStar ? 86 : 74),
+      height: compact ? 32 : 36,
+      padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 10),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topCenter,
@@ -1039,7 +1041,7 @@ class _QuietStatPill extends StatelessWidget {
                 maxLines: 1,
                 style: TextStyle(
                   color: _FamilyPalette.text,
-                  fontSize: compact ? 12 : 13,
+                  fontSize: compact ? 14 : 15,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -1052,19 +1054,15 @@ class _QuietStatPill extends StatelessWidget {
 
   Widget _buildIcon(bool compact) {
     final size = compact ? 14.0 : 16.0;
-    final icon = iconRegion == FamilySpriteRegions.statMemberIcon
-        ? Icons.groups_rounded
-        : iconRegion == FamilySpriteRegions.statPetIcon
-        ? Icons.pets_rounded
-        : Icons.star_rounded;
-    final color = iconRegion == FamilySpriteRegions.starIcon
-        ? const Color(0xFFFFC943)
-        : const Color(0xFF8A6438);
 
     return SizedBox(
       width: size,
       height: size,
-      child: Icon(icon, size: size, color: color),
+      child: FamilySpriteSlice(
+        region: iconRegion,
+        fit: BoxFit.contain,
+        sampleInset: 0,
+      ),
     );
   }
 }
@@ -1088,8 +1086,8 @@ class _HeroAddButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(999),
         child: SizedBox(
-          width: compact ? 128 : 154,
-          height: compact ? 42 : 50,
+          width: compact ? 154 : 178,
+          height: compact ? 52 : 60,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -1569,16 +1567,24 @@ class _FamilyMembersPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: compact ? 1 : 2),
-      child: FamilySpritePanel(
-        skin: FamilySpriteSkins.contentPanel,
-        child: Padding(
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const Positioned.fill(
+          child: Image(
+            image: AssetImage(
+              'assets/images/ui/sprites/family_home_parts/family_home_member_panel_frame.png',
+            ),
+            fit: BoxFit.fill,
+            filterQuality: FilterQuality.high,
+          ),
+        ),
+        Padding(
           padding: EdgeInsets.fromLTRB(
-            compact ? 12 : 16,
-            compact ? 10 : 14,
-            compact ? 12 : 16,
-            compact ? 14 : 16,
+            compact ? 13 : 18,
+            compact ? 16 : 21,
+            compact ? 13 : 18,
+            compact ? 19 : 25,
           ),
           child: FamilyMemberGrid(
             members: members,
@@ -1593,7 +1599,7 @@ class _FamilyMembersPanel extends StatelessWidget {
             onMemberLongPress: onMemberLongPress,
           ),
         ),
-      ),
+      ],
     );
   }
 }

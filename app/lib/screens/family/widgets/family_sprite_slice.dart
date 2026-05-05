@@ -6,9 +6,8 @@ import 'package:flutter/services.dart';
 class FamilySpriteSheet {
   const FamilySpriteSheet._();
 
-  static const assetPath =
-      'assets/images/ui/sprites/family_home_sprite_clean.png';
-  static const sheetSize = Size(1024, 1536);
+  static const assetPath = 'assets/images/ui/sprites/family_home.png';
+  static const sheetSize = Size(842, 1264);
 
   static Future<ui.Image>? _imageFuture;
 
@@ -32,28 +31,28 @@ class FamilySpriteSheet {
 class FamilySpriteRegions {
   const FamilySpriteRegions._();
 
-  static const Rect outerPanel = Rect.fromLTWH(40, 41, 357, 310);
-  static const Rect contentPanel = Rect.fromLTWH(34, 373, 467, 568);
-  static const Rect heroIllustration = Rect.fromLTWH(721, 104, 286, 241);
-  static const Rect addMemberButton = Rect.fromLTWH(415, 258, 215, 70);
-  static const Rect editIcon = Rect.fromLTWH(679, 55, 47, 45);
+  static const Rect outerPanel = Rect.fromLTWH(33, 33, 293, 256);
+  static const Rect contentPanel = Rect.fromLTWH(29, 306, 384, 468);
+  static const Rect heroIllustration = Rect.fromLTWH(596, 85, 233, 199);
+  static const Rect addMemberButton = Rect.fromLTWH(342, 211, 177, 60);
+  static const Rect editIcon = Rect.fromLTWH(556, 55, 35, 34);
 
-  static const Rect statMemberIcon = Rect.fromLTWH(427, 176, 44, 30);
-  static const Rect statPetIcon = Rect.fromLTWH(539, 174, 40, 34);
-  static const Rect starIcon = Rect.fromLTWH(483, 997, 34, 36);
+  static const Rect statMemberIcon = Rect.fromLTWH(352, 142, 34, 25);
+  static const Rect statPetIcon = Rect.fromLTWH(441, 141, 28, 27);
+  static const Rect starIcon = Rect.fromLTWH(522, 142, 29, 27);
 
-  static const Rect avatarMom = Rect.fromLTWH(50, 955, 87, 91);
-  static const Rect avatarChild = Rect.fromLTWH(158, 956, 85, 90);
-  static const Rect avatarDad = Rect.fromLTWH(265, 955, 85, 89);
-  static const Rect avatarGrandma = Rect.fromLTWH(366, 956, 79, 89);
+  static const Rect avatarMom = Rect.fromLTWH(42, 786, 71, 75);
+  static const Rect avatarChild = Rect.fromLTWH(131, 786, 69, 74);
+  static const Rect avatarDad = Rect.fromLTWH(217, 786, 69, 74);
+  static const Rect avatarGrandma = Rect.fromLTWH(301, 786, 66, 74);
 
-  static const Rect emptyPetPaw = Rect.fromLTWH(476, 1085, 133, 180);
-  static const Rect petShadow = Rect.fromLTWH(612, 1317, 158, 22);
-  static const Rect petNameLabel = Rect.fromLTWH(641, 1083, 124, 43);
-  static const Rect progressTrack = Rect.fromLTWH(810, 1087, 176, 20);
-  static const Rect progressFill = Rect.fromLTWH(812, 1129, 111, 17);
-  static const Rect pageDotActive = Rect.fromLTWH(439, 1318, 25, 25);
-  static const Rect pageDotInactive = Rect.fromLTWH(508, 1319, 24, 24);
+  static const Rect emptyPetPaw = Rect.fromLTWH(390, 892, 111, 150);
+  static const Rect petShadow = Rect.fromLTWH(502, 1082, 133, 21);
+  static const Rect petNameLabel = Rect.fromLTWH(527, 891, 102, 36);
+  static const Rect progressTrack = Rect.fromLTWH(666, 894, 144, 18);
+  static const Rect progressFill = Rect.fromLTWH(666, 927, 144, 18);
+  static const Rect pageDotActive = Rect.fromLTWH(360, 1078, 20, 21);
+  static const Rect pageDotInactive = Rect.fromLTWH(442, 1078, 21, 21);
 }
 
 class FamilySpriteSkins {
@@ -61,32 +60,32 @@ class FamilySpriteSkins {
 
   static const outerPanel = FamilySpritePanelSkin(
     frame: FamilySpriteRegions.outerPanel,
-    fill: Rect.fromLTWH(114, 104, 38, 38),
-    insets: EdgeInsets.fromLTRB(42, 42, 42, 42),
+    fill: Rect.fromLTWH(94, 92, 38, 38),
+    insets: EdgeInsets.fromLTRB(36, 36, 36, 36),
   );
 
   static const contentPanel = FamilySpritePanelSkin(
     frame: FamilySpriteRegions.contentPanel,
-    fill: Rect.fromLTWH(83, 431, 36, 36),
-    insets: EdgeInsets.fromLTRB(30, 30, 30, 30),
+    fill: Rect.fromLTWH(80, 360, 36, 36),
+    insets: EdgeInsets.fromLTRB(28, 28, 28, 28),
   );
 
   static const statPill = FamilySpritePanelSkin(
-    frame: Rect.fromLTWH(410, 159, 94, 60),
-    fill: Rect.fromLTWH(477, 181, 12, 12),
-    insets: EdgeInsets.fromLTRB(22, 16, 22, 16),
+    frame: Rect.fromLTWH(337, 130, 78, 47),
+    fill: Rect.fromLTWH(386, 147, 10, 10),
+    insets: EdgeInsets.fromLTRB(18, 13, 18, 13),
   );
 
   static const scoreBadge = FamilySpritePanelSkin(
-    frame: Rect.fromLTWH(475, 987, 93, 49),
-    fill: Rect.fromLTWH(530, 1005, 14, 14),
-    insets: EdgeInsets.fromLTRB(22, 13, 20, 13),
+    frame: Rect.fromLTWH(391, 812, 76, 41),
+    fill: Rect.fromLTWH(433, 826, 10, 10),
+    insets: EdgeInsets.fromLTRB(18, 12, 18, 12),
   );
 
   static const petNameLabel = FamilySpritePanelSkin(
     frame: FamilySpriteRegions.petNameLabel,
-    fill: Rect.fromLTWH(692, 1097, 12, 12),
-    insets: EdgeInsets.fromLTRB(22, 12, 22, 12),
+    fill: Rect.fromLTWH(570, 903, 10, 10),
+    insets: EdgeInsets.fromLTRB(18, 10, 18, 10),
   );
 
   static const memberCardWarm = FamilySpritePanelSkin(
