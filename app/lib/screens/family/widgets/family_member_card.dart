@@ -220,9 +220,9 @@ class FamilyMemberCard extends StatelessWidget {
         );
         final headerHeight = (44 * scale).clamp(36.0, 56.0).toDouble();
         final avatarSize = (41 * scale).clamp(34.0, 52.0).toDouble();
-        final nameSize = (17.2 * scale).clamp(14.0, 20.0).toDouble();
-        final scoreWidth = (66 * scale).clamp(54.0, 80.0).toDouble();
-        final scoreHeight = (30 * scale).clamp(25.0, 36.0).toDouble();
+        final nameSize = (20.0 * scale).clamp(16.0, 23.0).toDouble();
+        final scoreWidth = (58 * scale).clamp(49.0, 70.0).toDouble();
+        final scoreHeight = (27 * scale).clamp(23.0, 32.0).toDouble();
         final labelHeight = (29 * scale).clamp(23.0, 34.0).toDouble();
         final progressHeight = (10.0 * scale).clamp(8.0, 12.0).toDouble();
         final metaSize = (11.0 * scale).clamp(9.5, 13.0).toDouble();
@@ -306,8 +306,8 @@ class FamilyMemberCard extends StatelessWidget {
                               ),
                             ),
                             Positioned(
-                              left: avatarSize + 11 * scale,
-                              right: scoreWidth + 9 * scale,
+                              left: avatarSize + 8 * scale,
+                              right: scoreWidth + 6 * scale,
                               top: 0,
                               bottom: 0,
                               child: Align(
@@ -349,7 +349,6 @@ class FamilyMemberCard extends StatelessWidget {
                           title: _petTitle,
                           labelHeight: labelHeight,
                           textColor: style.text,
-                          accentColor: style.accent,
                           seatColor: style.seatColor,
                           seatBorderColor: style.seatBorderColor,
                           scale: scale,
@@ -424,56 +423,57 @@ class _MemberPortraitButton extends StatelessWidget {
         child: SizedBox(
           width: size,
           height: size,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFFFFFCF3), Color(0xFFFFECCC)],
-              ),
-              border: Border.all(
-                color: const Color(0xFF8F6238),
-                width: math.max(1.2, size * 0.032),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0x248A5A2C),
-                  blurRadius: size * 0.13,
-                  offset: Offset(0, size * 0.045),
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: EdgeInsets.all(size * 0.055),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  ClipOval(
-                    child: hasNetworkAvatar
-                        ? UserAvatar(
-                            nickname: member.nickname,
-                            avatarValue: avatarValue,
-                            size: size,
-                            backgroundColor: const Color(0xFFFFF5E9),
-                            foregroundColor: const Color(0xFF7B5432),
-                          )
-                        : FamilySpriteSlice(region: fallbackRegion),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (hasNetworkAvatar)
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xFFFFFCF3), Color(0xFFFFECCC)],
+                    ),
+                    border: Border.all(
+                      color: const Color(0xFF8F6238),
+                      width: math.max(1.2, size * 0.032),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0x248A5A2C),
+                        blurRadius: size * 0.13,
+                        offset: Offset(0, size * 0.045),
+                      ),
+                    ],
                   ),
-                  if (busy)
-                    Center(
-                      child: SizedBox(
-                        width: size * 0.36,
-                        height: size * 0.36,
-                        child: const CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Color(0xFFA86C35),
-                        ),
+                  child: Padding(
+                    padding: EdgeInsets.all(size * 0.055),
+                    child: ClipOval(
+                      child: UserAvatar(
+                        nickname: member.nickname,
+                        avatarValue: avatarValue,
+                        size: size,
+                        backgroundColor: const Color(0xFFFFF5E9),
+                        foregroundColor: const Color(0xFF7B5432),
                       ),
                     ),
-                ],
-              ),
-            ),
+                  ),
+                )
+              else
+                FamilySpriteSlice(region: fallbackRegion, fit: BoxFit.contain),
+              if (busy)
+                Center(
+                  child: SizedBox(
+                    width: size * 0.36,
+                    height: size * 0.36,
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Color(0xFFA86C35),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
@@ -487,7 +487,6 @@ class _PetStage extends StatelessWidget {
     required this.title,
     required this.labelHeight,
     required this.textColor,
-    required this.accentColor,
     required this.seatColor,
     required this.seatBorderColor,
     required this.scale,
@@ -499,7 +498,6 @@ class _PetStage extends StatelessWidget {
   final String title;
   final double labelHeight;
   final Color textColor;
-  final Color accentColor;
   final Color seatColor;
   final Color seatBorderColor;
   final double scale;
@@ -510,10 +508,13 @@ class _PetStage extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final labelWidth = math.min(constraints.maxWidth * 0.84, 145 * scale);
         final resolvedLabelHeight = math.min(
           labelHeight,
           math.max(19 * scale, constraints.maxHeight * 0.29),
+        );
+        final labelWidth = math.min(
+          constraints.maxWidth * 0.63,
+          resolvedLabelHeight * 2.27,
         );
         final stageGap = 2 * scale;
         final stageAreaHeight = math.max(
@@ -562,7 +563,6 @@ class _PetStage extends StatelessWidget {
               child: _PetNameLabel(
                 text: title,
                 textColor: textColor,
-                borderColor: accentColor.withValues(alpha: 0.62),
                 scale: scale,
               ),
             ),
@@ -618,52 +618,45 @@ class _PetNameLabel extends StatelessWidget {
   const _PetNameLabel({
     required this.text,
     required this.textColor,
-    required this.borderColor,
     required this.scale,
   });
 
   final String text;
   final Color textColor;
-  final Color borderColor;
   final double scale;
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFFFFFFFE), Color(0xFFFFE8AF)],
-        ),
-        borderRadius: BorderRadius.circular(20 * scale),
-        border: Border.all(color: borderColor, width: 1.55 * scale),
-        boxShadow: [
-          BoxShadow(
-            color: borderColor.withValues(alpha: 0.22),
-            blurRadius: 6 * scale,
-            offset: Offset(0, 2.5 * scale),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Positioned.fill(
+          child: Image.asset(
+            FamilyHomePartAssets.petNameLabel,
+            fit: BoxFit.fill,
+            filterQuality: FilterQuality.high,
+            isAntiAlias: true,
           ),
-        ],
-      ),
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 12 * scale),
-        child: Center(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              text,
-              maxLines: 1,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 16.2 * scale,
-                height: 1,
-                fontWeight: FontWeight.w900,
+        ),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 9 * scale),
+          child: Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                text,
+                maxLines: 1,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 15.8 * scale,
+                  height: 1,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -793,58 +786,66 @@ class _PointsBadge extends StatelessWidget {
     return SizedBox(
       width: width,
       height: height,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFFFFDF6), Color(0xFFFFE6B6)],
-          ),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: const Color(0xFF82512A),
-            width: 1.35 * scale,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: outlineColor.withValues(alpha: 0.18),
-              blurRadius: 6 * scale,
-              offset: Offset(0, 2.6 * scale),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned.fill(
+            child: Image.asset(
+              FamilyHomePartAssets.statBadgeFrame,
+              fit: BoxFit.fill,
+              filterQuality: FilterQuality.high,
+              isAntiAlias: true,
             ),
-          ],
-        ),
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8 * scale),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 20 * scale,
-                height: 20 * scale,
-                child: const FamilySpriteSlice(
-                  region: FamilySpriteRegions.starIcon,
-                  sampleInset: 2,
-                ),
+          ),
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                boxShadow: [
+                  BoxShadow(
+                    color: outlineColor.withValues(alpha: 0.14),
+                    blurRadius: 5 * scale,
+                    offset: Offset(0, 2.3 * scale),
+                  ),
+                ],
               ),
-              SizedBox(width: 4 * scale),
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    '$points',
-                    maxLines: 1,
-                    style: TextStyle(
-                      color: const Color(0xFF704524),
-                      fontSize: 16.4 * scale,
-                      height: 1,
-                      fontWeight: FontWeight.w900,
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 6 * scale),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 16 * scale,
+                  height: 16 * scale,
+                  child: Image.asset(
+                    FamilyHomePartAssets.starIcon,
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.high,
+                    isAntiAlias: true,
+                  ),
+                ),
+                SizedBox(width: 3 * scale),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      '$points',
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: const Color(0xFF704524),
+                        fontSize: 14.2 * scale,
+                        height: 1,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

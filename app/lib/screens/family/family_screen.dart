@@ -26,8 +26,6 @@ class _FamilyPalette {
   static const sectionTop = Color(0xFFFFF7EA);
   static const sectionBottom = Color(0xFFF6E5CC);
   static const sectionLine = Color(0xFFE7D0B1);
-  static const chip = Color(0xFFFFF2DE);
-  static const chipBorder = Color(0xFFE2C7A4);
   static const text = Color(0xFF684328);
   static const muted = Color(0xFF98745A);
   static const accent = Color(0xFFD99955);
@@ -574,64 +572,114 @@ class _FamilyStageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
-      aspectRatio: 0.565,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: const BorderRadius.all(Radius.circular(30)),
-          border: Border.all(color: const Color(0xFF6F4327), width: 2.2),
-          boxShadow: [
-            BoxShadow(
-              color: Color(0x205C3516),
-              blurRadius: 14,
-              offset: Offset(0, 7),
+      aspectRatio: 0.61,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          DecoratedBox(
+            decoration: const BoxDecoration(
+              borderRadius: BorderRadius.all(Radius.circular(32)),
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0x205C3516),
+                  blurRadius: 14,
+                  offset: Offset(0, 7),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
-          child: FamilySpritePanel(
-            skin: FamilySpriteSkins.outerPanel,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final width = constraints.maxWidth;
-                final height = constraints.maxHeight;
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(30),
+              child: FamilySpritePanel(
+                skin: FamilySpriteSkins.outerPanel,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final width = constraints.maxWidth;
+                    final height = constraints.maxHeight;
 
-                return Stack(
-                  clipBehavior: Clip.hardEdge,
-                  children: [
-                    Positioned(
-                      left: width * 0.070,
-                      right: width * 0.058,
-                      top: height * 0.045,
-                      height: height * 0.258,
-                      child: _QuietFamilyStageHeader(
-                        embedded: embedded,
-                        title: title,
-                        familyPoints: familyPoints,
-                        petCount: petCount,
-                        memberCount: memberCount,
-                        canManageMembers: canManageMembers,
-                        addingMember: addingMember,
-                        onLeadingTap: onLeadingTap,
-                        onAddMemberTap: onAddMemberTap,
-                        canEditTitle: canEditTitle,
-                        updatingTitle: updatingTitle,
-                        onEditTitleTap: onEditTitleTap,
-                      ),
-                    ),
-                    Positioned(
-                      left: width * 0.040,
-                      right: width * 0.040,
-                      top: height * 0.300,
-                      height: height * 0.665,
-                      child: membersPanel,
-                    ),
-                  ],
-                );
-              },
+                    return Stack(
+                      clipBehavior: Clip.hardEdge,
+                      children: [
+                        Positioned(
+                          left: width * 0.070,
+                          right: width * 0.150,
+                          top: height * 0.045,
+                          height: height * 0.238,
+                          child: _QuietFamilyStageHeader(
+                            embedded: embedded,
+                            title: title,
+                            familyPoints: familyPoints,
+                            petCount: petCount,
+                            memberCount: memberCount,
+                            canManageMembers: canManageMembers,
+                            addingMember: addingMember,
+                            onAddMemberTap: onAddMemberTap,
+                            canEditTitle: canEditTitle,
+                            updatingTitle: updatingTitle,
+                            onEditTitleTap: onEditTitleTap,
+                          ),
+                        ),
+                        Positioned(
+                          left: width * 0.040,
+                          right: width * 0.040,
+                          top: height * 0.252,
+                          height: height * 0.704,
+                          child: membersPanel,
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
             ),
           ),
-        ),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(32),
+                  border: Border.all(
+                    color: const Color(0xFF5F3A20),
+                    width: 3.0,
+                    strokeAlign: BorderSide.strokeAlignInside,
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x24523319),
+                      blurRadius: 1.2,
+                      spreadRadius: -0.2,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Padding(
+                padding: const EdgeInsets.all(3.5),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(29),
+                    border: Border.all(
+                      color: const Color(0x665F3A20),
+                      width: 0.8,
+                      strokeAlign: BorderSide.strokeAlignInside,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 18,
+            right: 18,
+            child: _CircleIconButton(
+              icon: embedded ? Icons.close_rounded : Icons.arrow_back_rounded,
+              tooltip: embedded ? '\u5173\u95ed' : '\u8fd4\u56de\u9996\u9875',
+              onTap: onLeadingTap,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -758,8 +806,11 @@ class _FamilySnapshotPanel extends StatelessWidget {
             child: SizedBox(
               height: heroHeight,
               width: heroHeight * 1.18,
-              child: const FamilySpriteSlice(
-                region: FamilySpriteRegions.heroIllustration,
+              child: Image.asset(
+                FamilyHomePartAssets.familyIllustration,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
+                isAntiAlias: true,
               ),
             ),
           ),
@@ -778,30 +829,42 @@ class _FamilyStatPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 36,
+    return ConstrainedBox(
       constraints: const BoxConstraints(minWidth: 58),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: _FamilyPalette.chip,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: _FamilyPalette.chipBorder),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 16, color: _FamilyPalette.muted),
-          const SizedBox(width: 6),
-          Text(
-            value,
-            style: const TextStyle(
-              color: _FamilyPalette.text,
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
+      child: SizedBox(
+        height: 36,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Positioned.fill(
+              child: Image.asset(
+                FamilyHomePartAssets.statBadgeFrame,
+                fit: BoxFit.fill,
+                filterQuality: FilterQuality.high,
+                isAntiAlias: true,
+              ),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, size: 16, color: _FamilyPalette.muted),
+                  const SizedBox(width: 6),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      color: _FamilyPalette.text,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -816,7 +879,6 @@ class _QuietFamilyStageHeader extends StatelessWidget {
     required this.memberCount,
     required this.canManageMembers,
     required this.addingMember,
-    required this.onLeadingTap,
     required this.onAddMemberTap,
     required this.canEditTitle,
     required this.updatingTitle,
@@ -830,7 +892,6 @@ class _QuietFamilyStageHeader extends StatelessWidget {
   final int memberCount;
   final bool canManageMembers;
   final bool addingMember;
-  final VoidCallback onLeadingTap;
   final VoidCallback onAddMemberTap;
   final bool canEditTitle;
   final bool updatingTitle;
@@ -934,21 +995,15 @@ class _QuietFamilyStageHeader extends StatelessWidget {
                   child: SizedBox(
                     width: heroWidth,
                     height: heroHeight,
-                    child: const FamilySpriteSlice(
-                      region: FamilySpriteRegions.heroIllustration,
+                    child: Image.asset(
+                      FamilyHomePartAssets.familyIllustration,
+                      fit: BoxFit.contain,
+                      filterQuality: FilterQuality.high,
+                      isAntiAlias: true,
                     ),
                   ),
                 ),
               ],
-            ),
-            Positioned(
-              top: embedded ? -4 : -5,
-              right: embedded ? -6 : -7,
-              child: _CircleIconButton(
-                icon: embedded ? Icons.close_rounded : Icons.arrow_back_rounded,
-                tooltip: embedded ? '\u5173\u95ed' : '\u8fd4\u56de\u9996\u9875',
-                onTap: onLeadingTap,
-              ),
             ),
           ],
         );
@@ -1005,46 +1060,42 @@ class _QuietStatPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isStar = iconRegion == FamilySpriteRegions.starIcon;
-    return Container(
+    return SizedBox(
       width: compact ? (isStar ? 74 : 64) : (isStar ? 86 : 74),
       height: compact ? 32 : 36,
-      padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 10),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFFFFFBF0), Color(0xFFFFF0D8)],
-        ),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: const Color(0xFF8D5B2E),
-          width: compact ? 1.0 : 1.2,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x168A5A2C),
-            blurRadius: 5,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Stack(
+        fit: StackFit.expand,
         children: [
-          _buildIcon(compact),
-          SizedBox(width: compact ? 2 : 4),
-          Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                value,
-                maxLines: 1,
-                style: TextStyle(
-                  color: _FamilyPalette.text,
-                  fontSize: compact ? 14 : 15,
-                  fontWeight: FontWeight.w900,
+          Positioned.fill(
+            child: Image.asset(
+              FamilyHomePartAssets.statBadgeFrame,
+              fit: BoxFit.fill,
+              filterQuality: FilterQuality.high,
+              isAntiAlias: true,
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildIcon(compact),
+                SizedBox(width: compact ? 2 : 4),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      value,
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: _FamilyPalette.text,
+                        fontSize: compact ? 14 : 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ],
@@ -1053,15 +1104,28 @@ class _QuietStatPill extends StatelessWidget {
   }
 
   Widget _buildIcon(bool compact) {
-    final size = compact ? 14.0 : 16.0;
+    final isMember = iconRegion == FamilySpriteRegions.statMemberIcon;
+    final isPet = iconRegion == FamilySpriteRegions.statPetIcon;
+    final assetPath = isMember
+        ? FamilyHomePartAssets.memberIcon
+        : isPet
+        ? FamilyHomePartAssets.petIcon
+        : FamilyHomePartAssets.starIcon;
+    final iconWidth = compact
+        ? (isMember ? 22.0 : 17.0)
+        : (isMember ? 24.0 : 19.0);
+    final iconHeight = compact
+        ? (isMember ? 17.0 : 17.0)
+        : (isMember ? 19.0 : 19.0);
 
     return SizedBox(
-      width: size,
-      height: size,
-      child: FamilySpriteSlice(
-        region: iconRegion,
+      width: iconWidth,
+      height: iconHeight,
+      child: Image.asset(
+        assetPath,
         fit: BoxFit.contain,
-        sampleInset: 0,
+        filterQuality: FilterQuality.high,
+        isAntiAlias: true,
       ),
     );
   }
@@ -1567,39 +1631,35 @@ class _FamilyMembersPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        const Positioned.fill(
-          child: Image(
-            image: AssetImage(
-              'assets/images/ui/sprites/family_home_parts/family_home_member_panel_frame.png',
-            ),
-            fit: BoxFit.fill,
-            filterQuality: FilterQuality.high,
-          ),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF5E4).withValues(alpha: 0.62),
+        borderRadius: BorderRadius.circular(compact ? 22 : 26),
+        border: Border.all(
+          color: const Color(0xFFE7C692).withValues(alpha: 0.72),
+          width: 1.2,
         ),
-        Padding(
-          padding: EdgeInsets.fromLTRB(
-            compact ? 13 : 18,
-            compact ? 16 : 21,
-            compact ? 13 : 18,
-            compact ? 19 : 25,
-          ),
-          child: FamilyMemberGrid(
-            members: members,
-            entryAnimation: entryAnimation,
-            canAddMembers: canManageMembers,
-            onAddMemberTap: onAddMemberTap,
-            onPetTap: onPetTap,
-            canEditAvatar: canEditAvatar,
-            onAvatarEditTap: onAvatarEditTap,
-            updatingAvatarMemberId: updatingAvatarMemberId,
-            canDeleteMember: canDeleteMember,
-            onMemberLongPress: onMemberLongPress,
-          ),
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          compact ? 9 : 14,
+          compact ? 10 : 16,
+          compact ? 9 : 14,
+          compact ? 12 : 18,
         ),
-      ],
+        child: FamilyMemberGrid(
+          members: members,
+          entryAnimation: entryAnimation,
+          canAddMembers: canManageMembers,
+          onAddMemberTap: onAddMemberTap,
+          onPetTap: onPetTap,
+          canEditAvatar: canEditAvatar,
+          onAvatarEditTap: onAvatarEditTap,
+          updatingAvatarMemberId: updatingAvatarMemberId,
+          canDeleteMember: canDeleteMember,
+          onMemberLongPress: onMemberLongPress,
+        ),
+      ),
     );
   }
 }
@@ -1734,14 +1794,15 @@ class _CircleIconButton extends StatelessWidget {
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
           child: SizedBox(
-            width: 40,
-            height: 40,
+            width: 46,
+            height: 46,
             child: Center(
               child: Image.asset(
-                HomePetsDialogTheme.closeIconAsset,
-                width: 34,
-                height: 34,
+                FamilyHomePartAssets.closeButton,
+                width: 42,
+                height: 42,
                 filterQuality: FilterQuality.high,
+                isAntiAlias: true,
               ),
             ),
           ),

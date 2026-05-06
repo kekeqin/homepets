@@ -55,6 +55,19 @@ class FamilySpriteRegions {
   static const Rect pageDotInactive = Rect.fromLTWH(442, 1078, 21, 21);
 }
 
+class FamilyHomePartAssets {
+  const FamilyHomePartAssets._();
+
+  static const String _base = 'assets/images/ui/sprites/family_home_parts';
+  static const String petIcon = '$_base/1.png';
+  static const String starIcon = '$_base/2.png';
+  static const String memberIcon = '$_base/3.png';
+  static const String petNameLabel = '$_base/6.png';
+  static const String statBadgeFrame = '$_base/7.png';
+  static const String familyIllustration = '$_base/8.png';
+  static const String closeButton = '$_base/5.png';
+}
+
 class FamilySpriteSkins {
   const FamilySpriteSkins._();
 
@@ -236,21 +249,42 @@ class FamilySpriteProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final clampedValue = value.clamp(0.0, 1.0).toDouble();
+    final innerPadding = (height * 0.16).clamp(1.0, 2.0).toDouble();
 
     return SizedBox(
       height: height,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          const FamilySpriteSlice(region: FamilySpriteRegions.progressTrack),
-          FractionallySizedBox(
-            alignment: Alignment.centerLeft,
-            widthFactor: clampedValue,
-            child: const FamilySpriteSlice(
-              region: FamilySpriteRegions.progressFill,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF0D1),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: const Color(0xFF775131).withValues(alpha: 0.78),
+            width: 1,
+          ),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(innerPadding),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: clampedValue,
+                child: const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xFFA5BB46), Color(0xFF708D24)],
+                    ),
+                  ),
+                  child: SizedBox.expand(),
+                ),
+              ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
