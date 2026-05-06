@@ -20,6 +20,7 @@ class HomePetsApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
+        fontFamily: 'HomePetsFont',
         useMaterial3: true,
       ),
       routerConfig: router,

@@ -87,6 +87,21 @@ flutter:
     - assets/images/ui/task_delete/
     - assets/images/ui/sprites/
     - assets/images/ui/sprites/family_home_parts/
+  fonts:
+    - family: HomePetsFont
+      fonts:
+        - asset: assets/fonts/TsangerShuYuanW03.ttf
+          weight: 400
+        - asset: assets/fonts/TsangerShuYuanW03.ttf
+          weight: 500
+        - asset: assets/fonts/TsangerShuYuanW03.ttf
+          weight: 600
+        - asset: assets/fonts/TsangerShuYuanW03.ttf
+          weight: 700
+        - asset: assets/fonts/TsangerShuYuanW03.ttf
+          weight: 800
+        - asset: assets/fonts/TsangerShuYuanW03.ttf
+          weight: 900
 
   # To add assets to your application, add an assets section, like this:
   # assets:
