@@ -522,30 +522,42 @@ class _PetStage extends StatelessWidget {
           constraints.maxHeight - resolvedLabelHeight - stageGap,
         );
         final stageSize = [
-          stageAreaHeight * 1.02,
-          constraints.maxWidth * 0.92,
-          164 * scale,
+          stageAreaHeight * 1.60,
+          constraints.maxWidth * 1.08,
+          196 * scale,
         ].reduce(math.min);
-        final petSize = math.min(stageSize * 1.10, stageAreaHeight * 1.05);
+        final petSize = math.min(stageAreaHeight * 1.05, stageSize * 0.90);
+        final circleSize = [
+          petSize * 1.23,
+          stageSize * 1.10,
+          constraints.maxWidth * 1.02,
+          206 * scale,
+        ].reduce(math.min);
 
         return Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Expanded(
               child: Stack(
+                clipBehavior: Clip.none,
                 alignment: Alignment.center,
                 children: [
-                  SizedBox(
-                    width: stageSize,
-                    height: stageSize,
-                    child: _PetCircleStage(
-                      color: seatColor,
-                      borderColor: seatBorderColor,
-                      scale: scale,
+                  OverflowBox(
+                    alignment: Alignment.center,
+                    maxWidth: circleSize,
+                    maxHeight: circleSize,
+                    child: SizedBox(
+                      width: circleSize,
+                      height: circleSize,
+                      child: _PetCircleStage(
+                        color: seatColor,
+                        borderColor: seatBorderColor,
+                        scale: scale,
+                      ),
                     ),
                   ),
                   Transform.translate(
-                    offset: Offset(0, -stageSize * 0.035),
+                    offset: Offset(0, -stageSize * 0.006),
                     child: _PetPreviewButton(
                       key: badgeKey,
                       assetPath: assetPath,
@@ -598,8 +610,8 @@ class _PetPreviewButton extends StatelessWidget {
           : Image.asset(
               assetPath!,
               fit: BoxFit.contain,
-              filterQuality: FilterQuality.high,
-              isAntiAlias: true,
+              filterQuality: FilterQuality.medium,
+              isAntiAlias: false,
             ),
     );
 
@@ -634,8 +646,8 @@ class _PetNameLabel extends StatelessWidget {
           child: Image.asset(
             FamilyHomePartAssets.petNameLabel,
             fit: BoxFit.fill,
-            filterQuality: FilterQuality.high,
-            isAntiAlias: true,
+            filterQuality: FilterQuality.medium,
+            isAntiAlias: false,
           ),
         ),
         Padding(
@@ -793,8 +805,8 @@ class _PointsBadge extends StatelessWidget {
             child: Image.asset(
               FamilyHomePartAssets.statBadgeFrame,
               fit: BoxFit.fill,
-              filterQuality: FilterQuality.high,
-              isAntiAlias: true,
+              filterQuality: FilterQuality.medium,
+              isAntiAlias: false,
             ),
           ),
           Positioned.fill(
@@ -822,8 +834,8 @@ class _PointsBadge extends StatelessWidget {
                   child: Image.asset(
                     FamilyHomePartAssets.starIcon,
                     fit: BoxFit.contain,
-                    filterQuality: FilterQuality.high,
-                    isAntiAlias: true,
+                    filterQuality: FilterQuality.medium,
+                    isAntiAlias: false,
                   ),
                 ),
                 SizedBox(width: 3 * scale),
@@ -936,66 +948,48 @@ class _PetCircleStage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            color.withValues(alpha: 0.96),
-            color.withValues(alpha: 0.82),
-          ],
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Padding(
+          padding: EdgeInsets.all(2.5 * scale),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                center: const Alignment(-0.18, -0.25),
+                radius: 0.86,
+                colors: [
+                  Colors.white.withValues(alpha: 0.44),
+                  color.withValues(alpha: 0.60),
+                  color.withValues(alpha: 0.22),
+                ],
+                stops: const [0.0, 0.58, 1.0],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: borderColor.withValues(alpha: 0.13),
+                  blurRadius: 8 * scale,
+                  offset: Offset(0, 3 * scale),
+                ),
+              ],
+            ),
+          ),
         ),
-        shape: BoxShape.circle,
-        border: Border.all(color: borderColor, width: 1.55 * scale),
-        boxShadow: [
-          BoxShadow(
-            color: borderColor.withValues(alpha: 0.18),
-            blurRadius: 9 * scale,
-            offset: Offset(0, 3.4 * scale),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            left: 13 * scale,
-            right: 15 * scale,
-            top: 11 * scale,
-            height: 16 * scale,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(999),
-                color: Colors.white.withValues(alpha: 0.28),
-              ),
+        Positioned.fill(
+          child: Padding(
+            padding: EdgeInsets.all(1.2 * scale),
+            child: Image.asset(
+              FamilyHomePartAssets.petCircleFrame,
+              fit: BoxFit.contain,
+              color: borderColor.withValues(alpha: 0.82),
+              colorBlendMode: BlendMode.srcIn,
+              filterQuality: FilterQuality.medium,
+              isAntiAlias: false,
             ),
           ),
-          Positioned(
-            right: 17 * scale,
-            top: 32 * scale,
-            width: 11 * scale,
-            height: 11 * scale,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.20),
-              ),
-            ),
-          ),
-          Positioned(
-            left: 18 * scale,
-            right: 18 * scale,
-            bottom: 12 * scale,
-            height: 10 * scale,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(999),
-                color: borderColor.withValues(alpha: 0.18),
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

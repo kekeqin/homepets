@@ -809,8 +809,8 @@ class _FamilySnapshotPanel extends StatelessWidget {
               child: Image.asset(
                 FamilyHomePartAssets.familyIllustration,
                 fit: BoxFit.contain,
-                filterQuality: FilterQuality.high,
-                isAntiAlias: true,
+                filterQuality: FilterQuality.medium,
+                isAntiAlias: false,
               ),
             ),
           ),
@@ -840,8 +840,8 @@ class _FamilyStatPill extends StatelessWidget {
               child: Image.asset(
                 FamilyHomePartAssets.statBadgeFrame,
                 fit: BoxFit.fill,
-                filterQuality: FilterQuality.high,
-                isAntiAlias: true,
+                filterQuality: FilterQuality.medium,
+                isAntiAlias: false,
               ),
             ),
             Padding(
@@ -998,8 +998,8 @@ class _QuietFamilyStageHeader extends StatelessWidget {
                     child: Image.asset(
                       FamilyHomePartAssets.familyIllustration,
                       fit: BoxFit.contain,
-                      filterQuality: FilterQuality.high,
-                      isAntiAlias: true,
+                      filterQuality: FilterQuality.medium,
+                      isAntiAlias: false,
                     ),
                   ),
                 ),
@@ -1070,8 +1070,8 @@ class _QuietStatPill extends StatelessWidget {
             child: Image.asset(
               FamilyHomePartAssets.statBadgeFrame,
               fit: BoxFit.fill,
-              filterQuality: FilterQuality.high,
-              isAntiAlias: true,
+              filterQuality: FilterQuality.medium,
+              isAntiAlias: false,
             ),
           ),
           Padding(
@@ -1124,8 +1124,8 @@ class _QuietStatPill extends StatelessWidget {
       child: Image.asset(
         assetPath,
         fit: BoxFit.contain,
-        filterQuality: FilterQuality.high,
-        isAntiAlias: true,
+        filterQuality: FilterQuality.medium,
+        isAntiAlias: false,
       ),
     );
   }
@@ -1801,8 +1801,8 @@ class _CircleIconButton extends StatelessWidget {
                 FamilyHomePartAssets.closeButton,
                 width: 42,
                 height: 42,
-                filterQuality: FilterQuality.high,
-                isAntiAlias: true,
+                filterQuality: FilterQuality.medium,
+                isAntiAlias: false,
               ),
             ),
           ),

@@ -65,6 +65,7 @@ class FamilyHomePartAssets {
   static const String petNameLabel = '$_base/6.png';
   static const String statBadgeFrame = '$_base/7.png';
   static const String familyIllustration = '$_base/8.png';
+  static const String petCircleFrame = '$_base/9.png';
   static const String closeButton = '$_base/5.png';
 }
 
@@ -134,8 +135,8 @@ class FamilySpriteSlice extends StatelessWidget {
     this.sheetSize = FamilySpriteSheet.sheetSize,
     this.fit = BoxFit.fill,
     this.alignment = Alignment.center,
-    this.sampleInset = 1,
-    this.filterQuality = FilterQuality.high,
+    this.sampleInset = 1.5,
+    this.filterQuality = FilterQuality.medium,
   });
 
   final Rect region;
@@ -303,7 +304,7 @@ class _FamilySpritePanelPainter extends CustomPainter {
     }
 
     final paint = Paint()
-      ..filterQuality = FilterQuality.high
+      ..filterQuality = FilterQuality.medium
       ..isAntiAlias = true;
     final frame = _deflateSafely(skin.frame, skin.sampleInset);
     final fill = _deflateSafely(skin.fill, 0.5);
