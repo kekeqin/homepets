@@ -183,7 +183,9 @@ dart format lib/ test/
 
 - Commit messages: imperative mood, concise (`Add pet feeding endpoint`, not `Added` or `Adds`).
 - One logical change per commit.
-- Run lint + tests before committing. Agents MUST run `uv run ruff check . && uv run pytest` (backend) or `flutter analyze && flutter test` (frontend) after making changes.
+- Run lint + tests before committing. After code changes, agents should run the smallest
+  relevant lint/test checks for the files and behavior touched. Full test suites are required
+  before commit/release or when explicitly requested, but are not required after every code edit.
 - Do not commit `.env`, secrets, or generated files.
 
 ---
@@ -192,8 +194,13 @@ dart format lib/ test/
 
 1. Always check if a dependency exists in `pyproject.toml` / `pubspec.yaml` before importing a new library. Ask the user before adding new dependencies.
 2. When creating new files, follow the existing directory structure above.
-3. After editing backend code, run: `uv run ruff check . && uv run ruff format . && uv run pytest`
-4. After editing frontend code, run: `flutter analyze && flutter test`
+3. After editing backend code, run the smallest relevant checks for the change. Examples:
+   `uv run ruff check .` for small code edits, targeted `uv run pytest ...` for touched
+   behavior, and full `uv run ruff check . && uv run ruff format . && uv run pytest` before
+   commit/release or when explicitly requested.
+4. After editing frontend code, run the smallest relevant checks for the change. Examples:
+   `flutter analyze` for small UI/code edits, targeted `flutter test ...` for touched behavior,
+   and full `flutter analyze && flutter test` before commit/release or when explicitly requested.
 5. Prefer editing existing files over creating new ones.
 6. Follow TDD when requested: write failing test first, then implement.
 7. Use Chinese for user-facing strings in the app (target audience is Chinese families).
