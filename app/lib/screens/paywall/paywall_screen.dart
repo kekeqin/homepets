@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
+import '../../core/ui/sprite_atlas.dart';
 import '../../providers/revenue_cat_provider.dart';
 import '../../widgets/app_modal_shell.dart';
 
@@ -24,14 +25,9 @@ Future<void> showPaywallDialog(
     pageBuilder: (dialogContext) {
       return AppModalShell(
         layout: AppModalLayouts.paywall,
-        minimumSafeArea: const EdgeInsets.fromLTRB(12, 16, 12, 16),
-        backgroundColor: _PaywallPalette.background,
-        borderRadius: const BorderRadius.all(Radius.circular(30)),
-        border: Border.all(color: HomePetsDialogTheme.panelBorder, width: 1.5),
-        boxShadow: HomePetsDialogTheme.shellShadow,
-        child: _PaywallContent(
-          heroHeightFactor: 0.30,
-          heroMaxHeight: 260,
+        minimumSafeArea: const EdgeInsets.fromLTRB(10, 12, 10, 12),
+        clipChild: false,
+        child: _PaywallSpriteContent(
           onClose: () => Navigator.of(dialogContext).pop(),
         ),
       );
@@ -42,18 +38,12 @@ Future<void> showPaywallDialog(
 class PaywallScreen extends ConsumerWidget {
   const PaywallScreen({super.key});
 
-  static const _heroAsset = 'assets/images/ui/paywall_screen.png';
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: _PaywallPalette.background,
+      backgroundColor: const Color(0xFFF9F4EE),
       body: SafeArea(
-        child: _PaywallContent(
-          heroHeightFactor: 0.42,
-          heroMaxHeight: 360,
-          onClose: () => _closePaywall(context),
-        ),
+        child: _PaywallSpriteContent(onClose: () => _closePaywall(context)),
       ),
     );
   }
@@ -67,61 +57,128 @@ class PaywallScreen extends ConsumerWidget {
   }
 }
 
-class _PaywallContent extends ConsumerWidget {
-  const _PaywallContent({
-    required this.heroHeightFactor,
-    required this.heroMaxHeight,
-    required this.onClose,
-  });
+class _PaywallSpriteContent extends ConsumerStatefulWidget {
+  const _PaywallSpriteContent({required this.onClose});
 
-  final double heroHeightFactor;
-  final double heroMaxHeight;
   final VoidCallback onClose;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(revenueCatProvider);
-    final packages = state.packages;
-    final selectedPackage = state.selectedPackage;
+  ConsumerState<_PaywallSpriteContent> createState() =>
+      _PaywallSpriteContentState();
+}
 
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(18, 14, 18, 28),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 540),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+class _PaywallSpriteContentState extends ConsumerState<_PaywallSpriteContent> {
+  var _selectedSlot = 0;
+  var _hasManualSelection = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(revenueCatProvider);
+    final slotPackages = _packagesBySlot(state.packages);
+    final selectedSlot = _hasManualSelection
+        ? _selectedSlot
+        : _slotForSelectedPackage(slotPackages, state.selectedPackage) ??
+              _selectedSlot;
+    final statusMessage = _statusMessageFor(state);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.hasBoundedWidth
+            ? constraints.maxWidth
+            : _PaywallSprite.design.width;
+        final maxHeight = constraints.hasBoundedHeight
+            ? constraints.maxHeight
+            : _PaywallSprite.design.height;
+        final scale = math.min(
+          maxWidth / _PaywallSprite.design.width,
+          maxHeight / _PaywallSprite.design.height,
+        );
+
+        return Center(
+          child: SizedBox(
+            width: _PaywallSprite.design.width * scale,
+            height: _PaywallSprite.design.height * scale,
+            child: FittedBox(
+              fit: BoxFit.fill,
+              child: SizedBox(
+                width: _PaywallSprite.design.width,
+                height: _PaywallSprite.design.height,
+                child: Stack(
+                  clipBehavior: Clip.none,
                   children: [
-                    _PaywallHero(
-                      assetPath: PaywallScreen._heroAsset,
-                      heightFactor: heroHeightFactor,
-                      maxHeight: heroMaxHeight,
+                    const Positioned.fill(child: _PaywallPanelBackground()),
+                    _sprite(_PaywallSprite.cat, _PaywallSprite.catTarget),
+                    _sprite(_PaywallSprite.gift, _PaywallSprite.giftTarget),
+                    _sprite(
+                      _PaywallSprite.calendar,
+                      _PaywallSprite.calendarTarget,
                     ),
-                    const SizedBox(height: 14),
-                    const _BenefitGrid(),
-                    const SizedBox(height: 18),
-                    _PackageSection(
-                      state: state,
-                      packages: packages,
-                      selectedPackage: selectedPackage,
-                      onSelectPackage: (package) {
-                        ref
-                            .read(revenueCatProvider.notifier)
-                            .selectPackage(package);
-                      },
-                      onRetry: () {
-                        ref
-                            .read(revenueCatProvider.notifier)
-                            .refreshOfferings();
-                      },
+                    _sprite(_PaywallSprite.star, _PaywallSprite.starTarget),
+                    _sprite(_PaywallSprite.title, _PaywallSprite.titleTarget),
+                    _sprite(
+                      _PaywallSprite.subtitle,
+                      _PaywallSprite.subtitleTarget,
                     ),
-                    const SizedBox(height: 12),
-                    _StatusBanner(state: state),
-                    const SizedBox(height: 14),
-                    _UnlockButton(
+                    _sprite(
+                      _PaywallSprite.benefitFamily,
+                      _PaywallSprite.benefitFamilyTarget,
+                    ),
+                    _sprite(
+                      _PaywallSprite.benefitGrowth,
+                      _PaywallSprite.benefitGrowthTarget,
+                    ),
+                    _sprite(
+                      _PaywallSprite.benefitTasks,
+                      _PaywallSprite.benefitTasksTarget,
+                    ),
+                    _sprite(
+                      _PaywallSprite.divider,
+                      _PaywallSprite.dividerTarget,
+                    ),
+                    _PaywallPlanCard(
+                      target: _PaywallSprite.monthlyCardTarget,
+                      title: '月卡',
+                      price: '9.99',
+                      accentColor: const Color(0xFFD15F52),
+                      selected: selectedSlot == 0,
+                      package: slotPackages[0],
+                      fallbackLabel: '月卡，9.99 元',
+                      onTap: () => _selectPlan(0, slotPackages[0]),
+                    ),
+                    _PaywallPlanCard(
+                      target: _PaywallSprite.annualCardTarget,
+                      title: '年卡',
+                      price: '79.98',
+                      accentColor: const Color(0xFF6F9A4A),
+                      selected: selectedSlot == 1,
+                      package: slotPackages[1],
+                      fallbackLabel: '年卡，79.98 元',
+                      onTap: () => _selectPlan(1, slotPackages[1]),
+                    ),
+                    _PaywallPlanCard(
+                      target: _PaywallSprite.lifetimeCardTarget,
+                      title: '永久会员',
+                      price: '198',
+                      accentColor: const Color(0xFFE09A28),
+                      selected: selectedSlot == 2,
+                      package: slotPackages[2],
+                      fallbackLabel: '永久会员，198 元',
+                      onTap: () => _selectPlan(2, slotPackages[2]),
+                    ),
+                    _sprite(
+                      _PaywallSprite.unlockButton,
+                      _PaywallSprite.unlockButtonTarget,
+                    ),
+                    _sprite(
+                      _PaywallSprite.parentConfirm,
+                      _PaywallSprite.parentConfirmTarget,
+                    ),
+                    if (statusMessage != null)
+                      _PaywallStatusMessage(
+                        message: statusMessage,
+                        isError: _hasError(state),
+                      ),
+                    _PaywallUnlockHitTarget(
                       state: state,
                       onPressed: () async {
                         final unlocked = await ref
@@ -130,11 +187,10 @@ class _PaywallContent extends ConsumerWidget {
                         if (!context.mounted || !unlocked) {
                           return;
                         }
-                        onClose();
+                        widget.onClose();
                       },
                     ),
-                    const SizedBox(height: 10),
-                    _RestoreRow(
+                    _PaywallRestoreHitTarget(
                       state: state,
                       onRestore: () async {
                         final restored = await ref
@@ -143,332 +199,147 @@ class _PaywallContent extends ConsumerWidget {
                         if (!context.mounted || !restored) {
                           return;
                         }
-                        onClose();
+                        widget.onClose();
                       },
-                      onClose: onClose,
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      '可随时取消，实际价格与续订周期以商店确认页为准',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: _PaywallPalette.muted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                    _CloseButton(onPressed: widget.onClose),
                   ],
                 ),
               ),
             ),
           ),
-        ),
-        Positioned(top: 10, right: 14, child: _CloseButton(onPressed: onClose)),
-      ],
+        );
+      },
     );
   }
-}
 
-class _PaywallHero extends StatelessWidget {
-  const _PaywallHero({
-    required this.assetPath,
-    required this.heightFactor,
-    required this.maxHeight,
-  });
-
-  final String assetPath;
-  final double heightFactor;
-  final double maxHeight;
-
-  @override
-  Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final heroHeight = math.min(screenHeight * heightFactor, maxHeight);
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
-      child: SizedBox(
-        height: heroHeight,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.asset(
-              assetPath,
-              alignment: Alignment.topCenter,
-              fit: BoxFit.cover,
-              filterQuality: FilterQuality.high,
-            ),
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0x00FFF4DD), Color(0xFFFFF4DD)],
-                  stops: [0.62, 1],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BenefitGrid extends StatelessWidget {
-  const _BenefitGrid();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: const [
-        Expanded(
-          child: _BenefitTile(icon: Icons.groups_rounded, label: '更多家庭成员'),
-        ),
-        SizedBox(width: 10),
-        Expanded(
-          child: _BenefitTile(icon: Icons.insights_rounded, label: '成长报告'),
-        ),
-        SizedBox(width: 10),
-        Expanded(
-          child: _BenefitTile(icon: Icons.favorite_rounded, label: '专属装饰'),
-        ),
-      ],
-    );
-  }
-}
-
-class _BenefitTile extends StatelessWidget {
-  const _BenefitTile({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 94,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-      decoration: BoxDecoration(
-        color: _PaywallPalette.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _PaywallPalette.softBorder, width: 1.5),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x16865A2E),
-            blurRadius: 14,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: _PaywallPalette.sage, size: 28),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: _PaywallPalette.text,
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
-              height: 1.1,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PackageSection extends StatelessWidget {
-  const _PackageSection({
-    required this.state,
-    required this.packages,
-    required this.selectedPackage,
-    required this.onSelectPackage,
-    required this.onRetry,
-  });
-
-  final RevenueCatState state;
-  final List<Package> packages;
-  final Package? selectedPackage;
-  final ValueChanged<Package> onSelectPackage;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    if (state.isLoadingOfferings && packages.isEmpty) {
-      return const _LoadingPackages();
+  void _selectPlan(int slot, Package? package) {
+    setState(() {
+      _selectedSlot = slot;
+      _hasManualSelection = true;
+    });
+    if (package != null) {
+      ref.read(revenueCatProvider.notifier).selectPackage(package);
     }
-
-    if (packages.isEmpty) {
-      return _EmptyPackages(
-        message: state.errorMessage ?? 'RevenueCat 还没有可展示的 current Offering。',
-        onRetry: state.isAvailable ? onRetry : null,
-      );
-    }
-
-    final recommendedIdentifier = packages.length > 1
-        ? packages.first.identifier
-        : null;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var index = 0; index < packages.length; index++) ...[
-          _PackageCard(
-            package: packages[index],
-            displayIndex: index,
-            selected: selectedPackage?.identifier == packages[index].identifier,
-            recommended: packages[index].identifier == recommendedIdentifier,
-            onTap: () => onSelectPackage(packages[index]),
-          ),
-          if (index != packages.length - 1) const SizedBox(height: 10),
-        ],
-      ],
-    );
   }
 }
 
-class _PackageCard extends StatelessWidget {
-  const _PackageCard({
-    required this.package,
-    required this.displayIndex,
+class _PaywallPlanCard extends StatelessWidget {
+  const _PaywallPlanCard({
+    required this.target,
+    required this.title,
+    required this.price,
+    required this.accentColor,
     required this.selected,
-    required this.recommended,
+    required this.package,
+    required this.fallbackLabel,
     required this.onTap,
   });
 
-  final Package package;
-  final int displayIndex;
+  final Rect target;
+  final String title;
+  final String price;
+  final Color accentColor;
   final bool selected;
-  final bool recommended;
+  final Package? package;
+  final String fallbackLabel;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final product = package.storeProduct;
-    final priceLabel = '${product.priceString}${_periodSuffix(package)}';
-
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: '${_packageTitle(package, displayIndex)}，$priceLabel',
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
-          decoration: BoxDecoration(
-            color: selected
-                ? _PaywallPalette.selectedSurface
-                : _PaywallPalette.surface,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: selected
-                  ? _PaywallPalette.sage
-                  : _PaywallPalette.packageBorder,
-              width: selected ? 2.5 : 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: selected
-                    ? const Color(0x338BA652)
-                    : const Color(0x12865A2E),
-                blurRadius: selected ? 18 : 12,
-                offset: const Offset(0, 7),
-              ),
-            ],
-          ),
-          child: Row(
+    final package = this.package;
+    final borderColor = selected ? const Color(0xFFD15F52) : accentColor;
+    return Positioned.fromRect(
+      rect: target,
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: package == null
+            ? fallbackLabel
+            : _packageAccessibilityLabel(package),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Stack(
+            clipBehavior: Clip.none,
             children: [
-              Expanded(
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 140),
+                width: target.width,
+                height: target.height,
+                padding: const EdgeInsets.fromLTRB(12, 14, 12, 11),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF7E7),
+                  borderRadius: BorderRadius.circular(23),
+                  border: Border.all(
+                    color: borderColor,
+                    width: selected ? 4 : 2.4,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (selected ? borderColor : const Color(0xFF8C5B30))
+                          .withValues(alpha: selected ? 0.18 : 0.09),
+                      blurRadius: selected ? 13 : 8,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            _packageTitle(package, displayIndex),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: _PaywallPalette.text,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                              height: 1,
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: accentColor,
+                        fontSize: title.length > 2 ? 24 : 27,
+                        fontWeight: FontWeight.w900,
+                        height: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(bottom: 8),
+                            child: Text(
+                              '¥',
+                              style: TextStyle(
+                                color: Color(0xFF2F2015),
+                                fontSize: 29,
+                                fontWeight: FontWeight.w900,
+                                height: 1,
+                              ),
                             ),
                           ),
-                        ),
-                        if (recommended) ...[
                           const SizedBox(width: 8),
-                          const _RecommendedPill(),
+                          Text(
+                            price,
+                            style: const TextStyle(
+                              color: Color(0xFF2A1B11),
+                              fontSize: 52,
+                              fontWeight: FontWeight.w900,
+                              height: 0.9,
+                            ),
+                          ),
                         ],
-                      ],
-                    ),
-                    const SizedBox(height: 9),
-                    Text(
-                      _packageSubtitle(package),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: _PaywallPalette.secondaryText,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        height: 1.25,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    priceLabel,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: _PaywallPalette.sageDark,
-                      fontSize: 23,
-                      fontWeight: FontWeight.w900,
-                      height: 1,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 160),
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? _PaywallPalette.sage
-                          : Colors.transparent,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: selected
-                            ? _PaywallPalette.sage
-                            : _PaywallPalette.packageBorder,
-                        width: 2,
-                      ),
-                    ),
-                    child: selected
-                        ? const Icon(
-                            Icons.check_rounded,
-                            color: Colors.white,
-                            size: 20,
-                          )
-                        : null,
-                  ),
-                ],
-              ),
+              if (selected)
+                Positioned(
+                  left: -24,
+                  top: -24,
+                  child: _PaywallSpritePiece(source: _PaywallSprite.checkBadge),
+                ),
             ],
           ),
         ),
@@ -477,176 +348,8 @@ class _PackageCard extends StatelessWidget {
   }
 }
 
-class _RecommendedPill extends StatelessWidget {
-  const _RecommendedPill();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: _PaywallPalette.pink,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: const Text(
-        '推荐',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.w900,
-          height: 1,
-        ),
-      ),
-    );
-  }
-}
-
-class _LoadingPackages extends StatelessWidget {
-  const _LoadingPackages();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
-      decoration: BoxDecoration(
-        color: _PaywallPalette.surface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: _PaywallPalette.softBorder),
-      ),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2.4),
-          ),
-          SizedBox(width: 12),
-          Text(
-            '正在读取会员套餐...',
-            style: TextStyle(
-              color: _PaywallPalette.secondaryText,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyPackages extends StatelessWidget {
-  const _EmptyPackages({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback? onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: _PaywallPalette.surface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: _PaywallPalette.softBorder),
-      ),
-      child: Column(
-        children: [
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: _PaywallPalette.secondaryText,
-              fontWeight: FontWeight.w800,
-              height: 1.35,
-            ),
-          ),
-          if (onRetry != null) ...[
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: onRetry,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: _PaywallPalette.sageDark,
-                side: const BorderSide(color: _PaywallPalette.sage, width: 1.5),
-              ),
-              child: const Text('重新加载套餐'),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _StatusBanner extends StatelessWidget {
-  const _StatusBanner({required this.state});
-
-  final RevenueCatState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final message = _messageForState(state);
-    if (message == null) {
-      return const SizedBox.shrink();
-    }
-
-    final isError =
-        state.errorMessage != null ||
-        state.purchaseError != null ||
-        state.restoreError != null;
-    final isSuccess = state.isPremiumActive;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 160),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-      decoration: BoxDecoration(
-        color: isSuccess
-            ? const Color(0xFFEFF5DD)
-            : isError
-            ? const Color(0xFFFFECE7)
-            : const Color(0xFFFFF7E8),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isSuccess
-              ? const Color(0xFFC8DB98)
-              : isError
-              ? const Color(0xFFF0B1A2)
-              : const Color(0xFFE9D5AD),
-        ),
-      ),
-      child: Text(
-        message,
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          color: isSuccess
-              ? _PaywallPalette.sageDark
-              : isError
-              ? const Color(0xFFB2604E)
-              : _PaywallPalette.secondaryText,
-          fontSize: 14,
-          fontWeight: FontWeight.w800,
-          height: 1.3,
-        ),
-      ),
-    );
-  }
-
-  String? _messageForState(RevenueCatState state) {
-    if (state.isPremiumActive) {
-      return '家庭高级版已开通。';
-    }
-    if (state.isPurchasing) {
-      return '正在连接商店，请稍候...';
-    }
-    if (state.isRestoring) {
-      return '正在恢复购买，请稍候...';
-    }
-    return state.purchaseError ?? state.restoreError ?? state.errorMessage;
-  }
-}
-
-class _UnlockButton extends StatelessWidget {
-  const _UnlockButton({required this.state, required this.onPressed});
+class _PaywallUnlockHitTarget extends StatelessWidget {
+  const _PaywallUnlockHitTarget({required this.state, required this.onPressed});
 
   final RevenueCatState state;
   final VoidCallback onPressed;
@@ -654,84 +357,111 @@ class _UnlockButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final busy = state.isPurchasing || state.isRestoring;
-    final label = state.isPremiumActive
-        ? '已开通'
-        : state.isPurchasing
-        ? '开通中...'
-        : '立即开通';
-
-    return FilledButton(
-      onPressed: state.canPurchase ? onPressed : null,
-      style: FilledButton.styleFrom(
-        backgroundColor: _PaywallPalette.sage,
-        disabledBackgroundColor: _PaywallPalette.sage.withValues(alpha: 0.42),
-        foregroundColor: _PaywallPalette.text,
-        disabledForegroundColor: _PaywallPalette.text.withValues(alpha: 0.48),
-        padding: const EdgeInsets.symmetric(vertical: 17),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        textStyle: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+    return Positioned.fromRect(
+      rect: _PaywallSprite.unlockButtonTarget,
+      child: Semantics(
+        button: true,
+        enabled: state.canPurchase,
+        label: state.isPremiumActive ? '已开通家庭会员' : '立即开通家庭会员',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: state.canPurchase ? onPressed : null,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              const SizedBox.expand(),
+              if (busy)
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: const BoxDecoration(
+                    color: Color(0xCCF7D4BB),
+                    shape: BoxShape.circle,
+                  ),
+                  padding: const EdgeInsets.all(13),
+                  child: const CircularProgressIndicator(
+                    strokeWidth: 4,
+                    color: Color(0xFF7B4D22),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
-      child: busy
-          ? const SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.8,
-                color: _PaywallPalette.text,
-              ),
-            )
-          : Text(label),
     );
   }
 }
 
-class _RestoreRow extends StatelessWidget {
-  const _RestoreRow({
+class _PaywallRestoreHitTarget extends StatelessWidget {
+  const _PaywallRestoreHitTarget({
     required this.state,
     required this.onRestore,
-    required this.onClose,
   });
 
   final RevenueCatState state;
   final VoidCallback onRestore;
-  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
     final disabled =
         state.isPurchasing || state.isRestoring || state.isPremiumActive;
+    return Positioned.fromRect(
+      rect: _PaywallSprite.restoreTarget,
+      child: Semantics(
+        button: true,
+        enabled: !disabled,
+        label: '恢复购买',
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: disabled ? null : onRestore,
+          child: const SizedBox.expand(),
+        ),
+      ),
+    );
+  }
+}
 
-    return Row(
-      children: [
-        Expanded(
-          child: TextButton(
-            onPressed: disabled ? null : onRestore,
-            style: TextButton.styleFrom(
-              foregroundColor: _PaywallPalette.text,
-              disabledForegroundColor: _PaywallPalette.muted,
-              textStyle: const TextStyle(
-                fontSize: 16,
+class _PaywallStatusMessage extends StatelessWidget {
+  const _PaywallStatusMessage({required this.message, required this.isError});
+
+  final String message;
+  final bool isError;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fromRect(
+      rect: _PaywallSprite.statusTarget,
+      child: Center(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: isError ? const Color(0xFFF9DDD3) : const Color(0xFFF7EBD2),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: isError
+                  ? const Color(0xFFE4A393)
+                  : const Color(0xFFE5CFA3),
+              width: 1.5,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+            child: Text(
+              message,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: isError
+                    ? const Color(0xFFAC5A48)
+                    : const Color(0xFF7F5A30),
+                fontSize: 18,
                 fontWeight: FontWeight.w900,
+                height: 1,
               ),
             ),
-            child: const Text('恢复购买'),
           ),
         ),
-        Container(width: 1, height: 22, color: _PaywallPalette.softBorder),
-        Expanded(
-          child: TextButton(
-            onPressed: onClose,
-            style: TextButton.styleFrom(
-              foregroundColor: _PaywallPalette.text,
-              textStyle: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            child: const Text('稍后再说'),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -743,89 +473,317 @@ class _CloseButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: '关闭',
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onPressed,
-        child: Image.asset(
-          HomePetsDialogTheme.closeIconAsset,
-          width: 48,
-          height: 48,
-          filterQuality: FilterQuality.high,
+    return Positioned.fromRect(
+      rect: _PaywallSprite.closeTarget,
+      child: Semantics(
+        button: true,
+        label: '关闭',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onPressed,
+          child: Image.asset(
+            HomePetsDialogTheme.closeIconAsset,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.high,
+          ),
         ),
       ),
     );
   }
 }
 
-String _packageTitle(Package package, int displayIndex) {
-  return switch (package.packageType) {
-    PackageType.weekly => '周度会员',
-    PackageType.monthly => '月度会员',
-    PackageType.twoMonth => '双月会员',
-    PackageType.threeMonth => '季度会员',
-    PackageType.sixMonth => '半年会员',
-    PackageType.annual => '年度会员',
+class _PaywallPanelBackground extends StatelessWidget {
+  const _PaywallPanelBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _NineSliceSprite(
+      source: _PaywallSprite.panel,
+      left: 92,
+      top: 92,
+      right: 92,
+      bottom: 92,
+      targetLeft: 92,
+      targetTop: 92,
+      targetRight: 92,
+      targetBottom: 92,
+    );
+  }
+}
+
+class _NineSliceSprite extends StatelessWidget {
+  const _NineSliceSprite({
+    required this.source,
+    required this.left,
+    required this.top,
+    required this.right,
+    required this.bottom,
+    required this.targetLeft,
+    required this.targetTop,
+    required this.targetRight,
+    required this.targetBottom,
+  });
+
+  final Rect source;
+  final double left;
+  final double top;
+  final double right;
+  final double bottom;
+  final double targetLeft;
+  final double targetTop;
+  final double targetRight;
+  final double targetBottom;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = constraints.biggest;
+        final dstLeft = math.min(targetLeft, size.width / 2);
+        final dstRight = math.min(targetRight, size.width - dstLeft);
+        final dstTop = math.min(targetTop, size.height / 2);
+        final dstBottom = math.min(targetBottom, size.height - dstTop);
+        final dstCenterWidth = math.max(0.0, size.width - dstLeft - dstRight);
+        final dstCenterHeight = math.max(0.0, size.height - dstTop - dstBottom);
+        final srcCenterWidth = math.max(0.0, source.width - left - right);
+        final srcCenterHeight = math.max(0.0, source.height - top - bottom);
+
+        final srcColumns = <_SliceAxis>[
+          _SliceAxis(source.left, left, 0, dstLeft),
+          _SliceAxis(
+            source.left + left,
+            srcCenterWidth,
+            dstLeft,
+            dstCenterWidth,
+          ),
+          _SliceAxis(
+            source.right - right,
+            right,
+            dstLeft + dstCenterWidth,
+            dstRight,
+          ),
+        ];
+        final srcRows = <_SliceAxis>[
+          _SliceAxis(source.top, top, 0, dstTop),
+          _SliceAxis(
+            source.top + top,
+            srcCenterHeight,
+            dstTop,
+            dstCenterHeight,
+          ),
+          _SliceAxis(
+            source.bottom - bottom,
+            bottom,
+            dstTop + dstCenterHeight,
+            dstBottom,
+          ),
+        ];
+
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            for (final row in srcRows)
+              for (final column in srcColumns)
+                if (row.sourceSize > 0 &&
+                    column.sourceSize > 0 &&
+                    row.targetSize > 0 &&
+                    column.targetSize > 0)
+                  Positioned.fromRect(
+                    rect: Rect.fromLTWH(
+                      column.targetOffset,
+                      row.targetOffset,
+                      column.targetSize,
+                      row.targetSize,
+                    ),
+                    child: _PaywallSpritePiece(
+                      source: Rect.fromLTWH(
+                        column.sourceOffset,
+                        row.sourceOffset,
+                        column.sourceSize,
+                        row.sourceSize,
+                      ),
+                      fit: BoxFit.fill,
+                    ),
+                  ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _SliceAxis {
+  const _SliceAxis(
+    this.sourceOffset,
+    this.sourceSize,
+    this.targetOffset,
+    this.targetSize,
+  );
+
+  final double sourceOffset;
+  final double sourceSize;
+  final double targetOffset;
+  final double targetSize;
+}
+
+class _PaywallSpritePiece extends StatelessWidget {
+  const _PaywallSpritePiece({required this.source, this.fit = BoxFit.contain});
+
+  final Rect source;
+  final BoxFit fit;
+
+  @override
+  Widget build(BuildContext context) {
+    return SpriteFrameImage(
+      imageAsset: _PaywallSprite.asset,
+      sheetSize: _PaywallSprite.sheetSize,
+      frame: SpriteAtlasFrame(
+        name:
+            'paywall_${source.left}_${source.top}_${source.width}_${source.height}',
+        textureRect: source,
+        sourceRect: Offset.zero & source.size,
+        sourceSize: source.size,
+        rotated: false,
+        trimmed: false,
+      ),
+      fit: fit,
+      filterQuality: FilterQuality.high,
+    );
+  }
+}
+
+Widget _sprite(Rect source, Rect target, {BoxFit fit = BoxFit.contain}) {
+  return Positioned.fromRect(
+    rect: target,
+    child: _PaywallSpritePiece(source: source, fit: fit),
+  );
+}
+
+List<Package?> _packagesBySlot(List<Package> packages) {
+  final slots = List<Package?>.filled(3, null);
+  final usedIdentifiers = <String>{};
+
+  void assignType(PackageType type, int slot) {
+    for (final package in packages) {
+      if (package.packageType == type &&
+          usedIdentifiers.add(package.identifier)) {
+        slots[slot] = package;
+        return;
+      }
+    }
+  }
+
+  assignType(PackageType.monthly, 0);
+  assignType(PackageType.annual, 1);
+  assignType(PackageType.lifetime, 2);
+
+  for (final package in packages) {
+    if (usedIdentifiers.contains(package.identifier)) {
+      continue;
+    }
+    final slot = slots.indexWhere((value) => value == null);
+    if (slot == -1) {
+      break;
+    }
+    slots[slot] = package;
+    usedIdentifiers.add(package.identifier);
+  }
+
+  return slots;
+}
+
+int? _slotForSelectedPackage(List<Package?> slotPackages, Package? selected) {
+  if (selected == null) {
+    return null;
+  }
+  for (var index = 0; index < slotPackages.length; index++) {
+    if (slotPackages[index]?.identifier == selected.identifier) {
+      return index;
+    }
+  }
+  return null;
+}
+
+bool _hasError(RevenueCatState state) {
+  return state.errorMessage != null ||
+      state.purchaseError != null ||
+      state.restoreError != null;
+}
+
+String? _statusMessageFor(RevenueCatState state) {
+  if (state.isPremiumActive) {
+    return '家庭会员已开通';
+  }
+  if (state.isPurchasing) {
+    return '正在连接商店...';
+  }
+  if (state.isRestoring) {
+    return '正在恢复购买...';
+  }
+  if (_hasError(state)) {
+    return '商店暂时不可用，请稍后再试';
+  }
+  if (state.isLoadingOfferings && !state.hasPackages) {
+    return '正在读取会员套餐...';
+  }
+  if (!state.hasPackages && state.isInitialized) {
+    return '暂无可购买套餐';
+  }
+  return null;
+}
+
+String _packageAccessibilityLabel(Package package) {
+  final title = switch (package.packageType) {
+    PackageType.weekly => '周卡',
+    PackageType.monthly => '月卡',
+    PackageType.twoMonth => '双月卡',
+    PackageType.threeMonth => '季卡',
+    PackageType.sixMonth => '半年卡',
+    PackageType.annual => '年卡',
     PackageType.lifetime => '永久会员',
-    PackageType.custom || PackageType.unknown => '会员套餐 ${displayIndex + 1}',
+    PackageType.custom || PackageType.unknown => '会员套餐',
   };
+  return '$title，${package.storeProduct.priceString}';
 }
 
-String _periodSuffix(Package package) {
-  final period = package.storeProduct.subscriptionPeriod;
-  if (period != null) {
-    return switch (period) {
-      'P1W' => '/周',
-      'P1M' => '/月',
-      'P2M' => '/2个月',
-      'P3M' => '/季',
-      'P6M' => '/半年',
-      'P1Y' => '/年',
-      _ => '',
-    };
-  }
+class _PaywallSprite {
+  const _PaywallSprite._();
 
-  return switch (package.packageType) {
-    PackageType.weekly => '/周',
-    PackageType.monthly => '/月',
-    PackageType.twoMonth => '/2个月',
-    PackageType.threeMonth => '/季',
-    PackageType.sixMonth => '/半年',
-    PackageType.annual => '/年',
-    PackageType.lifetime || PackageType.custom || PackageType.unknown => '',
-  };
-}
+  static const asset = 'assets/images/ui/paywall/paywall_cutouts.png';
+  static const sheetSize = Size(1122, 1402);
+  static const design = Size(760, 1320);
 
-String _packageSubtitle(Package package) {
-  final product = package.storeProduct;
-  if (package.packageType == PackageType.annual &&
-      product.pricePerMonthString != null) {
-    return '折合 ${product.pricePerMonthString}/月';
-  }
-  if (package.packageType == PackageType.sixMonth &&
-      product.pricePerMonthString != null) {
-    return '折合 ${product.pricePerMonthString}/月';
-  }
-  if (package.packageType == PackageType.lifetime) {
-    return '一次购买，长期使用高级权益';
-  }
-  return '自动续订，可在商店账号中管理';
-}
+  static const panel = Rect.fromLTWH(21, 17, 529, 532);
+  static const cat = Rect.fromLTWH(608, 48, 235, 273);
+  static const gift = Rect.fromLTWH(876, 92, 150, 169);
+  static const calendar = Rect.fromLTWH(819, 290, 220, 277);
+  static const star = Rect.fromLTWH(618, 370, 151, 149);
+  static const title = Rect.fromLTWH(60, 640, 665, 118);
+  static const subtitle = Rect.fromLTWH(118, 748, 580, 80);
+  static const benefitFamily = Rect.fromLTWH(57, 818, 221, 181);
+  static const benefitGrowth = Rect.fromLTWH(303, 818, 218, 181);
+  static const benefitTasks = Rect.fromLTWH(546, 818, 210, 181);
+  static const divider = Rect.fromLTWH(48, 1008, 720, 24);
+  static const checkBadge = Rect.fromLTWH(40, 1130, 70, 70);
+  static const unlockButton = Rect.fromLTWH(128, 1290, 465, 97);
+  static const parentConfirm = Rect.fromLTWH(655, 1318, 250, 55);
 
-class _PaywallPalette {
-  const _PaywallPalette._();
-
-  static const background = Color(0xFFFFF4DD);
-  static const surface = Color(0xFFFFFBF0);
-  static const selectedSurface = Color(0xFFF9F4D9);
-  static const softBorder = Color(0xFFE7CFA8);
-  static const packageBorder = Color(0xFFD7B88D);
-  static const text = Color(0xFF4F3521);
-  static const secondaryText = Color(0xFF8A6B4F);
-  static const muted = Color(0xFFA88A6B);
-  static const sage = Color(0xFFAFCB62);
-  static const sageDark = Color(0xFF789345);
-  static const pink = Color(0xFFECA29A);
+  static const catTarget = Rect.fromLTWH(82, 58, 238, 276);
+  static const giftTarget = Rect.fromLTWH(304, 217, 142, 160);
+  static const calendarTarget = Rect.fromLTWH(476, 78, 218, 274);
+  static const starTarget = Rect.fromLTWH(416, 321, 126, 124);
+  static const titleTarget = Rect.fromLTWH(96, 433, 568, 101);
+  static const subtitleTarget = Rect.fromLTWH(142, 526, 476, 66);
+  static const benefitFamilyTarget = Rect.fromLTWH(54, 624, 205, 168);
+  static const benefitGrowthTarget = Rect.fromLTWH(278, 624, 204, 168);
+  static const benefitTasksTarget = Rect.fromLTWH(502, 624, 204, 168);
+  static const dividerTarget = Rect.fromLTWH(64, 831, 632, 21);
+  static const monthlyCardTarget = Rect.fromLTWH(43, 880, 216, 130);
+  static const annualCardTarget = Rect.fromLTWH(274, 880, 216, 130);
+  static const lifetimeCardTarget = Rect.fromLTWH(505, 880, 216, 130);
+  static const unlockButtonTarget = Rect.fromLTWH(151, 1074, 458, 96);
+  static const parentConfirmTarget = Rect.fromLTWH(251, 1170, 258, 57);
+  static const closeTarget = Rect.fromLTWH(678, -12, 84, 84);
+  static const statusTarget = Rect.fromLTWH(120, 1024, 520, 46);
+  static const restoreTarget = Rect.fromLTWH(305, 1266, 150, 38);
 }
