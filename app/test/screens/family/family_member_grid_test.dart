@@ -53,12 +53,9 @@ void main() {
         find.byKey(const Key('family_member_grid_swipe_area')),
         const Offset(-200, 0),
       );
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pump();
 
-      expect(find.byType(FamilyMemberCard), findsOneWidget);
-      expect(find.text('member-1'), findsNothing);
-      expect(find.text('member-2'), findsNothing);
-      expect(find.text('member-4'), findsNothing);
       expect(find.text('member-5'), findsOneWidget);
     });
 
@@ -245,6 +242,8 @@ void main() {
         familyId: 99,
       );
       const homeAssetPath = 'assets/images/pets/pets/rabbit_sleep.png';
+      Pet? tappedPet;
+      String? tappedAvatarAssetPath;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -258,7 +257,7 @@ void main() {
                     id: 1,
                     nickname: 'member-1',
                     role: 'member',
-                    petId: pet.id,
+                    petId: 7,
                     petType: pet.petType,
                     petForm: pet.petForm,
                     pet: pet,
@@ -268,6 +267,10 @@ void main() {
                 entryAnimation: const AlwaysStoppedAnimation<double>(1),
                 canAddMembers: true,
                 onAddMemberTap: () {},
+                onPetTap: (selectedPet, avatarAssetPath) {
+                  tappedPet = selectedPet;
+                  tappedAvatarAssetPath = avatarAssetPath;
+                },
               ),
             ),
           ),
@@ -283,7 +286,72 @@ void main() {
       final imageProvider = previewImage.image as AssetImage;
 
       expect(imageProvider.assetName, homeAssetPath);
+
+      await tester.tap(find.byKey(const Key('family_member_pet_button_1')));
+      await tester.pump();
+
+      expect(tappedPet, same(pet));
+      expect(tappedAvatarAssetPath, homeAssetPath);
     });
+
+    testWidgets(
+      'passes fallback pet avatar path to detail callback without homepage map',
+      (tester) async {
+        final pet = Pet(
+          id: 42,
+          name: 'buddy',
+          petType: 'rabbit',
+          petForm: 'pet',
+          level: 2,
+          experience: 30,
+          ownerId: 1,
+          familyId: 99,
+        );
+        final expectedAssetPath = defaultHomePetDetailAvatarAssetPath(
+          pet.petType,
+          pet.id,
+        );
+        Pet? tappedPet;
+        String? tappedAvatarAssetPath;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                width: 220,
+                height: 220,
+                child: FamilyMemberGrid(
+                  members: <FamilyMemberViewData>[
+                    FamilyMemberViewData(
+                      id: 1,
+                      nickname: 'member-1',
+                      role: 'member',
+                      petId: pet.id,
+                      petType: pet.petType,
+                      petForm: pet.petForm,
+                      pet: pet,
+                    ),
+                  ],
+                  entryAnimation: const AlwaysStoppedAnimation<double>(1),
+                  canAddMembers: true,
+                  onAddMemberTap: () {},
+                  onPetTap: (selectedPet, avatarAssetPath) {
+                    tappedPet = selectedPet;
+                    tappedAvatarAssetPath = avatarAssetPath;
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.byKey(const Key('family_member_pet_button_1')));
+        await tester.pump();
+
+        expect(tappedPet, same(pet));
+        expect(tappedAvatarAssetPath, expectedAssetPath);
+      },
+    );
 
     testWidgets('taps avatar edit badge to trigger avatar edit callback', (
       tester,

@@ -168,8 +168,12 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
     return members.fold(0, (sum, member) => sum + member.points);
   }
 
-  Future<void> _openPetDetail(Pet pet) async {
-    await showPetDetailDialog(context, pet: pet);
+  Future<void> _openPetDetail(Pet pet, String? avatarAssetPath) async {
+    await showPetDetailDialog(
+      context,
+      pet: pet,
+      avatarAssetPath: avatarAssetPath,
+    );
   }
 
   bool _canEditFamilyTitle(AuthState authState) {
@@ -1633,7 +1637,7 @@ class _FamilyMembersPanel extends StatelessWidget {
   final Animation<double> entryAnimation;
   final bool canManageMembers;
   final VoidCallback onAddMemberTap;
-  final ValueChanged<Pet> onPetTap;
+  final FamilyPetTap onPetTap;
   final bool Function(FamilyMemberViewData member) canEditAvatar;
   final ValueChanged<FamilyMemberViewData> onAvatarEditTap;
   final int? updatingAvatarMemberId;

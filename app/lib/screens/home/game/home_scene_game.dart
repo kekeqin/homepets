@@ -1054,6 +1054,26 @@ class HomeScenePetSeed {
   final String petType;
 }
 
+bool _homeScenePetSeedsEqual(
+  List<HomeScenePetSeed> left,
+  List<HomeScenePetSeed> right,
+) {
+  if (left.length != right.length) {
+    return false;
+  }
+
+  for (var index = 0; index < left.length; index++) {
+    final leftSeed = left[index];
+    final rightSeed = right[index];
+    if (leftSeed.petId != rightSeed.petId ||
+        leftSeed.petType != rightSeed.petType) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   HomeSceneGame({
     required this.device,
@@ -1291,9 +1311,16 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   }
 
   void replacePetEntries(List<HomeScenePetSeed> pets) {
+    final nextPetEntries = pets
+        .where((item) => item.petId > 0)
+        .toList(growable: false);
+    if (_homeScenePetSeedsEqual(_petEntries, nextPetEntries)) {
+      return;
+    }
+
     _petEntries
       ..clear()
-      ..addAll(pets.where((item) => item.petId > 0));
+      ..addAll(nextPetEntries);
     _syncPetPlacements();
     _syncPetPoseIndices();
 

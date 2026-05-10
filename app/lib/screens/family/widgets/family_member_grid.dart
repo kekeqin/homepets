@@ -3,10 +3,13 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../models/pet.dart';
+import '../../../models/pet_artwork.dart';
 import '../models/family_member_view_data.dart';
 import 'family_empty_card.dart';
 import 'family_member_card.dart';
 import 'family_sprite_slice.dart';
+
+typedef FamilyPetTap = void Function(Pet pet, String? avatarAssetPath);
 
 class FamilyMemberGrid extends StatefulWidget {
   const FamilyMemberGrid({
@@ -31,7 +34,7 @@ class FamilyMemberGrid extends StatefulWidget {
   final bool canAddMembers;
   final VoidCallback onAddMemberTap;
   final Map<int, String> petAvatarAssetPathsById;
-  final ValueChanged<Pet>? onPetTap;
+  final FamilyPetTap? onPetTap;
   final bool Function(FamilyMemberViewData member)? canEditAvatar;
   final ValueChanged<FamilyMemberViewData>? onAvatarEditTap;
   final int? updatingAvatarMemberId;
@@ -60,6 +63,25 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
         _currentPage = maxPageIndex;
       });
     }
+  }
+
+  String? _petAvatarAssetPathForMember(FamilyMemberViewData member) {
+    final pet = member.pet;
+    final petType = pet?.petType ?? member.petType;
+    if (petType == null) {
+      return null;
+    }
+
+    final effectivePetId = pet?.id ?? member.petId;
+    final providedAssetPath = effectivePetId == null
+        ? null
+        : widget.petAvatarAssetPathsById[effectivePetId];
+    if (providedAssetPath != null) {
+      return providedAssetPath;
+    }
+
+    final seed = pet?.id ?? member.petId ?? member.id;
+    return defaultHomePetDetailAvatarAssetPath(petType, seed);
   }
 
   void _setPage(int page) {
@@ -148,17 +170,17 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
             ),
             itemBuilder: (context, index) {
               final member = pageMembers[index];
+              final pet = member.pet;
+              final petAvatarAssetPath = _petAvatarAssetPathForMember(member);
               return _AnimatedMemberCard(
                 index: index,
                 entryAnimation: widget.entryAnimation,
                 child: FamilyMemberCard(
                   member: member,
                   displaySlot: index,
-                  petAvatarAssetPath: member.petId == null
-                      ? null
-                      : widget.petAvatarAssetPathsById[member.petId],
-                  onPetTap: member.pet != null
-                      ? () => widget.onPetTap?.call(member.pet!)
+                  petAvatarAssetPath: petAvatarAssetPath,
+                  onPetTap: pet != null
+                      ? () => widget.onPetTap?.call(pet, petAvatarAssetPath)
                       : null,
                   onAvatarEditTap:
                       (widget.canEditAvatar?.call(member) ?? false) &&

@@ -2147,12 +2147,43 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         return;
       }
 
+      if (_sameHomePets(_pets, pets)) {
+        return;
+      }
+
       setState(() => _pets = pets);
       _syncGamePetsFromServer();
     } catch (error, stackTrace) {
       debugPrint('Failed to load home scene pets: $error');
       debugPrint('$stackTrace');
     }
+  }
+
+  bool _sameHomePets(List<Pet> left, List<Pet> right) {
+    if (left.length != right.length) {
+      return false;
+    }
+
+    final leftSorted = List<Pet>.from(left)
+      ..sort((leftPet, rightPet) => leftPet.id.compareTo(rightPet.id));
+    final rightSorted = List<Pet>.from(right)
+      ..sort((leftPet, rightPet) => leftPet.id.compareTo(rightPet.id));
+
+    for (var index = 0; index < leftSorted.length; index++) {
+      final leftPet = leftSorted[index];
+      final rightPet = rightSorted[index];
+      if (leftPet.id != rightPet.id ||
+          leftPet.name != rightPet.name ||
+          leftPet.petType != rightPet.petType ||
+          leftPet.ownerId != rightPet.ownerId ||
+          leftPet.level != rightPet.level ||
+          leftPet.experience != rightPet.experience ||
+          leftPet.levelThreshold != rightPet.levelThreshold) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   Pet? _findPetById(int petId) {
@@ -2202,10 +2233,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       pet: pet,
       avatarAssetPath: avatarAssetPath,
     );
-    if (!mounted) {
-      return;
-    }
-    await _loadFamilyPets();
   }
 
   void _showTopSnackBar(String message) {
