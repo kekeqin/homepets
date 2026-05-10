@@ -8,6 +8,37 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import '../../providers/revenue_cat_provider.dart';
 import '../../widgets/app_modal_shell.dart';
 
+Future<void> showPaywallDialog(
+  BuildContext context, {
+  bool useRootNavigator = true,
+}) {
+  return showAppModalDialog<void>(
+    context: context,
+    useRootNavigator: useRootNavigator,
+    barrierLabel: '会员权益',
+    blurSigma: 7,
+    barrierTint: HomePetsDialogTheme.barrierTint,
+    transitionDuration: const Duration(milliseconds: 260),
+    beginScale: 0.92,
+    beginYOffset: 22,
+    pageBuilder: (dialogContext) {
+      return AppModalShell(
+        layout: AppModalLayouts.paywall,
+        minimumSafeArea: const EdgeInsets.fromLTRB(12, 16, 12, 16),
+        backgroundColor: _PaywallPalette.background,
+        borderRadius: const BorderRadius.all(Radius.circular(30)),
+        border: Border.all(color: HomePetsDialogTheme.panelBorder, width: 1.5),
+        boxShadow: HomePetsDialogTheme.shellShadow,
+        child: _PaywallContent(
+          heroHeightFactor: 0.30,
+          heroMaxHeight: 260,
+          onClose: () => Navigator.of(dialogContext).pop(),
+        ),
+      );
+    },
+  );
+}
+
 class PaywallScreen extends ConsumerWidget {
   const PaywallScreen({super.key});
 
@@ -15,94 +46,13 @@ class PaywallScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(revenueCatProvider);
-    final packages = state.packages;
-    final selectedPackage = state.selectedPackage;
-
     return Scaffold(
       backgroundColor: _PaywallPalette.background,
       body: SafeArea(
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(18, 14, 18, 28),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 540),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const _PaywallHero(assetPath: _heroAsset),
-                        const SizedBox(height: 14),
-                        const _BenefitGrid(),
-                        const SizedBox(height: 18),
-                        _PackageSection(
-                          state: state,
-                          packages: packages,
-                          selectedPackage: selectedPackage,
-                          onSelectPackage: (package) {
-                            ref
-                                .read(revenueCatProvider.notifier)
-                                .selectPackage(package);
-                          },
-                          onRetry: () {
-                            ref
-                                .read(revenueCatProvider.notifier)
-                                .refreshOfferings();
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        _StatusBanner(state: state),
-                        const SizedBox(height: 14),
-                        _UnlockButton(
-                          state: state,
-                          onPressed: () async {
-                            final unlocked = await ref
-                                .read(revenueCatProvider.notifier)
-                                .purchaseSelectedPackage();
-                            if (!context.mounted || !unlocked) {
-                              return;
-                            }
-                            _closePaywall(context);
-                          },
-                        ),
-                        const SizedBox(height: 10),
-                        _RestoreRow(
-                          state: state,
-                          onRestore: () async {
-                            final restored = await ref
-                                .read(revenueCatProvider.notifier)
-                                .restorePurchases();
-                            if (!context.mounted || !restored) {
-                              return;
-                            }
-                            _closePaywall(context);
-                          },
-                          onClose: () => _closePaywall(context),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          '可随时取消，实际价格与续订周期以商店确认页为准',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: _PaywallPalette.muted,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              top: 10,
-              right: 14,
-              child: _CloseButton(onPressed: () => _closePaywall(context)),
-            ),
-          ],
+        child: _PaywallContent(
+          heroHeightFactor: 0.42,
+          heroMaxHeight: 360,
+          onClose: () => _closePaywall(context),
         ),
       ),
     );
@@ -117,15 +67,123 @@ class PaywallScreen extends ConsumerWidget {
   }
 }
 
+class _PaywallContent extends ConsumerWidget {
+  const _PaywallContent({
+    required this.heroHeightFactor,
+    required this.heroMaxHeight,
+    required this.onClose,
+  });
+
+  final double heroHeightFactor;
+  final double heroMaxHeight;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(revenueCatProvider);
+    final packages = state.packages;
+    final selectedPackage = state.selectedPackage;
+
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 28),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 540),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _PaywallHero(
+                      assetPath: PaywallScreen._heroAsset,
+                      heightFactor: heroHeightFactor,
+                      maxHeight: heroMaxHeight,
+                    ),
+                    const SizedBox(height: 14),
+                    const _BenefitGrid(),
+                    const SizedBox(height: 18),
+                    _PackageSection(
+                      state: state,
+                      packages: packages,
+                      selectedPackage: selectedPackage,
+                      onSelectPackage: (package) {
+                        ref
+                            .read(revenueCatProvider.notifier)
+                            .selectPackage(package);
+                      },
+                      onRetry: () {
+                        ref
+                            .read(revenueCatProvider.notifier)
+                            .refreshOfferings();
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    _StatusBanner(state: state),
+                    const SizedBox(height: 14),
+                    _UnlockButton(
+                      state: state,
+                      onPressed: () async {
+                        final unlocked = await ref
+                            .read(revenueCatProvider.notifier)
+                            .purchaseSelectedPackage();
+                        if (!context.mounted || !unlocked) {
+                          return;
+                        }
+                        onClose();
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    _RestoreRow(
+                      state: state,
+                      onRestore: () async {
+                        final restored = await ref
+                            .read(revenueCatProvider.notifier)
+                            .restorePurchases();
+                        if (!context.mounted || !restored) {
+                          return;
+                        }
+                        onClose();
+                      },
+                      onClose: onClose,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '可随时取消，实际价格与续订周期以商店确认页为准',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: _PaywallPalette.muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        Positioned(top: 10, right: 14, child: _CloseButton(onPressed: onClose)),
+      ],
+    );
+  }
+}
+
 class _PaywallHero extends StatelessWidget {
-  const _PaywallHero({required this.assetPath});
+  const _PaywallHero({
+    required this.assetPath,
+    required this.heightFactor,
+    required this.maxHeight,
+  });
 
   final String assetPath;
+  final double heightFactor;
+  final double maxHeight;
 
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.sizeOf(context).height;
-    final heroHeight = math.min(screenHeight * 0.42, 360.0);
+    final heroHeight = math.min(screenHeight * heightFactor, maxHeight);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(28),

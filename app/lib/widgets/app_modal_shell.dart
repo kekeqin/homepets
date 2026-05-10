@@ -76,6 +76,17 @@ class AppModalLayouts {
     tabletHeightFactor: 0.72,
     tabletMaxHeight: 620,
   );
+
+  static const paywall = AppModalLayout(
+    mobileWidthFactor: 0.92,
+    mobileMaxWidth: 540,
+    mobileHeightFactor: 0.88,
+    mobileMaxHeight: 780,
+    tabletWidthFactor: 0.46,
+    tabletMaxWidth: 560,
+    tabletHeightFactor: 0.86,
+    tabletMaxHeight: 820,
+  );
 }
 
 class HomePetsDialogTheme {

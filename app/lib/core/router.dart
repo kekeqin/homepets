@@ -6,7 +6,6 @@ import '../providers/auth_provider.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/home/home_scene_screen.dart';
-import '../screens/paywall/paywall_screen.dart';
 import '../screens/profile/profile_screen.dart';
 
 class _RouterRefreshNotifier extends ChangeNotifier {
@@ -68,6 +67,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                   state.uri.queryParameters['panel'] == 'family',
               openShopPanelOnStart:
                   state.uri.queryParameters['panel'] == 'shop',
+              openPaywallOnStart:
+                  state.uri.queryParameters['panel'] == 'paywall',
             ),
           ),
           GoRoute(
@@ -84,7 +85,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/paywall',
-            builder: (context, state) => const PaywallScreen(),
+            redirect: (context, state) => '/home?panel=paywall',
           ),
           GoRoute(
             path: '/profile',
