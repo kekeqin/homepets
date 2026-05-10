@@ -1,5 +1,17 @@
 import 'package:flutter/material.dart';
 
+const String userAvatarAssetBasePath =
+    'assets/images/ui/Change profile picture';
+const String userDefaultAvatarAssetPath = '$userAvatarAssetBasePath/16.png';
+const String userDadAvatarAssetPath = '$userAvatarAssetBasePath/11.png';
+const String userMomAvatarAssetPath = '$userAvatarAssetBasePath/14.png';
+const String userBoyAvatarAssetPath = '$userAvatarAssetBasePath/15.png';
+const String userGirlAvatarAssetPath = '$userAvatarAssetBasePath/18.png';
+const String userMomYellowAvatarAssetPath =
+    '$userAvatarAssetBasePath/13 (1).png';
+const String userBoyGreenAvatarAssetPath = '$userAvatarAssetBasePath/12.png';
+const String userGirlBobAvatarAssetPath = '$userAvatarAssetBasePath/17.png';
+
 const List<String> presetAvatarEmojis = <String>[
   '🐶',
   '🐱',
@@ -31,7 +43,56 @@ bool isNetworkAvatarValue(String? avatarValue) {
   if (avatarValue == null) {
     return false;
   }
-  return avatarValue.startsWith('https://') || avatarValue.startsWith('http://');
+  final value = avatarValue.trim();
+  return value.startsWith('https://') || value.startsWith('http://');
+}
+
+bool isAssetAvatarValue(String? avatarValue) {
+  if (avatarValue == null) {
+    return false;
+  }
+  return avatarValue.trim().startsWith('assets/');
+}
+
+String? normalizedUserAvatarAssetValue(String? avatarValue) {
+  final value = avatarValue?.trim();
+  if (value == null || value.isEmpty) {
+    return null;
+  }
+
+  return switch (value) {
+    'assets/images/ui/sprites/avatar_edit_default_avatar.png' =>
+      userDefaultAvatarAssetPath,
+    'assets/images/ui/sprites/avatar_edit_dad_avatar.png' =>
+      userDadAvatarAssetPath,
+    'assets/images/ui/sprites/avatar_edit_mom_avatar.png' =>
+      userMomAvatarAssetPath,
+    'assets/images/ui/sprites/avatar_edit_boy_avatar.png' =>
+      userBoyAvatarAssetPath,
+    'assets/images/ui/sprites/avatar_edit_girl_avatar.png' =>
+      userGirlAvatarAssetPath,
+    'assets/images/ui/sprites/avatar_edit_cat_avatar.png' =>
+      userMomYellowAvatarAssetPath,
+    'assets/images/ui/sprites/avatar_edit_dog_avatar.png' =>
+      userBoyGreenAvatarAssetPath,
+    'assets/images/ui/sprites/avatar_edit_rabbit_avatar.png' =>
+      userGirlBobAvatarAssetPath,
+    _ when value.startsWith('emoji:') => userDefaultAvatarAssetPath,
+    _ => value,
+  };
+}
+
+bool isPresetUserAvatarAssetValue(String? avatarValue) {
+  final value = avatarValue?.trim();
+  return value != null && value.startsWith('$userAvatarAssetBasePath/');
+}
+
+String? normalizedPresetUserAvatarAssetValue(String? avatarValue) {
+  final normalizedValue = normalizedUserAvatarAssetValue(avatarValue);
+  if (!isPresetUserAvatarAssetValue(normalizedValue)) {
+    return null;
+  }
+  return normalizedValue;
 }
 
 String userAvatarFallbackText(String? nickname) {
@@ -80,19 +141,24 @@ class UserAvatar extends StatelessWidget {
   }
 
   Widget _buildContent() {
-    final emoji = userAvatarEmojiFromValue(avatarValue);
+    final normalizedAvatarValue = normalizedUserAvatarAssetValue(avatarValue);
+    final emoji = userAvatarEmojiFromValue(normalizedAvatarValue);
     if (emoji != null) {
       return Center(
-        child: Text(
-          emoji,
-          style: TextStyle(fontSize: fontSize ?? size * 0.54),
-        ),
+        child: Text(emoji, style: TextStyle(fontSize: fontSize ?? size * 0.54)),
       );
     }
-    if (isNetworkAvatarValue(avatarValue)) {
+    if (isNetworkAvatarValue(normalizedAvatarValue)) {
       return Image.network(
-        avatarValue!,
+        normalizedAvatarValue!.trim(),
         fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => _buildFallback(),
+      );
+    }
+    if (isAssetAvatarValue(normalizedAvatarValue)) {
+      return CenteredAvatarAsset(
+        assetPath: normalizedAvatarValue!.trim(),
+        fit: BoxFit.contain,
         errorBuilder: (_, _, _) => _buildFallback(),
       );
     }
@@ -110,5 +176,75 @@ class UserAvatar extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class CenteredAvatarAsset extends StatelessWidget {
+  const CenteredAvatarAsset({
+    super.key,
+    required this.assetPath,
+    this.fit = BoxFit.contain,
+    this.errorBuilder,
+  });
+
+  final String assetPath;
+  final BoxFit fit;
+  final ImageErrorWidgetBuilder? errorBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    final transform = _AvatarAssetTransform.forPath(assetPath);
+    return FractionalTranslation(
+      translation: transform.offset,
+      child: Transform.scale(
+        scale: transform.scale,
+        child: Image.asset(assetPath, fit: fit, errorBuilder: errorBuilder),
+      ),
+    );
+  }
+}
+
+class _AvatarAssetTransform {
+  const _AvatarAssetTransform({this.offset = Offset.zero, this.scale = 1});
+
+  final Offset offset;
+  final double scale;
+
+  static _AvatarAssetTransform forPath(String assetPath) {
+    return switch (assetPath.trim()) {
+      userDadAvatarAssetPath => const _AvatarAssetTransform(
+        offset: Offset(-0.01, -0.05),
+        scale: 1.08,
+      ),
+      userBoyGreenAvatarAssetPath => const _AvatarAssetTransform(
+        offset: Offset(0.02, -0.05),
+        scale: 1.08,
+      ),
+      userMomYellowAvatarAssetPath => const _AvatarAssetTransform(
+        offset: Offset(0.01, -0.04),
+        scale: 1.08,
+      ),
+      userMomAvatarAssetPath => const _AvatarAssetTransform(
+        offset: Offset(0.05, -0.02),
+        scale: 1.08,
+      ),
+      userBoyAvatarAssetPath => const _AvatarAssetTransform(
+        offset: Offset(-0.04, -0.02),
+        scale: 1.08,
+      ),
+      userDefaultAvatarAssetPath => const _AvatarAssetTransform(
+        offset: Offset(0, -0.03),
+        scale: 1.08,
+      ),
+      userGirlBobAvatarAssetPath => const _AvatarAssetTransform(
+        offset: Offset(0, -0.04),
+        scale: 1.08,
+      ),
+      userGirlAvatarAssetPath => const _AvatarAssetTransform(
+        offset: Offset(-0.03, -0.03),
+        scale: 1.08,
+      ),
+      _ => const _AvatarAssetTransform(),
+    };
   }
 }

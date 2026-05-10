@@ -35,6 +35,7 @@ class _FamilyPalette {
 Future<void> showFamilyDialog(
   BuildContext context, {
   bool useRootNavigator = true,
+  Map<int, String> petAvatarAssetPathsById = const <int, String>{},
 }) {
   return showAppModalDialog<void>(
     context: context,
@@ -52,6 +53,7 @@ Future<void> showFamilyDialog(
         boxShadow: HomePetsDialogTheme.shellShadow,
         child: FamilyScreen(
           embedded: true,
+          petAvatarAssetPathsById: petAvatarAssetPathsById,
           onClose: () => Navigator.of(dialogContext).pop(),
         ),
       );
@@ -60,9 +62,15 @@ Future<void> showFamilyDialog(
 }
 
 class FamilyScreen extends ConsumerStatefulWidget {
-  const FamilyScreen({super.key, this.embedded = false, this.onClose});
+  const FamilyScreen({
+    super.key,
+    this.embedded = false,
+    this.petAvatarAssetPathsById = const <int, String>{},
+    this.onClose,
+  });
 
   final bool embedded;
+  final Map<int, String> petAvatarAssetPathsById;
   final VoidCallback? onClose;
 
   @override
@@ -516,6 +524,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
               membersPanel: _FamilyMembersPanel(
                 compact: widget.embedded,
                 members: members,
+                petAvatarAssetPathsById: widget.petAvatarAssetPathsById,
                 entryAnimation: _entryController,
                 canManageMembers: canManageMembers,
                 onAddMemberTap: onAddMemberTap,
@@ -1606,6 +1615,7 @@ class _FamilyMembersPanel extends StatelessWidget {
   const _FamilyMembersPanel({
     required this.compact,
     required this.members,
+    required this.petAvatarAssetPathsById,
     required this.entryAnimation,
     required this.canManageMembers,
     required this.onAddMemberTap,
@@ -1619,6 +1629,7 @@ class _FamilyMembersPanel extends StatelessWidget {
 
   final bool compact;
   final List<FamilyMemberViewData> members;
+  final Map<int, String> petAvatarAssetPathsById;
   final Animation<double> entryAnimation;
   final bool canManageMembers;
   final VoidCallback onAddMemberTap;
@@ -1649,6 +1660,7 @@ class _FamilyMembersPanel extends StatelessWidget {
         ),
         child: FamilyMemberGrid(
           members: members,
+          petAvatarAssetPathsById: petAvatarAssetPathsById,
           entryAnimation: entryAnimation,
           canAddMembers: canManageMembers,
           onAddMemberTap: onAddMemberTap,

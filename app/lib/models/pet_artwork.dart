@@ -117,5 +117,21 @@ String petHomeAssetPath(String petType, int poseIndex) {
   return '$_petHomeAssetBasePath${variants[index]}';
 }
 
+String petDetailAvatarAssetPathForHomeAssetPath(String assetPath) {
+  if (assetPath.startsWith('assets/')) {
+    return assetPath;
+  }
+  if (assetPath.startsWith('images/')) {
+    return 'assets/$assetPath';
+  }
+  return assetPath;
+}
+
+String defaultHomePetDetailAvatarAssetPath(String petType, int petId) {
+  return petDetailAvatarAssetPathForHomeAssetPath(
+    petHomeAssetPath(petType, deterministicHomePetPoseIndex(petType, petId)),
+  );
+}
+
 String petDisplayName(String petType) =>
     _petTypeLabels[normalizePetType(petType)] ?? '\u5c0f\u5ba0\u7269';

@@ -15,6 +15,7 @@ class FamilyMemberGrid extends StatefulWidget {
     required this.entryAnimation,
     required this.canAddMembers,
     required this.onAddMemberTap,
+    this.petAvatarAssetPathsById = const <int, String>{},
     this.onPetTap,
     this.canEditAvatar,
     this.onAvatarEditTap,
@@ -29,6 +30,7 @@ class FamilyMemberGrid extends StatefulWidget {
   final Animation<double> entryAnimation;
   final bool canAddMembers;
   final VoidCallback onAddMemberTap;
+  final Map<int, String> petAvatarAssetPathsById;
   final ValueChanged<Pet>? onPetTap;
   final bool Function(FamilyMemberViewData member)? canEditAvatar;
   final ValueChanged<FamilyMemberViewData>? onAvatarEditTap;
@@ -152,6 +154,9 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
                 child: FamilyMemberCard(
                   member: member,
                   displaySlot: index,
+                  petAvatarAssetPath: member.petId == null
+                      ? null
+                      : widget.petAvatarAssetPathsById[member.petId],
                   onPetTap: member.pet != null
                       ? () => widget.onPetTap?.call(member.pet!)
                       : null,

@@ -12,6 +12,7 @@ class FamilyMemberCard extends StatelessWidget {
     super.key,
     required this.member,
     this.displaySlot,
+    this.petAvatarAssetPath,
     this.onPetTap,
     this.onAvatarEditTap,
     this.avatarEditBusy = false,
@@ -20,6 +21,7 @@ class FamilyMemberCard extends StatelessWidget {
 
   final FamilyMemberViewData member;
   final int? displaySlot;
+  final String? petAvatarAssetPath;
   final VoidCallback? onPetTap;
   final VoidCallback? onAvatarEditTap;
   final bool avatarEditBusy;
@@ -56,6 +58,10 @@ class FamilyMemberCard extends StatelessWidget {
   }
 
   String? get _petPreviewAssetPath {
+    if (petAvatarAssetPath != null) {
+      return petAvatarAssetPath;
+    }
+
     final pet = member.pet;
     final petType = pet?.petType ?? member.petType;
     if (petType == null) {
@@ -63,14 +69,13 @@ class FamilyMemberCard extends StatelessWidget {
     }
 
     final seed = pet?.id ?? member.petId ?? member.id;
-    final poseIndex = deterministicPetPoseIndex(petType, seed);
-    return petAvatarAssetPath(petType, poseIndex);
+    return defaultHomePetDetailAvatarAssetPath(petType, seed);
   }
 
   String get _petTitle {
     final pet = member.pet;
     if (pet != null) {
-      return _displayPetName(pet.name);
+      return pet.name;
     }
 
     final petType = member.petType;
@@ -79,22 +84,6 @@ class FamilyMemberCard extends StatelessWidget {
     }
 
     return '还没有宠物';
-  }
-
-  String _displayPetName(String name) {
-    final trimmed = name.trim();
-    if (displaySlot == null ||
-        trimmed.isEmpty ||
-        !_isAsciiLetterPlaceholder(trimmed)) {
-      return name;
-    }
-
-    return switch (displaySlot! % 4) {
-      0 => '糯米',
-      1 => '豆豆',
-      2 => '球球',
-      _ => '小白兔',
-    };
   }
 
   String get _progressLeadingLabel {
@@ -119,28 +108,7 @@ class FamilyMemberCard extends StatelessWidget {
     return '${pet.experience} / $levelThreshold';
   }
 
-  String get _headerDisplayName {
-    final nickname = member.nickname.trim();
-    if (displaySlot == null ||
-        nickname.isEmpty ||
-        !_isAsciiLetterPlaceholder(nickname)) {
-      return member.nickname;
-    }
-
-    return switch (displaySlot! % 4) {
-      0 => '妈妈',
-      1 => '小宝',
-      2 => '爸爸',
-      _ => '奶奶',
-    };
-  }
-
-  bool _isAsciiLetterPlaceholder(String value) {
-    return value.runes.every(
-      (rune) =>
-          (rune >= 0x41 && rune <= 0x5A) || (rune >= 0x61 && rune <= 0x7A),
-    );
-  }
+  String get _headerDisplayName => member.nickname;
 
   _MemberCardStyle get _style {
     if (displaySlot != null) {
@@ -171,34 +139,34 @@ class FamilyMemberCard extends StatelessWidget {
     };
   }
 
-  Rect get _fallbackPortraitRegion {
+  String get _fallbackPortraitRegion {
     final nickname = member.nickname;
     if (nickname.contains('奶') || nickname.contains('婆')) {
-      return FamilySpriteRegions.avatarGrandma;
+      return userGirlBobAvatarAssetPath;
     }
     if (nickname.contains('爸') || nickname.contains('爷')) {
-      return FamilySpriteRegions.avatarDad;
+      return userDadAvatarAssetPath;
     }
     if (nickname.contains('宝') ||
         nickname.contains('孩') ||
         nickname.contains('小')) {
-      return FamilySpriteRegions.avatarChild;
+      return userDefaultAvatarAssetPath;
     }
     if (nickname.contains('妈')) {
-      return FamilySpriteRegions.avatarMom;
+      return userMomAvatarAssetPath;
     }
     if (displaySlot != null) {
       return switch (displaySlot! % 4) {
-        0 => FamilySpriteRegions.avatarMom,
-        1 => FamilySpriteRegions.avatarChild,
-        2 => FamilySpriteRegions.avatarDad,
-        _ => FamilySpriteRegions.avatarGrandma,
+        0 => userMomAvatarAssetPath,
+        1 => userDefaultAvatarAssetPath,
+        2 => userDadAvatarAssetPath,
+        _ => userGirlBobAvatarAssetPath,
       };
     }
     if (member.role == 'admin') {
-      return FamilySpriteRegions.avatarDad;
+      return userDadAvatarAssetPath;
     }
-    return FamilySpriteRegions.avatarMom;
+    return userDefaultAvatarAssetPath;
   }
 
   @override
@@ -402,17 +370,15 @@ class _MemberPortraitButton extends StatelessWidget {
 
   final FamilyMemberViewData member;
   final double size;
-  final Rect fallbackRegion;
+  final String fallbackRegion;
   final bool busy;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final avatarValue = member.avatarUrl;
-    final hasNetworkAvatar =
-        avatarValue != null &&
-        avatarValue.trim().isNotEmpty &&
-        isNetworkAvatarValue(avatarValue);
+    final avatarValue =
+        normalizedPresetUserAvatarAssetValue(member.avatarUrl) ??
+        fallbackRegion;
 
     return Material(
       color: Colors.transparent,
@@ -426,42 +392,39 @@ class _MemberPortraitButton extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              if (hasNetworkAvatar)
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Color(0xFFFFFCF3), Color(0xFFFFECCC)],
-                    ),
-                    border: Border.all(
-                      color: const Color(0xFF8F6238),
-                      width: math.max(1.2, size * 0.032),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0x248A5A2C),
-                        blurRadius: size * 0.13,
-                        offset: Offset(0, size * 0.045),
-                      ),
-                    ],
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xFFFFFCF3), Color(0xFFFFECCC)],
                   ),
-                  child: Padding(
-                    padding: EdgeInsets.all(size * 0.055),
-                    child: ClipOval(
-                      child: UserAvatar(
-                        nickname: member.nickname,
-                        avatarValue: avatarValue,
-                        size: size,
-                        backgroundColor: const Color(0xFFFFF5E9),
-                        foregroundColor: const Color(0xFF7B5432),
-                      ),
+                  border: Border.all(
+                    color: const Color(0xFF8F6238),
+                    width: math.max(1.2, size * 0.032),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0x248A5A2C),
+                      blurRadius: size * 0.13,
+                      offset: Offset(0, size * 0.045),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(size * 0.055),
+                  child: ClipOval(
+                    child: UserAvatar(
+                      nickname: member.nickname,
+                      avatarValue: avatarValue,
+                      size: size,
+                      backgroundColor: const Color(0xFFFFF5E9),
+                      foregroundColor: const Color(0xFF7B5432),
                     ),
                   ),
-                )
-              else
-                FamilySpriteSlice(region: fallbackRegion, fit: BoxFit.contain),
+                ),
+              ),
               if (busy)
                 Center(
                   child: SizedBox(

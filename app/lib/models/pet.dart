@@ -9,6 +9,7 @@ class Pet {
   final int ownerId;
   final String? ownerNickname;
   final int familyId;
+  final DateTime? createdAt;
   final int? levelThreshold;
   final String? nextLevelImage;
   final String? emoji;
@@ -24,6 +25,7 @@ class Pet {
     required this.ownerId,
     this.ownerNickname,
     required this.familyId,
+    this.createdAt,
     this.levelThreshold,
     this.nextLevelImage,
     this.emoji,
@@ -41,6 +43,7 @@ class Pet {
       ownerId: json['owner_id'] as int,
       ownerNickname: json['owner_nickname'] as String?,
       familyId: json['family_id'] as int,
+      createdAt: _parseDateTime(json['created_at']),
       levelThreshold: json['level_threshold'] as int?,
       nextLevelImage: json['next_level_image'] as String?,
       emoji: json['emoji'] as String?,
@@ -52,6 +55,14 @@ class Pet {
       return '$ownerNickname的$name';
     }
     return name;
+  }
+
+  String get ownerDisplayName {
+    final nickname = ownerNickname?.trim() ?? '';
+    if (nickname.isNotEmpty) {
+      return nickname;
+    }
+    return '成员#$ownerId';
   }
 
   double get progress {
@@ -143,4 +154,14 @@ class Pet {
   }
 
   bool get hasCrown => level >= 5;
+}
+
+DateTime? _parseDateTime(dynamic value) {
+  if (value is DateTime) {
+    return value;
+  }
+  if (value is String) {
+    return DateTime.tryParse(value);
+  }
+  return null;
 }

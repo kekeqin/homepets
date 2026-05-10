@@ -1,129 +1,126 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../widgets/user_avatar.dart';
-import 'member_profile_common.dart';
+
+const String _defaultAvatarValue = userDefaultAvatarAssetPath;
+
+const List<_AvatarOption> _avatarOptions = <_AvatarOption>[
+  _AvatarOption(
+    key: 'default',
+    label: '默认',
+    avatarValue: userDefaultAvatarAssetPath,
+    legacyAvatarValues: <String>[
+      'assets/images/ui/sprites/avatar_edit_default_avatar.png',
+    ],
+  ),
+  _AvatarOption(
+    key: 'dad',
+    label: '爸爸',
+    avatarValue: userDadAvatarAssetPath,
+    legacyAvatarValues: <String>[
+      'assets/images/ui/sprites/avatar_edit_dad_avatar.png',
+    ],
+  ),
+  _AvatarOption(
+    key: 'mom',
+    label: '妈妈',
+    avatarValue: userMomAvatarAssetPath,
+    legacyAvatarValues: <String>[
+      'assets/images/ui/sprites/avatar_edit_mom_avatar.png',
+    ],
+  ),
+  _AvatarOption(
+    key: 'boy',
+    label: '男孩',
+    avatarValue: userBoyAvatarAssetPath,
+    legacyAvatarValues: <String>[
+      'assets/images/ui/sprites/avatar_edit_boy_avatar.png',
+    ],
+  ),
+  _AvatarOption(
+    key: 'girl',
+    label: '女孩',
+    avatarValue: userGirlAvatarAssetPath,
+    legacyAvatarValues: <String>[
+      'assets/images/ui/sprites/avatar_edit_girl_avatar.png',
+    ],
+  ),
+  _AvatarOption(
+    key: 'mom_yellow',
+    label: '妈妈',
+    avatarValue: userMomYellowAvatarAssetPath,
+    legacyAvatarValues: <String>[
+      'assets/images/ui/sprites/avatar_edit_cat_avatar.png',
+    ],
+  ),
+  _AvatarOption(
+    key: 'boy_green',
+    label: '男孩',
+    avatarValue: userBoyGreenAvatarAssetPath,
+    legacyAvatarValues: <String>[
+      'assets/images/ui/sprites/avatar_edit_dog_avatar.png',
+    ],
+  ),
+  _AvatarOption(
+    key: 'girl_bob',
+    label: '女孩',
+    avatarValue: userGirlBobAvatarAssetPath,
+    legacyAvatarValues: <String>[
+      'assets/images/ui/sprites/avatar_edit_rabbit_avatar.png',
+    ],
+  ),
+];
+
+const String _cancelText = '取消';
+const String _saveText = '保存';
+const String _titleText = '更换头像';
 
 Future<String?> showMemberAvatarPickerSheet(
   BuildContext context, {
   required String nickname,
   required String? initialAvatarValue,
-}) {
-  String? selectedAvatarValue = initialAvatarValue;
-  return showModalBottomSheet<String?>(
+}) async {
+  String? selectedOptionKey = _optionKeyForValue(initialAvatarValue);
+
+  final pickedAvatar = await showModalBottomSheet<String>(
     context: context,
-    backgroundColor: MemberProfileColors.card,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-    ),
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: const Color(0x24000000),
     builder: (sheetContext) {
       return StatefulBuilder(
         builder: (context, setModalState) {
+          final previewAvatarValue = _previewAvatarValue(
+            selectedOptionKey: selectedOptionKey,
+            initialAvatarValue: initialAvatarValue,
+          );
+
           return SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.of(sheetContext).pop(),
-                        style: TextButton.styleFrom(
-                          foregroundColor: const Color(0xFF8A7356),
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        child: const Text('取消'),
+            top: false,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: SizedBox(
+                width: double.infinity,
+                height: _sheetHeightFor(MediaQuery.sizeOf(context).height),
+                child: _AvatarPickerPanel(
+                  nickname: nickname,
+                  previewAvatarValue: previewAvatarValue,
+                  selectedOptionKey: selectedOptionKey,
+                  onCancel: () => Navigator.of(sheetContext).pop(),
+                  onSave: () {
+                    Navigator.of(sheetContext).pop(
+                      _avatarValueForSave(
+                        selectedOptionKey: selectedOptionKey,
+                        initialAvatarValue: initialAvatarValue,
                       ),
-                      const Expanded(
-                        child: Center(
-                          child: Text(
-                            '更换头像',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              color: MemberProfileColors.text,
-                            ),
-                          ),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () =>
-                            Navigator.of(sheetContext).pop(selectedAvatarValue),
-                        style: TextButton.styleFrom(
-                          foregroundColor: const Color(0xFF9B6415),
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        child: const Text('保存'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  const Divider(
-                    height: 1,
-                    thickness: 0.8,
-                    color: Color(0x1AA87500),
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: UserAvatar(
-                      nickname: nickname,
-                      avatarValue: selectedAvatarValue,
-                      size: 78,
-                      backgroundColor: const Color(0xFFFFE8C2),
-                      foregroundColor: const Color(0xFF755700),
-                      border: Border.all(
-                        color: const Color(0x33A87500),
-                        width: 2,
-                      ),
-                      fontSize: 32,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      _AvatarOptionChip(
-                        label: '默认',
-                        selected: selectedAvatarValue == null,
-                        onTap: () {
-                          setModalState(() => selectedAvatarValue = null);
-                        },
-                        child: UserAvatar(
-                          nickname: nickname,
-                          avatarValue: null,
-                          size: 42,
-                          border: Border.all(
-                            color: const Color(0x33A87500),
-                            width: 1.4,
-                          ),
-                        ),
-                      ),
-                      for (final emoji in presetAvatarEmojis)
-                        _AvatarOptionChip(
-                          label: emoji,
-                          selected:
-                              selectedAvatarValue ==
-                              userAvatarValueFromEmoji(emoji),
-                          onTap: () {
-                            setModalState(
-                              () => selectedAvatarValue =
-                                  userAvatarValueFromEmoji(emoji),
-                            );
-                          },
-                          child: Center(
-                            child: Text(
-                              emoji,
-                              style: const TextStyle(fontSize: 28),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
+                    );
+                  },
+                  onSelectOption: (option) {
+                    setModalState(() => selectedOptionKey = option.key);
+                  },
+                ),
               ),
             ),
           );
@@ -131,55 +128,413 @@ Future<String?> showMemberAvatarPickerSheet(
       );
     },
   );
+
+  return pickedAvatar ?? initialAvatarValue;
 }
 
-class _AvatarOptionChip extends StatelessWidget {
-  const _AvatarOptionChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    required this.child,
+double _sheetHeightFor(double screenHeight) {
+  final factor = screenHeight < 700
+      ? 0.86
+      : screenHeight < 860
+      ? 0.76
+      : 0.70;
+  return math.min(screenHeight * factor, 760.0);
+}
+
+String _avatarValueForSave({
+  required String? selectedOptionKey,
+  required String? initialAvatarValue,
+}) {
+  final option = _avatarOptionForKey(selectedOptionKey);
+  if (option != null) {
+    return option.avatarValue;
+  }
+
+  final normalizedInitial = initialAvatarValue?.trim();
+  if (normalizedInitial != null && normalizedInitial.isNotEmpty) {
+    return normalizedPresetUserAvatarAssetValue(normalizedInitial) ??
+        _defaultAvatarValue;
+  }
+
+  return _defaultAvatarValue;
+}
+
+String _previewAvatarValue({
+  required String? selectedOptionKey,
+  required String? initialAvatarValue,
+}) {
+  final option = _avatarOptionForKey(selectedOptionKey);
+  if (option != null) {
+    return option.avatarValue;
+  }
+
+  final normalizedInitial = initialAvatarValue?.trim();
+  if (normalizedInitial != null && normalizedInitial.isNotEmpty) {
+    return normalizedPresetUserAvatarAssetValue(normalizedInitial) ??
+        _defaultAvatarValue;
+  }
+
+  return _defaultAvatarValue;
+}
+
+String? _optionKeyForValue(String? avatarValue) {
+  final normalized = normalizedPresetUserAvatarAssetValue(avatarValue);
+  if (normalized == null || normalized.isEmpty) {
+    return 'default';
+  }
+
+  for (final option in _avatarOptions) {
+    if (option.matches(normalized)) {
+      return option.key;
+    }
+  }
+  return null;
+}
+
+_AvatarOption? _avatarOptionForKey(String? key) {
+  if (key == null) {
+    return null;
+  }
+
+  for (final option in _avatarOptions) {
+    if (option.key == key) {
+      return option;
+    }
+  }
+  return null;
+}
+
+class _AvatarPickerPanel extends StatelessWidget {
+  const _AvatarPickerPanel({
+    required this.nickname,
+    required this.previewAvatarValue,
+    required this.selectedOptionKey,
+    required this.onCancel,
+    required this.onSave,
+    required this.onSelectOption,
   });
 
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final Widget child;
+  final String nickname;
+  final String previewAvatarValue;
+  final String? selectedOptionKey;
+  final VoidCallback onCancel;
+  final VoidCallback onSave;
+  final ValueChanged<_AvatarOption> onSelectOption;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        width: 72,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFFF1E7D2) : const Color(0xFFFFF7EA),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: selected ? const Color(0xFFD99955) : const Color(0xFFE2CBAA),
-            width: selected ? 2 : 1.2,
+    final size = MediaQuery.sizeOf(context);
+    final compact = size.height < 700;
+    final horizontalPadding = size.width < 390 ? 16.0 : 22.0;
+    final previewSize = compact ? 118.0 : 148.0;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBF2),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(34)),
+        border: Border.all(color: const Color(0xFF8B613B), width: 1.8),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1C000000),
+            blurRadius: 24,
+            offset: Offset(0, -8),
           ),
-        ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(34)),
         child: Column(
           children: [
-            SizedBox(width: 42, height: 42, child: child),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: selected
-                    ? const Color(0xFFA86C35)
-                    : const Color(0xFF6B4328),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                compact ? 16 : 18,
+                horizontalPadding,
+                0,
+              ),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 76,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: onCancel,
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF6A4A2A),
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(0, 40),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          textStyle: TextStyle(
+                            fontSize: compact ? 18 : 20,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        child: const Text(_cancelText),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      _titleText,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: compact ? 20 : 22,
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF5C3B20),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 76,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: onSave,
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFFCB8D18),
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(0, 40),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          textStyle: TextStyle(
+                            fontSize: compact ? 18 : 20,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        child: const Text(_saveText),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                10,
+                horizontalPadding,
+                0,
+              ),
+              child: const SizedBox(
+                height: 8,
+                width: double.infinity,
+                child: CustomPaint(painter: _AvatarPickerDividerPainter()),
+              ),
+            ),
+            SizedBox(height: compact ? 12 : 18),
+            Container(
+              width: previewSize + 14,
+              height: previewSize + 14,
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFFFFF1D6),
+                border: Border.all(color: const Color(0xFF8A623A), width: 2),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x1A000000),
+                    blurRadius: 14,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: UserAvatar(
+                nickname: nickname,
+                avatarValue: previewAvatarValue,
+                size: previewSize,
+                backgroundColor: const Color(0xFFFFF2D9),
+                foregroundColor: const Color(0xFF6E4C2B),
+                fontSize: compact ? 44 : 52,
+              ),
+            ),
+            SizedBox(height: compact ? 14 : 20),
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final maxGridWidth = math.min(constraints.maxWidth, 560.0);
+                  return Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: maxGridWidth),
+                      child: GridView.builder(
+                        padding: EdgeInsets.fromLTRB(
+                          horizontalPadding,
+                          0,
+                          horizontalPadding,
+                          compact ? 16 : 22,
+                        ),
+                        physics: const ClampingScrollPhysics(),
+                        itemCount: _avatarOptions.length,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 4,
+                              mainAxisSpacing: 12,
+                              crossAxisSpacing: 12,
+                              childAspectRatio: 1,
+                            ),
+                        itemBuilder: (context, index) {
+                          final option = _avatarOptions[index];
+                          final selected = option.key == selectedOptionKey;
+                          return _AvatarOptionCard(
+                            option: option,
+                            selected: selected,
+                            onTap: () => onSelectOption(option),
+                          );
+                        },
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],
         ),
       ),
     );
+  }
+}
+
+class _AvatarOptionCard extends StatelessWidget {
+  const _AvatarOptionCard({
+    required this.option,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final _AvatarOption option;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = selected
+        ? const Color(0xFFD99A18)
+        : const Color(0xFFE2CBAA);
+    final backgroundColor = selected
+        ? const Color(0xFFFFF8E8)
+        : const Color(0xFFFFFBF7);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: borderColor, width: selected ? 2.4 : 1.4),
+            boxShadow: selected
+                ? const [
+                    BoxShadow(
+                      color: Color(0x1FD99A18),
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                    ),
+                  ]
+                : const [],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFFFF2D8),
+                  border: Border.all(
+                    color: const Color(0xFF8A623A),
+                    width: 1.2,
+                  ),
+                ),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: ClipOval(
+                    child: CenteredAvatarAsset(
+                      assetPath: option.avatarValue,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, _, _) =>
+                          _AvatarCardFallback(label: option.label),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AvatarCardFallback extends StatelessWidget {
+  const _AvatarCardFallback({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: const Color(0xFFFFF8EC),
+      alignment: Alignment.center,
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w900,
+          color: Color(0xFF5C3B20),
+        ),
+      ),
+    );
+  }
+}
+
+class _AvatarPickerDividerPainter extends CustomPainter {
+  const _AvatarPickerDividerPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFD8A553)
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+
+    const dashWidth = 18.0;
+    const gapWidth = 8.0;
+    final y = size.height / 2;
+    var x = 0.0;
+    while (x < size.width) {
+      canvas.drawLine(
+        Offset(x, y),
+        Offset(math.min(x + dashWidth, size.width), y),
+        paint,
+      );
+      x += dashWidth + gapWidth;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _AvatarOption {
+  const _AvatarOption({
+    required this.key,
+    required this.label,
+    required this.avatarValue,
+    this.legacyAvatarValues = const <String>[],
+  });
+
+  final String key;
+  final String label;
+  final String avatarValue;
+  final List<String> legacyAvatarValues;
+
+  bool matches(String value) {
+    if (value == avatarValue) {
+      return true;
+    }
+    return legacyAvatarValues.contains(value);
   }
 }

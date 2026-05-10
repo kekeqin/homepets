@@ -27,9 +27,8 @@ import '../../widgets/homepets_dialog.dart';
 import '../../widgets/homepets_select_field.dart';
 
 import '../family/family_screen.dart';
+import '../family/widgets/family_sprite_slice.dart';
 import '../pet/pet_detail_screen.dart';
-import '../shop/shop_screen.dart';
-
 import 'game/home_scene_game.dart';
 import 'task_panel_sprite_catalog.dart';
 
@@ -70,8 +69,8 @@ const String _taskDeleteButtonAsset =
     'assets/images/ui/task_delete/delete_button.png';
 const String _taskDeleteButtonPressedAsset =
     'assets/images/ui/task_delete/delete_button_pressed.png';
-const double _taskPanelBoardAspectRatio = 447 / 649;
-const double _taskPanelBoardHeightRatio = 649 / 447;
+const double _taskPanelBoardHeightRatio =
+    TaskBoardReferenceAsset.panelHeightRatio;
 const Duration _taskPanelTransitionDuration = Duration(milliseconds: 320);
 
 class HomeSceneFlameView extends ConsumerStatefulWidget {
@@ -99,7 +98,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   late GlobalKey<RiverpodAwareGameWidgetState<HomeSceneGame>> _gameKey;
   late final AnimationController _taskPanelController;
 
-  SpriteAtlas? _taskPanelSpriteAtlas;
   List<Pet> _pets = const <Pet>[];
 
   List<Map<String, dynamic>> _homeTasks = const <Map<String, dynamic>>[];
@@ -114,9 +112,9 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   bool _taskPanelBackdropInteractive = false;
   bool _clearTaskRouteAfterClose = false;
   int _taskPanelPageIndex = 0;
+  double _taskPanelHorizontalDragOffset = 0;
   Rect? _taskPanelOriginRect;
   bool _didPrecacheTaskPanelAssets = false;
-  bool _taskPanelSpriteImageReady = false;
   String? _taskPanelPressedInteractionKey;
   OverlayEntry? _topSnackBarEntry;
 
@@ -143,7 +141,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       reverseDuration: _taskPanelTransitionDuration,
     );
 
-    _preloadTaskPanelSpriteAtlas();
     _loadFamilyPets();
 
     _loadHomeTasks();
@@ -166,72 +163,37 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     _didPrecacheTaskPanelAssets = true;
     for (final assetPath in <String>[
       _taskPanelNoteAsset,
-      TaskListSheetSpriteCatalog.atlasAsset.imageAsset,
+      FamilyHomePartAssets.closeButton,
+      ...TaskBoardReferenceAsset.runtimeAssets,
     ]) {
       _safePrecacheImage(assetPath);
     }
   }
 
-  void _preloadTaskPanelSpriteAtlas() {
-    TaskListSheetSpriteCatalog.atlasAsset
-        .load()
-        .then((atlas) {
-          if (!mounted) {
-            _taskPanelSpriteAtlas = atlas;
-            return;
-          }
-
-          setState(() => _taskPanelSpriteAtlas = atlas);
-        })
-        .catchError((Object error, StackTrace stackTrace) {
-          debugPrint('Task panel sprite atlas failed to load: $error');
-        });
-  }
-
   void _safePrecacheImage(String assetPath) {
-    precacheImage(AssetImage(assetPath), context)
-        .then((_) {
-          if (!mounted ||
-              assetPath != TaskListSheetSpriteCatalog.atlasAsset.imageAsset) {
-            return;
-          }
-
-          setState(() => _taskPanelSpriteImageReady = true);
-        })
-        .catchError((Object error, StackTrace stackTrace) {
-          debugPrint('Home scene image asset failed to precache: $assetPath');
-          debugPrint('$error');
-        });
+    precacheImage(AssetImage(assetPath), context).catchError((
+      Object error,
+      StackTrace stackTrace,
+    ) {
+      debugPrint('Home scene image asset failed to precache: $assetPath');
+      debugPrint('$error');
+    });
   }
 
   Future<bool> _ensureTaskPanelSpritesReady() async {
-    if (_taskPanelSpriteAtlas != null && _taskPanelSpriteImageReady) {
-      return true;
-    }
-
     try {
-      final atlas =
-          _taskPanelSpriteAtlas ??
-          await TaskListSheetSpriteCatalog.atlasAsset.load();
-      if (!mounted) {
-        return false;
-      }
-
-      await precacheImage(
-        AssetImage(TaskListSheetSpriteCatalog.atlasAsset.imageAsset),
-        context,
+      await Future.wait(
+        <String>[
+          _taskPanelNoteAsset,
+          FamilyHomePartAssets.closeButton,
+          ...TaskBoardReferenceAsset.runtimeAssets,
+        ].map((assetPath) => precacheImage(AssetImage(assetPath), context)),
       );
-      if (!mounted) {
-        return false;
-      }
-
-      setState(() {
-        _taskPanelSpriteAtlas = atlas;
-        _taskPanelSpriteImageReady = true;
-      });
-      return true;
+      return mounted;
     } catch (error) {
-      debugPrint('Task panel clean sprite assets are not available: $error');
+      debugPrint(
+        'Task panel reference sprite assets are not available: $error',
+      );
       return false;
     }
   }
@@ -346,7 +308,10 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     }
 
     _familyPanelVisible = true;
-    await showFamilyDialog(context);
+    await showFamilyDialog(
+      context,
+      petAvatarAssetPathsById: _game.debugPetDetailAvatarAssetPaths(),
+    );
     _familyPanelVisible = false;
 
     if (!mounted || !clearRouteAfterClose) {
@@ -365,7 +330,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       return;
     }
 
-    _showShopPanel(clearRouteAfterClose: false);
+    _showShopComingSoonDialog(clearRouteAfterClose: false);
   }
 
   void _openPaywall() {
@@ -386,40 +351,41 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       if (!mounted) {
         return;
       }
-      _showShopPanel(clearRouteAfterClose: true);
+      _showShopComingSoonDialog(clearRouteAfterClose: true);
     });
   }
 
-  Future<void> _showShopPanel({required bool clearRouteAfterClose}) async {
+  Future<void> _showShopComingSoonDialog({
+    required bool clearRouteAfterClose,
+  }) async {
     if (_shopPanelVisible) {
       return;
     }
 
     _shopPanelVisible = true;
-    await showGeneralDialog<void>(
+    await showHomePetsDialog<void>(
       context: context,
-      barrierLabel: 'shop_overlay',
-      barrierDismissible: true,
-      barrierColor: const Color(0x660F0A05),
-      transitionDuration: const Duration(milliseconds: 180),
-      pageBuilder: (dialogContext, animation, secondaryAnimation) {
-        return ShopScreen(
-          embedded: true,
-          onClose: () => Navigator.of(dialogContext).pop(),
-        );
-      },
-      transitionBuilder: (context, animation, secondaryAnimation, child) {
-        final curved = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOutCubic,
-        );
-        return FadeTransition(
-          opacity: curved,
-          child: ScaleTransition(
-            scale: Tween<double>(begin: 0.96, end: 1).animate(curved),
-            child: child,
+      barrierLabel: 'shop_coming_soon',
+      title: '商店完善中',
+      contentBuilder: (dialogContext) {
+        return const Text(
+          '商店页面还在完善中，我们会尽快上线。',
+          style: TextStyle(
+            color: Color(0xFF6F563D),
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            height: 1.4,
+            letterSpacing: 0,
           ),
         );
+      },
+      actionsBuilder: (dialogContext) {
+        return <Widget>[
+          HomePetsButton(
+            label: '知道了',
+            onPressed: () => Navigator.of(dialogContext).pop(),
+          ),
+        ];
       },
     );
     _shopPanelVisible = false;
@@ -487,12 +453,12 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   }
 
   Rect _expandedTaskPanelRect(Size size) {
-    final maxWidth = math.min(size.width * 0.76, 388.0);
-    final maxHeight = size.height * 0.72;
+    final maxWidth = math.min(size.width * 0.88, 452.0);
+    final maxHeight = size.height * 0.80;
     final height = math.min(maxHeight, maxWidth * _taskPanelBoardHeightRatio);
     final width = height / _taskPanelBoardHeightRatio;
     return Rect.fromCenter(
-      center: Offset(size.width * 0.5, size.height * 0.52),
+      center: Offset(size.width * 0.5, size.height * 0.51),
       width: width,
       height: height,
     );
@@ -582,12 +548,26 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     }
   }
 
+  void _setTaskPanelPageIndex(int pageIndex) {
+    final clampedPageIndex = pageIndex
+        .clamp(0, math.max(0, _taskPanelPageCount - 1))
+        .toInt();
+    if (clampedPageIndex == _taskPanelCurrentPageIndex) {
+      return;
+    }
+
+    setState(() {
+      _taskPanelPageIndex = clampedPageIndex;
+      _taskPanelPressedInteractionKey = null;
+    });
+  }
+
   void _goToPreviousTaskPage() {
     if (!_canGoToPreviousTaskPage) {
       return;
     }
 
-    setState(() => _taskPanelPageIndex = _taskPanelCurrentPageIndex - 1);
+    _setTaskPanelPageIndex(_taskPanelCurrentPageIndex - 1);
   }
 
   void _goToNextTaskPage() {
@@ -595,7 +575,45 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       return;
     }
 
-    setState(() => _taskPanelPageIndex = _taskPanelCurrentPageIndex + 1);
+    _setTaskPanelPageIndex(_taskPanelCurrentPageIndex + 1);
+  }
+
+  void _handleTaskPanelHorizontalDragStart(DragStartDetails details) {
+    _taskPanelHorizontalDragOffset = 0;
+  }
+
+  void _handleTaskPanelHorizontalDragUpdate(DragUpdateDetails details) {
+    _taskPanelHorizontalDragOffset += details.primaryDelta ?? 0;
+  }
+
+  void _handleTaskPanelHorizontalDragEnd(
+    DragEndDetails details,
+    double panelWidth,
+  ) {
+    if (!_taskPanelBackdropInteractive || _taskPanelPageCount <= 1) {
+      _taskPanelHorizontalDragOffset = 0;
+      return;
+    }
+
+    final dragOffset = _taskPanelHorizontalDragOffset;
+    final velocity = details.primaryVelocity ?? 0;
+    _taskPanelHorizontalDragOffset = 0;
+
+    final distanceThreshold = math.min(96.0, math.max(44.0, panelWidth * 0.16));
+    const velocityThreshold = 420.0;
+
+    if (dragOffset <= -distanceThreshold || velocity <= -velocityThreshold) {
+      _goToNextTaskPage();
+      return;
+    }
+
+    if (dragOffset >= distanceThreshold || velocity >= velocityThreshold) {
+      _goToPreviousTaskPage();
+    }
+  }
+
+  void _handleTaskPanelHorizontalDragCancel() {
+    _taskPanelHorizontalDragOffset = 0;
   }
 
   Future<void> _showTaskPanelRowActionsFromGlobalPosition(
@@ -662,21 +680,60 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     return curve.transform(normalized.toDouble());
   }
 
-  Widget _buildTaskPanelBoardLayer(TaskListSheetSpriteCatalog? sprites) {
-    if (sprites == null) {
-      return const SizedBox.shrink();
-    }
+  Widget _buildTaskPanelBoardLayer() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final panelSize = constraints.biggest;
+        final boardTop =
+            panelSize.height *
+            (TaskBoardReferenceAsset.boardTopOffset /
+                TaskBoardReferenceAsset.panelHeight);
+        final boardHeight =
+            panelSize.height *
+            (TaskBoardReferenceAsset.boardSize.height /
+                TaskBoardReferenceAsset.panelHeight);
+        final boardWidth =
+            boardHeight *
+            (TaskBoardReferenceAsset.boardSize.width /
+                TaskBoardReferenceAsset.boardSize.height);
+        final clipWidth =
+            panelSize.width *
+            (TaskBoardReferenceAsset.clipSize.width /
+                TaskBoardReferenceAsset.panelWidth) *
+            0.76;
+        final clipHeight =
+            clipWidth *
+            (TaskBoardReferenceAsset.clipSize.height /
+                TaskBoardReferenceAsset.clipSize.width);
 
-    return Center(
-      child: AspectRatio(
-        aspectRatio: _taskPanelBoardAspectRatio,
-        child: SpriteFrameImage(
-          imageAsset: sprites.imageAsset,
-          sheetSize: sprites.sheetSize,
-          frame: sprites.panelBlank,
-          fit: BoxFit.fill,
-        ),
-      ),
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              left: (panelSize.width - boardWidth) * 0.5,
+              top: boardTop,
+              width: boardWidth,
+              height: boardHeight,
+              child: Image.asset(
+                TaskBoardReferenceAsset.board,
+                fit: BoxFit.fill,
+                filterQuality: FilterQuality.high,
+              ),
+            ),
+            Positioned(
+              left: (panelSize.width - clipWidth) * 0.5,
+              top: 0,
+              width: clipWidth,
+              height: clipHeight,
+              child: Image.asset(
+                TaskBoardReferenceAsset.clip,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -709,6 +766,15 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
   bool _isTaskPanelInteractionPressed(String key) =>
       _taskPanelPressedInteractionKey == key;
+
+  String _taskPanelRowAssetForIndex(int index) {
+    return switch (index % 4) {
+      0 => TaskBoardReferenceAsset.rowWarm,
+      1 => TaskBoardReferenceAsset.rowGreen,
+      2 => TaskBoardReferenceAsset.rowPink,
+      _ => TaskBoardReferenceAsset.rowYellow,
+    };
+  }
 
   void _setTaskPanelInteractionPressed(String key) {
     if (!mounted || _taskPanelPressedInteractionKey == key) {
@@ -767,43 +833,85 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     );
   }
 
-  Widget _buildTaskPanelExpandedContent(
-    TaskListSheetSpriteCatalog? taskPanelSprites,
-  ) {
-    if (taskPanelSprites == null) {
-      return const SizedBox.shrink();
-    }
-
+  Widget _buildTaskPanelExpandedContent() {
     return LayoutBuilder(
       builder: (context, constraints) {
         final panelSize = constraints.biggest;
-        final titleWidth = panelSize.width * 0.72;
-        final titleHeight = titleWidth / taskPanelSprites.title.aspectRatio;
-        final rowWidth = panelSize.width * 0.86;
-        final rowHeight = panelSize.height * 0.112;
+        final titleTop = panelSize.height * 0.118;
+        final titleHeight = panelSize.height * 0.052;
+        final pawTop = panelSize.height * 0.146;
+        final pawWidth = panelSize.width * 0.108;
+        final rowWidth = panelSize.width * 0.858;
+        final rowHeight = panelSize.height * 0.094;
         final rowLeft = (panelSize.width - rowWidth) * 0.5;
-        final rowsTop = panelSize.height * 0.216;
-        final rowGap = panelSize.height * 0.030;
-        final pageButtonSize = panelSize.width * 0.135;
-        final pageControlsCenterY = panelSize.height * 0.788;
-        final addButtonWidth = panelSize.width * 0.54;
+        final rowsTop = panelSize.height * 0.275;
+        final rowGap = panelSize.height * 0.025;
+        final pageControlVisualSize = panelSize.width * 0.027;
+        final pageControlHitSize = panelSize.width * 0.064;
+        final pageControlsCenterY = panelSize.height * 0.765;
+        final pageControlGap = panelSize.width * 0.168;
+        final pageIndicatorWidth = panelSize.width * 0.120;
+        final pageIndicatorHeight = panelSize.height * 0.034;
+        final closeButtonHitSize = panelSize.width * 0.102;
+        final closeButtonVisualSize = panelSize.width * 0.093;
+        final addButtonWidth = panelSize.width * 0.460;
         final addButtonHeight =
-            addButtonWidth / taskPanelSprites.addTaskButton.aspectRatio;
-        final addButtonBottom = panelSize.height * 0.055;
+            addButtonWidth / TaskBoardReferenceAsset.addTaskButtonAspectRatio;
+        final addButtonBottom = panelSize.height * 0.060;
 
         return Stack(
           clipBehavior: Clip.none,
           children: [
             Positioned(
-              top: -panelSize.height * 0.020,
-              left: (panelSize.width - titleWidth) * 0.5,
-              width: titleWidth,
+              left: panelSize.width * 0.08,
+              right: panelSize.width * 0.08,
+              top: titleTop,
               height: titleHeight,
-              child: SpriteFrameImage(
-                imageAsset: taskPanelSprites.imageAsset,
-                sheetSize: taskPanelSprites.sheetSize,
-                frame: taskPanelSprites.title,
-                fit: BoxFit.fill,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  '任务清单',
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: const Color(0xFF4A2014),
+                    fontSize: panelSize.width * 0.092,
+                    fontWeight: FontWeight.w900,
+                    height: 1,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: panelSize.height * 0.095,
+              right: panelSize.width * 0.085,
+              width: closeButtonHitSize,
+              height: closeButtonHitSize,
+              child: _buildTaskPanelCloseButton(
+                visualSize: closeButtonVisualSize,
+                onTap: _hideTaskPanel,
+              ),
+            ),
+            Positioned(
+              left: panelSize.width * 0.265,
+              top: pawTop,
+              width: pawWidth,
+              height: pawWidth * (45 / 65),
+              child: Image.asset(
+                TaskBoardReferenceAsset.pawLeft,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
+              ),
+            ),
+            Positioned(
+              right: panelSize.width * 0.265,
+              top: pawTop,
+              width: pawWidth,
+              height: pawWidth * (48 / 75),
+              child: Image.asset(
+                TaskBoardReferenceAsset.pawRight,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
               ),
             ),
             for (var index = 0; index < _visibleTaskPanelTasks.length; index++)
@@ -813,7 +921,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                 width: rowWidth,
                 height: rowHeight,
                 child: _buildTaskPanelTaskRow(
-                  sprites: taskPanelSprites,
                   task: _visibleTaskPanelTasks[index],
                   index: index,
                 ),
@@ -824,33 +931,36 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                 top: rowsTop + rowHeight + rowGap,
                 width: rowWidth,
                 height: rowHeight,
-                child: _buildTaskPanelEmptyRow(taskPanelSprites),
+                child: _buildTaskPanelEmptyRow(),
               ),
-            if (_taskPanelPageCount > 1) ...[
-              Positioned(
-                left: panelSize.width * 0.115,
-                top: pageControlsCenterY - (pageButtonSize * 0.5),
-                width: pageButtonSize,
-                height: pageButtonSize,
-                child: _buildTaskPanelSpriteButton(
-                  sprites: taskPanelSprites,
-                  frame: taskPanelSprites.arrowLeft,
-                  semanticsLabel: '\u4e0a\u4e00\u9875',
-                  enabled: _canGoToPreviousTaskPage,
-                  onTap: _goToPreviousTaskPage,
-                ),
+            Positioned(
+              left:
+                  panelSize.width * 0.5 -
+                  pageControlGap * 0.5 -
+                  pageControlHitSize,
+              top: pageControlsCenterY - (pageControlHitSize * 0.5),
+              width: pageControlHitSize,
+              height: pageControlHitSize,
+              child: _buildTaskPanelPageControl(
+                active: _taskPanelCurrentPageIndex == 0,
+                enabled: _canGoToPreviousTaskPage,
+                visualSize: pageControlVisualSize,
+                semanticsLabel: '上一页',
+                onTap: _goToPreviousTaskPage,
               ),
+            ),
+            if (_taskPanelPageCount > 1)
               Positioned(
-                left: panelSize.width * 0.5 - (panelSize.width * 0.11),
-                top: pageControlsCenterY - (pageButtonSize * 0.27),
-                width: panelSize.width * 0.22,
-                height: pageButtonSize * 0.54,
+                left: panelSize.width * 0.5 - (pageIndicatorWidth * 0.5),
+                top: pageControlsCenterY - (pageIndicatorHeight * 0.5),
+                width: pageIndicatorWidth,
+                height: pageIndicatorHeight,
                 child: Center(
                   child: Text(
                     _taskPanelPageIndicatorLabel,
                     style: TextStyle(
                       color: const Color(0xFF5A4228),
-                      fontSize: panelSize.width * 0.058,
+                      fontSize: panelSize.width * 0.033,
                       fontWeight: FontWeight.w800,
                       height: 1,
                       letterSpacing: 0,
@@ -858,29 +968,25 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                   ),
                 ),
               ),
-              Positioned(
-                right: panelSize.width * 0.115,
-                top: pageControlsCenterY - (pageButtonSize * 0.5),
-                width: pageButtonSize,
-                height: pageButtonSize,
-                child: _buildTaskPanelSpriteButton(
-                  sprites: taskPanelSprites,
-                  frame: taskPanelSprites.arrowRight,
-                  semanticsLabel: '\u4e0b\u4e00\u9875',
-                  enabled: _canGoToNextTaskPage,
-                  onTap: _goToNextTaskPage,
-                ),
+            Positioned(
+              left: panelSize.width * 0.5 + pageControlGap * 0.5,
+              top: pageControlsCenterY - (pageControlHitSize * 0.5),
+              width: pageControlHitSize,
+              height: pageControlHitSize,
+              child: _buildTaskPanelPageControl(
+                active: _taskPanelCurrentPageIndex == _taskPanelPageCount - 1,
+                enabled: _canGoToNextTaskPage,
+                visualSize: pageControlVisualSize,
+                semanticsLabel: '下一页',
+                onTap: _goToNextTaskPage,
               ),
-            ],
+            ),
             Positioned(
               bottom: addButtonBottom,
               left: (panelSize.width - addButtonWidth) * 0.5,
               width: addButtonWidth,
               height: addButtonHeight,
-              child: _buildTaskPanelAddButton(
-                sprites: taskPanelSprites,
-                onTap: _handleTaskAddTap,
-              ),
+              child: _buildTaskPanelAddButton(onTap: _handleTaskAddTap),
             ),
           ],
         );
@@ -888,8 +994,34 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     );
   }
 
+  Widget _buildTaskPanelCloseButton({
+    required double visualSize,
+    required VoidCallback onTap,
+  }) {
+    return Tooltip(
+      message: '\u5173\u95ed',
+      child: Semantics(
+        button: true,
+        label: '\u5173\u95ed',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Center(
+            child: Image.asset(
+              FamilyHomePartAssets.closeButton,
+              width: visualSize,
+              height: visualSize,
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.medium,
+              isAntiAlias: false,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTaskPanelTaskRow({
-    required TaskListSheetSpriteCatalog sprites,
     required Map<String, dynamic> task,
     required int index,
   }) {
@@ -907,8 +1039,9 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     return LayoutBuilder(
       builder: (context, constraints) {
         final rowSize = constraints.biggest;
-        final checkboxSize = rowSize.height * 0.58;
-        final titleFontSize = rowSize.height * 0.34;
+        final starSize = rowSize.height * 0.40;
+        final checkboxSize = rowSize.height * 0.62;
+        final titleFontSize = rowSize.height * 0.30;
         final titleColor = const Color(
           0xFF4D3721,
         ).withValues(alpha: completed ? 0.56 : 1);
@@ -918,9 +1051,10 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
             ? 0.92
             : (isCheckboxPressed ? 0.82 : 1.0);
         final pointsLabelWidth = math.max(
-          48.0,
-          math.min(rowSize.width * 0.18, 72.0),
+          42.0,
+          math.min(rowSize.width * 0.13, 62.0),
         );
+        final rowAsset = _taskPanelRowAssetForIndex(index);
 
         return Stack(
           children: [
@@ -932,17 +1066,12 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                 scale: isBodyPressed ? 0.992 : 1,
                 child: Opacity(
                   opacity: rowOpacity,
-                  child: SpriteFrameImage(
-                    imageAsset: sprites.imageAsset,
-                    sheetSize: sprites.sheetSize,
-                    frame: sprites.taskRowBlank,
-                    fit: BoxFit.fill,
-                  ),
+                  child: Image.asset(rowAsset, fit: BoxFit.fill),
                 ),
               ),
             ),
             Positioned(
-              left: rowSize.width * 0.050,
+              right: rowSize.width * 0.050,
               top: (rowSize.height - checkboxSize) * 0.5,
               width: checkboxSize,
               height: checkboxSize,
@@ -956,12 +1085,8 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                   scale: isCheckboxPressed ? 0.92 : 1,
                   child: Opacity(
                     opacity: checkboxOpacity,
-                    child: SpriteFrameImage(
-                      imageAsset: sprites.imageAsset,
-                      sheetSize: sprites.sheetSize,
-                      frame: completed
-                          ? sprites.checkboxChecked
-                          : sprites.checkboxEmpty,
+                    child: Image.asset(
+                      TaskBoardReferenceAsset.checkboxEmpty,
                       fit: BoxFit.contain,
                     ),
                   ),
@@ -969,8 +1094,8 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
               ),
             ),
             Positioned(
-              left: rowSize.width * 0.175,
-              right: pointsLabelWidth + (rowSize.width * 0.080),
+              left: rowSize.width * 0.075,
+              right: rowSize.width * 0.170 + starSize + pointsLabelWidth,
               top: 0,
               bottom: 0,
               child: Align(
@@ -982,7 +1107,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                   style: TextStyle(
                     color: titleColor,
                     fontSize: titleFontSize,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w900,
                     height: 1,
                     letterSpacing: 0,
                   ),
@@ -990,7 +1115,20 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
               ),
             ),
             Positioned(
-              right: rowSize.width * 0.055,
+              right: rowSize.width * 0.135 + pointsLabelWidth,
+              top: (rowSize.height - starSize) * 0.5,
+              width: starSize,
+              height: starSize,
+              child: Opacity(
+                opacity: completed ? 0.58 : 1,
+                child: Image.asset(
+                  TaskBoardReferenceAsset.rewardStar,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            Positioned(
+              right: rowSize.width * 0.125,
               top: 0,
               bottom: 0,
               child: _buildTaskPanelPointsText(
@@ -1001,9 +1139,9 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
               ),
             ),
             Positioned(
-              left: 0,
+              right: 0,
               top: 0,
-              width: rowSize.width * 0.16,
+              width: rowSize.width * 0.14,
               bottom: 0,
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
@@ -1020,8 +1158,8 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
               ),
             ),
             Positioned(
-              left: rowSize.width * 0.15,
-              right: 0,
+              left: 0,
+              right: rowSize.width * 0.13,
               top: 0,
               bottom: 0,
               child: GestureDetector(
@@ -1043,16 +1181,14 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     );
   }
 
-  Widget _buildTaskPanelEmptyRow(TaskListSheetSpriteCatalog sprites) {
+  Widget _buildTaskPanelEmptyRow() {
     return Stack(
       fit: StackFit.expand,
       children: [
         Opacity(
           opacity: 0.82,
-          child: SpriteFrameImage(
-            imageAsset: sprites.imageAsset,
-            sheetSize: sprites.sheetSize,
-            frame: sprites.taskRowBlank,
+          child: Image.asset(
+            TaskBoardReferenceAsset.rowGreen,
             fit: BoxFit.fill,
           ),
         ),
@@ -1070,12 +1206,12 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     );
   }
 
-  Widget _buildTaskPanelSpriteButton({
-    required TaskListSheetSpriteCatalog sprites,
-    required SpriteAtlasFrame frame,
+  Widget _buildTaskPanelPageControl({
+    required bool active,
+    required bool enabled,
+    required double visualSize,
     required String semanticsLabel,
     required VoidCallback onTap,
-    bool enabled = true,
   }) {
     return Semantics(
       button: true,
@@ -1084,35 +1220,37 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: enabled ? onTap : null,
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 120),
-          opacity: enabled ? 1 : 0.34,
-          child: SpriteFrameImage(
-            imageAsset: sprites.imageAsset,
-            sheetSize: sprites.sheetSize,
-            frame: frame,
-            fit: BoxFit.contain,
+        child: Center(
+          child: SizedBox.square(
+            dimension: visualSize,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 120),
+              opacity: active || enabled ? 1 : 0.48,
+              child: Image.asset(
+                active
+                    ? TaskBoardReferenceAsset.paginationDotActive
+                    : TaskBoardReferenceAsset.paginationDotInactive,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
+              ),
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildTaskPanelAddButton({
-    required TaskListSheetSpriteCatalog sprites,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildTaskPanelAddButton({required VoidCallback onTap}) {
     return Semantics(
       button: true,
       label: '\u6dfb\u52a0\u4efb\u52a1',
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: SpriteFrameImage(
-          imageAsset: sprites.imageAsset,
-          sheetSize: sprites.sheetSize,
-          frame: sprites.addTaskButton,
+        child: Image.asset(
+          TaskBoardReferenceAsset.addTaskButton,
           fit: BoxFit.fill,
+          filterQuality: FilterQuality.high,
         ),
       ),
     );
@@ -1124,19 +1262,10 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       size,
     );
     final expandedRect = _expandedTaskPanelRect(size);
-    final taskPanelSprites = _taskPanelSpriteAtlas == null
-        ? null
-        : TaskListSheetSpriteCatalog(_taskPanelSpriteAtlas!);
-    if (taskPanelSprites == null) {
-      return const SizedBox.shrink();
-    }
-
     return Positioned.fill(
       child: AnimatedBuilder(
         animation: _taskPanelController,
-        child: RepaintBoundary(
-          child: _buildTaskPanelExpandedContent(taskPanelSprites),
-        ),
+        child: RepaintBoundary(child: _buildTaskPanelExpandedContent()),
         builder: (context, panelContent) {
           final animationValue = _taskPanelController.value;
           final panelProgress = Curves.easeInOutCubicEmphasized.transform(
@@ -1214,6 +1343,14 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () {},
+                  onHorizontalDragStart: _handleTaskPanelHorizontalDragStart,
+                  onHorizontalDragUpdate: _handleTaskPanelHorizontalDragUpdate,
+                  onHorizontalDragCancel: _handleTaskPanelHorizontalDragCancel,
+                  onHorizontalDragEnd: (details) =>
+                      _handleTaskPanelHorizontalDragEnd(
+                        details,
+                        panelRect.width,
+                      ),
                   child: RepaintBoundary(
                     child: Transform.rotate(
                       angle: panelRotation,
@@ -1253,9 +1390,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                                 offset: Offset(0, boardSlide),
                                 child: Opacity(
                                   opacity: boardOpacity,
-                                  child: _buildTaskPanelBoardLayer(
-                                    taskPanelSprites,
-                                  ),
+                                  child: _buildTaskPanelBoardLayer(),
                                 ),
                               ),
                               IgnorePointer(
@@ -1265,19 +1400,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                                   child: Opacity(
                                     opacity: contentOpacity,
                                     child: panelContent!,
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                top: -panelRect.height * 0.028,
-                                right: -panelRect.width * 0.012,
-                                width: panelRect.width * 0.155,
-                                height: panelRect.width * 0.167,
-                                child: Opacity(
-                                  opacity: contentOpacity,
-                                  child: _TaskPanelCloseButton(
-                                    sprites: taskPanelSprites,
-                                    onPressed: _hideTaskPanel,
                                   ),
                                 ),
                               ),
@@ -1922,7 +2044,25 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
   void _syncGamePetsFromServer() {
     final sortedPets = List<Pet>.from(_pets)
-      ..sort((left, right) => left.ownerId.compareTo(right.ownerId));
+      ..sort((left, right) {
+        final ownerCompare = left.ownerId.compareTo(right.ownerId);
+        if (ownerCompare != 0) {
+          return ownerCompare;
+        }
+        final leftCreatedAt = left.createdAt;
+        final rightCreatedAt = right.createdAt;
+        if (leftCreatedAt != null && rightCreatedAt != null) {
+          final createdAtCompare = rightCreatedAt.compareTo(leftCreatedAt);
+          if (createdAtCompare != 0) {
+            return createdAtCompare;
+          }
+        } else if (leftCreatedAt != null) {
+          return -1;
+        } else if (rightCreatedAt != null) {
+          return 1;
+        }
+        return right.id.compareTo(left.id);
+      });
 
     final renderedOwnerIds = <int>{};
     final seeds = <HomeScenePetSeed>[];
@@ -2199,34 +2339,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
           ),
         );
       },
-    );
-  }
-}
-
-class _TaskPanelCloseButton extends StatelessWidget {
-  const _TaskPanelCloseButton({required this.sprites, required this.onPressed});
-
-  final TaskListSheetSpriteCatalog? sprites;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final resolvedSprites = sprites;
-    return Semantics(
-      button: true,
-      label: '关闭',
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onPressed,
-        child: resolvedSprites == null
-            ? const SizedBox.shrink()
-            : SpriteFrameImage(
-                imageAsset: resolvedSprites.imageAsset,
-                sheetSize: resolvedSprites.sheetSize,
-                frame: resolvedSprites.closeButton,
-                fit: BoxFit.contain,
-              ),
-      ),
     );
   }
 }
@@ -3018,11 +3130,9 @@ class _TaskEditorSpriteCard extends StatelessWidget {
       builder: (context, constraints) {
         final panelSize = constraints.biggest;
         final titleWidth = panelSize.width * 0.40;
-        final nameFieldWidth = panelSize.width * 0.66;
-        final pointsFieldWidth = panelSize.width * 0.60;
+        final fieldWidth = panelSize.width * 0.66;
         final fieldHeight = panelSize.height * 0.112;
-        final nameFieldLeft = panelSize.width * 0.17;
-        final pointsFieldLeft = panelSize.width * 0.20;
+        final fieldLeft = panelSize.width * 0.17;
         final buttonTop = panelSize.height * (bottomInset > 0 ? 0.798 : 0.812);
         final buttonHeight = panelSize.height * 0.145;
         final cancelButtonWidth = panelSize.width * 0.36;
@@ -3081,8 +3191,8 @@ class _TaskEditorSpriteCard extends StatelessWidget {
             ),
             Positioned(
               top: panelSize.height * 0.335,
-              left: nameFieldLeft,
-              width: nameFieldWidth,
+              left: fieldLeft,
+              width: fieldWidth,
               height: fieldHeight,
               child: _TaskEditorSpriteField(
                 sprites: sprites,
@@ -3117,8 +3227,8 @@ class _TaskEditorSpriteCard extends StatelessWidget {
             ),
             Positioned(
               top: panelSize.height * 0.574,
-              left: pointsFieldLeft,
-              width: pointsFieldWidth,
+              left: fieldLeft,
+              width: fieldWidth,
               height: fieldHeight,
               child: _TaskEditorSpriteField(
                 sprites: sprites,

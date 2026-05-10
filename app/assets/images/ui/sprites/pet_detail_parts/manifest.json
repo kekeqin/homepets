@@ -1,0 +1,344 @@
+{
+  "meta": {
+    "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "source_size": {
+      "w": 1130,
+      "h": 1392
+    },
+    "output_dir": "app/assets/images/ui/sprites/pet_detail_parts",
+    "padding": 4,
+    "count": 22
+  },
+  "frames": {
+    "achievement_tag.png": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+      "source_frame": {
+        "x": 828,
+        "y": 892,
+        "w": 235,
+        "h": 345
+      },
+      "padding": 4,
+      "image_size": {
+        "w": 243,
+        "h": 353
+      },
+      "alpha_pixels": 62034
+    },
+    "book_icon.png": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+      "source_frame": {
+        "x": 640,
+        "y": 922,
+        "w": 101,
+        "h": 84
+      },
+      "padding": 4,
+      "image_size": {
+        "w": 109,
+        "h": 92
+      },
+      "alpha_pixels": 7682
+    },
+    "bottom_shadow_left.png": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+      "source_frame": {
+        "x": 44,
+        "y": 1326,
+        "w": 162,
+        "h": 33
+      },
+      "padding": 4,
+      "image_size": {
+        "w": 170,
+        "h": 41
+      },
+      "alpha_pixels": 4324
+    },
+    "bottom_shadow_middle.png": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+      "source_frame": {
+        "x": 239,
+        "y": 1326,
+        "w": 152,
+        "h": 34
+      },
+      "padding": 4,
+      "image_size": {
+        "w": 160,
+        "h": 42
+      },
+      "alpha_pixels": 4028
+    },
+    "bottom_shadow_right.png": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+      "source_frame": {
+        "x": 436,
+        "y": 1326,
+        "w": 146,
+        "h": 34
+      },
+      "padding": 4,
+      "image_size": {
+        "w": 154,
+        "h": 42
+      },
+      "alpha_pixels": 3860
+    },
+    "cat_sit.png": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+      "source_frame": {
+        "x": 532,
+        "y": 605,
+        "w": 231,
+        "h": 260
+      },
+      "padding": 4,
+      "image_size": {
+        "w": 239,
+        "h": 268
+      },
+      "alpha_pixels": 40944
+    },
+    "close_button.png": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+      "source_frame": {
+        "x": 990,
+        "y": 73,
+        "w": 86,
+        "h": 91
+      },
+      "padding": 4,
+      "image_size": {
+        "w": 94,
+        "h": 99
+      },
+      "alpha_pixels": 6104
+    },
+    "feed_card.png": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+      "source_frame": {
+        "x": 795,
+        "y": 720,
+        "w": 268,
+        "h": 134
+      },
+      "padding": 4,
+      "image_size": {
+        "w": 276,
+        "h": 142
+      },
+      "alpha_pixels": 35067
+    },
+    "fish_icon.png": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+      "source_frame": {
+        "x": 632,
+        "y": 1042,
+        "w": 100,
+        "h": 86
+      },
+      "padding": 4,
+      "image_size": {
+        "w": 108,
+        "h": 94
+      },
+      "alpha_pixels": 4961
+    },
+    "growth_card.png": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+      "source_frame": {
+        "x": 802,
+        "y": 506,
+        "w": 288,
+        "h": 136
+      },
+      "padding": 4,
+      "image_size": {
+        "w": 296,
+        "h": 144
+      },
+      "alpha_pixels": 38229
+    },
+    "growth_star_icon.png": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+      "source_frame": {
+        "x": 822,
+        "y": 650,
+        "w": 58,
+        "h": 56
+      },
+      "padding": 4,
+      "image_size": {
+        "w": 66,
+        "h": 64
+      },
+      "alpha_pixels": 2087
+    },
+    "name_banner.png": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+      "source_frame": {
+        "x": 553,
+        "y": 53,
+        "w": 390,
+        "h": 122
+      },
+      "padding": 4,
+      "image_size": {
+        "w": 398,
+        "h": 130
+      },
+      "alpha_pixels": 40129
+    },
+    "panel_blank.png": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+      "source_frame": {
+        "x": 18,
+        "y": 47,
+        "w": 503,
+        "h": 796
+      },
+      "padding": 4,
+      "image_size": {
+        "w": 511,
+        "h": 804
+      },
+      "alpha_pixels": 397362
+    },
+    "portrait_frame_blank.png": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+      "source_frame": {
+        "x": 535,
+        "y": 218,
+        "w": 255,
+        "h": 373
+      },
+      "padding": 4,
+      "image_size": {
+        "w": 263,
+        "h": 381
+      },
+      "alpha_pixels": 93509
+    },
+    "progress_bar.png": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+      "source_frame": {
+        "x": 900,
+        "y": 438,
+        "w": 194,
+        "h": 27
+      },
+      "padding": 4,
+      "image_size": {
+        "w": 202,
+        "h": 35
+      },
+      "alpha_pixels": 5068
+    },
+    "recent_panel_top3.png": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+      "source_frame": {
+        "x": 43,
+        "y": 877,
+        "w": 532,
+        "h": 393
+      },
+      "padding": 4,
+      "image_size": {
+        "w": 540,
+        "h": 401
+      },
+      "alpha_pixels": 202155
+    },
+    "slot_button_green.png": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+      "source_frame": {
+        "x": 636,
+        "y": 1288,
+        "w": 126,
+        "h": 78
+      },
+      "padding": 4,
+      "image_size": {
+        "w": 134,
+        "h": 86
+      },
+      "alpha_pixels": 9350
+    },
+    "slot_button_orange.png": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+      "source_frame": {
+        "x": 939,
+        "y": 1288,
+        "w": 126,
+        "h": 78
+      },
+      "padding": 4,
+      "image_size": {
+        "w": 134,
+        "h": 86
+      },
+      "alpha_pixels": 9380
+    },
+    "slot_button_yellow.png": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+      "source_frame": {
+        "x": 787,
+        "y": 1288,
+        "w": 126,
+        "h": 78
+      },
+      "padding": 4,
+      "image_size": {
+        "w": 134,
+        "h": 86
+      },
+      "alpha_pixels": 9381
+    },
+    "stage_card.png": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+      "source_frame": {
+        "x": 810,
+        "y": 214,
+        "w": 287,
+        "h": 167
+      },
+      "padding": 4,
+      "image_size": {
+        "w": 295,
+        "h": 175
+      },
+      "alpha_pixels": 46987
+    },
+    "stage_seedling_icon.png": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+      "source_frame": {
+        "x": 816,
+        "y": 398,
+        "w": 57,
+        "h": 71
+      },
+      "padding": 4,
+      "image_size": {
+        "w": 65,
+        "h": 79
+      },
+      "alpha_pixels": 2781
+    },
+    "wand_icon.png": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+      "source_frame": {
+        "x": 636,
+        "y": 1151,
+        "w": 104,
+        "h": 95
+      },
+      "padding": 4,
+      "image_size": {
+        "w": 112,
+        "h": 103
+      },
+      "alpha_pixels": 4101
+    }
+  }
+}

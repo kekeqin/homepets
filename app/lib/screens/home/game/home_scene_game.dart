@@ -132,16 +132,6 @@ bool _assetNameContainsAny(String assetName, Iterable<String> keywords) {
   return keywords.any(assetName.contains);
 }
 
-String _detailAvatarAssetPathForHomeAssetPath(String assetPath) {
-  if (assetPath.startsWith('assets/')) {
-    return assetPath;
-  }
-  if (assetPath.startsWith('images/')) {
-    return 'assets/$assetPath';
-  }
-  return assetPath;
-}
-
 double _homePetScaleForAssetPath(String assetPath) {
   return _homePetScaleByAssetPath[assetPath] ?? 1;
 }
@@ -1381,35 +1371,41 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   }
 
   Map<int, String> debugCurrentPetPoseAssetPaths() {
+    _syncPetPlacements();
     _syncPetPoseIndices();
 
-    return Map<int, String>.unmodifiable(<int, String>{
-      for (var index = 0; index < _petEntries.length; index++)
-        _petEntries[index].petId: () {
-          final pet = _petEntries[index];
-          final petType = _normalizedPetType(pet.petType, index: index);
-          final placement = _petPlacements[pet.petId]!;
-          final poseVariants = _homePoseAssetPathsForPlacement(
-            petType,
-            pet.petId,
-            placement,
-          );
-          final currentPoseIndex = _currentHomePetPoseIndex(
-            petType,
-            pet.petId,
-            placement,
-            poseVariants.length,
-          );
-          return poseVariants[currentPoseIndex];
-        }(),
-    });
+    final assetPaths = <int, String>{};
+    for (var index = 0; index < _petEntries.length; index++) {
+      final pet = _petEntries[index];
+      final petType = _normalizedPetType(pet.petType, index: index);
+      final placement = _petPlacements[pet.petId];
+      if (placement == null) {
+        continue;
+      }
+      final poseVariants = _homePoseAssetPathsForPlacement(
+        petType,
+        pet.petId,
+        placement,
+      );
+      final currentPoseIndex = _currentHomePetPoseIndex(
+        petType,
+        pet.petId,
+        placement,
+        poseVariants.length,
+      );
+      assetPaths[pet.petId] = poseVariants[currentPoseIndex];
+    }
+
+    return Map<int, String>.unmodifiable(assetPaths);
   }
 
   Map<int, String> debugPetDetailAvatarAssetPaths() {
     return Map<int, String>.unmodifiable(
       debugCurrentPetPoseAssetPaths().map(
-        (petId, assetPath) =>
-            MapEntry(petId, _detailAvatarAssetPathForHomeAssetPath(assetPath)),
+        (petId, assetPath) => MapEntry(
+          petId,
+          petDetailAvatarAssetPathForHomeAssetPath(assetPath),
+        ),
       ),
     );
   }
@@ -1691,7 +1687,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
         pet.petId,
         poseVariants.length,
       );
-      final detailAvatarAssetPath = _detailAvatarAssetPathForHomeAssetPath(
+      final detailAvatarAssetPath = petDetailAvatarAssetPathForHomeAssetPath(
         poseVariants[initialPoseIndex].assetPath,
       );
 
@@ -2382,26 +2378,38 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   }
 
   void _rebuildUiFromProfile() {
+    final nextComponents = <_AnimatedSceneComponent>[];
+    _SceneSpriteComponent? nextTaskNoteComponent;
+    try {
+      final sceneSpecs = <_UiSpec>[..._profile.specs, ..._buildPetSpecs()];
+      final backgroundRect = _background.layoutRect;
+
+      for (final spec in sceneSpecs) {
+        final component = spec.build(
+          sceneSize: _sceneSize,
+          backgroundRect: backgroundRect,
+        );
+        if (component is _SceneSpriteComponent &&
+            component.behavior == _SceneSpriteBehavior.taskNote) {
+          nextTaskNoteComponent = component;
+        }
+        nextComponents.add(component);
+      }
+    } catch (error, stackTrace) {
+      debugPrint('HomeSceneGame failed to rebuild scene components: $error');
+      debugPrint('$stackTrace');
+      return;
+    }
+
     for (final component in List<_AnimatedSceneComponent>.from(
       _animatedComponents,
     )) {
       component.removeFromParent();
     }
     _animatedComponents.clear();
-    _taskNoteComponent = null;
+    _taskNoteComponent = nextTaskNoteComponent;
 
-    final sceneSpecs = <_UiSpec>[..._profile.specs, ..._buildPetSpecs()];
-    final backgroundRect = _background.layoutRect;
-
-    for (final spec in sceneSpecs) {
-      final component = spec.build(
-        sceneSize: _sceneSize,
-        backgroundRect: backgroundRect,
-      );
-      if (component is _SceneSpriteComponent &&
-          component.behavior == _SceneSpriteBehavior.taskNote) {
-        _taskNoteComponent = component;
-      }
+    for (final component in nextComponents) {
       _addAnimated(component);
     }
     _lastUiLayoutSize = _sceneSize.clone();

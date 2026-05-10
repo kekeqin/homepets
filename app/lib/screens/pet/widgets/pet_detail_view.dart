@@ -86,7 +86,7 @@ class _PetDetailViewState extends ConsumerState<PetDetailView> {
               avatarAssetPath: widget.avatarAssetPath,
               stageLabel: _stageLabel(pet),
               growthValue: _growthValueLabel(pet),
-              feedCountLabel: _feedCountLabel(),
+              ownerNameLabel: pet.ownerDisplayName,
               recentTasks: _buildRecentTasks(),
               statusLabel: _statusStampLabel(pet),
               loading: _loading,
@@ -123,35 +123,6 @@ class _PetDetailViewState extends ConsumerState<PetDetailView> {
       return '满级';
     }
     return '${pet.experience} / $threshold';
-  }
-
-  String _feedCountLabel() {
-    final count = _todayFeedCount();
-    return '$count次/天';
-  }
-
-  int _todayFeedCount() {
-    final now = DateTime.now();
-    var todayCount = 0;
-    var totalCount = 0;
-
-    for (final entry in _history) {
-      if (entry.eventType != 'feed') {
-        continue;
-      }
-      totalCount += 1;
-      final createdAt = entry.createdAt;
-      if (createdAt == null) {
-        continue;
-      }
-      if (createdAt.year == now.year &&
-          createdAt.month == now.month &&
-          createdAt.day == now.day) {
-        todayCount += 1;
-      }
-    }
-
-    return todayCount > 0 ? todayCount : totalCount;
   }
 
   List<_InteractionData> _buildRecentTasks() {
@@ -202,7 +173,7 @@ class _ProfileCard extends StatelessWidget {
     required this.avatarAssetPath,
     required this.stageLabel,
     required this.growthValue,
-    required this.feedCountLabel,
+    required this.ownerNameLabel,
     required this.recentTasks,
     required this.statusLabel,
     required this.loading,
@@ -213,7 +184,7 @@ class _ProfileCard extends StatelessWidget {
   final String? avatarAssetPath;
   final String stageLabel;
   final String growthValue;
-  final String feedCountLabel;
+  final String ownerNameLabel;
   final List<_InteractionData> recentTasks;
   final String statusLabel;
   final bool loading;
@@ -276,7 +247,7 @@ class _ProfileCard extends StatelessWidget {
                   stageLabel: stageLabel,
                   level: pet.level,
                   growthValue: growthValue,
-                  feedCountLabel: feedCountLabel,
+                  ownerNameLabel: ownerNameLabel,
                   progress: pet.progress,
                 ),
               ),
@@ -427,14 +398,14 @@ class _MetricColumn extends StatelessWidget {
     required this.stageLabel,
     required this.level,
     required this.growthValue,
-    required this.feedCountLabel,
+    required this.ownerNameLabel,
     required this.progress,
   });
 
   final String stageLabel;
   final int level;
   final String growthValue;
-  final String feedCountLabel;
+  final String ownerNameLabel;
   final double progress;
 
   @override
@@ -458,8 +429,8 @@ class _MetricColumn extends StatelessWidget {
         const SizedBox(height: 12),
         _MetricCard(
           frame: PetDetailSheetSpriteCatalog.feedCard,
-          title: '喂养次数',
-          value: feedCountLabel,
+          title: '所属人员',
+          value: ownerNameLabel,
           height: 82,
         ),
       ],

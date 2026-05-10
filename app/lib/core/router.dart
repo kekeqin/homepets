@@ -6,7 +6,6 @@ import '../providers/auth_provider.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/home/home_scene_screen.dart';
-import '../screens/onboarding/onboarding_screen.dart';
 import '../screens/paywall/paywall_screen.dart';
 import '../screens/profile/profile_screen.dart';
 
@@ -29,7 +28,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   final refreshNotifier = ref.watch(routerRefreshProvider);
 
   return GoRouter(
-    initialLocation: '/onboarding',
+    initialLocation: '/login',
     refreshListenable: refreshNotifier,
     redirect: (context, state) {
       final authState = ref.read(authProvider);
@@ -39,7 +38,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       final isLoggedIn = authState.isAuthenticated;
       final location = state.matchedLocation;
-      const publicRoutes = {'/onboarding', '/login', '/register'};
+      const publicRoutes = {'/login', '/register'};
 
       if (isLoggedIn && publicRoutes.contains(location)) {
         return '/home';
@@ -52,10 +51,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/onboarding',
-        builder: (context, state) => const OnboardingScreen(),
-      ),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/register',

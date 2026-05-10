@@ -1,0 +1,489 @@
+{
+  "source": "delete_member_dialog_sprites.png",
+  "source_size": [
+    1536,
+    1024
+  ],
+  "sprites": [
+    {
+      "name": "dialog_full_confirm_state",
+      "file": "delete_member_dialog_full_confirm_state.png",
+      "source_box": [
+        80,
+        50,
+        699,
+        653
+      ],
+      "crop_box": [
+        77,
+        47,
+        703,
+        657
+      ],
+      "size": [
+        626,
+        610
+      ]
+    },
+    {
+      "name": "dialog_panel_blank_large",
+      "file": "delete_member_dialog_panel_blank_large.png",
+      "source_box": [
+        799,
+        50,
+        1416,
+        653
+      ],
+      "crop_box": [
+        796,
+        47,
+        1420,
+        657
+      ],
+      "size": [
+        624,
+        610
+      ]
+    },
+    {
+      "name": "trash_icon_large_in_dialog",
+      "file": "delete_member_trash_icon_large_in_dialog.png",
+      "source_box": [
+        337,
+        68,
+        444,
+        177
+      ],
+      "crop_box": [
+        334,
+        65,
+        448,
+        181
+      ],
+      "size": [
+        114,
+        116
+      ]
+    },
+    {
+      "name": "title_delete_member_in_dialog",
+      "file": "delete_member_title_delete_member_in_dialog.png",
+      "source_box": [
+        298,
+        188,
+        484,
+        231
+      ],
+      "crop_box": [
+        295,
+        185,
+        488,
+        235
+      ],
+      "size": [
+        193,
+        50
+      ]
+    },
+    {
+      "name": "message_confirm_delete_member",
+      "file": "delete_member_message_confirm_delete_member.png",
+      "source_box": [
+        183,
+        254,
+        583,
+        289
+      ],
+      "crop_box": [
+        180,
+        251,
+        587,
+        293
+      ],
+      "size": [
+        407,
+        42
+      ]
+    },
+    {
+      "name": "message_pet_will_delete",
+      "file": "delete_member_message_pet_will_delete.png",
+      "source_box": [
+        201,
+        311,
+        607,
+        340
+      ],
+      "crop_box": [
+        198,
+        308,
+        611,
+        344
+      ],
+      "size": [
+        413,
+        36
+      ]
+    },
+    {
+      "name": "message_cannot_restore",
+      "file": "delete_member_message_cannot_restore.png",
+      "source_box": [
+        288,
+        359,
+        499,
+        389
+      ],
+      "crop_box": [
+        285,
+        356,
+        503,
+        393
+      ],
+      "size": [
+        218,
+        37
+      ]
+    },
+    {
+      "name": "warning_illustration_clipboard_cat",
+      "file": "delete_member_warning_illustration_clipboard_cat.png",
+      "source_box": [
+        303,
+        402,
+        479,
+        516
+      ],
+      "crop_box": [
+        300,
+        399,
+        483,
+        520
+      ],
+      "size": [
+        183,
+        121
+      ]
+    },
+    {
+      "name": "cancel_button_in_dialog",
+      "file": "delete_member_cancel_button_in_dialog.png",
+      "source_box": [
+        129,
+        532,
+        368,
+        628
+      ],
+      "crop_box": [
+        126,
+        529,
+        372,
+        632
+      ],
+      "size": [
+        246,
+        103
+      ]
+    },
+    {
+      "name": "delete_button_in_dialog",
+      "file": "delete_member_delete_button_in_dialog.png",
+      "source_box": [
+        410,
+        532,
+        647,
+        628
+      ],
+      "crop_box": [
+        407,
+        529,
+        651,
+        632
+      ],
+      "size": [
+        244,
+        103
+      ]
+    },
+    {
+      "name": "trash_icon_standalone",
+      "file": "delete_member_trash_icon_standalone.png",
+      "source_box": [
+        99,
+        697,
+        207,
+        813
+      ],
+      "crop_box": [
+        96,
+        694,
+        211,
+        817
+      ],
+      "size": [
+        115,
+        123
+      ]
+    },
+    {
+      "name": "title_delete_member_standalone",
+      "file": "delete_member_title_delete_member_standalone.png",
+      "source_box": [
+        318,
+        735,
+        510,
+        780
+      ],
+      "crop_box": [
+        315,
+        732,
+        514,
+        784
+      ],
+      "size": [
+        199,
+        52
+      ]
+    },
+    {
+      "name": "message_confirm_delete_member_standalone",
+      "file": "delete_member_message_confirm_delete_member_standalone.png",
+      "source_box": [
+        634,
+        748,
+        985,
+        779
+      ],
+      "crop_box": [
+        631,
+        745,
+        989,
+        783
+      ],
+      "size": [
+        358,
+        38
+      ]
+    },
+    {
+      "name": "message_pet_will_delete_standalone",
+      "file": "delete_member_message_pet_will_delete_standalone.png",
+      "source_box": [
+        1070,
+        734,
+        1465,
+        765
+      ],
+      "crop_box": [
+        1067,
+        731,
+        1469,
+        769
+      ],
+      "size": [
+        402,
+        38
+      ]
+    },
+    {
+      "name": "message_cannot_restore_standalone",
+      "file": "delete_member_message_cannot_restore_standalone.png",
+      "source_box": [
+        1182,
+        785,
+        1391,
+        814
+      ],
+      "crop_box": [
+        1179,
+        782,
+        1395,
+        818
+      ],
+      "size": [
+        216,
+        36
+      ]
+    },
+    {
+      "name": "warning_illustration_standalone",
+      "file": "delete_member_warning_illustration_standalone.png",
+      "source_box": [
+        285,
+        818,
+        482,
+        953
+      ],
+      "crop_box": [
+        282,
+        815,
+        486,
+        957
+      ],
+      "size": [
+        204,
+        142
+      ]
+    },
+    {
+      "name": "cancel_button_base",
+      "file": "delete_member_cancel_button_base.png",
+      "source_box": [
+        639,
+        858,
+        896,
+        955
+      ],
+      "crop_box": [
+        636,
+        855,
+        900,
+        959
+      ],
+      "size": [
+        264,
+        104
+      ]
+    },
+    {
+      "name": "delete_button_base",
+      "file": "delete_member_delete_button_base.png",
+      "source_box": [
+        1007,
+        858,
+        1265,
+        955
+      ],
+      "crop_box": [
+        1004,
+        855,
+        1269,
+        959
+      ],
+      "size": [
+        265,
+        104
+      ]
+    },
+    {
+      "name": "cancel_button_label",
+      "file": "delete_member_cancel_button_label.png",
+      "source_box": [
+        724,
+        887,
+        812,
+        929
+      ],
+      "crop_box": [
+        721,
+        884,
+        816,
+        933
+      ],
+      "size": [
+        95,
+        49
+      ]
+    },
+    {
+      "name": "delete_button_label",
+      "file": "delete_member_delete_button_label.png",
+      "source_box": [
+        1091,
+        889,
+        1185,
+        930
+      ],
+      "crop_box": [
+        1088,
+        886,
+        1189,
+        934
+      ],
+      "size": [
+        101,
+        48
+      ]
+    },
+    {
+      "name": "cancel_button_border_only",
+      "file": "delete_member_cancel_button_border_only.png",
+      "source_box": [
+        129,
+        532,
+        368,
+        628
+      ],
+      "crop_box": [
+        126,
+        529,
+        372,
+        632
+      ],
+      "size": [
+        246,
+        103
+      ]
+    },
+    {
+      "name": "delete_button_red_base",
+      "file": "delete_member_delete_button_red_base.png",
+      "source_box": [
+        410,
+        532,
+        647,
+        628
+      ],
+      "crop_box": [
+        407,
+        529,
+        651,
+        632
+      ],
+      "size": [
+        244,
+        103
+      ]
+    },
+    {
+      "name": "dialog_panel_border_full",
+      "file": "delete_member_dialog_panel_border_full.png",
+      "source_box": [
+        80,
+        50,
+        699,
+        653
+      ],
+      "crop_box": [
+        77,
+        47,
+        703,
+        657
+      ],
+      "size": [
+        626,
+        610
+      ]
+    },
+    {
+      "name": "dialog_panel_border_blank",
+      "file": "delete_member_dialog_panel_border_blank.png",
+      "source_box": [
+        799,
+        50,
+        1416,
+        653
+      ],
+      "crop_box": [
+        796,
+        47,
+        1420,
+        657
+      ],
+      "size": [
+        624,
+        610
+      ]
+    }
+  ]
+}

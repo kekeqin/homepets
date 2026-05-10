@@ -2,6 +2,70 @@ import 'dart:ui';
 
 import '../../core/ui/sprite_atlas.dart';
 
+class TaskBoardReferenceAsset {
+  const TaskBoardReferenceAsset._();
+
+  static const String board = 'assets/images/ui/task/1.png';
+  static const String clip = 'assets/images/ui/task/2.png';
+  static const String rowWarm = 'assets/images/ui/task/3.png';
+  static const String rowGreen = 'assets/images/ui/task/4.png';
+  static const String rowPink = 'assets/images/ui/task/5.png';
+  static const String rowYellow = 'assets/images/ui/task/6.png';
+  static const String paginationDotActive = 'assets/images/ui/task/7.png';
+  static const String paginationDotInactive = 'assets/images/ui/task/8.png';
+  static const String checkboxEmpty = 'assets/images/ui/task/9.png';
+  static const String addTaskButton = 'assets/images/ui/task/10.png';
+  static const String pawLeft = 'assets/images/ui/task/11.png';
+  static const String pawRight = 'assets/images/ui/task/12.png';
+  static const String rewardStar = 'assets/images/ui/task/13.png';
+  static const double boardWidth = 575;
+  static const double boardHeight = 685;
+  static const double clipWidth = 166;
+  static const double clipHeight = 116;
+  static const double rowWarmWidth = 493;
+  static const double rowWarmHeight = 111;
+  static const double rowGreenWidth = 496;
+  static const double rowGreenHeight = 113;
+  static const double rowPinkWidth = 493;
+  static const double rowPinkHeight = 109;
+  static const double rowYellowWidth = 500;
+  static const double rowYellowHeight = 114;
+  static const double addTaskButtonWidth = 408;
+  static const double addTaskButtonHeight = 124;
+  static const Size boardSize = Size(boardWidth, boardHeight);
+  static const Size clipSize = Size(clipWidth, clipHeight);
+  static const Size rowWarmSize = Size(rowWarmWidth, rowWarmHeight);
+  static const Size rowGreenSize = Size(rowGreenWidth, rowGreenHeight);
+  static const Size rowPinkSize = Size(rowPinkWidth, rowPinkHeight);
+  static const Size rowYellowSize = Size(rowYellowWidth, rowYellowHeight);
+  static const Size addTaskButtonSize = Size(
+    addTaskButtonWidth,
+    addTaskButtonHeight,
+  );
+  static const double boardTopOffset = 42;
+  static const double panelWidth = boardWidth;
+  static const double panelHeight = boardTopOffset + boardHeight;
+  static const double panelAspectRatio = panelWidth / panelHeight;
+  static const double panelHeightRatio = panelHeight / panelWidth;
+  static const double addTaskButtonAspectRatio =
+      addTaskButtonWidth / addTaskButtonHeight;
+  static const List<String> runtimeAssets = <String>[
+    board,
+    clip,
+    rowWarm,
+    rowGreen,
+    rowPink,
+    rowYellow,
+    paginationDotActive,
+    paginationDotInactive,
+    checkboxEmpty,
+    addTaskButton,
+    pawLeft,
+    pawRight,
+    rewardStar,
+  ];
+}
+
 class TaskPanelSpriteCatalog {
   const TaskPanelSpriteCatalog(this.atlas);
 

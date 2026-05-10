@@ -1,0 +1,360 @@
+{
+  "source": "Derived from HomePets avatar artwork and rebuilt UI sprites for the user-provided avatar picker reference.",
+  "style": {
+    "line": "#4A3A2A",
+    "line_width": "2-4px equivalent at mobile scale",
+    "palette": [
+      "#F6E6C8",
+      "#A9C68A",
+      "#C79B6E",
+      "#F6A5A5",
+      "#F2D27B",
+      "#E9E9E9",
+      "#D8BFA6",
+      "#8FAF7A"
+    ],
+    "negative": "vector graphic, perfect geometry, perfect circle, perfect ellipse, perfect rectangle, clean vector line, geometric precision, 3D render, realistic lighting, photorealistic, complex shading, high detail rendering, sharp edges, hard mechanical shapes, SVG icon style, gradient, dramatic contrast, realistic texture, industrial design, overly detailed background, burrs, jagged edges, pixelated edges, frayed line edges, spiky artifacts, noisy outlines, cutout fringe, fuzzy halo, leftover background pixels, white outer rim, unwanted white outline, outer glow, hidden RGB fringe, chroma-key contamination"
+  },
+  "assets": {
+    "avatar_edit_default_avatar.png": {
+      "width": 512,
+      "height": 512,
+      "bbox": [
+        20,
+        2,
+        491,
+        510
+      ]
+    },
+    "avatar_edit_dad_avatar.png": {
+      "width": 512,
+      "height": 512,
+      "bbox": [
+        17,
+        2,
+        493,
+        510
+      ]
+    },
+    "avatar_edit_mom_avatar.png": {
+      "width": 512,
+      "height": 512,
+      "bbox": [
+        2,
+        21,
+        510,
+        489
+      ]
+    },
+    "avatar_edit_boy_avatar.png": {
+      "width": 512,
+      "height": 512,
+      "bbox": [
+        2,
+        13,
+        510,
+        499
+      ]
+    },
+    "avatar_edit_girl_avatar.png": {
+      "width": 512,
+      "height": 512,
+      "bbox": [
+        2,
+        20,
+        510,
+        492
+      ]
+    },
+    "avatar_edit_cat_avatar.png": {
+      "width": 512,
+      "height": 512,
+      "bbox": [
+        70,
+        38,
+        443,
+        436
+      ]
+    },
+    "avatar_edit_dog_avatar.png": {
+      "width": 512,
+      "height": 512,
+      "bbox": [
+        82,
+        84,
+        431,
+        423
+      ]
+    },
+    "avatar_edit_rabbit_avatar.png": {
+      "width": 512,
+      "height": 512,
+      "bbox": [
+        80,
+        33,
+        465,
+        433
+      ]
+    },
+    "avatar_edit_label_default.png": {
+      "width": 88,
+      "height": 45,
+      "bbox": [
+        2,
+        2,
+        86,
+        43
+      ]
+    },
+    "avatar_edit_card_default.png": {
+      "width": 220,
+      "height": 260,
+      "bbox": [
+        3,
+        3,
+        217,
+        257
+      ]
+    },
+    "avatar_edit_label_dad.png": {
+      "width": 88,
+      "height": 43,
+      "bbox": [
+        2,
+        2,
+        86,
+        41
+      ]
+    },
+    "avatar_edit_card_dad.png": {
+      "width": 220,
+      "height": 260,
+      "bbox": [
+        2,
+        2,
+        218,
+        258
+      ]
+    },
+    "avatar_edit_label_mom.png": {
+      "width": 86,
+      "height": 43,
+      "bbox": [
+        2,
+        2,
+        84,
+        41
+      ]
+    },
+    "avatar_edit_card_mom.png": {
+      "width": 220,
+      "height": 260,
+      "bbox": [
+        2,
+        2,
+        218,
+        258
+      ]
+    },
+    "avatar_edit_label_boy.png": {
+      "width": 88,
+      "height": 45,
+      "bbox": [
+        2,
+        2,
+        86,
+        43
+      ]
+    },
+    "avatar_edit_card_boy.png": {
+      "width": 220,
+      "height": 260,
+      "bbox": [
+        2,
+        2,
+        218,
+        258
+      ]
+    },
+    "avatar_edit_label_girl.png": {
+      "width": 88,
+      "height": 45,
+      "bbox": [
+        2,
+        2,
+        86,
+        43
+      ]
+    },
+    "avatar_edit_card_girl.png": {
+      "width": 220,
+      "height": 260,
+      "bbox": [
+        2,
+        2,
+        218,
+        258
+      ]
+    },
+    "avatar_edit_label_cat.png": {
+      "width": 88,
+      "height": 44,
+      "bbox": [
+        2,
+        2,
+        86,
+        42
+      ]
+    },
+    "avatar_edit_card_cat.png": {
+      "width": 220,
+      "height": 260,
+      "bbox": [
+        2,
+        2,
+        218,
+        258
+      ]
+    },
+    "avatar_edit_label_dog.png": {
+      "width": 86,
+      "height": 46,
+      "bbox": [
+        2,
+        2,
+        84,
+        44
+      ]
+    },
+    "avatar_edit_card_dog.png": {
+      "width": 220,
+      "height": 260,
+      "bbox": [
+        2,
+        2,
+        218,
+        258
+      ]
+    },
+    "avatar_edit_label_rabbit.png": {
+      "width": 88,
+      "height": 43,
+      "bbox": [
+        2,
+        2,
+        86,
+        41
+      ]
+    },
+    "avatar_edit_card_rabbit.png": {
+      "width": 220,
+      "height": 260,
+      "bbox": [
+        2,
+        2,
+        218,
+        258
+      ]
+    },
+    "avatar_edit_profile_header_xiaobao.png": {
+      "width": 659,
+      "height": 344,
+      "bbox": [
+        12,
+        12,
+        647,
+        332
+      ]
+    },
+    "avatar_edit_selected_avatar_large.png": {
+      "width": 299,
+      "height": 322,
+      "bbox": [
+        4,
+        4,
+        295,
+        318
+      ]
+    },
+    "avatar_edit_level_badge_lv3.png": {
+      "width": 146,
+      "height": 54,
+      "bbox": [
+        3,
+        3,
+        143,
+        51
+      ]
+    },
+    "avatar_edit_change_avatar_button.png": {
+      "width": 290,
+      "height": 94,
+      "bbox": [
+        3,
+        3,
+        287,
+        91
+      ]
+    },
+    "avatar_edit_bottom_sheet_panel.png": {
+      "width": 941,
+      "height": 1138,
+      "bbox": [
+        0,
+        0,
+        941,
+        1138
+      ]
+    },
+    "avatar_edit_dashed_divider.png": {
+      "width": 852,
+      "height": 12,
+      "bbox": [
+        0,
+        6,
+        852,
+        8
+      ]
+    },
+    "avatar_edit_action_cancel.png": {
+      "width": 91,
+      "height": 47,
+      "bbox": [
+        2,
+        2,
+        89,
+        45
+      ]
+    },
+    "avatar_edit_title_change_avatar.png": {
+      "width": 196,
+      "height": 51,
+      "bbox": [
+        2,
+        2,
+        194,
+        49
+      ]
+    },
+    "avatar_edit_action_save.png": {
+      "width": 92,
+      "height": 47,
+      "bbox": [
+        2,
+        2,
+        90,
+        45
+      ]
+    },
+    "avatar_edit_profile_name_xiaobao.png": {
+      "width": 130,
+      "height": 66,
+      "bbox": [
+        2,
+        2,
+        128,
+        64
+      ]
+    }
+  }
+}

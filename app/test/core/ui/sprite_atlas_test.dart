@@ -82,6 +82,24 @@ void main() {
       );
     });
 
+    test('loads task panel extracted image assets', () async {
+      for (final assetPath in TaskBoardReferenceAsset.runtimeAssets) {
+        final bytes = await rootBundle.load(assetPath);
+
+        expect(
+          bytes.lengthInBytes,
+          greaterThan(0),
+          reason: '$assetPath should be bundled and non-empty.',
+        );
+      }
+
+      expect(TaskBoardReferenceAsset.boardSize, const Size(575, 685));
+      expect(
+        TaskBoardReferenceAsset.runtimeAssets,
+        contains(TaskBoardReferenceAsset.addTaskButton),
+      );
+    });
+
     test('loads the clean task editor sheet atlas', () async {
       final atlas = await TaskEditorSheetSpriteCatalog.atlasAsset.load();
       final sprites = TaskEditorSheetSpriteCatalog(atlas);

@@ -53,7 +53,7 @@ void main() {
         find.byKey(const Key('family_member_grid_swipe_area')),
         const Offset(-200, 0),
       );
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.byType(FamilyMemberCard), findsOneWidget);
       expect(find.text('member-1'), findsNothing);
@@ -97,6 +97,42 @@ void main() {
         find.byKey(const Key('family_member_grid_page_dots')),
         findsNothing,
       );
+    });
+
+    testWidgets('shows ascii member nicknames without replacing them', (
+      tester,
+    ) async {
+      const members = <FamilyMemberViewData>[
+        FamilyMemberViewData(id: 1, nickname: 'Alice', role: 'member'),
+        FamilyMemberViewData(id: 2, nickname: 'Bob', role: 'member'),
+        FamilyMemberViewData(id: 3, nickname: 'Cici', role: 'member'),
+        FamilyMemberViewData(id: 4, nickname: 'Dada', role: 'member'),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 390,
+              child: FamilyMemberGrid(
+                members: members,
+                entryAnimation: const AlwaysStoppedAnimation<double>(1),
+                canAddMembers: true,
+                onAddMemberTap: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Alice'), findsOneWidget);
+      expect(find.text('Bob'), findsOneWidget);
+      expect(find.text('Cici'), findsOneWidget);
+      expect(find.text('Dada'), findsOneWidget);
+      expect(find.text('妈妈'), findsNothing);
+      expect(find.text('小宝'), findsNothing);
+      expect(find.text('爸爸'), findsNothing);
+      expect(find.text('奶奶'), findsNothing);
     });
 
     testWidgets('taps pet avatar to trigger pet detail callback', (
@@ -154,9 +190,9 @@ void main() {
         ownerId: 1,
         familyId: 99,
       );
-      final expectedAssetPath = petAvatarAssetPath(
+      final expectedAssetPath = defaultHomePetDetailAvatarAssetPath(
         pet.petType,
-        deterministicPetPoseIndex(pet.petType, pet.id),
+        pet.id,
       );
 
       await tester.pumpWidget(
@@ -191,6 +227,62 @@ void main() {
       final imageProvider = previewImage.image as AssetImage;
 
       expect(imageProvider.assetName, expectedAssetPath);
+      expect(find.text('buddy'), findsOneWidget);
+      expect(find.text('糯米'), findsNothing);
+    });
+
+    testWidgets('uses provided homepage pet avatar path when available', (
+      tester,
+    ) async {
+      final pet = Pet(
+        id: 42,
+        name: 'buddy',
+        petType: 'rabbit',
+        petForm: 'pet',
+        level: 2,
+        experience: 30,
+        ownerId: 1,
+        familyId: 99,
+      );
+      const homeAssetPath = 'assets/images/pets/pets/rabbit_sleep.png';
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 220,
+              height: 220,
+              child: FamilyMemberGrid(
+                members: <FamilyMemberViewData>[
+                  FamilyMemberViewData(
+                    id: 1,
+                    nickname: 'member-1',
+                    role: 'member',
+                    petId: pet.id,
+                    petType: pet.petType,
+                    petForm: pet.petForm,
+                    pet: pet,
+                  ),
+                ],
+                petAvatarAssetPathsById: const <int, String>{42: homeAssetPath},
+                entryAnimation: const AlwaysStoppedAnimation<double>(1),
+                canAddMembers: true,
+                onAddMemberTap: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final previewImage = tester.widget<Image>(
+        find.descendant(
+          of: find.byKey(const Key('family_member_pet_button_1')),
+          matching: find.byType(Image),
+        ),
+      );
+      final imageProvider = previewImage.image as AssetImage;
+
+      expect(imageProvider.assetName, homeAssetPath);
     });
 
     testWidgets('taps avatar edit badge to trigger avatar edit callback', (
