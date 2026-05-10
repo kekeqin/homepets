@@ -31,6 +31,7 @@ import '../family/widgets/family_sprite_slice.dart';
 import '../paywall/paywall_screen.dart';
 import '../pet/pet_detail_screen.dart';
 import 'game/home_scene_game.dart';
+import 'settings_dialog.dart';
 import 'task_panel_sprite_catalog.dart';
 
 enum _TaskPanelRowAction { edit, delete, complete }
@@ -54,7 +55,6 @@ const int _taskPointsMin = 1;
 const int _taskPointsMax = 1000;
 
 const String _taskPanelNoteAsset = 'assets/images/ui/task_note.png';
-const String _taskDeletePanelAsset = 'assets/images/ui/task_delete/panel.png';
 const String _taskDeleteTrashAsset = 'assets/images/ui/task_delete/trash.png';
 const String _taskDeleteTitleAsset =
     'assets/images/ui/task_delete/title_text.png';
@@ -111,6 +111,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   bool _familyPanelVisible = false;
   bool _shopPanelVisible = false;
   bool _paywallVisible = false;
+  bool _settingsPanelVisible = false;
   bool _taskPanelVisible = false;
   bool _taskPanelExpanded = false;
   bool _taskPanelClosing = false;
@@ -268,6 +269,8 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
       onOpenPaywall: _openPaywall,
 
+      onOpenSettings: _openSettings,
+
       onTaskItemLongPress: _showTaskPanelRowActions,
 
       onTaskAddTap: _handleTaskAddTap,
@@ -351,6 +354,78 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     }
 
     _showPaywallPanel(clearRouteAfterClose: false);
+  }
+
+  void _openSettings() {
+    if (!mounted) {
+      return;
+    }
+
+    _showSettingsPanel();
+  }
+
+  Future<void> _showSettingsPanel() async {
+    if (_settingsPanelVisible) {
+      return;
+    }
+
+    _settingsPanelVisible = true;
+    HomeSettingsAction? action;
+    try {
+      action = await showSettingsDialog(context);
+    } finally {
+      _settingsPanelVisible = false;
+    }
+
+    if (!mounted || action == null) {
+      return;
+    }
+
+    switch (action) {
+      case HomeSettingsAction.editProfile:
+        context.go('/profile');
+        return;
+      case HomeSettingsAction.about:
+        await _showAboutDialog();
+        return;
+      case HomeSettingsAction.logout:
+        await ref.read(authProvider.notifier).logout();
+        if (!mounted) {
+          return;
+        }
+        context.go('/login');
+        return;
+    }
+  }
+
+  Future<void> _showAboutDialog() {
+    return showHomePetsDialog<void>(
+      context: context,
+      barrierLabel: 'about_homepets_dialog',
+      title: '关于',
+      contentBuilder: (dialogContext) {
+        return const Text(
+          'HomePets 家庭宠物\n\n'
+          '通过任务喂养和宠物升级，把家庭日常任务变成亲子互动。\n\n'
+          '版本：1.0.0',
+          style: TextStyle(
+            color: Color(0xFF6F563D),
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            height: 1.45,
+            letterSpacing: 0,
+          ),
+        );
+      },
+      actionsBuilder: (dialogContext) {
+        return <Widget>[
+          HomePetsButton(
+            label: '知道了',
+            onPressed: () => Navigator.of(dialogContext).pop(),
+          ),
+        ];
+      },
+    );
   }
 
   void _maybeOpenInitialPaywall() {
@@ -855,16 +930,16 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       0xFF846F59,
     ).withValues(alpha: completed ? 0.56 : 0.82);
     return Align(
-      alignment: Alignment.centerRight,
+      alignment: Alignment.centerLeft,
       child: SizedBox(
         width: width,
         child: Padding(
-          padding: EdgeInsets.only(right: width * 0.04),
+          padding: EdgeInsets.only(left: width * 0.04),
           child: Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.right,
+            textAlign: TextAlign.left,
             style: TextStyle(
               color: textColor,
               fontSize: fontSize,
@@ -883,8 +958,9 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       builder: (context, constraints) {
         final panelSize = constraints.biggest;
         final titleTop = panelSize.height * 0.119;
-        final titleHeight = panelSize.height * 0.086;
-        final titleIconWidth = panelSize.width * 0.145;
+        final titleHeight = panelSize.height * 0.080;
+        final titleIconBoxWidth = panelSize.width * 0.170;
+        final titleIconVisualHeight = panelSize.height * 0.058;
         final titleIconGap = panelSize.width * 0.010;
         final rowWidth = panelSize.width * 0.858;
         final rowHeight = panelSize.height * 0.094;
@@ -918,14 +994,13 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     SizedBox(
-                      width: titleIconWidth,
-                      height: titleIconWidth,
+                      width: titleIconBoxWidth,
+                      height: titleHeight,
                       child: Align(
                         alignment: Alignment.centerRight,
                         child: Image.asset(
                           TaskBoardReferenceAsset.pawLeft,
-                          width: titleIconWidth,
-                          height: titleIconWidth * (45 / 65),
+                          height: titleIconVisualHeight,
                           fit: BoxFit.contain,
                           filterQuality: FilterQuality.high,
                         ),
@@ -937,7 +1012,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                       maxLines: 1,
                       style: TextStyle(
                         color: const Color(0xFF4A2014),
-                        fontSize: panelSize.width * 0.092,
+                        fontSize: panelSize.width * 0.071,
                         fontWeight: FontWeight.w900,
                         height: 1,
                         letterSpacing: 0,
@@ -945,16 +1020,18 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                     ),
                     SizedBox(width: titleIconGap),
                     SizedBox(
-                      width: titleIconWidth,
-                      height: titleIconWidth,
+                      width: titleIconBoxWidth,
+                      height: titleHeight,
                       child: Align(
                         alignment: Alignment.centerLeft,
-                        child: Image.asset(
-                          TaskBoardReferenceAsset.pawRight,
-                          width: titleIconWidth,
-                          height: titleIconWidth * (48 / 75),
-                          fit: BoxFit.contain,
-                          filterQuality: FilterQuality.high,
+                        child: Transform.flip(
+                          flipX: true,
+                          child: Image.asset(
+                            TaskBoardReferenceAsset.pawLeft,
+                            height: titleIconVisualHeight,
+                            fit: BoxFit.contain,
+                            filterQuality: FilterQuality.high,
+                          ),
                         ),
                       ),
                     ),
@@ -963,8 +1040,8 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
               ),
             ),
             Positioned(
-              top: panelSize.height * 0.095,
-              right: panelSize.width * 0.085,
+              top: panelSize.height * 0.082,
+              right: panelSize.width * 0.032,
               width: closeButtonHitSize,
               height: closeButtonHitSize,
               child: _buildTaskPanelCloseButton(
@@ -2734,10 +2811,9 @@ class _TaskDeleteConfirmPanel extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             Positioned.fill(
-              child: Image.asset(
-                _taskDeletePanelAsset,
-                fit: BoxFit.fill,
-                filterQuality: FilterQuality.high,
+              child: const _InsetSampledAssetImage(
+                assetPath: TaskBoardReferenceAsset.dialogPanel,
+                sampleInset: 1,
               ),
             ),
             Positioned(
@@ -2964,6 +3040,7 @@ class _CompletionMemberSelectContentState
   Widget build(BuildContext context) {
     return HomePetsDialog(
       title: '\u9009\u62e9\u5b8c\u6210\u4eba\u5458',
+      background: const _TaskDialogPanelBackground(),
       actions: [
         SizedBox(
           width: 98,
@@ -2989,6 +3066,18 @@ class _CompletionMemberSelectContentState
         options: widget.options,
         onChanged: (value) => setState(() => _selectedMemberId = value),
       ),
+    );
+  }
+}
+
+class _TaskDialogPanelBackground extends StatelessWidget {
+  const _TaskDialogPanelBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _InsetSampledAssetImage(
+      assetPath: TaskBoardReferenceAsset.dialogPanel,
+      sampleInset: 1,
     );
   }
 }
@@ -3279,11 +3368,8 @@ class _TaskEditorSpriteCard extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             Positioned.fill(
-              child: SpriteFrameImage(
-                imageAsset: sprites.imageAsset,
-                sheetSize: sprites.sheetSize,
-                frame: sprites.panelBlank,
-                fit: BoxFit.fill,
+              child: const _InsetSampledAssetImage(
+                assetPath: TaskBoardReferenceAsset.dialogPanel,
                 sampleInset: 1,
               ),
             ),

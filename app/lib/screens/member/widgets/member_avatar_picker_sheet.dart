@@ -76,6 +76,9 @@ const List<_AvatarOption> _avatarOptions = <_AvatarOption>[
 const String _cancelText = '取消';
 const String _saveText = '保存';
 const String _titleText = '更换头像';
+const Color _pickerBackgroundTop = Color(0xFFFFF0DC);
+const Color _pickerBackgroundBottom = Color(0xFFF1DDBF);
+const Color _pickerBorder = Color(0xFFE1C7A7);
 
 Future<String?> showMemberAvatarPickerSheet(
   BuildContext context, {
@@ -230,9 +233,13 @@ class _AvatarPickerPanel extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBF2),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [_pickerBackgroundTop, _pickerBackgroundBottom],
+        ),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(34)),
-        border: Border.all(color: const Color(0xFF8B613B), width: 1.8),
+        border: Border.all(color: _pickerBorder, width: 1.8),
         boxShadow: const [
           BoxShadow(
             color: Color(0x1C000000),

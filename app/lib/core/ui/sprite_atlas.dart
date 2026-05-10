@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -190,6 +191,7 @@ class SpriteFrameImage extends StatelessWidget {
     this.color,
     this.colorBlendMode = BlendMode.srcIn,
     this.filterQuality = FilterQuality.high,
+    this.sampleInset = 0,
   });
 
   final String imageAsset;
@@ -200,12 +202,23 @@ class SpriteFrameImage extends StatelessWidget {
   final Color? color;
   final BlendMode colorBlendMode;
   final FilterQuality filterQuality;
+  final double sampleInset;
 
   @override
   Widget build(BuildContext context) {
     final sourceSize = frame.normalizedSourceSize;
     final resolvedSheetSize =
         sheetSize ?? Size(frame.textureRect.right, frame.textureRect.bottom);
+    final resolvedSampleInset = _resolveSpriteSampleInset(frame, sampleInset);
+    final textureRect = resolvedSampleInset <= 0
+        ? frame.textureRect
+        : frame.textureRect.deflate(resolvedSampleInset);
+    final sourceDrawRect =
+        frame.sourceRect.width <= 0 || frame.sourceRect.height <= 0
+        ? Offset.zero & sourceSize
+        : frame.sourceRect;
+    final textureScaleX = sourceDrawRect.width / textureRect.width;
+    final textureScaleY = sourceDrawRect.height / textureRect.height;
     return FittedBox(
       fit: fit,
       alignment: alignment,
@@ -214,20 +227,20 @@ class SpriteFrameImage extends StatelessWidget {
         height: sourceSize.height,
         child: ClipRect(
           child: OverflowBox(
-            minWidth: resolvedSheetSize.width,
-            maxWidth: resolvedSheetSize.width,
-            minHeight: resolvedSheetSize.height,
-            maxHeight: resolvedSheetSize.height,
+            minWidth: resolvedSheetSize.width * textureScaleX,
+            maxWidth: resolvedSheetSize.width * textureScaleX,
+            minHeight: resolvedSheetSize.height * textureScaleY,
+            maxHeight: resolvedSheetSize.height * textureScaleY,
             alignment: Alignment.topLeft,
             child: Transform.translate(
               offset: Offset(
-                -frame.textureRect.left + frame.sourceRect.left,
-                -frame.textureRect.top + frame.sourceRect.top,
+                (-textureRect.left * textureScaleX) + sourceDrawRect.left,
+                (-textureRect.top * textureScaleY) + sourceDrawRect.top,
               ),
               child: Image.asset(
                 imageAsset,
-                width: resolvedSheetSize.width,
-                height: resolvedSheetSize.height,
+                width: resolvedSheetSize.width * textureScaleX,
+                height: resolvedSheetSize.height * textureScaleY,
                 fit: BoxFit.fill,
                 alignment: Alignment.topLeft,
                 filterQuality: filterQuality,
@@ -240,6 +253,32 @@ class SpriteFrameImage extends StatelessWidget {
       ),
     );
   }
+}
+
+double _resolveSpriteSampleInset(
+  SpriteAtlasFrame frame,
+  double requestedInset,
+) {
+  if (requestedInset <= 0) {
+    return 0;
+  }
+
+  final sourceDrawWidth = frame.sourceRect.width <= 0
+      ? frame.normalizedSourceSize.width
+      : frame.sourceRect.width;
+  final sourceDrawHeight = frame.sourceRect.height <= 0
+      ? frame.normalizedSourceSize.height
+      : frame.sourceRect.height;
+  final shortestDrawableSide = math.min(
+    math.min(frame.textureRect.width, frame.textureRect.height),
+    math.min(sourceDrawWidth, sourceDrawHeight),
+  );
+  final maxInset = (shortestDrawableSide / 2) - 0.5;
+  if (maxInset <= 0) {
+    return 0;
+  }
+
+  return requestedInset.clamp(0.0, maxInset).toDouble();
 }
 
 Size _readAtlasSize(

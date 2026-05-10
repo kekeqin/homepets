@@ -101,10 +101,17 @@ class FamilyNotifier extends StateNotifier<FamilyScreenState> {
   }
 
   Future<void> updateFamilyName(String familyName) async {
-    await _familyService.updateFamily(
+    final trimmedName = familyName.trim();
+    final result = await _familyService.updateFamily(
       familyId: _requireFamilyId(),
-      name: familyName,
+      name: trimmedName,
     );
+    final updatedName = (result['name'] as String?)?.trim();
+    if (updatedName != null && updatedName.isNotEmpty) {
+      state = state.copyWith(familyName: updatedName, errorMessage: null);
+      return;
+    }
+    state = state.copyWith(familyName: trimmedName, errorMessage: null);
   }
 
   int _requireFamilyId() {

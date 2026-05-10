@@ -1081,6 +1081,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     this.onOpenFamily,
     this.onOpenShop,
     this.onOpenPaywall,
+    this.onOpenSettings,
     this.onTaskItemLongPress,
     this.onTaskAddTap,
     this.onOpenPetDetail,
@@ -1091,6 +1092,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       onOpenFamily: onOpenFamily,
       onOpenShop: onOpenShop,
       onOpenPaywall: onOpenPaywall,
+      onOpenSettings: onOpenSettings,
     );
   }
 
@@ -1099,6 +1101,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   final VoidCallback? onOpenFamily;
   final VoidCallback? onOpenShop;
   final VoidCallback? onOpenPaywall;
+  final VoidCallback? onOpenSettings;
   final void Function(String taskLabel, Offset globalPosition)?
   onTaskItemLongPress;
   final Future<void> Function()? onTaskAddTap;
@@ -1139,6 +1142,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     VoidCallback? onOpenFamily,
     VoidCallback? onOpenShop,
     VoidCallback? onOpenPaywall,
+    VoidCallback? onOpenSettings,
   }) {
     return switch (device) {
       HomeSceneDevice.mobile => _mobileProfile(
@@ -1146,12 +1150,14 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
         onOpenFamily: onOpenFamily,
         onOpenShop: onOpenShop,
         onOpenPaywall: onOpenPaywall,
+        onOpenSettings: onOpenSettings,
       ),
       HomeSceneDevice.tablet => _tabletProfile(
         onTaskTap: onTaskTap,
         onOpenFamily: onOpenFamily,
         onOpenShop: onOpenShop,
         onOpenPaywall: onOpenPaywall,
+        onOpenSettings: onOpenSettings,
       ),
     };
   }
@@ -1161,6 +1167,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     VoidCallback? onOpenFamily,
     VoidCallback? onOpenShop,
     VoidCallback? onOpenPaywall,
+    VoidCallback? onOpenSettings,
   }) {
     return _SceneProfile(
       backgroundAsset: 'scenes/4.png',
@@ -1208,6 +1215,18 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           onTap: onOpenShop,
         ),
         _SceneSpriteSpec(
+          // Bookshelf ornament on the top board.
+          rect: const _RectFactor(0.735, 0.412, 0.084, 0.031),
+          referenceSpace: _UiReferenceSpace.background,
+          assetPath: 'images/ui/19.png',
+          behavior: _SceneSpriteBehavior.staticOverlay,
+          ambientPhase: 0,
+          renderPriority: _homePetRenderPriority - 1,
+          entryDelay: 0.32,
+          entryOffset: 70,
+          onTap: onOpenSettings,
+        ),
+        _SceneSpriteSpec(
           rect: _rightArmchairFrontOccluderRect,
           referenceSpace: _UiReferenceSpace.background,
           assetPath: 'scenes/4.png',
@@ -1238,6 +1257,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     VoidCallback? onOpenFamily,
     VoidCallback? onOpenShop,
     VoidCallback? onOpenPaywall,
+    VoidCallback? onOpenSettings,
   }) {
     return _SceneProfile(
       backgroundAsset: 'scenes/4.png',
@@ -1283,6 +1303,18 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           entryDelay: 0.30,
           entryOffset: 46,
           onTap: onOpenShop,
+        ),
+        _SceneSpriteSpec(
+          // Bookshelf ornament on the top board.
+          rect: const _RectFactor(0.735, 0.412, 0.084, 0.031),
+          referenceSpace: _UiReferenceSpace.background,
+          assetPath: 'images/ui/19.png',
+          behavior: _SceneSpriteBehavior.staticOverlay,
+          ambientPhase: 0,
+          renderPriority: _homePetRenderPriority - 1,
+          entryDelay: 0.26,
+          entryOffset: 46,
+          onTap: onOpenSettings,
         ),
         _SceneSpriteSpec(
           rect: _rightArmchairFrontOccluderRect,

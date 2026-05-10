@@ -8,6 +8,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import '../../core/ui/sprite_atlas.dart';
 import '../../providers/revenue_cat_provider.dart';
 import '../../widgets/app_modal_shell.dart';
+import '../family/widgets/family_sprite_slice.dart';
 
 Future<void> showPaywallDialog(
   BuildContext context, {
@@ -336,13 +337,40 @@ class _PaywallPlanCard extends StatelessWidget {
               ),
               if (selected)
                 Positioned(
-                  left: -24,
-                  top: -24,
-                  child: _PaywallSpritePiece(source: _PaywallSprite.checkBadge),
+                  left: -17,
+                  top: -17,
+                  child: const _PaywallSelectedBadge(),
                 ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _PaywallSelectedBadge extends StatelessWidget {
+  const _PaywallSelectedBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE77B70),
+        shape: BoxShape.circle,
+        border: Border.all(color: const Color(0xFF9A4D3C), width: 2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x308E4B38),
+            blurRadius: 7,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: const Center(
+        child: Icon(Icons.check_rounded, color: Colors.white, size: 34),
       ),
     );
   }
@@ -482,7 +510,7 @@ class _CloseButton extends StatelessWidget {
           behavior: HitTestBehavior.opaque,
           onTap: onPressed,
           child: Image.asset(
-            HomePetsDialogTheme.closeIconAsset,
+            FamilyHomePartAssets.closeButton,
             fit: BoxFit.contain,
             filterQuality: FilterQuality.high,
           ),
@@ -763,8 +791,7 @@ class _PaywallSprite {
   static const benefitFamily = Rect.fromLTWH(57, 818, 221, 181);
   static const benefitGrowth = Rect.fromLTWH(303, 818, 218, 181);
   static const benefitTasks = Rect.fromLTWH(546, 818, 210, 181);
-  static const divider = Rect.fromLTWH(48, 1008, 720, 24);
-  static const checkBadge = Rect.fromLTWH(40, 1130, 70, 70);
+  static const divider = Rect.fromLTWH(48, 1008, 720, 12);
   static const unlockButton = Rect.fromLTWH(128, 1290, 465, 97);
   static const parentConfirm = Rect.fromLTWH(655, 1318, 250, 55);
 
@@ -777,13 +804,13 @@ class _PaywallSprite {
   static const benefitFamilyTarget = Rect.fromLTWH(54, 624, 205, 168);
   static const benefitGrowthTarget = Rect.fromLTWH(278, 624, 204, 168);
   static const benefitTasksTarget = Rect.fromLTWH(502, 624, 204, 168);
-  static const dividerTarget = Rect.fromLTWH(64, 831, 632, 21);
+  static const dividerTarget = Rect.fromLTWH(64, 831, 632, 12);
   static const monthlyCardTarget = Rect.fromLTWH(43, 880, 216, 130);
   static const annualCardTarget = Rect.fromLTWH(274, 880, 216, 130);
   static const lifetimeCardTarget = Rect.fromLTWH(505, 880, 216, 130);
   static const unlockButtonTarget = Rect.fromLTWH(151, 1074, 458, 96);
   static const parentConfirmTarget = Rect.fromLTWH(251, 1170, 258, 57);
-  static const closeTarget = Rect.fromLTWH(678, -12, 84, 84);
+  static const closeTarget = Rect.fromLTWH(667, -18, 96, 96);
   static const statusTarget = Rect.fromLTWH(120, 1024, 520, 46);
   static const restoreTarget = Rect.fromLTWH(305, 1266, 150, 38);
 }

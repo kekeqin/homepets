@@ -219,6 +219,7 @@ class _ProfileCard extends StatelessWidget {
                   child: const _PetDetailSprite(
                     frame: PetDetailSheetSpriteCatalog.panelBlank,
                     fit: BoxFit.fill,
+                    sampleInset: 1,
                   ),
                 ),
               ),
@@ -709,10 +710,15 @@ class _AchievementTag extends StatelessWidget {
 }
 
 class _PetDetailSprite extends StatelessWidget {
-  const _PetDetailSprite({required this.frame, this.fit = BoxFit.contain});
+  const _PetDetailSprite({
+    required this.frame,
+    this.fit = BoxFit.contain,
+    this.sampleInset = 0,
+  });
 
   final SpriteAtlasFrame frame;
   final BoxFit fit;
+  final double sampleInset;
 
   @override
   Widget build(BuildContext context) {
@@ -722,6 +728,7 @@ class _PetDetailSprite extends StatelessWidget {
       frame: frame,
       fit: fit,
       filterQuality: FilterQuality.high,
+      sampleInset: sampleInset,
     );
   }
 }

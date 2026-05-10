@@ -7,6 +7,7 @@ class TaskBoardReferenceAsset {
 
   static const String board = 'assets/images/ui/task/1.png';
   static const String clip = 'assets/images/ui/task/2.png';
+  static const String dialogPanel = 'assets/images/ui/task/32.png';
   static const String rowWarm = 'assets/images/ui/task/3.png';
   static const String rowGreen = 'assets/images/ui/task/4.png';
   static const String rowPink = 'assets/images/ui/task/5.png';
@@ -52,6 +53,7 @@ class TaskBoardReferenceAsset {
   static const List<String> runtimeAssets = <String>[
     board,
     clip,
+    dialogPanel,
     rowWarm,
     rowGreen,
     rowPink,

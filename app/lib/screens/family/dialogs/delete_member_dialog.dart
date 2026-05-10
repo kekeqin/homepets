@@ -100,7 +100,7 @@ class _DeleteMemberDialog extends StatelessWidget {
                         sheetSize: _deleteMemberDialogSheetSize,
                         region: _deleteMemberPanelRegion,
                         fit: BoxFit.fill,
-                        sampleInset: 0,
+                        sampleInset: 1,
                       ),
                     ),
                     const Positioned(

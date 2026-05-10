@@ -52,6 +52,7 @@ class HomePetsDialog extends StatelessWidget {
     required this.title,
     required this.child,
     required this.actions,
+    this.background,
     this.layout = _defaultHomePetsDialogLayout,
     this.minimumSafeArea = const EdgeInsets.fromLTRB(16, 20, 16, 20),
     this.contentPadding = const EdgeInsets.fromLTRB(24, 24, 24, 22),
@@ -60,6 +61,7 @@ class HomePetsDialog extends StatelessWidget {
   final String title;
   final Widget child;
   final List<Widget> actions;
+  final Widget? background;
   final AppModalLayout layout;
   final EdgeInsets minimumSafeArea;
   final EdgeInsets contentPadding;
@@ -70,40 +72,48 @@ class HomePetsDialog extends StatelessWidget {
       layout: layout,
       minimumSafeArea: minimumSafeArea,
       borderRadius: HomePetsDialogTheme.borderRadius,
-      gradient: HomePetsDialogTheme.shellGradient,
-      border: Border.all(color: HomePetsDialogTheme.panelBorder, width: 2),
+      gradient: background == null ? HomePetsDialogTheme.shellGradient : null,
+      border: background == null
+          ? Border.all(color: HomePetsDialogTheme.panelBorder, width: 2)
+          : null,
       boxShadow: HomePetsDialogTheme.shellShadow,
-      child: Padding(
-        padding: contentPadding,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              title,
-              textAlign: TextAlign.left,
-              style: const TextStyle(
-                color: Color(0xFF4D3623),
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-                height: 1.05,
-                letterSpacing: 0,
-              ),
-            ),
-            const SizedBox(height: 20),
-            child,
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+      child: Stack(
+        fit: StackFit.passthrough,
+        children: [
+          if (background != null) Positioned.fill(child: background!),
+          Padding(
+            padding: contentPadding,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (var index = 0; index < actions.length; index++) ...[
-                  if (index > 0) const SizedBox(width: 12),
-                  Flexible(child: actions[index]),
-                ],
+                Text(
+                  title,
+                  textAlign: TextAlign.left,
+                  style: const TextStyle(
+                    color: Color(0xFF4D3623),
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    height: 1.05,
+                    letterSpacing: 0,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                child,
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    for (var index = 0; index < actions.length; index++) ...[
+                      if (index > 0) const SizedBox(width: 12),
+                      Flexible(child: actions[index]),
+                    ],
+                  ],
+                ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

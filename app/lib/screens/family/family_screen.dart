@@ -153,11 +153,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
 
   String _familyTitle(String familyName) {
     final trimmed = familyName.trim();
-    final hasChineseText = RegExp(r'[\u4e00-\u9fff]').hasMatch(trimmed);
-    if (trimmed.isEmpty || !hasChineseText) {
-      return '温暖小家';
-    }
-    return trimmed;
+    return trimmed.isEmpty ? '温暖小家' : trimmed;
   }
 
   int _petCount(List<FamilyMemberViewData> members) {
@@ -249,7 +245,6 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
 
     try {
       await ref.read(familyProvider.notifier).updateFamilyName(trimmedName);
-      await _loadFamily();
       if (!mounted) {
         return;
       }
@@ -1307,7 +1302,7 @@ class _FamilyNameEditDialogState extends State<_FamilyNameEditDialog> {
                           sheetSize: _familyNameDialogSheetSize,
                           region: _familyNameDialogPanelRegion,
                           fit: BoxFit.fill,
-                          sampleInset: 0,
+                          sampleInset: 1,
                         ),
                       ),
                       const Positioned(
