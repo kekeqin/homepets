@@ -72,6 +72,7 @@ class HomePetsDialog extends StatelessWidget {
       layout: layout,
       minimumSafeArea: minimumSafeArea,
       borderRadius: HomePetsDialogTheme.borderRadius,
+      backgroundColor: background == null ? null : Colors.transparent,
       gradient: background == null ? HomePetsDialogTheme.shellGradient : null,
       border: background == null
           ? Border.all(color: HomePetsDialogTheme.panelBorder, width: 2)

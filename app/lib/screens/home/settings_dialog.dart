@@ -59,6 +59,7 @@ class _SettingsDialogPanel extends StatelessWidget {
     return AppModalShell(
       layout: _settingsDialogLayout,
       minimumSafeArea: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+      backgroundColor: HomePetsDialogTheme.surfaceTop,
       clipChild: false,
       child: LayoutBuilder(
         builder: (context, constraints) {

@@ -70,6 +70,28 @@ const String _taskDeleteButtonAsset =
     'assets/images/ui/task_delete/delete_button.png';
 const String _taskDeleteButtonPressedAsset =
     'assets/images/ui/task_delete/delete_button_pressed.png';
+const String _taskDialogPanelBackgroundAsset = 'assets/images/ui/task/33.png';
+const String _completeMemberDialogAssetRoot =
+    'assets/images/ui/sprites/complete_member_dialog_parts';
+const Size _completeMemberDialogDesignSize = Size(436, 502);
+const String _completeMemberDialogPanelAsset =
+    '$_completeMemberDialogAssetRoot/complete_member_dialog_panel_blank_large.png';
+const String _completeMemberDialogShadowAsset =
+    '$_completeMemberDialogAssetRoot/complete_member_dialog_shadow_large.png';
+const String _completeMemberHeaderIconAsset =
+    '$_completeMemberDialogAssetRoot/complete_member_header_icon_clipboard_star_left.png';
+const String _completeMemberInputBorderAsset =
+    '$_completeMemberDialogAssetRoot/complete_member_input_border_dark_empty.png';
+const String _completeMemberDropdownArrowAsset =
+    '$_completeMemberDialogAssetRoot/complete_member_chevron_down_standalone.png';
+const String _completeMemberDropdownMenuAsset =
+    '$_completeMemberDialogAssetRoot/complete_member_dropdown_menu_open_blank.png';
+const String _completeMemberDropdownOptionBlankTopAsset =
+    '$_completeMemberDialogAssetRoot/complete_member_dropdown_option_blank_top.png';
+const String _completeMemberCheckmarkAsset =
+    '$_completeMemberDialogAssetRoot/complete_member_checkmark_white_right.png';
+const String _completeMemberConfirmButtonAsset =
+    '$_completeMemberDialogAssetRoot/complete_member_confirm_complete_button_bottom.png';
 const double _taskPanelBoardHeightRatio =
     TaskBoardReferenceAsset.panelHeightRatio;
 const Duration _taskPanelTransitionDuration = Duration(milliseconds: 320);
@@ -170,6 +192,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     _didPrecacheTaskPanelAssets = true;
     for (final assetPath in <String>[
       _taskPanelNoteAsset,
+      _taskDialogPanelBackgroundAsset,
       FamilyHomePartAssets.closeButton,
       ...TaskBoardReferenceAsset.runtimeAssets,
     ]) {
@@ -192,6 +215,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       await Future.wait(
         <String>[
           _taskPanelNoteAsset,
+          _taskDialogPanelBackgroundAsset,
           FamilyHomePartAssets.closeButton,
           ...TaskBoardReferenceAsset.runtimeAssets,
         ].map((assetPath) => precacheImage(AssetImage(assetPath), context)),
@@ -2810,12 +2834,7 @@ class _TaskDeleteConfirmPanel extends StatelessWidget {
         return Stack(
           clipBehavior: Clip.none,
           children: [
-            Positioned.fill(
-              child: const _InsetSampledAssetImage(
-                assetPath: TaskBoardReferenceAsset.dialogPanel,
-                sampleInset: 1,
-              ),
-            ),
+            Positioned.fill(child: const _TaskDialogPanelBackground()),
             Positioned(
               top: side * 0.052,
               left: side * 0.5 - side * 0.086,
@@ -3033,38 +3052,418 @@ class _CompletionMemberSelectContentState
   @override
   void initState() {
     super.initState();
-    _selectedMemberId = widget.initialMemberId;
+    _selectedMemberId =
+        widget.options.any((option) => option.value == widget.initialMemberId)
+        ? widget.initialMemberId
+        : widget.options.isEmpty
+        ? null
+        : widget.options.first.value;
+  }
+
+  HomePetsSelectOption<int>? get _selectedOption {
+    for (final option in widget.options) {
+      if (option.value == _selectedMemberId) {
+        return option;
+      }
+    }
+    return widget.options.isEmpty ? null : widget.options.first;
+  }
+
+  void _selectMember(int value) {
+    if (_selectedMemberId == value) {
+      return;
+    }
+    setState(() => _selectedMemberId = value);
+  }
+
+  void _confirm() {
+    final selectedMemberId = _selectedMemberId;
+    if (selectedMemberId == null) {
+      return;
+    }
+    Navigator.of(context).pop(selectedMemberId);
   }
 
   @override
   Widget build(BuildContext context) {
-    return HomePetsDialog(
-      title: '\u9009\u62e9\u5b8c\u6210\u4eba\u5458',
-      background: const _TaskDialogPanelBackground(),
-      actions: [
-        SizedBox(
-          width: 98,
-          child: HomePetsButton(
-            label: '\u53d6\u6d88',
-            variant: HomePetsButtonVariant.secondary,
-            onPressed: () => Navigator.of(context).pop(),
+    final screenSize = MediaQuery.sizeOf(context);
+    final aspect =
+        _completeMemberDialogDesignSize.width /
+        _completeMemberDialogDesignSize.height;
+    final maxWidth = math.min(screenSize.width * 0.92, 436.0);
+    final maxHeight = screenSize.height * 0.74;
+    final panelWidth = math.min(maxWidth, maxHeight * aspect);
+    final panelHeight = panelWidth / aspect;
+    final visibleOptions = widget.options.take(3).toList();
+
+    return Material(
+      color: Colors.transparent,
+      child: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+        child: Center(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {},
+            child: SizedBox(
+              width: panelWidth,
+              height: panelHeight,
+              child: FittedBox(
+                fit: BoxFit.fill,
+                child: SizedBox(
+                  width: _completeMemberDialogDesignSize.width,
+                  height: _completeMemberDialogDesignSize.height,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      const Positioned(
+                        left: 82,
+                        bottom: -9,
+                        width: 272,
+                        height: 42,
+                        child: _CompleteMemberAssetImage(
+                          assetPath: _completeMemberDialogShadowAsset,
+                          fit: BoxFit.fill,
+                        ),
+                      ),
+                      const Positioned.fill(
+                        child: _CompleteMemberAssetImage(
+                          assetPath: _completeMemberDialogPanelAsset,
+                          fit: BoxFit.fill,
+                        ),
+                      ),
+                      const Positioned(
+                        left: 43,
+                        top: 28,
+                        width: 64,
+                        height: 69,
+                        child: _CompleteMemberAssetImage(
+                          assetPath: _completeMemberHeaderIconAsset,
+                        ),
+                      ),
+                      const Positioned(
+                        left: 128,
+                        top: 41,
+                        width: 268,
+                        height: 47,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '选择完成人员',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Color(0xFF4D3623),
+                              fontSize: 34,
+                              fontWeight: FontWeight.w900,
+                              height: 1,
+                              letterSpacing: 0,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const Positioned(
+                        left: 42,
+                        top: 116,
+                        width: 132,
+                        height: 30,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '完成成员',
+                            maxLines: 1,
+                            style: TextStyle(
+                              color: Color(0xFF4D3623),
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              height: 1,
+                              letterSpacing: 0,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: 35,
+                        top: 145,
+                        width: 367,
+                        height: 65,
+                        child: _CompleteMemberClosedField(
+                          label: _selectedOption?.label ?? '',
+                        ),
+                      ),
+                      Positioned(
+                        left: 35,
+                        top: 201,
+                        width: 367,
+                        height: 193,
+                        child: _CompleteMemberOptionsList(
+                          options: visibleOptions,
+                          selectedMemberId: _selectedMemberId,
+                          onSelected: _selectMember,
+                        ),
+                      ),
+                      Positioned(
+                        left: 106,
+                        top: 419,
+                        width: 86,
+                        height: 48,
+                        child: _CompleteMemberTextButton(
+                          label: '取消',
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                      ),
+                      Positioned(
+                        left: 220,
+                        top: 404,
+                        width: 188,
+                        height: 76,
+                        child: _CompleteMemberImageButton(
+                          onPressed: _selectedMemberId == null
+                              ? null
+                              : _confirm,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
-        SizedBox(
-          width: 126,
-          child: HomePetsButton(
-            label: '\u786e\u8ba4\u5b8c\u6210',
-            onPressed: _selectedMemberId == null
-                ? null
-                : () => Navigator.of(context).pop(_selectedMemberId),
+      ),
+    );
+  }
+}
+
+class _CompleteMemberAssetImage extends StatelessWidget {
+  const _CompleteMemberAssetImage({
+    required this.assetPath,
+    this.fit = BoxFit.contain,
+    this.color,
+    this.colorBlendMode,
+  });
+
+  final String assetPath;
+  final BoxFit fit;
+  final Color? color;
+  final BlendMode? colorBlendMode;
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      assetPath,
+      fit: fit,
+      color: color,
+      colorBlendMode: colorBlendMode,
+      filterQuality: FilterQuality.high,
+    );
+  }
+}
+
+class _CompleteMemberClosedField extends StatelessWidget {
+  const _CompleteMemberClosedField({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const _CompleteMemberAssetImage(
+          assetPath: _completeMemberInputBorderAsset,
+          fit: BoxFit.fill,
+        ),
+        Positioned(
+          left: 26,
+          top: 0,
+          right: 68,
+          bottom: 0,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF4D3623),
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                height: 1,
+                letterSpacing: 0,
+              ),
+            ),
+          ),
+        ),
+        const Positioned(
+          right: 27,
+          top: 22,
+          width: 34,
+          height: 22,
+          child: _CompleteMemberAssetImage(
+            assetPath: _completeMemberDropdownArrowAsset,
           ),
         ),
       ],
-      child: HomePetsSelectField<int>(
-        label: '\u5b8c\u6210\u6210\u5458',
-        value: _selectedMemberId,
-        options: widget.options,
-        onChanged: (value) => setState(() => _selectedMemberId = value),
+    );
+  }
+}
+
+class _CompleteMemberOptionsList extends StatelessWidget {
+  const _CompleteMemberOptionsList({
+    required this.options,
+    required this.selectedMemberId,
+    required this.onSelected,
+  });
+
+  final List<HomePetsSelectOption<int>> options;
+  final int? selectedMemberId;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const _CompleteMemberAssetImage(
+          assetPath: _completeMemberDropdownMenuAsset,
+          fit: BoxFit.fill,
+        ),
+        for (var index = 0; index < options.length; index++)
+          _CompleteMemberOptionRow(
+            index: index,
+            option: options[index],
+            selected: options[index].value == selectedMemberId,
+            onSelected: onSelected,
+          ),
+      ],
+    );
+  }
+}
+
+class _CompleteMemberOptionRow extends StatelessWidget {
+  const _CompleteMemberOptionRow({
+    required this.index,
+    required this.option,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final int index;
+  final HomePetsSelectOption<int> option;
+  final bool selected;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final top = switch (index) {
+      0 => 9.0,
+      1 => 67.0,
+      _ => 124.0,
+    };
+
+    return Positioned(
+      left: 9,
+      top: top,
+      width: 349,
+      height: 59,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => onSelected(option.value),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (selected)
+              const _CompleteMemberAssetImage(
+                assetPath: _completeMemberDropdownOptionBlankTopAsset,
+                fit: BoxFit.fill,
+                color: Color(0xFFD7E09A),
+                colorBlendMode: BlendMode.srcATop,
+              ),
+            Positioned(
+              left: 19,
+              top: 0,
+              right: selected ? 58 : 20,
+              bottom: 0,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  option.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF4D3623),
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    height: 1,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ),
+            ),
+            if (selected)
+              const Positioned(
+                right: 17,
+                top: 13,
+                width: 34,
+                height: 32,
+                child: _CompleteMemberAssetImage(
+                  assetPath: _completeMemberCheckmarkAsset,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CompleteMemberTextButton extends StatelessWidget {
+  const _CompleteMemberTextButton({
+    required this.label,
+    required this.onPressed,
+  });
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onPressed,
+      child: Center(
+        child: Text(
+          label,
+          maxLines: 1,
+          style: const TextStyle(
+            color: Color(0xFF4D3623),
+            fontSize: 27,
+            fontWeight: FontWeight.w900,
+            height: 1,
+            letterSpacing: 0,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CompleteMemberImageButton extends StatelessWidget {
+  const _CompleteMemberImageButton({required this.onPressed});
+
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: onPressed == null ? 0.55 : 1,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onPressed,
+        child: const _CompleteMemberAssetImage(
+          assetPath: _completeMemberConfirmButtonAsset,
+          fit: BoxFit.fill,
+        ),
       ),
     );
   }
@@ -3075,9 +3474,10 @@ class _TaskDialogPanelBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _InsetSampledAssetImage(
-      assetPath: TaskBoardReferenceAsset.dialogPanel,
-      sampleInset: 1,
+    return Image.asset(
+      _taskDialogPanelBackgroundAsset,
+      fit: BoxFit.fill,
+      filterQuality: FilterQuality.high,
     );
   }
 }
@@ -3367,12 +3767,7 @@ class _TaskEditorSpriteCard extends StatelessWidget {
         return Stack(
           clipBehavior: Clip.none,
           children: [
-            Positioned.fill(
-              child: const _InsetSampledAssetImage(
-                assetPath: TaskBoardReferenceAsset.dialogPanel,
-                sampleInset: 1,
-              ),
-            ),
+            Positioned.fill(child: const _TaskDialogPanelBackground()),
             Positioned(
               top: panelSize.height * 0.115,
               left: (panelSize.width - titleWidth) * 0.5,

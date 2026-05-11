@@ -28,6 +28,7 @@ Future<void> showPaywallDialog(
         layout: AppModalLayouts.paywall,
         minimumSafeArea: const EdgeInsets.fromLTRB(10, 12, 10, 12),
         clipChild: false,
+        backgroundColor: HomePetsDialogTheme.surfaceTop,
         child: _PaywallSpriteContent(
           onClose: () => Navigator.of(dialogContext).pop(),
         ),
