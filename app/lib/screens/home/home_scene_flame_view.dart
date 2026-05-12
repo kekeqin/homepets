@@ -393,33 +393,196 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       return;
     }
 
-    _settingsPanelVisible = true;
-    HomeSettingsAction? action;
-    try {
-      action = await showSettingsDialog(context);
-    } finally {
-      _settingsPanelVisible = false;
-    }
+    final settingsContext = context;
+    var keepSettingsOpen = true;
 
-    if (!mounted || action == null) {
+    while (mounted && keepSettingsOpen) {
+      if (!settingsContext.mounted) {
+        return;
+      }
+
+      _settingsPanelVisible = true;
+      HomeSettingsAction? action;
+      try {
+        action = await showSettingsDialog(settingsContext);
+      } finally {
+        _settingsPanelVisible = false;
+      }
+
+      if (!mounted || action == null) {
+        return;
+      }
+
+      await _waitForDismissedSettingsRoute();
+      if (!mounted) {
+        return;
+      }
+
+      switch (action) {
+        case HomeSettingsAction.editProfile:
+          await _showEditProfileDialog();
+          break;
+        case HomeSettingsAction.about:
+          await _showAboutDialog();
+          break;
+        case HomeSettingsAction.logout:
+          final confirmed = await _showLogoutConfirmDialog();
+          if (!mounted) {
+            return;
+          }
+
+          if (!confirmed) {
+            break;
+          }
+
+          keepSettingsOpen = false;
+          await ref.read(authProvider.notifier).logout();
+          if (!mounted) {
+            return;
+          }
+          context.go('/login');
+          return;
+      }
+    }
+  }
+
+  Future<void> _waitForDismissedSettingsRoute() async {
+    await Future<void>.delayed(const Duration(milliseconds: 260));
+    await WidgetsBinding.instance.endOfFrame;
+  }
+
+  Future<void> _showEditProfileDialog() async {
+    final user = ref.read(authProvider).user;
+
+    if (user == null) {
+      _showTopSnackBar(
+        '\u8bf7\u5148\u767b\u5f55\u540e\u518d\u7f16\u8f91\u8d44\u6599',
+      );
       return;
     }
 
-    switch (action) {
-      case HomeSettingsAction.editProfile:
-        context.go('/profile');
+    final nicknameController = TextEditingController(text: user.nickname);
+
+    try {
+      final nickname = await showHomePetsDialog<String>(
+        context: context,
+        barrierLabel: 'edit_profile_dialog',
+        title: '\u7f16\u8f91\u8d44\u6599',
+        contentBuilder: (dialogContext) {
+          return TextField(
+            controller: nicknameController,
+            maxLength: 20,
+            textInputAction: TextInputAction.done,
+            decoration: const InputDecoration(
+              labelText: '\u6635\u79f0',
+              counterText: '',
+            ),
+            style: const TextStyle(
+              color: Color(0xFF4D3623),
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0,
+            ),
+            onSubmitted: (_) => _submitEditProfileDialog(
+              dialogContext,
+              nicknameController.text,
+            ),
+          );
+        },
+        actionsBuilder: (dialogContext) {
+          return <Widget>[
+            HomePetsButton(
+              label: '\u53d6\u6d88',
+              variant: HomePetsButtonVariant.secondary,
+              onPressed: () => Navigator.of(dialogContext).pop(),
+            ),
+            HomePetsButton(
+              label: '\u4fdd\u5b58',
+              onPressed: () => _submitEditProfileDialog(
+                dialogContext,
+                nicknameController.text,
+              ),
+            ),
+          ];
+        },
+      );
+
+      if (!mounted || nickname == null) {
         return;
-      case HomeSettingsAction.about:
-        await _showAboutDialog();
+      }
+
+      if (nickname == user.nickname.trim()) {
         return;
-      case HomeSettingsAction.logout:
-        await ref.read(authProvider.notifier).logout();
-        if (!mounted) {
-          return;
-        }
-        context.go('/login');
-        return;
+      }
+
+      final dio = ref.read(apiClientProvider).dio;
+
+      await dio.put('/api/users/${user.id}', data: {'nickname': nickname});
+      await ref.read(authProvider.notifier).refreshUser();
+
+      if (mounted) {
+        _showTopSnackBar('\u8d44\u6599\u5df2\u66f4\u65b0');
+      }
+    } catch (error) {
+      if (mounted) {
+        showFriendlyApiErrorSnackBar(
+          context,
+          error,
+          fallbackMessage:
+              '\u66f4\u65b0\u8d44\u6599\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5',
+        );
+      }
+    } finally {
+      nicknameController.dispose();
     }
+  }
+
+  void _submitEditProfileDialog(BuildContext dialogContext, String nickname) {
+    final trimmedNickname = nickname.trim();
+
+    if (trimmedNickname.isEmpty) {
+      ScaffoldMessenger.of(dialogContext).showSnackBar(
+        const SnackBar(content: Text('\u8bf7\u8f93\u5165\u6635\u79f0')),
+      );
+      return;
+    }
+
+    Navigator.of(dialogContext).pop(trimmedNickname);
+  }
+
+  Future<bool> _showLogoutConfirmDialog() async {
+    final result = await showHomePetsDialog<bool>(
+      context: context,
+      barrierLabel: 'logout_confirm_dialog',
+      title: '\u9000\u51fa\u767b\u5f55',
+      contentBuilder: (dialogContext) {
+        return const Text(
+          '\u786e\u5b9a\u8981\u9000\u51fa\u5f53\u524d\u8d26\u53f7\u5417\uff1f',
+          style: TextStyle(
+            color: Color(0xFF6F563D),
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            height: 1.4,
+            letterSpacing: 0,
+          ),
+        );
+      },
+      actionsBuilder: (dialogContext) {
+        return <Widget>[
+          HomePetsButton(
+            label: '\u53d6\u6d88',
+            variant: HomePetsButtonVariant.secondary,
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+          ),
+          HomePetsButton(
+            label: '\u786e\u8ba4\u9000\u51fa',
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+          ),
+        ];
+      },
+    );
+
+    return result == true;
   }
 
   Future<void> _showAboutDialog() {
