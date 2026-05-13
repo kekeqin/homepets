@@ -1,4 +1,4 @@
-"""Pet level configuration and feeding logic."""
+"""宠物等级配置与成长计算。"""
 
 LEVEL_THRESHOLDS = {
     1: 0,
@@ -56,14 +56,12 @@ def create_member_pet(
     owner_id: int,
     pet_type: str,
     pet_name: str,
-) -> dict[str, int | str | None]:
+) -> dict[str, int | str]:
     return {
         "name": pet_name,
         "pet_type": pet_type,
-        "pet_form": "pet",
         "level": 1,
         "experience": 0,
-        "image_url": get_image(pet_type, 1),
         "owner_id": owner_id,
         "family_id": family_id,
     }

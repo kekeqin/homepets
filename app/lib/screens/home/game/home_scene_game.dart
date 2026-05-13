@@ -1215,13 +1215,13 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           onTap: onOpenShop,
         ),
         _SceneSpriteSpec(
-          // Bookshelf ornament on the top board.
-          rect: const _RectFactor(0.735, 0.412, 0.084, 0.031),
+          // Settings gear stays in the scene, but away from pet placement slots.
+          rect: const _RectFactor(0.845, 0.438, 0.102, 0.048),
           referenceSpace: _UiReferenceSpace.background,
           assetPath: 'images/ui/19.png',
           behavior: _SceneSpriteBehavior.staticOverlay,
           ambientPhase: 0,
-          renderPriority: _homePetRenderPriority - 1,
+          renderPriority: _homeSceneUiRenderPriority,
           entryDelay: 0.32,
           entryOffset: 70,
           onTap: onOpenSettings,
@@ -1305,13 +1305,13 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           onTap: onOpenShop,
         ),
         _SceneSpriteSpec(
-          // Bookshelf ornament on the top board.
-          rect: const _RectFactor(0.735, 0.412, 0.084, 0.031),
+          // Settings gear stays in the scene, but away from pet placement slots.
+          rect: const _RectFactor(0.845, 0.438, 0.102, 0.048),
           referenceSpace: _UiReferenceSpace.background,
           assetPath: 'images/ui/19.png',
           behavior: _SceneSpriteBehavior.staticOverlay,
           ambientPhase: 0,
-          renderPriority: _homePetRenderPriority - 1,
+          renderPriority: _homeSceneUiRenderPriority,
           entryDelay: 0.26,
           entryOffset: 46,
           onTap: onOpenSettings,

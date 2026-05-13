@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -83,7 +81,6 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
 
   bool _addingMember = false;
   int? _updatingAvatarMemberId;
-  bool _updatingFamilyName = false;
   int? _deletingMemberId;
 
   late final AnimationController _entryController;
@@ -172,14 +169,6 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
     );
   }
 
-  bool _canEditFamilyTitle(AuthState authState) {
-    final user = authState.user;
-    if (authState.viewOnly || user == null) {
-      return false;
-    }
-    return user.isAdmin;
-  }
-
   bool _canEditAvatarForMember(
     AuthState authState,
     FamilyMemberViewData member,
@@ -206,65 +195,6 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
       return false;
     }
     return user.id != member.id;
-  }
-
-  Future<String?> _showFamilyNameDialog(String initialName) async {
-    return showAppModalDialog<String>(
-      context: context,
-      barrierLabel: 'edit_family_name_dialog',
-      blurSigma: 6,
-      barrierTint: const Color(0x544D3523),
-      beginScale: 0.96,
-      beginYOffset: 16,
-      pageBuilder: (dialogContext) {
-        return _FamilyNameEditDialog(
-          initialName: initialName,
-          onCancel: () => Navigator.of(dialogContext).pop(),
-          onSubmit: (value) => Navigator.of(dialogContext).pop(value),
-        );
-      },
-    );
-  }
-
-  Future<void> _onFamilyTitleEditTap(
-    AuthState authState,
-    FamilyScreenState familyState,
-  ) async {
-    if (_updatingFamilyName || !_canEditFamilyTitle(authState)) {
-      return;
-    }
-
-    final initialName = familyState.familyName.trim();
-    final nextName = await _showFamilyNameDialog(initialName);
-    final trimmedName = nextName?.trim();
-    if (!mounted || trimmedName == null || trimmedName == initialName) {
-      return;
-    }
-
-    setState(() => _updatingFamilyName = true);
-
-    try {
-      await ref.read(familyProvider.notifier).updateFamilyName(trimmedName);
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('家庭名称已更新')));
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      showFriendlyApiErrorSnackBar(
-        context,
-        error,
-        fallbackMessage: '家庭名称更新失败，请稍后重试',
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _updatingFamilyName = false);
-      }
-    }
   }
 
   Future<void> _onAvatarEditTap(
@@ -516,10 +446,6 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
               addingMember: _addingMember,
               onLeadingTap: _handleLeadingAction,
               onAddMemberTap: onAddMemberTap,
-              canEditTitle: _canEditFamilyTitle(authState),
-              updatingTitle: _updatingFamilyName,
-              onEditTitleTap: () =>
-                  _onFamilyTitleEditTap(authState, familyState),
               membersPanel: _FamilyMembersPanel(
                 compact: widget.embedded,
                 members: members,
@@ -557,9 +483,6 @@ class _FamilyStageCard extends StatelessWidget {
     required this.addingMember,
     required this.onLeadingTap,
     required this.onAddMemberTap,
-    required this.canEditTitle,
-    required this.updatingTitle,
-    required this.onEditTitleTap,
     required this.membersPanel,
   });
 
@@ -572,9 +495,6 @@ class _FamilyStageCard extends StatelessWidget {
   final bool addingMember;
   final VoidCallback onLeadingTap;
   final VoidCallback onAddMemberTap;
-  final bool canEditTitle;
-  final bool updatingTitle;
-  final VoidCallback onEditTitleTap;
   final Widget membersPanel;
 
   @override
@@ -621,9 +541,6 @@ class _FamilyStageCard extends StatelessWidget {
                             canManageMembers: canManageMembers,
                             addingMember: addingMember,
                             onAddMemberTap: onAddMemberTap,
-                            canEditTitle: canEditTitle,
-                            updatingTitle: updatingTitle,
-                            onEditTitleTap: onEditTitleTap,
                           ),
                         ),
                         Positioned(
@@ -888,9 +805,6 @@ class _QuietFamilyStageHeader extends StatelessWidget {
     required this.canManageMembers,
     required this.addingMember,
     required this.onAddMemberTap,
-    required this.canEditTitle,
-    required this.updatingTitle,
-    required this.onEditTitleTap,
   });
 
   final bool embedded;
@@ -901,9 +815,6 @@ class _QuietFamilyStageHeader extends StatelessWidget {
   final bool canManageMembers;
   final bool addingMember;
   final VoidCallback onAddMemberTap;
-  final bool canEditTitle;
-  final bool updatingTitle;
-  final VoidCallback onEditTitleTap;
 
   @override
   Widget build(BuildContext context) {
@@ -930,29 +841,16 @@ class _QuietFamilyStageHeader extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: _FamilyPalette.text,
-                                  fontSize: titleSize,
-                                  fontWeight: FontWeight.w900,
-                                  height: 1,
-                                ),
-                              ),
-                            ),
-                            if (canEditTitle) ...[
-                              SizedBox(width: compact ? 3 : 5),
-                              _HeaderEditButton(
-                                busy: updatingTitle,
-                                onTap: onEditTitleTap,
-                              ),
-                            ],
-                          ],
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: _FamilyPalette.text,
+                            fontSize: titleSize,
+                            fontWeight: FontWeight.w900,
+                            height: 1,
+                          ),
                         ),
                         SizedBox(height: compact ? 8 : 10),
                         SizedBox(
@@ -1016,40 +914,6 @@ class _QuietFamilyStageHeader extends StatelessWidget {
           ],
         );
       },
-    );
-  }
-}
-
-class _HeaderEditButton extends StatelessWidget {
-  const _HeaderEditButton({required this.busy, required this.onTap});
-
-  final bool busy;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: busy ? null : onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: SizedBox(
-          width: 24,
-          height: 23,
-          child: busy
-              ? const Center(
-                  child: SizedBox(
-                    width: 12,
-                    height: 12,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 1.7,
-                      color: _FamilyPalette.muted,
-                    ),
-                  ),
-                )
-              : const FamilySpriteSlice(region: FamilySpriteRegions.editIcon),
-        ),
-      ),
     );
   }
 }
@@ -1181,431 +1045,6 @@ class _HeroAddButton extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-const String _familyNameDialogAsset =
-    'assets/images/ui/sprites/edit_family_name_dialog_sprites_clean.png';
-const Size _familyNameDialogSheetSize = Size(1448, 1086);
-
-const Rect _familyNameDialogPanelRegion = Rect.fromLTWH(749, 82, 647, 406);
-const Rect _familyNameDialogTitleRegion = Rect.fromLTWH(62, 622, 238, 38);
-const Rect _familyNameDialogFieldLabelRegion = Rect.fromLTWH(412, 625, 99, 24);
-const Rect _familyNameDialogInputBoxRegion = Rect.fromLTWH(743, 615, 275, 48);
-const Rect _familyNameDialogHelperTextRegion = Rect.fromLTWH(90, 807, 144, 23);
-const Rect _familyNameDialogBottomCancelRegion = Rect.fromLTWH(
-  495,
-  1001,
-  58,
-  29,
-);
-const Rect _familyNameDialogBottomSaveRegion = Rect.fromLTWH(624, 971, 190, 73);
-
-const double _familyNameDialogDesignWidth = 647;
-const double _familyNameDialogDesignHeight = 406;
-const AppModalLayout _familyNameDialogLayout = AppModalLayout(
-  mobileWidthFactor: 0.92,
-  mobileMaxWidth: 430,
-  mobileHeightFactor: 0.52,
-  mobileMaxHeight: 300,
-  tabletWidthFactor: 0.48,
-  tabletMaxWidth: 560,
-  tabletHeightFactor: 0.46,
-  tabletMaxHeight: 390,
-);
-
-class _FamilyNameEditDialog extends StatefulWidget {
-  const _FamilyNameEditDialog({
-    required this.initialName,
-    required this.onCancel,
-    required this.onSubmit,
-  });
-
-  final String initialName;
-  final VoidCallback onCancel;
-  final ValueChanged<String> onSubmit;
-
-  @override
-  State<_FamilyNameEditDialog> createState() => _FamilyNameEditDialogState();
-}
-
-class _FamilyNameEditDialogState extends State<_FamilyNameEditDialog> {
-  static const _maxLength = 30;
-
-  late final TextEditingController _controller;
-  String? _errorText;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.initialName);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    final value = _controller.text.trim();
-    if (value.isEmpty) {
-      setState(() => _errorText = '家庭名称不能为空');
-      return;
-    }
-    widget.onSubmit(value);
-  }
-
-  void _handleChanged(String value) {
-    if (_errorText != null) {
-      setState(() => _errorText = null);
-      return;
-    }
-    setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AppModalShell(
-      layout: _familyNameDialogLayout,
-      minimumSafeArea: const EdgeInsets.fromLTRB(16, 20, 16, 20),
-      clipChild: false,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final maxWidth = constraints.maxWidth.isFinite
-              ? constraints.maxWidth
-              : _familyNameDialogDesignWidth;
-          final maxHeight = constraints.maxHeight.isFinite
-              ? constraints.maxHeight
-              : _familyNameDialogDesignHeight;
-          final aspect =
-              _familyNameDialogDesignWidth / _familyNameDialogDesignHeight;
-          final dialogWidth = math.min(maxWidth, maxHeight * aspect);
-          final dialogHeight = dialogWidth / aspect;
-
-          return Center(
-            child: SizedBox(
-              width: dialogWidth,
-              height: dialogHeight,
-              child: FittedBox(
-                fit: BoxFit.contain,
-                child: SizedBox(
-                  width: _familyNameDialogDesignWidth,
-                  height: _familyNameDialogDesignHeight,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      const Positioned.fill(
-                        child: FamilySpriteSlice(
-                          assetPath: _familyNameDialogAsset,
-                          sheetSize: _familyNameDialogSheetSize,
-                          region: _familyNameDialogPanelRegion,
-                          fit: BoxFit.fill,
-                          sampleInset: 1,
-                        ),
-                      ),
-                      const Positioned(
-                        left: 50,
-                        top: 47,
-                        width: 238,
-                        height: 38,
-                        child: FamilySpriteSlice(
-                          assetPath: _familyNameDialogAsset,
-                          sheetSize: _familyNameDialogSheetSize,
-                          region: _familyNameDialogTitleRegion,
-                          fit: BoxFit.contain,
-                          alignment: Alignment.centerLeft,
-                          sampleInset: 0,
-                        ),
-                      ),
-                      const Positioned(
-                        left: 52,
-                        top: 116,
-                        width: 99,
-                        height: 24,
-                        child: FamilySpriteSlice(
-                          assetPath: _familyNameDialogAsset,
-                          sheetSize: _familyNameDialogSheetSize,
-                          region: _familyNameDialogFieldLabelRegion,
-                          fit: BoxFit.contain,
-                          alignment: Alignment.centerLeft,
-                          sampleInset: 0,
-                        ),
-                      ),
-                      const Positioned(
-                        left: 52,
-                        top: 153,
-                        width: 520,
-                        height: 86,
-                        child: FamilySpriteSlice(
-                          assetPath: _familyNameDialogAsset,
-                          sheetSize: _familyNameDialogSheetSize,
-                          region: _familyNameDialogInputBoxRegion,
-                          fit: BoxFit.fill,
-                          sampleInset: 0,
-                        ),
-                      ),
-                      Positioned(
-                        left: 74,
-                        top: 167,
-                        width: 476,
-                        height: 58,
-                        child: _FamilyNameTextField(
-                          controller: _controller,
-                          maxLength: _maxLength,
-                          onChanged: _handleChanged,
-                          onSubmitted: _submit,
-                        ),
-                      ),
-                      Positioned(
-                        left: 52,
-                        top: 258,
-                        width: 220,
-                        height: 28,
-                        child: _FamilyNameHelperText(errorText: _errorText),
-                      ),
-                      Positioned(
-                        right: 52,
-                        top: 256,
-                        width: 110,
-                        height: 32,
-                        child: _FamilyNameCharCount(
-                          count: _controller.text.length,
-                          maxLength: _maxLength,
-                        ),
-                      ),
-                      Positioned(
-                        left: 247,
-                        top: 301,
-                        width: 322,
-                        height: 97,
-                        child: _FamilyNameDialogActions(
-                          onCancel: widget.onCancel,
-                          onSave: _submit,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _FamilyNameTextField extends StatelessWidget {
-  const _FamilyNameTextField({
-    required this.controller,
-    required this.maxLength,
-    required this.onChanged,
-    required this.onSubmitted,
-  });
-
-  final TextEditingController controller;
-  final int maxLength;
-  final ValueChanged<String> onChanged;
-  final VoidCallback onSubmitted;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      key: const Key('family_name_edit_field'),
-      controller: controller,
-      autofocus: true,
-      maxLength: maxLength,
-      maxLines: 1,
-      textInputAction: TextInputAction.done,
-      style: const TextStyle(
-        color: Color(0xFF4A3527),
-        fontSize: 31,
-        fontWeight: FontWeight.w900,
-        height: 1.1,
-      ),
-      cursorColor: const Color(0xFF6E4B2C),
-      cursorWidth: 2.4,
-      onChanged: onChanged,
-      onSubmitted: (_) => onSubmitted(),
-      buildCounter:
-          (
-            context, {
-            required currentLength,
-            required isFocused,
-            required maxLength,
-          }) {
-            return const SizedBox.shrink();
-          },
-      decoration: const InputDecoration(
-        isCollapsed: true,
-        border: InputBorder.none,
-        enabledBorder: InputBorder.none,
-        focusedBorder: InputBorder.none,
-        contentPadding: EdgeInsets.only(top: 12),
-        counterText: '',
-      ),
-    );
-  }
-}
-
-class _FamilyNameHelperText extends StatelessWidget {
-  const _FamilyNameHelperText({required this.errorText});
-
-  final String? errorText;
-
-  @override
-  Widget build(BuildContext context) {
-    final error = errorText;
-    if (error != null) {
-      return Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          error,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Color(0xFFB95740),
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            height: 1,
-          ),
-        ),
-      );
-    }
-
-    return const Align(
-      alignment: Alignment.centerLeft,
-      child: FamilySpriteSlice(
-        assetPath: _familyNameDialogAsset,
-        sheetSize: _familyNameDialogSheetSize,
-        region: _familyNameDialogHelperTextRegion,
-        fit: BoxFit.contain,
-        alignment: Alignment.centerLeft,
-        sampleInset: 0,
-      ),
-    );
-  }
-}
-
-class _FamilyNameCharCount extends StatelessWidget {
-  const _FamilyNameCharCount({required this.count, required this.maxLength});
-
-  final int count;
-  final int maxLength;
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: Text(
-        '$count / $maxLength',
-        maxLines: 1,
-        style: const TextStyle(
-          color: Color(0xFF9A7D60),
-          fontSize: 24,
-          fontWeight: FontWeight.w900,
-          height: 1,
-        ),
-      ),
-    );
-  }
-}
-
-class _FamilyNameDialogActions extends StatefulWidget {
-  const _FamilyNameDialogActions({
-    required this.onCancel,
-    required this.onSave,
-  });
-
-  final VoidCallback onCancel;
-  final VoidCallback onSave;
-
-  @override
-  State<_FamilyNameDialogActions> createState() =>
-      _FamilyNameDialogActionsState();
-}
-
-class _FamilyNameDialogActionsState extends State<_FamilyNameDialogActions> {
-  bool _savePressed = false;
-
-  void _setSavePressed(bool value) {
-    if (_savePressed == value) {
-      return;
-    }
-    setState(() => _savePressed = value);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        const Positioned(
-          left: 0,
-          top: 51,
-          width: 58,
-          height: 29,
-          child: FamilySpriteSlice(
-            assetPath: _familyNameDialogAsset,
-            sheetSize: _familyNameDialogSheetSize,
-            region: _familyNameDialogBottomCancelRegion,
-            fit: BoxFit.contain,
-            alignment: Alignment.centerLeft,
-            sampleInset: 0,
-          ),
-        ),
-        Positioned(
-          left: 129,
-          top: 21,
-          width: 190,
-          height: 73,
-          child: AnimatedScale(
-            scale: _savePressed ? 0.97 : 1,
-            duration: const Duration(milliseconds: 90),
-            curve: Curves.easeOutCubic,
-            child: const FamilySpriteSlice(
-              assetPath: _familyNameDialogAsset,
-              sheetSize: _familyNameDialogSheetSize,
-              region: _familyNameDialogBottomSaveRegion,
-              fit: BoxFit.contain,
-              sampleInset: 0,
-            ),
-          ),
-        ),
-        Positioned(
-          left: 0,
-          top: 42,
-          width: 104,
-          height: 58,
-          child: Semantics(
-            button: true,
-            label: '取消',
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: widget.onCancel,
-            ),
-          ),
-        ),
-        Positioned(
-          left: 119,
-          top: 14,
-          width: 202,
-          height: 76,
-          child: Semantics(
-            button: true,
-            label: '保存',
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTapDown: (_) => _setSavePressed(true),
-              onTapUp: (_) => _setSavePressed(false),
-              onTapCancel: () => _setSavePressed(false),
-              onTap: widget.onSave,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

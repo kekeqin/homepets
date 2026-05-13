@@ -84,6 +84,7 @@ flutter:
     - "assets/images/pets/dog/turning the face and smiling/"
     - "assets/images/pets/dog/wagging tail/"
     - assets/images/ui/
+    - assets/images/ui/setup/
     - "assets/images/ui/Change profile picture/"
     - assets/images/ui/paywall/
     - assets/images/ui/task/

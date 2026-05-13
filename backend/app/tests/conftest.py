@@ -10,7 +10,7 @@ from app.main import app
 
 # Import all models so SQLModel.metadata knows about all tables
 from app.models.family import Family  # noqa: F401
-from app.models.pet import Pet, PetHistoryEvent  # noqa: F401
+from app.models.pet import Pet  # noqa: F401
 from app.models.task import Task, TaskCompletion  # noqa: F401
 from app.models.user import User  # noqa: F401
 

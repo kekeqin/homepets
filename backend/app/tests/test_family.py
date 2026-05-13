@@ -107,7 +107,8 @@ def test_set_member_pet_success_with_name(client: TestClient, db: Session) -> No
     pets = _list_pets(client, token, family_id)
     member_pet = next(pet for pet in pets if pet["owner_id"] == member_id)
     assert member_pet["name"] == "Tuantuan"
-    assert member_pet["pet_form"] == "pet"
+    assert "pet_form" not in member_pet
+    assert "image_url" not in member_pet
 
 
 def test_list_members_success(client: TestClient, db: Session) -> None:

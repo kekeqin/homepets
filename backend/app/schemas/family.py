@@ -24,7 +24,6 @@ class MemberResponse(BaseModel):
     points: int = 0
     pet_id: int | None = None
     pet_type: str | None = None
-    pet_form: str | None = None
     needs_pet_selection: bool = False
 
 

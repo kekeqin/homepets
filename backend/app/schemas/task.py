@@ -28,12 +28,8 @@ class TaskListItemResponse(TaskResponse):
     status: str = "pending"
 
 
-class CompletionReview(BaseModel):
-    status: str = Field(pattern="^(approved|rejected)$")
-
-
 class CompletionSubmit(BaseModel):
-    member_id: int | None = None  # If None, uses current user
+    member_id: int | None = None
 
 
 class CompletionResponse(BaseModel):
@@ -47,22 +43,3 @@ class CompletionResponse(BaseModel):
     task_points: int = 0
     task_is_active: bool | None = None
     member_nickname: str | None = None
-
-
-class QuestLogResponse(BaseModel):
-    id: int
-    task_id: int
-    member_id: int
-    status: str
-    title: str
-    points: int
-    is_task_active: bool | None = None
-    completed_at: datetime
-    member_nickname: str | None = None
-
-
-class TaskOverviewResponse(BaseModel):
-    active_tasks: list[TaskListItemResponse]
-    today_completed_count: int
-    week_completed_count: int
-    recent_completions: list[QuestLogResponse]

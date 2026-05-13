@@ -21,6 +21,7 @@ import '../../models/pet.dart';
 import '../../models/pet_artwork.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../providers/family_provider.dart';
 import '../../widgets/app_modal_shell.dart';
 import '../../widgets/homepets_button.dart';
 import '../../widgets/homepets_dialog.dart';
@@ -35,6 +36,13 @@ import 'settings_dialog.dart';
 import 'task_panel_sprite_catalog.dart';
 
 enum _TaskPanelRowAction { edit, delete, complete }
+
+class _ProfileEditResult {
+  const _ProfileEditResult({required this.nickname, required this.familyName});
+
+  final String nickname;
+  final String? familyName;
+}
 
 const String _taskContextMenuBoardAsset =
     'assets/images/ui/task_context_menu_board_compact.png';
@@ -80,21 +88,35 @@ const String _completeMemberDialogShadowAsset =
     '$_completeMemberDialogAssetRoot/complete_member_dialog_shadow_large.png';
 const String _completeMemberHeaderIconAsset =
     '$_completeMemberDialogAssetRoot/complete_member_header_icon_clipboard_star_left.png';
-const String _completeMemberInputBorderAsset =
-    '$_completeMemberDialogAssetRoot/complete_member_input_border_dark_empty.png';
 const String _completeMemberDropdownArrowAsset =
     '$_completeMemberDialogAssetRoot/complete_member_chevron_down_standalone.png';
-const String _completeMemberDropdownMenuAsset =
-    '$_completeMemberDialogAssetRoot/complete_member_dropdown_menu_open_blank.png';
-const String _completeMemberDropdownOptionBlankTopAsset =
-    '$_completeMemberDialogAssetRoot/complete_member_dropdown_option_blank_top.png';
 const String _completeMemberCheckmarkAsset =
     '$_completeMemberDialogAssetRoot/complete_member_checkmark_white_right.png';
 const String _completeMemberConfirmButtonAsset =
     '$_completeMemberDialogAssetRoot/complete_member_confirm_complete_button_bottom.png';
+const Color _completeMemberFieldFillColor = Color(0xFFFFFCF4);
+const Color _completeMemberFieldBorderColor = Color(0xFF76563E);
+const Color _completeMemberMenuFillColor = Color(0xFFFFF4E5);
+const Color _completeMemberOptionFillColor = Color(0xFFFBE3BD);
+const Color _completeMemberOptionSelectedColor = Color(0xFFD7E09A);
+const double _taskMutationDialogWidthFactor = 0.86;
+const double _taskMutationDialogMaxWidth = 390;
+const double _taskMutationDialogHeightFactor = 0.76;
 const double _taskPanelBoardHeightRatio =
     TaskBoardReferenceAsset.panelHeightRatio;
 const Duration _taskPanelTransitionDuration = Duration(milliseconds: 320);
+
+Size _taskMutationDialogSize(Size screenSize) {
+  final maxPanelWidth = math.min(
+    screenSize.width * _taskMutationDialogWidthFactor,
+    _taskMutationDialogMaxWidth,
+  );
+  final maxPanelHeight = screenSize.height * _taskMutationDialogHeightFactor;
+  final panelAspectRatio = TaskEditorSheetSpriteCatalog.panelBlankAspectRatio;
+  final panelWidth = math.min(maxPanelWidth, maxPanelHeight * panelAspectRatio);
+
+  return Size(panelWidth, panelWidth / panelAspectRatio);
+}
 
 class HomeSceneFlameView extends ConsumerStatefulWidget {
   const HomeSceneFlameView({
@@ -452,7 +474,8 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   }
 
   Future<void> _showEditProfileDialog() async {
-    final user = ref.read(authProvider).user;
+    final authState = ref.read(authProvider);
+    final user = authState.user;
 
     if (user == null) {
       _showTopSnackBar(
@@ -461,32 +484,86 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       return;
     }
 
+    final canManageFamilyName =
+        user.isAdmin && !authState.viewOnly && user.familyId != null;
+
+    if (canManageFamilyName) {
+      try {
+        await ref.read(familyProvider.notifier).loadFamily();
+      } catch (error) {
+        if (!mounted) {
+          return;
+        }
+        showFriendlyApiErrorSnackBar(
+          context,
+          error,
+          fallbackMessage:
+              '\u52a0\u8f7d\u5bb6\u5ead\u8d44\u6599\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5',
+        );
+        return;
+      }
+    }
+
+    final familyState = ref.read(familyProvider);
+    final canEditFamilyName = canManageFamilyName && familyState.hasFamily;
     final nicknameController = TextEditingController(text: user.nickname);
+    final familyNameController = TextEditingController(
+      text: canEditFamilyName ? familyState.familyName : '',
+    );
 
     try {
-      final nickname = await showHomePetsDialog<String>(
+      if (!mounted) {
+        return;
+      }
+
+      final result = await showHomePetsDialog<_ProfileEditResult>(
         context: context,
         barrierLabel: 'edit_profile_dialog',
         title: '\u7f16\u8f91\u8d44\u6599',
+        layout: const AppModalLayout(
+          mobileWidthFactor: 0.88,
+          mobileMaxWidth: 390,
+          mobileHeightFactor: 0.78,
+          mobileMaxHeight: 520,
+          tabletWidthFactor: 0.38,
+          tabletMaxWidth: 430,
+          tabletHeightFactor: 0.62,
+          tabletMaxHeight: 560,
+        ),
         contentBuilder: (dialogContext) {
-          return TextField(
-            controller: nicknameController,
-            maxLength: 20,
-            textInputAction: TextInputAction.done,
-            decoration: const InputDecoration(
-              labelText: '\u6635\u79f0',
-              counterText: '',
-            ),
-            style: const TextStyle(
-              color: Color(0xFF4D3623),
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0,
-            ),
-            onSubmitted: (_) => _submitEditProfileDialog(
-              dialogContext,
-              nicknameController.text,
-            ),
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildEditProfileField(
+                controller: nicknameController,
+                labelText: '\u6635\u79f0',
+                maxLength: 20,
+                textInputAction: canEditFamilyName
+                    ? TextInputAction.next
+                    : TextInputAction.done,
+                onSubmitted: canEditFamilyName
+                    ? () => FocusScope.of(dialogContext).nextFocus()
+                    : () => _submitEditProfileDialog(
+                        dialogContext,
+                        nickname: nicknameController.text,
+                        familyName: null,
+                      ),
+              ),
+              if (canEditFamilyName) ...[
+                const SizedBox(height: 16),
+                _buildEditProfileField(
+                  controller: familyNameController,
+                  labelText: '\u5bb6\u5ead\u540d\u79f0',
+                  maxLength: 30,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: () => _submitEditProfileDialog(
+                    dialogContext,
+                    nickname: nicknameController.text,
+                    familyName: familyNameController.text,
+                  ),
+                ),
+              ],
+            ],
           );
         },
         actionsBuilder: (dialogContext) {
@@ -500,25 +577,46 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
               label: '\u4fdd\u5b58',
               onPressed: () => _submitEditProfileDialog(
                 dialogContext,
-                nicknameController.text,
+                nickname: nicknameController.text,
+                familyName: canEditFamilyName
+                    ? familyNameController.text
+                    : null,
               ),
             ),
           ];
         },
       );
 
-      if (!mounted || nickname == null) {
+      if (!mounted || result == null) {
         return;
       }
 
-      if (nickname == user.nickname.trim()) {
+      final nextNickname = result.nickname.trim();
+      final nextFamilyName = result.familyName?.trim();
+      final nicknameChanged = nextNickname != user.nickname.trim();
+      final familyNameChanged =
+          canEditFamilyName &&
+          nextFamilyName != null &&
+          nextFamilyName != familyState.familyName.trim();
+
+      if (!nicknameChanged && !familyNameChanged) {
         return;
       }
 
-      final dio = ref.read(apiClientProvider).dio;
+      if (nicknameChanged) {
+        final dio = ref.read(apiClientProvider).dio;
+        await dio.put(
+          '/api/users/${user.id}',
+          data: {'nickname': nextNickname},
+        );
+        await ref.read(authProvider.notifier).refreshUser();
+      }
 
-      await dio.put('/api/users/${user.id}', data: {'nickname': nickname});
-      await ref.read(authProvider.notifier).refreshUser();
+      if (familyNameChanged) {
+        await ref
+            .read(familyProvider.notifier)
+            .updateFamilyName(nextFamilyName);
+      }
 
       if (mounted) {
         _showTopSnackBar('\u8d44\u6599\u5df2\u66f4\u65b0');
@@ -534,11 +632,39 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       }
     } finally {
       nicknameController.dispose();
+      familyNameController.dispose();
     }
   }
 
-  void _submitEditProfileDialog(BuildContext dialogContext, String nickname) {
+  Widget _buildEditProfileField({
+    required TextEditingController controller,
+    required String labelText,
+    required int maxLength,
+    required TextInputAction textInputAction,
+    VoidCallback? onSubmitted,
+  }) {
+    return TextField(
+      controller: controller,
+      maxLength: maxLength,
+      textInputAction: textInputAction,
+      decoration: InputDecoration(labelText: labelText, counterText: ''),
+      style: const TextStyle(
+        color: Color(0xFF4D3623),
+        fontSize: 17,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0,
+      ),
+      onSubmitted: onSubmitted == null ? null : (_) => onSubmitted(),
+    );
+  }
+
+  void _submitEditProfileDialog(
+    BuildContext dialogContext, {
+    required String nickname,
+    required String? familyName,
+  }) {
     final trimmedNickname = nickname.trim();
+    final trimmedFamilyName = familyName?.trim();
 
     if (trimmedNickname.isEmpty) {
       ScaffoldMessenger.of(dialogContext).showSnackBar(
@@ -547,7 +673,22 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       return;
     }
 
-    Navigator.of(dialogContext).pop(trimmedNickname);
+    if (familyName != null &&
+        (trimmedFamilyName == null || trimmedFamilyName.isEmpty)) {
+      ScaffoldMessenger.of(dialogContext).showSnackBar(
+        const SnackBar(
+          content: Text('\u8bf7\u8f93\u5165\u5bb6\u5ead\u540d\u79f0'),
+        ),
+      );
+      return;
+    }
+
+    Navigator.of(dialogContext).pop(
+      _ProfileEditResult(
+        nickname: trimmedNickname,
+        familyName: familyName == null ? null : trimmedFamilyName,
+      ),
+    );
   }
 
   Future<bool> _showLogoutConfirmDialog() async {
@@ -2943,10 +3084,7 @@ class _TaskDeleteConfirmDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.sizeOf(context);
-    final panelSide = math.min(
-      math.min(screenSize.width * 0.82, 368.0),
-      screenSize.height * 0.72,
-    );
+    final panelSize = _taskMutationDialogSize(screenSize);
 
     return Material(
       color: Colors.transparent,
@@ -2958,8 +3096,9 @@ class _TaskDeleteConfirmDialog extends StatelessWidget {
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () {},
-              child: SizedBox.square(
-                dimension: panelSide,
+              child: SizedBox(
+                width: panelSize.width,
+                height: panelSize.height,
                 child: _TaskDeleteConfirmPanel(
                   taskLabel: taskLabel,
                   onCancel: onCancel,
@@ -2989,20 +3128,22 @@ class _TaskDeleteConfirmPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final side = constraints.maxWidth;
+        final panelSize = constraints.biggest;
+        final width = panelSize.width;
+        final height = panelSize.height;
         final messageFontSize = taskLabel.runes.length > 10
-            ? side * 0.034
-            : side * 0.039;
+            ? width * 0.034
+            : width * 0.039;
 
         return Stack(
           clipBehavior: Clip.none,
           children: [
             Positioned.fill(child: const _TaskDialogPanelBackground()),
             Positioned(
-              top: side * 0.052,
-              left: side * 0.5 - side * 0.086,
-              width: side * 0.172,
-              height: side * 0.185,
+              top: height * 0.052,
+              left: width * 0.5 - width * 0.086,
+              width: width * 0.172,
+              height: height * 0.185,
               child: Image.asset(
                 _taskDeleteTrashAsset,
                 fit: BoxFit.contain,
@@ -3010,10 +3151,10 @@ class _TaskDeleteConfirmPanel extends StatelessWidget {
               ),
             ),
             Positioned(
-              top: side * 0.255,
-              left: side * 0.5 - side * 0.205,
-              width: side * 0.41,
-              height: side * 0.116,
+              top: height * 0.255,
+              left: width * 0.5 - width * 0.205,
+              width: width * 0.41,
+              height: height * 0.116,
               child: Image.asset(
                 _taskDeleteTitleAsset,
                 fit: BoxFit.contain,
@@ -3021,10 +3162,10 @@ class _TaskDeleteConfirmPanel extends StatelessWidget {
               ),
             ),
             Positioned(
-              top: side * 0.383,
-              left: side * 0.06,
-              right: side * 0.06,
-              height: side * 0.105,
+              top: height * 0.383,
+              left: width * 0.06,
+              right: width * 0.06,
+              height: height * 0.105,
               child: Center(
                 child: Text(
                   '确认删除任务「$taskLabel」吗？',
@@ -3041,13 +3182,13 @@ class _TaskDeleteConfirmPanel extends StatelessWidget {
               ),
             ),
             Positioned(
-              top: side * 0.492,
+              top: height * 0.492,
               left: 0,
               right: 0,
-              height: side * 0.065,
+              height: height * 0.065,
               child: Center(
                 child: SizedBox(
-                  width: side * 0.43,
+                  width: width * 0.43,
                   child: AspectRatio(
                     aspectRatio: 226 / 30,
                     child: Image.asset(
@@ -3061,18 +3202,18 @@ class _TaskDeleteConfirmPanel extends StatelessWidget {
               ),
             ),
             Positioned(
-              top: side * 0.565,
-              left: side * 0.31,
-              width: side * 0.38,
-              height: side * 0.19,
+              top: height * 0.565,
+              left: width * 0.31,
+              width: width * 0.38,
+              height: height * 0.19,
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
                   Positioned(
                     left: 0,
                     top: 0,
-                    width: side * 0.16,
-                    height: side * 0.17,
+                    width: width * 0.16,
+                    height: height * 0.17,
                     child: Image.asset(
                       _taskDeleteNoteAsset,
                       fit: BoxFit.contain,
@@ -3080,10 +3221,10 @@ class _TaskDeleteConfirmPanel extends StatelessWidget {
                     ),
                   ),
                   Positioned(
-                    right: side * 0.005,
-                    top: side * 0.012,
-                    width: side * 0.215,
-                    height: side * 0.170,
+                    right: width * 0.005,
+                    top: height * 0.012,
+                    width: width * 0.215,
+                    height: height * 0.170,
                     child: Image.asset(
                       _taskDeleteCatAsset,
                       fit: BoxFit.contain,
@@ -3094,10 +3235,10 @@ class _TaskDeleteConfirmPanel extends StatelessWidget {
               ),
             ),
             Positioned(
-              left: side * 0.095,
-              bottom: side * 0.074,
-              width: side * 0.39,
-              height: side * 0.166,
+              left: width * 0.095,
+              bottom: height * 0.074,
+              width: width * 0.39,
+              height: height * 0.166,
               child: _TaskDeleteActionButton(
                 label: '取消',
                 assetPath: _taskDeleteCancelButtonAsset,
@@ -3106,10 +3247,10 @@ class _TaskDeleteConfirmPanel extends StatelessWidget {
               ),
             ),
             Positioned(
-              right: side * 0.095,
-              bottom: side * 0.074,
-              width: side * 0.39,
-              height: side * 0.166,
+              right: width * 0.095,
+              bottom: height * 0.074,
+              width: width * 0.39,
+              height: height * 0.166,
               child: _TaskDeleteActionButton(
                 label: '删除',
                 assetPath: _taskDeleteButtonAsset,
@@ -3257,16 +3398,15 @@ class _CompletionMemberSelectContentState
     final maxHeight = screenSize.height * 0.74;
     final panelWidth = math.min(maxWidth, maxHeight * aspect);
     final panelHeight = panelWidth / aspect;
-    final visibleOptions = widget.options.take(3).toList();
 
-    return Material(
-      color: Colors.transparent,
-      child: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(16, 20, 16, 20),
-        child: Center(
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {},
+    return SafeArea(
+      minimum: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+      child: Center(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {},
+          child: Material(
+            color: Colors.transparent,
             child: SizedBox(
               width: panelWidth,
               height: panelHeight,
@@ -3359,7 +3499,7 @@ class _CompletionMemberSelectContentState
                         width: 367,
                         height: 193,
                         child: _CompleteMemberOptionsList(
-                          options: visibleOptions,
+                          options: widget.options,
                           selectedMemberId: _selectedMemberId,
                           onSelected: _selectMember,
                         ),
@@ -3401,24 +3541,14 @@ class _CompleteMemberAssetImage extends StatelessWidget {
   const _CompleteMemberAssetImage({
     required this.assetPath,
     this.fit = BoxFit.contain,
-    this.color,
-    this.colorBlendMode,
   });
 
   final String assetPath;
   final BoxFit fit;
-  final Color? color;
-  final BlendMode? colorBlendMode;
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      assetPath,
-      fit: fit,
-      color: color,
-      colorBlendMode: colorBlendMode,
-      filterQuality: FilterQuality.high,
-    );
+    return Image.asset(assetPath, fit: fit, filterQuality: FilterQuality.high);
   }
 }
 
@@ -3429,44 +3559,58 @@ class _CompleteMemberClosedField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        const _CompleteMemberAssetImage(
-          assetPath: _completeMemberInputBorderAsset,
-          fit: BoxFit.fill,
-        ),
-        Positioned(
-          left: 26,
-          top: 0,
-          right: 68,
-          bottom: 0,
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Color(0xFF4D3623),
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-                height: 1,
-                letterSpacing: 0,
+    return Container(
+      decoration: BoxDecoration(
+        color: _completeMemberFieldFillColor,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x295E3A20),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      foregroundDecoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _completeMemberFieldBorderColor, width: 3),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned(
+            left: 30,
+            top: 5,
+            right: 74,
+            bottom: 5,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF4D3623),
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                  letterSpacing: 0,
+                ),
               ),
             ),
           ),
-        ),
-        const Positioned(
-          right: 27,
-          top: 22,
-          width: 34,
-          height: 22,
-          child: _CompleteMemberAssetImage(
-            assetPath: _completeMemberDropdownArrowAsset,
+          const Positioned(
+            right: 27,
+            top: 22,
+            width: 34,
+            height: 22,
+            child: _CompleteMemberAssetImage(
+              assetPath: _completeMemberDropdownArrowAsset,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -3484,69 +3628,85 @@ class _CompleteMemberOptionsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        const _CompleteMemberAssetImage(
-          assetPath: _completeMemberDropdownMenuAsset,
-          fit: BoxFit.fill,
-        ),
-        for (var index = 0; index < options.length; index++)
-          _CompleteMemberOptionRow(
-            index: index,
-            option: options[index],
-            selected: options[index].value == selectedMemberId,
-            onSelected: onSelected,
+    return Container(
+      decoration: BoxDecoration(
+        color: _completeMemberMenuFillColor,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1F5E3A20),
+            blurRadius: 5,
+            offset: Offset(0, 2),
           ),
-      ],
+        ],
+      ),
+      foregroundDecoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _completeMemberFieldBorderColor, width: 2),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Scrollbar(
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+            physics: const ClampingScrollPhysics(),
+            itemExtent: 55,
+            itemCount: options.length,
+            itemBuilder: (context, index) {
+              final option = options[index];
+              return _CompleteMemberOptionRow(
+                option: option,
+                selected: option.value == selectedMemberId,
+                onSelected: onSelected,
+              );
+            },
+          ),
+        ),
+      ),
     );
   }
 }
 
 class _CompleteMemberOptionRow extends StatelessWidget {
   const _CompleteMemberOptionRow({
-    required this.index,
     required this.option,
     required this.selected,
     required this.onSelected,
   });
 
-  final int index;
   final HomePetsSelectOption<int> option;
   final bool selected;
   final ValueChanged<int> onSelected;
 
   @override
   Widget build(BuildContext context) {
-    final top = switch (index) {
-      0 => 9.0,
-      1 => 67.0,
-      _ => 124.0,
-    };
-
-    return Positioned(
-      left: 9,
-      top: top,
-      width: 349,
-      height: 59,
+    return SizedBox(
+      height: 55,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => onSelected(option.value),
         child: Stack(
           fit: StackFit.expand,
           children: [
-            if (selected)
-              const _CompleteMemberAssetImage(
-                assetPath: _completeMemberDropdownOptionBlankTopAsset,
-                fit: BoxFit.fill,
-                color: Color(0xFFD7E09A),
-                colorBlendMode: BlendMode.srcATop,
+            Positioned.fill(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? _completeMemberOptionSelectedColor
+                        : _completeMemberOptionFillColor,
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                ),
               ),
+            ),
             Positioned(
-              left: 19,
-              top: 0,
-              right: selected ? 58 : 20,
-              bottom: 0,
+              left: 22,
+              top: 5,
+              right: selected ? 62 : 22,
+              bottom: 5,
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -3738,14 +3898,7 @@ class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.sizeOf(context);
     final viewInsets = MediaQuery.viewInsetsOf(context);
-    final maxPanelWidth = math.min(screenSize.width * 0.86, 390.0);
-    final maxPanelHeight = screenSize.height * 0.76;
-    final panelAspectRatio = TaskEditorSheetSpriteCatalog.panelBlankAspectRatio;
-    final panelWidth = math.min(
-      maxPanelWidth,
-      maxPanelHeight * panelAspectRatio,
-    );
-    final panelHeight = panelWidth / panelAspectRatio;
+    final panelSize = _taskMutationDialogSize(screenSize);
 
     return Material(
       color: Colors.transparent,
@@ -3759,8 +3912,8 @@ class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
               behavior: HitTestBehavior.opaque,
               onTap: () => FocusScope.of(context).unfocus(),
               child: SizedBox(
-                width: panelWidth,
-                height: panelHeight,
+                width: panelSize.width,
+                height: panelSize.height,
                 child: FutureBuilder<SpriteAtlas>(
                   future: _spriteAtlasFuture,
                   builder: (context, snapshot) {
@@ -3788,10 +3941,10 @@ class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
                           ),
                         ),
                         Positioned(
-                          top: -panelHeight * 0.040,
-                          right: -panelWidth * 0.012,
-                          width: panelWidth * 0.145,
-                          height: panelWidth * 0.148,
+                          top: -panelSize.height * 0.036,
+                          right: -panelSize.width * 0.002,
+                          width: panelSize.width * 0.138,
+                          height: panelSize.width * 0.138,
                           child: _TaskEditorCloseButton(
                             sprites: sprites,
                             onPressed: () => Navigator.of(context).pop(),
@@ -3827,11 +3980,17 @@ class _TaskEditorCloseButton extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onPressed,
-        child: SpriteFrameImage(
-          imageAsset: sprites.imageAsset,
-          sheetSize: sprites.sheetSize,
-          frame: sprites.closeButton,
-          fit: BoxFit.contain,
+        child: Center(
+          child: FractionallySizedBox(
+            widthFactor: 0.78,
+            heightFactor: 0.78,
+            child: SpriteFrameImage(
+              imageAsset: sprites.imageAsset,
+              sheetSize: sprites.sheetSize,
+              frame: sprites.closeButton,
+              fit: BoxFit.contain,
+            ),
+          ),
         ),
       ),
     );
@@ -3922,17 +4081,20 @@ class _TaskEditorSpriteCard extends StatelessWidget {
         final fieldWidth = panelSize.width * 0.66;
         final fieldHeight = panelSize.height * 0.112;
         final fieldLeft = panelSize.width * 0.17;
-        final buttonTop = panelSize.height * (bottomInset > 0 ? 0.798 : 0.812);
-        final buttonHeight = panelSize.height * 0.145;
-        final cancelButtonWidth = panelSize.width * 0.36;
-        final saveButtonWidth = panelSize.width * 0.39;
+        final buttonBottom =
+            panelSize.height * (bottomInset > 0 ? 0.052 : 0.075);
+        final buttonHeight = panelSize.height * 0.112;
+        final buttonSideInset = panelSize.width * 0.17;
+        final cancelButtonWidth =
+            buttonHeight * sprites.cancelButtonBg.aspectRatio;
+        final saveButtonWidth = buttonHeight * sprites.saveButtonBg.aspectRatio;
 
         return Stack(
           clipBehavior: Clip.none,
           children: [
             Positioned.fill(child: const _TaskDialogPanelBackground()),
             Positioned(
-              top: panelSize.height * 0.115,
+              top: panelSize.height * 0.095,
               left: (panelSize.width - titleWidth) * 0.5,
               width: titleWidth,
               height: titleWidth / sprites.titleEditTask.aspectRatio,
@@ -3952,7 +4114,7 @@ class _TaskEditorSpriteCard extends StatelessWidget {
               ),
             ),
             Positioned(
-              top: panelSize.height * 0.258,
+              top: panelSize.height * 0.238,
               left: panelSize.width * 0.17,
               width: panelSize.width * 0.168,
               height:
@@ -3972,7 +4134,7 @@ class _TaskEditorSpriteCard extends StatelessWidget {
               ),
             ),
             Positioned(
-              top: panelSize.height * 0.335,
+              top: panelSize.height * 0.313,
               left: fieldLeft,
               width: fieldWidth,
               height: fieldHeight,
@@ -3986,7 +4148,7 @@ class _TaskEditorSpriteCard extends StatelessWidget {
               ),
             ),
             Positioned(
-              top: panelSize.height * 0.485,
+              top: panelSize.height * 0.457,
               left: panelSize.width * 0.17,
               width: panelSize.width * 0.373,
               height:
@@ -4008,7 +4170,7 @@ class _TaskEditorSpriteCard extends StatelessWidget {
               ),
             ),
             Positioned(
-              top: panelSize.height * 0.574,
+              top: panelSize.height * 0.545,
               left: fieldLeft,
               width: fieldWidth,
               height: fieldHeight,
@@ -4024,7 +4186,7 @@ class _TaskEditorSpriteCard extends StatelessWidget {
             ),
             if (validationMessage != null)
               Positioned(
-                top: panelSize.height * 0.704,
+                top: panelSize.height * 0.675,
                 left: panelSize.width * 0.10,
                 right: panelSize.width * 0.10,
                 child: Text(
@@ -4041,7 +4203,7 @@ class _TaskEditorSpriteCard extends StatelessWidget {
               ),
             if (isEditing)
               Positioned(
-                top: panelSize.height * 0.717,
+                top: panelSize.height * 0.690,
                 left: panelSize.width * 0.28,
                 width: panelSize.width * 0.44,
                 height: panelSize.height * 0.085,
@@ -4051,8 +4213,8 @@ class _TaskEditorSpriteCard extends StatelessWidget {
                 ),
               ),
             Positioned(
-              top: buttonTop,
-              left: panelSize.width * 0.09,
+              bottom: buttonBottom,
+              left: buttonSideInset,
               width: cancelButtonWidth,
               height: buttonHeight,
               child: _TaskEditorSpriteImageButton(
@@ -4064,8 +4226,8 @@ class _TaskEditorSpriteCard extends StatelessWidget {
               ),
             ),
             Positioned(
-              top: buttonTop,
-              right: panelSize.width * 0.09,
+              bottom: buttonBottom,
+              right: buttonSideInset,
               width: saveButtonWidth,
               height: buttonHeight,
               child: _TaskEditorSpriteImageButton(
@@ -4225,7 +4387,7 @@ class _TaskEditorSpriteImageButtonState
                     widget.fallbackText!,
                     style: const TextStyle(
                       color: Color(0xFF4D3623),
-                      fontSize: 20,
+                      fontSize: 16,
                       fontWeight: FontWeight.w900,
                       height: 1,
                       letterSpacing: 0,

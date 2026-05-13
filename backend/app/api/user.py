@@ -9,6 +9,7 @@ from app.schemas.user import UserUpdate
 router = APIRouter(prefix="/api/users", tags=["users"])
 
 
+# 查看用户资料，主要用于资料页和成员资料页。
 @router.get("/{user_id}", response_model=UserResponse)
 def get_user(
     user_id: int,
@@ -21,6 +22,7 @@ def get_user(
     return user
 
 
+# 修改用户昵称或头像；管理员可以修改同家庭成员资料。
 @router.put("/{user_id}", response_model=UserResponse)
 def update_user(
     user_id: int,

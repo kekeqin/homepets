@@ -103,6 +103,23 @@ def test_completion_auto_feeds_member_pet(client: TestClient, db: Session) -> No
     assert member_pet["experience"] == 20
 
 
+def test_completion_levels_member_pet(client: TestClient, db: Session) -> None:
+    token, family_id, member_id, pet_id = _setup_family(client, db)
+    task = _create_task(client, token, title="Read book", points=100)
+
+    response = client.post(
+        f"/api/tasks/{task['id']}/completions",
+        json={"member_id": member_id},
+        headers=_auth_header(token),
+    )
+    assert response.status_code == 201
+
+    pets = client.get(f"/api/families/{family_id}/pets", headers=_auth_header(token)).json()
+    member_pet = next(pet for pet in pets if pet["id"] == pet_id)
+    assert member_pet["experience"] == 100
+    assert member_pet["level"] == 2
+
+
 def test_list_completions(client: TestClient, db: Session) -> None:
     token, family_id, _, _ = _setup_family(client, db)
     task = _create_task(client, token, title="Wash bowl", points=15)
@@ -117,7 +134,7 @@ def test_list_completions(client: TestClient, db: Session) -> None:
     assert response.json()[0]["task_title"] == "Wash bowl"
 
 
-def test_list_quest_logs(client: TestClient, db: Session) -> None:
+def test_quest_logs_endpoint_removed(client: TestClient, db: Session) -> None:
     token, family_id, _, _ = _setup_family(client, db)
     task = _create_task(client, token, title="Weekend walk", points=40)
     client.post(f"/api/tasks/{task['id']}/completions", headers=_auth_header(token))
@@ -126,5 +143,14 @@ def test_list_quest_logs(client: TestClient, db: Session) -> None:
         f"/api/families/{family_id}/quest-logs",
         headers=_auth_header(token),
     )
-    assert response.status_code == 200
-    assert response.json()[0]["title"] == "Weekend walk"
+    assert response.status_code == 404
+
+
+def test_task_overview_endpoint_removed(client: TestClient, db: Session) -> None:
+    token, family_id, _, _ = _setup_family(client, db)
+
+    response = client.get(
+        f"/api/families/{family_id}/tasks/overview",
+        headers=_auth_header(token),
+    )
+    assert response.status_code == 404

@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../models/pet.dart';
 import '../../models/user.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/homepets_button.dart';
+import '../../widgets/homepets_dialog.dart';
 import '../member/member_detail_screen.dart';
 import '../member/member_home_screen.dart';
 
@@ -180,6 +182,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             title: '退出登录',
             titleColor: Colors.red,
             onTap: () async {
+              final confirmed = await _showLogoutConfirmDialog(context);
+              if (!mounted || !confirmed) {
+                return;
+              }
+
               await ref.read(authProvider.notifier).logout();
               if (!mounted) {
                 return;
@@ -276,6 +283,41 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ],
       ),
     );
+  }
+
+  Future<bool> _showLogoutConfirmDialog(BuildContext context) async {
+    final result = await showHomePetsDialog<bool>(
+      context: context,
+      barrierLabel: 'profile_logout_confirm_dialog',
+      title: '退出登录',
+      contentBuilder: (dialogContext) {
+        return const Text(
+          '确定要退出当前账号吗？',
+          style: TextStyle(
+            color: Color(0xFF6F563D),
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            height: 1.4,
+            letterSpacing: 0,
+          ),
+        );
+      },
+      actionsBuilder: (dialogContext) {
+        return <Widget>[
+          HomePetsButton(
+            label: '取消',
+            variant: HomePetsButtonVariant.secondary,
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+          ),
+          HomePetsButton(
+            label: '确认退出',
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+          ),
+        ];
+      },
+    );
+
+    return result == true;
   }
 }
 

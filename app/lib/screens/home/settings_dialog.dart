@@ -3,11 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../widgets/app_modal_shell.dart';
-import '../family/widgets/family_sprite_slice.dart';
 
-const String _settingsDialogAsset = 'assets/images/ui/setup.png';
-const Size _settingsDialogSheetSize = Size(1448, 1086);
-const Rect _settingsDialogPanelRegion = Rect.fromLTWH(22, 22, 441, 512);
+const String _settingsDialogPanelAsset =
+    'assets/images/ui/setup/setup_panel.png';
 const double _settingsDialogDesignWidth = 441;
 const double _settingsDialogDesignHeight = 512;
 
@@ -59,7 +57,6 @@ class _SettingsDialogPanel extends StatelessWidget {
     return AppModalShell(
       layout: _settingsDialogLayout,
       minimumSafeArea: const EdgeInsets.fromLTRB(16, 20, 16, 20),
-      backgroundColor: HomePetsDialogTheme.surfaceTop,
       clipChild: false,
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -87,12 +84,9 @@ class _SettingsDialogPanel extends StatelessWidget {
                     clipBehavior: Clip.none,
                     children: [
                       const Positioned.fill(
-                        child: FamilySpriteSlice(
-                          assetPath: _settingsDialogAsset,
-                          sheetSize: _settingsDialogSheetSize,
-                          region: _settingsDialogPanelRegion,
+                        child: Image(
+                          image: AssetImage(_settingsDialogPanelAsset),
                           fit: BoxFit.fill,
-                          sampleInset: 1,
                           filterQuality: FilterQuality.high,
                         ),
                       ),
@@ -102,8 +96,7 @@ class _SettingsDialogPanel extends StatelessWidget {
                         width: 74,
                         height: 74,
                         child: _SettingsActionButton(
-                          semanticLabel: '关闭设置',
-                          borderRadius: BorderRadius.circular(999),
+                          semanticLabel: '\u5173\u95ed\u8bbe\u7f6e',
                           onPressed: onClose,
                         ),
                       ),
@@ -113,8 +106,7 @@ class _SettingsDialogPanel extends StatelessWidget {
                         width: 397,
                         height: 100,
                         child: _SettingsActionButton(
-                          semanticLabel: '编辑资料',
-                          borderRadius: BorderRadius.circular(24),
+                          semanticLabel: '\u7f16\u8f91\u8d44\u6599',
                           onPressed: () =>
                               onActionSelected(HomeSettingsAction.editProfile),
                         ),
@@ -125,8 +117,7 @@ class _SettingsDialogPanel extends StatelessWidget {
                         width: 397,
                         height: 100,
                         child: _SettingsActionButton(
-                          semanticLabel: '关于',
-                          borderRadius: BorderRadius.circular(24),
+                          semanticLabel: '\u5173\u4e8e',
                           onPressed: () =>
                               onActionSelected(HomeSettingsAction.about),
                         ),
@@ -137,8 +128,7 @@ class _SettingsDialogPanel extends StatelessWidget {
                         width: 397,
                         height: 100,
                         child: _SettingsActionButton(
-                          semanticLabel: '退出登录',
-                          borderRadius: BorderRadius.circular(24),
+                          semanticLabel: '\u9000\u51fa\u767b\u5f55',
                           onPressed: () =>
                               onActionSelected(HomeSettingsAction.logout),
                         ),
@@ -155,52 +145,26 @@ class _SettingsDialogPanel extends StatelessWidget {
   }
 }
 
-class _SettingsActionButton extends StatefulWidget {
+class _SettingsActionButton extends StatelessWidget {
   const _SettingsActionButton({
     required this.semanticLabel,
-    required this.borderRadius,
     required this.onPressed,
   });
 
   final String semanticLabel;
-  final BorderRadius borderRadius;
   final VoidCallback onPressed;
-
-  @override
-  State<_SettingsActionButton> createState() => _SettingsActionButtonState();
-}
-
-class _SettingsActionButtonState extends State<_SettingsActionButton> {
-  bool _pressed = false;
-
-  void _setPressed(bool value) {
-    if (_pressed == value) {
-      return;
-    }
-    setState(() => _pressed = value);
-  }
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: widget.semanticLabel,
+      label: semanticLabel,
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTapDown: (_) => _setPressed(true),
-          onTapUp: (_) => _setPressed(false),
-          onTapCancel: () => _setPressed(false),
-          onTap: widget.onPressed,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 90),
-            curve: Curves.easeOutCubic,
-            decoration: BoxDecoration(
-              color: _pressed ? const Color(0x14FFFFFF) : Colors.transparent,
-              borderRadius: widget.borderRadius,
-            ),
-          ),
+          onTap: onPressed,
+          child: const SizedBox.expand(),
         ),
       ),
     );

@@ -71,7 +71,8 @@ def test_set_member_pet_creates_selected_pet_with_name(client: TestClient, db: S
     child_pet = next(pet for pet in pets if pet["owner_id"] == child_id)
     assert child_pet["pet_type"] == "hamster"
     assert child_pet["name"] == "Doudou"
-    assert child_pet["pet_form"] == "pet"
+    assert "pet_form" not in child_pet
+    assert "image_url" not in child_pet
 
 
 def test_list_pets_shows_owner(client: TestClient, db: Session) -> None:
@@ -83,7 +84,7 @@ def test_list_pets_shows_owner(client: TestClient, db: Session) -> None:
     assert pets[0]["owner_nickname"] == "Ming"
 
 
-def test_feed_pet_increases_exp(client: TestClient, db: Session) -> None:
+def test_manual_feed_endpoint_removed(client: TestClient, db: Session) -> None:
     token, family_id, child_id = _setup_family(client, db)
     _assign_pet(client, token, family_id, child_id)
     pet = _get_pets(client, token, family_id)[0]
@@ -93,44 +94,16 @@ def test_feed_pet_increases_exp(client: TestClient, db: Session) -> None:
         json={"points": 20},
         headers=_auth_header(token),
     )
-    assert response.status_code == 200
-    assert response.json()["experience"] == 20
-    assert response.json()["pet_form"] == "pet"
+    assert response.status_code == 404
 
 
-def test_feed_pet_levels_up(client: TestClient, db: Session) -> None:
+def test_pet_history_endpoint_removed(client: TestClient, db: Session) -> None:
     token, family_id, child_id = _setup_family(client, db)
     _assign_pet(client, token, family_id, child_id)
     pet = _get_pets(client, token, family_id)[0]
 
-    response = client.post(
-        f"/api/pets/{pet['id']}/feed",
-        json={"points": 100},
-        headers=_auth_header(token),
-    )
-    assert response.status_code == 200
-    assert response.json()["experience"] == 100
-    assert response.json()["level"] == 2
-
-
-def test_pet_history_includes_feed_records(client: TestClient, db: Session) -> None:
-    token, family_id, child_id = _setup_family(client, db)
-    _assign_pet(client, token, family_id, child_id)
-    pet = _get_pets(client, token, family_id)[0]
-
-    feed_response = client.post(
-        f"/api/pets/{pet['id']}/feed",
-        json={"points": 20},
-        headers=_auth_header(token),
-    )
-    assert feed_response.status_code == 200
-
-    history_response = client.get(
+    response = client.get(
         f"/api/pets/{pet['id']}/history",
         headers=_auth_header(token),
     )
-    assert history_response.status_code == 200
-    history = history_response.json()
-    assert len(history) >= 1
-    assert history[0]["event_type"] == "feed"
-    assert history[0]["points"] == 20
+    assert response.status_code == 404

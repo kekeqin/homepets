@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import desc
 from sqlmodel import Session, select
 
 from app.core.dependencies import get_current_admin, get_current_user, get_db
@@ -10,20 +11,18 @@ from app.models.user import User
 from app.schemas.task import (
     CompletionResponse,
     CompletionSubmit,
-    QuestLogResponse,
     TaskCreate,
     TaskListItemResponse,
-    TaskOverviewResponse,
     TaskResponse,
     TaskUpdate,
 )
-from app.services.pet_service import calculate_level, get_image
+from app.services.pet_service import calculate_level
 
 router = APIRouter(prefix="/api", tags=["tasks"])
 
 
 def _as_utc(value: datetime) -> datetime:
-    """Normalize SQLite-returned naive datetimes to UTC for safe comparisons."""
+    """将 SQLite 可能返回的 naive datetime 统一为 UTC，避免日期比较出错。"""
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
     return value.astimezone(UTC)
@@ -31,10 +30,7 @@ def _as_utc(value: datetime) -> datetime:
 
 def _require_family_access(family_id: int, current_user: User) -> None:
     if current_user.family_id != family_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="无权查看",
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权查看此家庭")
 
 
 def _family_task_map(db: Session, family_id: int) -> dict[int, Task]:
@@ -65,7 +61,6 @@ def _serialize_task(
 ) -> dict:
     task_id = task.id or 0
     completed_today = task_id in completed_today_ids
-    completed_this_week = completed_week_counts.get(task_id, 0) > 0
     return {
         "id": task.id,
         "title": task.title,
@@ -74,9 +69,61 @@ def _serialize_task(
         "is_active": task.is_active,
         "created_at": task.created_at,
         "completed_today": completed_today,
-        "completed_this_week": completed_this_week,
+        "completed_this_week": completed_week_counts.get(task_id, 0) > 0,
         "status": _task_status(completed_today=completed_today),
     }
+
+
+def _list_active_tasks(
+    family_id: int,
+    db: Session,
+    current_user: User,
+) -> list[dict]:
+    _require_family_access(family_id, current_user)
+
+    task_map = _family_task_map(db, family_id)
+    member_ids = list(_family_member_map(db, family_id).keys())
+    active_tasks = sorted(
+        (task for task in task_map.values() if task.is_active),
+        key=lambda task: _as_utc(task.created_at),
+        reverse=True,
+    )
+
+    now = datetime.now(UTC)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start = today_start - timedelta(days=today_start.weekday())
+
+    approved_completions: list[TaskCompletion] = []
+    if member_ids:
+        approved_completions = db.exec(
+            select(TaskCompletion).where(
+                TaskCompletion.member_id.in_(member_ids),  # type: ignore[arg-type]
+                TaskCompletion.status == "approved",
+                TaskCompletion.created_at >= week_start,
+            )
+        ).all()
+
+    completed_today_ids: set[int] = set()
+    completed_week_counts: dict[int, int] = {}
+    for completion in approved_completions:
+        task = task_map.get(completion.task_id)
+        if task is None or task.family_id != family_id:
+            continue
+
+        completed_week_counts[completion.task_id] = (
+            completed_week_counts.get(completion.task_id, 0) + 1
+        )
+        if _as_utc(completion.created_at) >= today_start:
+            completed_today_ids.add(completion.task_id)
+
+    return [
+        _serialize_task(
+            task,
+            completed_today_ids=completed_today_ids,
+            completed_week_counts=completed_week_counts,
+        )
+        for task in active_tasks
+    ]
 
 
 def _list_family_completion_payload(
@@ -87,8 +134,6 @@ def _list_family_completion_payload(
     limit: int = 20,
 ) -> list[dict]:
     _require_family_access(family_id, current_user)
-
-    from sqlalchemy import desc
 
     task_map = _family_task_map(db, family_id)
     member_map = _family_member_map(db, family_id)
@@ -127,100 +172,7 @@ def _list_family_completion_payload(
     return payload
 
 
-def _serialize_quest_log(item: dict) -> dict:
-    return {
-        "id": item["id"],
-        "task_id": item["task_id"],
-        "member_id": item["member_id"],
-        "status": item["status"],
-        "title": item["task_title"] or f"已删除任务 #{item['task_id']}",
-        "points": item["task_points"],
-        "is_task_active": item["task_is_active"],
-        "completed_at": item["created_at"],
-        "member_nickname": item["member_nickname"],
-    }
-
-
-def _build_task_overview(
-    family_id: int,
-    db: Session,
-    current_user: User,
-    *,
-    recent_completion_limit: int = 10,
-) -> dict:
-    _require_family_access(family_id, current_user)
-
-    task_map = _family_task_map(db, family_id)
-    member_map = _family_member_map(db, family_id)
-    member_ids = list(member_map.keys())
-    active_tasks = sorted(
-        (task for task in task_map.values() if task.is_active),
-        key=lambda task: _as_utc(task.created_at),
-        reverse=True,
-    )
-
-    now = datetime.now(UTC)
-    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    week_start = today_start - timedelta(days=today_start.weekday())
-
-    approved_completions: list[TaskCompletion] = []
-    if member_ids:
-        approved_completions = db.exec(
-            select(TaskCompletion).where(
-                TaskCompletion.member_id.in_(member_ids),  # type: ignore[arg-type]
-                TaskCompletion.status == "approved",
-                TaskCompletion.created_at >= week_start,
-            )
-        ).all()
-
-    completed_today_ids: set[int] = set()
-    completed_week_counts: dict[int, int] = {}
-    today_completed_count = 0
-    week_completed_count = 0
-    for completion in approved_completions:
-        task = task_map.get(completion.task_id)
-        if task is not None and task.family_id != family_id:
-            continue
-
-        week_completed_count += 1
-        if task is not None:
-            completed_week_counts[completion.task_id] = (
-                completed_week_counts.get(completion.task_id, 0) + 1
-            )
-
-        completion_created_at = _as_utc(completion.created_at)
-        if completion_created_at >= today_start:
-            today_completed_count += 1
-            if task is not None:
-                completed_today_ids.add(completion.task_id)
-
-    recent_completions = []
-    if recent_completion_limit > 0:
-        recent_completions = [
-            _serialize_quest_log(item)
-            for item in _list_family_completion_payload(
-                family_id,
-                db,
-                current_user,
-                limit=recent_completion_limit,
-            )
-        ]
-
-    return {
-        "active_tasks": [
-            _serialize_task(
-                task,
-                completed_today_ids=completed_today_ids,
-                completed_week_counts=completed_week_counts,
-            )
-            for task in active_tasks
-        ],
-        "today_completed_count": today_completed_count,
-        "week_completed_count": week_completed_count,
-        "recent_completions": recent_completions,
-    }
-
-
+# 管理员为家庭创建任务，任务完成后会奖励成员积分并推动宠物成长。
 @router.post("/tasks", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 def create_task(
     body: TaskCreate,
@@ -228,49 +180,26 @@ def create_task(
     admin: User = Depends(get_current_admin),
 ) -> Task:
     if admin.family_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="您还没有家庭组",
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="您还没有家庭")
 
-    task = Task(
-        title=body.title,
-        points=body.points,
-        family_id=admin.family_id,
-    )
+    task = Task(title=body.title, points=body.points, family_id=admin.family_id)
     db.add(task)
     db.commit()
     db.refresh(task)
     return task
 
 
-@router.get(
-    "/families/{family_id}/tasks/overview",
-    response_model=TaskOverviewResponse,
-)
-def get_task_overview(
-    family_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> dict:
-    return _build_task_overview(family_id, db, current_user)
-
-
+# 列出家庭当前有效任务，并标记今日和本周是否完成过。
 @router.get("/families/{family_id}/tasks", response_model=list[TaskListItemResponse])
 def list_tasks(
     family_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[dict]:
-    overview = _build_task_overview(
-        family_id,
-        db,
-        current_user,
-        recent_completion_limit=0,
-    )
-    return overview["active_tasks"]
+    return _list_active_tasks(family_id, db, current_user)
 
 
+# 管理员修改任务标题或奖励分值。
 @router.put("/tasks/{task_id}", response_model=TaskResponse)
 def update_task(
     task_id: int,
@@ -280,15 +209,9 @@ def update_task(
 ) -> Task:
     task = db.get(Task, task_id)
     if not task:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="任务不存在",
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="任务不存在")
     if task.family_id != admin.family_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="无权操作此任务",
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权操作此任务")
 
     if body.title is not None:
         task.title = body.title
@@ -301,6 +224,7 @@ def update_task(
     return task
 
 
+# 管理员删除任务；为保留历史完成记录，这里只做软删除。
 @router.delete("/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_task(
     task_id: int,
@@ -309,21 +233,16 @@ def delete_task(
 ) -> None:
     task = db.get(Task, task_id)
     if not task:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="任务不存在",
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="任务不存在")
     if task.family_id != admin.family_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="无权操作此任务",
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权操作此任务")
 
     task.is_active = False
     db.add(task)
     db.commit()
 
 
+# 提交任务完成记录，并立即给成员和名下宠物结算奖励。
 @router.post(
     "/tasks/{task_id}/completions",
     response_model=CompletionResponse,
@@ -337,21 +256,16 @@ def submit_completion(
 ) -> TaskCompletion:
     task = db.get(Task, task_id)
     if not task or not task.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="任务不存在",
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="任务不存在")
     if current_user.family_id != task.family_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="无权提交此任务",
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权提交此任务")
 
     member_id = current_user.id
     if body and body.member_id:
         target = db.get(User, body.member_id)
-        if target and target.family_id == current_user.family_id:
-            member_id = body.member_id
+        if not target or target.family_id != current_user.family_id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="成员不存在")
+        member_id = body.member_id
 
     completion = TaskCompletion(
         task_id=task_id,
@@ -366,11 +280,9 @@ def submit_completion(
     pets = db.exec(select(Pet).where(Pet.owner_id == member_id)).all()
     for pet in pets:
         pet.experience = max(0, pet.experience + task.points)
-        if pet.pet_form == "pet":
-            new_level = calculate_level(pet.experience)
-            if new_level != pet.level:
-                pet.level = new_level
-                pet.image_url = get_image(pet.pet_type, new_level)
+        new_level = calculate_level(pet.experience)
+        if new_level != pet.level:
+            pet.level = new_level
         db.add(pet)
 
     member = db.get(User, member_id)
@@ -382,6 +294,7 @@ def submit_completion(
     return completion
 
 
+# 查询家庭近期任务完成动态，用于成员页或家庭动态展示。
 @router.get(
     "/families/{family_id}/completions",
     response_model=list[CompletionResponse],
@@ -391,27 +304,4 @@ def list_completions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[dict]:
-    return _list_family_completion_payload(
-        family_id,
-        db,
-        current_user,
-        limit=20,
-    )
-
-
-@router.get(
-    "/families/{family_id}/quest-logs",
-    response_model=list[QuestLogResponse],
-)
-def list_quest_logs(
-    family_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> list[dict]:
-    completion_payload = _list_family_completion_payload(
-        family_id,
-        db,
-        current_user,
-        limit=50,
-    )
-    return [_serialize_quest_log(item) for item in completion_payload]
+    return _list_family_completion_payload(family_id, db, current_user, limit=20)
