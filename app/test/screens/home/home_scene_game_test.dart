@@ -452,7 +452,7 @@ void main() {
       'applies perspective scaling so near slots render larger than far slots',
       () {
         expect(
-          HomeSceneGame.debugPerspectiveScaleForCandidate(8),
+          HomeSceneGame.debugPerspectiveScaleForCandidate(9),
           lessThan(HomeSceneGame.debugPerspectiveScaleForCandidate(0)),
         );
         expect(
@@ -559,7 +559,7 @@ void main() {
       }
     });
 
-    test('keeps bookshelf cats larger and grounded on the top board', () {
+    test('keeps lower bookshelf pets small and grounded near the rug', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
       final rect = game.debugPetRectForCandidate(
         candidateIndex: 8,
@@ -569,18 +569,17 @@ void main() {
       expect(
         rect.width,
         greaterThan(0.10),
-        reason: 'Bookshelf cats should read clearly against the back wall.',
+        reason: 'Lower bookshelf pets should still read clearly.',
       );
       expect(
         rect.bottom,
-        greaterThan(0.44),
-        reason:
-            'Bookshelf cats should sit on the shelf board instead of float.',
+        greaterThan(0.64),
+        reason: 'Lower bookshelf pets should sit down near the rug line.',
       );
       expect(
         rect.bottom,
-        lessThan(0.46),
-        reason: 'Bookshelf cats should not sink into the top shelf board.',
+        lessThan(0.67),
+        reason: 'Lower bookshelf pets should not sink into the coffee table.',
       );
     });
 

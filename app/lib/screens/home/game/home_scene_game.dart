@@ -14,38 +14,50 @@ import '../../../models/pet_artwork.dart';
 
 enum HomeSceneDevice { mobile, tablet }
 
+const String _homeSceneBackgroundAsset = 'scenes/home.png';
+const String _homeTaskStickerAsset = 'images/ui/home/home_task_sticker_add.png';
+const String _homeFamilyPhotoFrameAsset =
+    'images/ui/home/home_family_photo_frame.png';
+const String _homePaywallAsset = 'images/ui/home/home_paywall.png';
+const String _homeShopAsset = 'images/ui/home/home_shop.png';
+const String _homeSetupAsset = 'images/ui/home/home_setup.png';
+
 const Map<String, String> _homeSceneAssetFallbacks = <String, String>{
   'scenes/4.png': 'scenes/4.jpg',
+  _homeTaskStickerAsset: 'images/ui/task_note.png',
+  _homeFamilyPhotoFrameAsset: 'images/ui/family_photo.png',
+  _homePaywallAsset: 'images/ui/pay.png',
+  _homeShopAsset: 'images/ui/shop_basket.png',
+  _homeSetupAsset: 'images/ui/19.png',
 };
 
 const List<_PetCandidatePoint> _homePetCandidatePoints = <_PetCandidatePoint>[
-  // 1. Couch marker slightly higher on the left seat cushion.
-  _PetCandidatePoint(centerX: 0.34, centerY: 0.585),
-  // 2. Floor pet stays in front of the armchair front edge instead of behind it.
+  // 1. Sofa left seat, clear of the cushion buttons and armrest.
+  _PetCandidatePoint(centerX: 0.285, centerY: 0.595),
+  // 2. Floor pet sits just in front of the right armchair edge.
   _PetCandidatePoint(
-    centerX: 0.748,
-    centerY: 0.702,
+    centerX: 0.775,
+    centerY: 0.655,
     renderPriority: _homeSeatOccluderRenderPriority + 1,
   ),
   // 3. Retired left floor slot kept disabled so other candidate indices stay stable.
   _PetCandidatePoint(centerX: 0.175, centerY: 0.815, placementEnabled: false),
-  // 4. Bottom-left floor marker moved up-right to the latest red-dot target.
-  _PetCandidatePoint(centerX: 0.11, centerY: 0.89),
-  // 5. Lower-middle floor marker moved up-right to the latest red-dot target.
-  _PetCandidatePoint(centerX: 0.455, centerY: 0.815),
+  // 4. Lower-left rug area in front of the sofa.
+  _PetCandidatePoint(centerX: 0.185, centerY: 0.800),
+  // 5. Front-center rug near the coffee table.
+  _PetCandidatePoint(centerX: 0.470, centerY: 0.745),
   // 6. Retired bottom-middle floor slot kept disabled to avoid future reuse.
   _PetCandidatePoint(centerX: 0.48, centerY: 0.935, placementEnabled: false),
-  // 7. Rug marker lifted upward while staying off the sofa front edge.
-  _PetCandidatePoint(centerX: 0.395, centerY: 0.745),
-  // 8. Bottom-right marker shifted up to the latest red-dot position.
-  _PetCandidatePoint(centerX: 0.84, centerY: 0.865),
-  // 9. Bookshelf marker tuned to keep the pet resting on the top board surface
-  // while still reading clearly at the back of the room.
+  // 7. Back rug between the sofa and coffee table.
+  _PetCandidatePoint(centerX: 0.390, centerY: 0.675),
+  // 8. Lower-right floor beside the plant cluster and cushion.
+  _PetCandidatePoint(centerX: 0.810, centerY: 0.835),
+  // 9. Small pet spot in front of the lower bookshelf.
   _PetCandidatePoint(
-    centerX: 0.668,
-    centerY: 0.406,
-    widthScale: 0.86,
-    heightScale: 0.88,
+    centerX: 0.650,
+    centerY: 0.610,
+    widthScale: 0.82,
+    heightScale: 0.86,
     preferRestPose: true,
     contactShadow: _PetContactShadowSpec(
       widthFactor: 0.78,
@@ -55,13 +67,12 @@ const List<_PetCandidatePoint> _homePetCandidatePoints = <_PetCandidatePoint>[
       blurSigmaFactor: 0.045,
     ),
   ),
-  // 10. Right armchair marker nudged left and slightly reduced to avoid awkward
-  // overlap against the front-right armchair corner.
+  // 10. Right armchair seat, sized down to sit inside the cushion.
   _PetCandidatePoint(
-    centerX: 0.818,
-    centerY: 0.602,
-    widthScale: 0.95,
-    heightScale: 0.95,
+    centerX: 0.815,
+    centerY: 0.580,
+    widthScale: 0.92,
+    heightScale: 0.92,
     preferSitPose: true,
     contactShadow: _PetContactShadowSpec(
       widthFactor: 0.72,
@@ -73,7 +84,7 @@ const List<_PetCandidatePoint> _homePetCandidatePoints = <_PetCandidatePoint>[
   ),
 ];
 
-const double _homeSceneBackgroundAspectRatio = 1376 / 3076;
+const double _homeSceneBackgroundAspectRatio = 840 / 1871;
 const double _homePetSceneInsetFactor = 0.012;
 const double _homePetPerspectiveFarCenterY = 0.40;
 const double _homePetPerspectiveNearCenterY = 0.89;
@@ -108,16 +119,16 @@ final List<int> _enabledHomePetCandidateIndices = List<int>.unmodifiable(
   ).where((index) => _homePetCandidatePoints[index].placementEnabled),
 );
 const _RectFactor _rightArmchairFrontOccluderRect = _RectFactor(
-  0.758,
-  0.652,
-  0.116,
-  0.042,
+  0.735,
+  0.617,
+  0.145,
+  0.050,
 );
 const _RectFactor _rightArmchairSideOccluderRect = _RectFactor(
-  0.852,
-  0.647,
-  0.038,
-  0.040,
+  0.850,
+  0.595,
+  0.072,
+  0.088,
 );
 
 bool _shouldRotateHomePetPosesForType(String petType) {
@@ -1170,14 +1181,14 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     VoidCallback? onOpenSettings,
   }) {
     return _SceneProfile(
-      backgroundAsset: 'scenes/4.png',
+      backgroundAsset: _homeSceneBackgroundAsset,
       backgroundFit: _SceneBackgroundFit.contain,
       backgroundFillColor: const Color(0xFFF4E3CF),
       specs: <_UiSpec>[
         _SceneSpriteSpec(
-          rect: const _RectFactor(0.068, 0.102, 0.148, 0.122),
+          rect: const _RectFactor(0.205, 0.132, 0.181, 0.090),
           referenceSpace: _UiReferenceSpace.background,
-          assetPath: 'images/ui/task_note.png',
+          assetPath: _homeTaskStickerAsset,
           behavior: _SceneSpriteBehavior.taskNote,
           ambientPhase: 0.2,
           entryDelay: 0.22,
@@ -1185,9 +1196,9 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           onTap: onTaskTap,
         ),
         _SceneSpriteSpec(
-          rect: const _RectFactor(0.422, 0.322, 0.156, 0.102),
+          rect: const _RectFactor(0.820, 0.332, 0.124, 0.065),
           referenceSpace: _UiReferenceSpace.background,
-          assetPath: 'images/ui/family_photo.png',
+          assetPath: _homeFamilyPhotoFrameAsset,
           behavior: _SceneSpriteBehavior.familyPhoto,
           ambientPhase: 1.6,
           entryDelay: 0.30,
@@ -1195,9 +1206,9 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           onTap: onOpenFamily,
         ),
         _SceneSpriteSpec(
-          rect: const _RectFactor(0.382, 0.176, 0.142, 0.064),
+          rect: const _RectFactor(0.498, 0.122, 0.138, 0.089),
           referenceSpace: _UiReferenceSpace.background,
-          assetPath: 'images/ui/pay.png',
+          assetPath: _homePaywallAsset,
           behavior: _SceneSpriteBehavior.wallBadge,
           ambientPhase: 1.1,
           entryDelay: 0.34,
@@ -1205,9 +1216,9 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           onTap: onOpenPaywall,
         ),
         _SceneSpriteSpec(
-          rect: const _RectFactor(0.704, 0.104, 0.178, 0.154),
+          rect: const _RectFactor(0.734, 0.118, 0.162, 0.104),
           referenceSpace: _UiReferenceSpace.background,
-          assetPath: 'images/ui/shop_basket.png',
+          assetPath: _homeShopAsset,
           behavior: _SceneSpriteBehavior.shopBasket,
           ambientPhase: 2.4,
           entryDelay: 0.38,
@@ -1216,9 +1227,9 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
         ),
         _SceneSpriteSpec(
           // Settings gear stays in the scene, but away from pet placement slots.
-          rect: const _RectFactor(0.845, 0.438, 0.102, 0.048),
+          rect: const _RectFactor(0.650, 0.305, 0.127, 0.056),
           referenceSpace: _UiReferenceSpace.background,
-          assetPath: 'images/ui/19.png',
+          assetPath: _homeSetupAsset,
           behavior: _SceneSpriteBehavior.staticOverlay,
           ambientPhase: 0,
           renderPriority: _homeSceneUiRenderPriority,
@@ -1229,7 +1240,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
         _SceneSpriteSpec(
           rect: _rightArmchairFrontOccluderRect,
           referenceSpace: _UiReferenceSpace.background,
-          assetPath: 'scenes/4.png',
+          assetPath: _homeSceneBackgroundAsset,
           behavior: _SceneSpriteBehavior.staticOverlay,
           ambientPhase: 0,
           cropRect: _rightArmchairFrontOccluderRect,
@@ -1240,7 +1251,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
         _SceneSpriteSpec(
           rect: _rightArmchairSideOccluderRect,
           referenceSpace: _UiReferenceSpace.background,
-          assetPath: 'scenes/4.png',
+          assetPath: _homeSceneBackgroundAsset,
           behavior: _SceneSpriteBehavior.staticOverlay,
           ambientPhase: 0,
           cropRect: _rightArmchairSideOccluderRect,
@@ -1260,14 +1271,14 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     VoidCallback? onOpenSettings,
   }) {
     return _SceneProfile(
-      backgroundAsset: 'scenes/4.png',
+      backgroundAsset: _homeSceneBackgroundAsset,
       backgroundFit: _SceneBackgroundFit.contain,
       backgroundFillColor: const Color(0xFFF4E3CF),
       specs: <_UiSpec>[
         _SceneSpriteSpec(
-          rect: const _RectFactor(0.070, 0.102, 0.138, 0.118),
+          rect: const _RectFactor(0.205, 0.132, 0.181, 0.090),
           referenceSpace: _UiReferenceSpace.background,
-          assetPath: 'images/ui/task_note.png',
+          assetPath: _homeTaskStickerAsset,
           behavior: _SceneSpriteBehavior.taskNote,
           ambientPhase: 0.3,
           entryDelay: 0.18,
@@ -1275,9 +1286,9 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           onTap: onTaskTap,
         ),
         _SceneSpriteSpec(
-          rect: const _RectFactor(0.430, 0.322, 0.150, 0.100),
+          rect: const _RectFactor(0.820, 0.332, 0.124, 0.065),
           referenceSpace: _UiReferenceSpace.background,
-          assetPath: 'images/ui/family_photo.png',
+          assetPath: _homeFamilyPhotoFrameAsset,
           behavior: _SceneSpriteBehavior.familyPhoto,
           ambientPhase: 1.8,
           entryDelay: 0.24,
@@ -1285,9 +1296,9 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           onTap: onOpenFamily,
         ),
         _SceneSpriteSpec(
-          rect: const _RectFactor(0.382, 0.182, 0.134, 0.060),
+          rect: const _RectFactor(0.498, 0.122, 0.138, 0.089),
           referenceSpace: _UiReferenceSpace.background,
-          assetPath: 'images/ui/pay.png',
+          assetPath: _homePaywallAsset,
           behavior: _SceneSpriteBehavior.wallBadge,
           ambientPhase: 1.2,
           entryDelay: 0.27,
@@ -1295,9 +1306,9 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           onTap: onOpenPaywall,
         ),
         _SceneSpriteSpec(
-          rect: const _RectFactor(0.694, 0.106, 0.184, 0.154),
+          rect: const _RectFactor(0.734, 0.118, 0.162, 0.104),
           referenceSpace: _UiReferenceSpace.background,
-          assetPath: 'images/ui/shop_basket.png',
+          assetPath: _homeShopAsset,
           behavior: _SceneSpriteBehavior.shopBasket,
           ambientPhase: 2.2,
           entryDelay: 0.30,
@@ -1306,9 +1317,9 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
         ),
         _SceneSpriteSpec(
           // Settings gear stays in the scene, but away from pet placement slots.
-          rect: const _RectFactor(0.845, 0.438, 0.102, 0.048),
+          rect: const _RectFactor(0.650, 0.305, 0.127, 0.056),
           referenceSpace: _UiReferenceSpace.background,
-          assetPath: 'images/ui/19.png',
+          assetPath: _homeSetupAsset,
           behavior: _SceneSpriteBehavior.staticOverlay,
           ambientPhase: 0,
           renderPriority: _homeSceneUiRenderPriority,
@@ -1319,7 +1330,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
         _SceneSpriteSpec(
           rect: _rightArmchairFrontOccluderRect,
           referenceSpace: _UiReferenceSpace.background,
-          assetPath: 'scenes/4.png',
+          assetPath: _homeSceneBackgroundAsset,
           behavior: _SceneSpriteBehavior.staticOverlay,
           ambientPhase: 0,
           cropRect: _rightArmchairFrontOccluderRect,
@@ -1330,7 +1341,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
         _SceneSpriteSpec(
           rect: _rightArmchairSideOccluderRect,
           referenceSpace: _UiReferenceSpace.background,
-          assetPath: 'scenes/4.png',
+          assetPath: _homeSceneBackgroundAsset,
           behavior: _SceneSpriteBehavior.staticOverlay,
           ambientPhase: 0,
           cropRect: _rightArmchairSideOccluderRect,
