@@ -1,4 +1,4 @@
-"""宠物等级配置与成长计算。"""
+"""Pet level configuration and growth helpers."""
 
 LEVEL_THRESHOLDS = {
     1: 0,
@@ -11,28 +11,22 @@ LEVEL_THRESHOLDS = {
 MAX_LEVEL = 5
 
 SELECTABLE_PET_TYPES = ("cat", "dog", "hamster", "rabbit", "turtle")
-PET_TYPES = [*SELECTABLE_PET_TYPES, "bird", "fish", "panda"]
+PET_TYPES = list(SELECTABLE_PET_TYPES)
 
 PET_DISPLAY_NAMES = {
-    "cat": "小猫",
-    "dog": "小狗",
-    "hamster": "仓鼠",
-    "rabbit": "小白兔",
-    "turtle": "乌龟",
-    "bird": "小鸟",
-    "fish": "小鱼",
-    "panda": "熊猫",
+    "cat": "\u5c0f\u732b",
+    "dog": "\u5c0f\u72d7",
+    "hamster": "\u4ed3\u9f20",
+    "rabbit": "\u5c0f\u767d\u5154",
+    "turtle": "\u4e4c\u9f9f",
 }
 
 PET_EMOJIS = {
-    "cat": "🐱",
-    "dog": "🐶",
-    "rabbit": "🐰",
-    "bird": "🐦",
-    "turtle": "🐢",
-    "hamster": "🐹",
-    "fish": "🐟",
-    "panda": "🐼",
+    "cat": "\U0001f431",
+    "dog": "\U0001f436",
+    "rabbit": "\U0001f430",
+    "turtle": "\U0001f422",
+    "hamster": "\U0001f439",
 }
 
 VALID_PET_TYPES = set(PET_TYPES)
@@ -40,7 +34,7 @@ VALID_SELECTABLE_PET_TYPES = set(SELECTABLE_PET_TYPES)
 
 
 def get_emoji(pet_type: str) -> str:
-    return PET_EMOJIS.get(pet_type, "🐾")
+    return PET_EMOJIS.get(pet_type, "\U0001f43e")
 
 
 def get_image(pet_type: str, level: int) -> str | None:
@@ -48,7 +42,7 @@ def get_image(pet_type: str, level: int) -> str | None:
 
 
 def get_default_pet_name(pet_type: str) -> str:
-    return PET_DISPLAY_NAMES.get(pet_type, "宠物")
+    return PET_DISPLAY_NAMES.get(pet_type, "\u5ba0\u7269")
 
 
 def create_member_pet(

@@ -28,6 +28,7 @@ import '../../widgets/homepets_dialog.dart';
 import '../../widgets/homepets_select_field.dart';
 
 import '../family/family_screen.dart';
+import '../family/models/family_screen_state.dart';
 import '../family/widgets/family_sprite_slice.dart';
 import '../paywall/paywall_screen.dart';
 import '../pet/pet_detail_screen.dart';
@@ -42,6 +43,15 @@ class _ProfileEditResult {
 
   final String nickname;
   final String? familyName;
+}
+
+String _homePetBindingSignature(FamilyScreenState state) {
+  final memberSignatures = List<String>.from(
+    state.members.map(
+      (member) => '${member.id}:${member.petId ?? ''}:${member.petType ?? ''}',
+    ),
+  )..sort();
+  return '${state.hasFamily}|${memberSignatures.join('|')}';
 }
 
 const String _taskContextMenuBoardAsset =
@@ -374,6 +384,12 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       petAvatarAssetPathsById: _game.debugPetDetailAvatarAssetPaths(),
     );
     _familyPanelVisible = false;
+
+    if (!mounted) {
+      return;
+    }
+
+    await _loadFamilyPets();
 
     if (!mounted || !clearRouteAfterClose) {
       return;
@@ -2535,19 +2551,23 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       if (!renderedOwnerIds.add(pet.ownerId)) {
         continue;
       }
-      seeds.add(
-        HomeScenePetSeed(
-          petId: pet.id,
-          petType: normalizePetType(
-            pet.petType,
-            fallback:
-                selectablePetTypes[seeds.length % selectablePetTypes.length],
-          ),
-        ),
-      );
+      seeds.add(HomeScenePetSeed(petId: pet.id, petType: _homePetTypeFor(pet)));
     }
 
     _game.replacePetEntries(seeds);
+  }
+
+  String _homePetTypeFor(Pet pet) {
+    final normalized = normalizePetType(pet.petType, fallback: '');
+    if (normalized.isNotEmpty) {
+      return normalized;
+    }
+    return switch (pet.petType.trim().toLowerCase()) {
+      'panda' => 'cat',
+      'bird' => 'rabbit',
+      'fish' => 'turtle',
+      _ => selectablePetTypes[pet.id % selectablePetTypes.length],
+    };
   }
 
   Map<String, dynamic>? _findHomeTaskByLabel(String taskLabel) {
@@ -2792,6 +2812,17 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
       _loadFamilyPets();
       _loadHomeTasks();
+    });
+
+    ref.listen<String>(familyProvider.select(_homePetBindingSignature), (
+      previous,
+      next,
+    ) {
+      if (previous == next) {
+        return;
+      }
+
+      _loadFamilyPets();
     });
 
     return LayoutBuilder(

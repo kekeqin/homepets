@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session
 
 from app.core.security import hash_password
+from app.models.pet import Pet
 from app.models.user import User
 
 
@@ -82,6 +83,31 @@ def test_list_pets_shows_owner(client: TestClient, db: Session) -> None:
     pets = _get_pets(client, token, family_id)
     assert len(pets) == 1
     assert pets[0]["owner_nickname"] == "Ming"
+
+
+def test_list_pets_excludes_pet_when_owner_left_family(
+    client: TestClient,
+    db: Session,
+) -> None:
+    token, family_id, child_id = _setup_family(client, db)
+    _assign_pet(client, token, family_id, child_id, pet_type="rabbit", name="Tuantuan")
+
+    child = db.get(User, child_id)
+    assert child is not None
+    child.family_id = None
+    db.add(child)
+    orphaned_pet = Pet(
+        name="Legacy Tuantuan",
+        pet_type="rabbit",
+        owner_id=child_id,
+        family_id=family_id,
+    )
+    db.add(orphaned_pet)
+    db.commit()
+
+    pets = _get_pets(client, token, family_id)
+
+    assert all(pet["owner_id"] != child_id for pet in pets)
 
 
 def test_manual_feed_endpoint_removed(client: TestClient, db: Session) -> None:

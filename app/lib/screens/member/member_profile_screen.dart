@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_error_helper.dart';
 import '../../models/pet.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/family_provider.dart';
 import '../../services/member_profile_service.dart';
 import '../family/dialogs/delete_member_dialog.dart';
 import '../../widgets/pet_avatar.dart';
@@ -125,10 +126,9 @@ class _MemberProfileScreenState extends ConsumerState<MemberProfileScreen> {
     }
 
     try {
-      await _profileService.deleteMember(
-        familyId: familyId,
-        memberId: widget.memberId,
-      );
+      await ref
+          .read(familyProvider.notifier)
+          .deleteMember(memberId: widget.memberId);
       if (!mounted) {
         return;
       }

@@ -118,6 +118,16 @@ final List<int> _enabledHomePetCandidateIndices = List<int>.unmodifiable(
     (index) => index,
   ).where((index) => _homePetCandidatePoints[index].placementEnabled),
 );
+const List<int> _homePetCandidateAssignmentOrder = <int>[
+  0,
+  1,
+  3,
+  4,
+  6,
+  7,
+  9,
+  8,
+];
 const _RectFactor _rightArmchairFrontOccluderRect = _RectFactor(
   0.735,
   0.617,
@@ -1796,7 +1806,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       occupancyCounts[placement.candidateIndex] += 1;
     }
 
-    final availableIndices = List<int>.from(_enabledHomePetCandidateIndices)
+    final availableIndices = _orderedEnabledHomePetCandidateIndices()
       ..removeWhere((index) => occupancyCounts[index] > 0);
 
     final layout = _petLayoutProfile();
@@ -1830,10 +1840,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
         .where((index) => _candidateSupportsPetType(index, petType))
         .toList();
     if (compatibleAvailableIndices.isNotEmpty) {
-      final randomIndex = _petPlacementRandom.nextInt(
-        compatibleAvailableIndices.length,
-      );
-      final candidateIndex = compatibleAvailableIndices[randomIndex];
+      final candidateIndex = compatibleAvailableIndices.first;
       availableIndices.remove(candidateIndex);
       return _AssignedPetPlacement(candidateIndex: candidateIndex);
     }
@@ -1857,10 +1864,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       }
     }
 
-    final candidateIndex =
-        leastCrowdedIndices[_petPlacementRandom.nextInt(
-          leastCrowdedIndices.length,
-        )];
+    final candidateIndex = leastCrowdedIndices.first;
     final occupantCount = occupancyCounts[candidateIndex];
     final spreadMultiplier = math.min(occupantCount + 1, 3).toDouble();
     final angle = _petPlacementRandom.nextDouble() * math.pi * 2;
@@ -1869,6 +1873,16 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       offsetX: math.cos(angle) * layout.overflowJitterX * spreadMultiplier,
       offsetY: math.sin(angle) * layout.overflowJitterY * spreadMultiplier,
     );
+  }
+
+  List<int> _orderedEnabledHomePetCandidateIndices() {
+    final enabled = _enabledHomePetCandidateIndices.toSet();
+    final ordered = <int>[
+      for (final index in _homePetCandidateAssignmentOrder)
+        if (enabled.remove(index)) index,
+      ...enabled,
+    ];
+    return ordered;
   }
 
   _RectFactor _petRectForPlacement(

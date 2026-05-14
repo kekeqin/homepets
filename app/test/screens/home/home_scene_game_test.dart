@@ -698,5 +698,35 @@ void main() {
         expect(rect.bottom, lessThanOrEqualTo(1.0001));
       }
     });
+
+    test('keeps repeated rabbits assigned to clearly visible slots', () {
+      final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+
+      game.replacePetEntries(const <HomeScenePetSeed>[
+        HomeScenePetSeed(petId: 2, petType: 'turtle'),
+        HomeScenePetSeed(petId: 3, petType: 'rabbit'),
+        HomeScenePetSeed(petId: 7, petType: 'rabbit'),
+        HomeScenePetSeed(petId: 9, petType: 'rabbit'),
+        HomeScenePetSeed(petId: 11, petType: 'dog'),
+        HomeScenePetSeed(petId: 13, petType: 'turtle'),
+        HomeScenePetSeed(petId: 14, petType: 'hamster'),
+      ]);
+
+      final rects = game.debugPetRects();
+      final assignments = game.debugPetCandidateAssignments();
+
+      expect(rects.length, 7);
+      expect(assignments.length, 7);
+      expect(assignments.values.toSet().length, 7);
+
+      for (final petId in const <int>[3, 7, 9]) {
+        expect(
+          assignments[petId],
+          isNot(anyOf(8, 9)),
+          reason:
+              'Repeated rabbits should not use the smallest/occluded slots.',
+        );
+      }
+    });
   });
 }

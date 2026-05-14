@@ -147,3 +147,33 @@ def test_delete_member_success(client: TestClient, db: Session) -> None:
         headers=_auth_header(token),
     )
     assert response.status_code == 204
+
+
+def test_delete_member_removes_bound_pet_from_family_pets(
+    client: TestClient,
+    db: Session,
+) -> None:
+    _create_admin(db)
+    token = _login(client)
+    family_id = _get_me(client, token)["family_id"]
+    member_id = client.post(
+        f"/api/families/{family_id}/members",
+        json={"nickname": "Ming"},
+        headers=_auth_header(token),
+    ).json()["id"]
+
+    pet_response = client.put(
+        f"/api/families/{family_id}/members/{member_id}/pet",
+        json={"pet_type": "rabbit", "name": "Tuantuan"},
+        headers=_auth_header(token),
+    )
+    assert pet_response.status_code == 200
+    assert any(pet["owner_id"] == member_id for pet in _list_pets(client, token, family_id))
+
+    response = client.delete(
+        f"/api/families/{family_id}/members/{member_id}",
+        headers=_auth_header(token),
+    )
+
+    assert response.status_code == 204
+    assert all(pet["owner_id"] != member_id for pet in _list_pets(client, token, family_id))

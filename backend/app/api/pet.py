@@ -50,7 +50,11 @@ def list_pets(
     if current_user.family_id != family_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权查看此家庭的宠物")
     _user_cache.clear()
-    pets = db.exec(select(Pet).where(Pet.family_id == family_id)).all()
+    pets = db.exec(
+        select(Pet)
+        .join(User, Pet.owner_id == User.id)
+        .where(Pet.family_id == family_id, User.family_id == family_id)
+    ).all()
     return [_build_pet_response(pet, db) for pet in pets]
 
 

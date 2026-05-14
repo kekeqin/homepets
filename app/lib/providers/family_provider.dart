@@ -81,6 +81,7 @@ class FamilyNotifier extends StateNotifier<FamilyScreenState> {
       petType: petType,
       petName: petName,
     );
+    await loadFamily();
   }
 
   Future<void> deleteMember({required int memberId}) async {
@@ -88,6 +89,7 @@ class FamilyNotifier extends StateNotifier<FamilyScreenState> {
       familyId: _requireFamilyId(),
       memberId: memberId,
     );
+    await loadFamily();
   }
 
   Future<void> updateMemberAvatar({

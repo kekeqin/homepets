@@ -267,7 +267,6 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
 
     try {
       await ref.read(familyProvider.notifier).deleteMember(memberId: member.id);
-      await _loadFamily();
       if (!mounted) {
         return;
       }
@@ -340,7 +339,6 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('已添加${member.nickname}，并领养了${draft.petName}')),
         );
-        await _loadFamily();
         return;
       } catch (error) {
         if (!mounted) {
