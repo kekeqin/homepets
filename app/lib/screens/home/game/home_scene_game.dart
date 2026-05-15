@@ -31,8 +31,14 @@ const Map<String, String> _homeSceneAssetFallbacks = <String, String>{
 };
 
 const List<_PetCandidatePoint> _homePetCandidatePoints = <_PetCandidatePoint>[
-  // 1. Sofa left seat, clear of the cushion buttons and armrest.
-  _PetCandidatePoint(centerX: 0.285, centerY: 0.595),
+  // 1. Sofa left seat, seated on the cushion instead of the rug edge.
+  _PetCandidatePoint(
+    centerX: 0.315,
+    centerY: 0.557,
+    widthScale: 0.98,
+    heightScale: 0.92,
+    preferRestPose: true,
+  ),
   // 2. Floor pet sits just in front of the right armchair edge.
   _PetCandidatePoint(
     centerX: 0.775,
@@ -66,10 +72,10 @@ const List<_PetCandidatePoint> _homePetCandidatePoints = <_PetCandidatePoint>[
       blurSigmaFactor: 0.045,
     ),
   ),
-  // 10. Right armchair seat, centered on the red cushion.
+  // 10. Right armchair seat, high enough that the front edge only covers paws.
   _PetCandidatePoint(
-    centerX: 0.795,
-    centerY: 0.575,
+    centerX: 0.768,
+    centerY: 0.56,
     widthScale: 0.86,
     heightScale: 0.86,
     preferSitPose: true,
@@ -128,10 +134,10 @@ const List<int> _homePetCandidateAssignmentOrder = <int>[
   8,
 ];
 const _RectFactor _homeSettingsGearRect = _RectFactor(
-  0.642,
-  0.324,
-  0.108,
-  0.040,
+  0.623,
+  0.315,
+  0.113,
+  0.043,
 );
 const _RectFactor _homeCoffeeTableNoPetRect = _RectFactor(
   0.330,
