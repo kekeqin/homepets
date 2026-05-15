@@ -583,6 +583,33 @@ void main() {
       );
     });
 
+    test('keeps settings gear seated on the bookshelf top', () {
+      expect(
+        HomeSceneGame.debugHomeSettingsGearRect,
+        const Rect.fromLTWH(0.642, 0.324, 0.108, 0.040),
+      );
+    });
+
+    test('keeps regular pet slots off the coffee table corner area', () {
+      final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+      final coffeeTableRect = HomeSceneGame.debugHomeCoffeeTableNoPetRect;
+
+      for (final candidateIndex in const <int>[0, 1, 3, 4, 6, 7, 9]) {
+        for (final assetPath in _staticHomePetAssetPaths) {
+          final rect = game.debugPetRectForCandidate(
+            candidateIndex: candidateIndex,
+            assetPath: assetPath,
+          );
+          expect(
+            coffeeTableRect.contains(rect.bottomCenter),
+            isFalse,
+            reason:
+                '$assetPath candidate $candidateIndex should not stand on the coffee table.',
+          );
+        }
+      }
+    });
+
     test('renders the floor armchair-adjacent pet above the seat front', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
 
@@ -596,8 +623,9 @@ void main() {
       );
     });
 
-    test('keeps right armchair sit pets resting inside the cushion band', () {
+    test('keeps right armchair sit pets centered on the cushion band', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+      final cushionRect = HomeSceneGame.debugRightArmchairSeatCushionRect;
       final occluderRect = HomeSceneGame.debugRightArmchairFrontOccluderRect;
 
       for (final assetPath in _rightArmchairSitAssetPaths) {
@@ -606,6 +634,12 @@ void main() {
           assetPath: assetPath,
         );
 
+        expect(
+          rect.center.dx,
+          closeTo(cushionRect.center.dx, 0.018),
+          reason:
+              '$assetPath should sit in the center of the armchair cushion.',
+        );
         expect(
           rect.bottom,
           greaterThan(occluderRect.top),
@@ -619,7 +653,7 @@ void main() {
       }
     });
 
-    test('limits right armchair front-edge overlap to the pet lower body', () {
+    test('limits right armchair front-edge overlap to pet paws', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
       final occluderRect = HomeSceneGame.debugRightArmchairFrontOccluderRect;
 
@@ -637,13 +671,13 @@ void main() {
         );
         expect(
           overlapHeight,
-          lessThan(rect.height * 0.25),
+          lessThan(rect.height * 0.18),
           reason: '$assetPath is being covered too much by the armchair front.',
         );
       }
     });
 
-    test('keeps right armchair corner in front of the pet right flank', () {
+    test('keeps right armchair corner from clipping seated pets', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
       final occluderRect = HomeSceneGame.debugRightArmchairSideOccluderRect;
 
@@ -656,23 +690,13 @@ void main() {
 
         expect(
           horizontalOverlap,
-          greaterThan(0),
-          reason: '$assetPath should overlap the armchair right corner.',
-        );
-        expect(
-          horizontalOverlap,
-          lessThan(rect.width * 0.28),
-          reason: '$assetPath is being covered too much at the right corner.',
+          lessThan(rect.width * 0.12),
+          reason: '$assetPath should not be clipped by the armchair corner.',
         );
         expect(
           occluderRect.top,
           greaterThan(rect.top + (rect.height * 0.2)),
           reason: '$assetPath corner cover should start below the head.',
-        );
-        expect(
-          occluderRect.top,
-          lessThan(rect.bottom),
-          reason: '$assetPath corner cover should intersect the pet body.',
         );
       }
     });

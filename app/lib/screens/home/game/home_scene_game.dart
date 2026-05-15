@@ -20,7 +20,7 @@ const String _homeFamilyPhotoFrameAsset =
     'images/ui/home/home_family_photo_frame.png';
 const String _homePaywallAsset = 'images/ui/home/home_paywall.png';
 const String _homeShopAsset = 'images/ui/home/home_shop.png';
-const String _homeSetupAsset = 'images/ui/home/home_setup.png';
+const String _homeSetupAsset = 'images/ui/19.png';
 
 const Map<String, String> _homeSceneAssetFallbacks = <String, String>{
   'scenes/4.png': 'scenes/4.jpg',
@@ -28,7 +28,6 @@ const Map<String, String> _homeSceneAssetFallbacks = <String, String>{
   _homeFamilyPhotoFrameAsset: 'images/ui/family_photo.png',
   _homePaywallAsset: 'images/ui/pay.png',
   _homeShopAsset: 'images/ui/shop_basket.png',
-  _homeSetupAsset: 'images/ui/19.png',
 };
 
 const List<_PetCandidatePoint> _homePetCandidatePoints = <_PetCandidatePoint>[
@@ -44,12 +43,12 @@ const List<_PetCandidatePoint> _homePetCandidatePoints = <_PetCandidatePoint>[
   _PetCandidatePoint(centerX: 0.175, centerY: 0.815, placementEnabled: false),
   // 4. Lower-left rug area in front of the sofa.
   _PetCandidatePoint(centerX: 0.185, centerY: 0.800),
-  // 5. Front-center rug near the coffee table.
-  _PetCandidatePoint(centerX: 0.470, centerY: 0.745),
+  // 5. Lower rug area in front of the coffee table, clear of table corners.
+  _PetCandidatePoint(centerX: 0.540, centerY: 0.815),
   // 6. Retired bottom-middle floor slot kept disabled to avoid future reuse.
   _PetCandidatePoint(centerX: 0.48, centerY: 0.935, placementEnabled: false),
-  // 7. Back rug between the sofa and coffee table.
-  _PetCandidatePoint(centerX: 0.390, centerY: 0.675),
+  // 7. Left rug area beside the coffee table, clear of table corners.
+  _PetCandidatePoint(centerX: 0.285, centerY: 0.735),
   // 8. Lower-right floor beside the plant cluster and cushion.
   _PetCandidatePoint(centerX: 0.810, centerY: 0.835),
   // 9. Small pet spot in front of the lower bookshelf.
@@ -67,12 +66,12 @@ const List<_PetCandidatePoint> _homePetCandidatePoints = <_PetCandidatePoint>[
       blurSigmaFactor: 0.045,
     ),
   ),
-  // 10. Right armchair seat, sized down to sit inside the cushion.
+  // 10. Right armchair seat, centered on the red cushion.
   _PetCandidatePoint(
-    centerX: 0.815,
-    centerY: 0.580,
-    widthScale: 0.92,
-    heightScale: 0.92,
+    centerX: 0.795,
+    centerY: 0.575,
+    widthScale: 0.86,
+    heightScale: 0.86,
     preferSitPose: true,
     contactShadow: _PetContactShadowSpec(
       widthFactor: 0.72,
@@ -128,6 +127,24 @@ const List<int> _homePetCandidateAssignmentOrder = <int>[
   9,
   8,
 ];
+const _RectFactor _homeSettingsGearRect = _RectFactor(
+  0.642,
+  0.324,
+  0.108,
+  0.040,
+);
+const _RectFactor _homeCoffeeTableNoPetRect = _RectFactor(
+  0.330,
+  0.635,
+  0.315,
+  0.125,
+);
+const _RectFactor _rightArmchairSeatCushionRect = _RectFactor(
+  0.735,
+  0.545,
+  0.120,
+  0.105,
+);
 const _RectFactor _rightArmchairFrontOccluderRect = _RectFactor(
   0.735,
   0.617,
@@ -1236,8 +1253,8 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           onTap: onOpenShop,
         ),
         _SceneSpriteSpec(
-          // Settings gear stays in the scene, but away from pet placement slots.
-          rect: const _RectFactor(0.650, 0.305, 0.127, 0.056),
+          // Settings gear rests flat on the bookshelf top board.
+          rect: _homeSettingsGearRect,
           referenceSpace: _UiReferenceSpace.background,
           assetPath: _homeSetupAsset,
           behavior: _SceneSpriteBehavior.staticOverlay,
@@ -1326,8 +1343,8 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           onTap: onOpenShop,
         ),
         _SceneSpriteSpec(
-          // Settings gear stays in the scene, but away from pet placement slots.
-          rect: const _RectFactor(0.650, 0.305, 0.127, 0.056),
+          // Settings gear rests flat on the bookshelf top board.
+          rect: _homeSettingsGearRect,
           referenceSpace: _UiReferenceSpace.background,
           assetPath: _homeSetupAsset,
           behavior: _SceneSpriteBehavior.staticOverlay,
@@ -1525,6 +1542,27 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
 
   static int get debugSeatOccluderRenderPriority =>
       _homeSeatOccluderRenderPriority;
+
+  static Rect get debugHomeSettingsGearRect => Rect.fromLTWH(
+    _homeSettingsGearRect.left,
+    _homeSettingsGearRect.top,
+    _homeSettingsGearRect.width,
+    _homeSettingsGearRect.height,
+  );
+
+  static Rect get debugHomeCoffeeTableNoPetRect => Rect.fromLTWH(
+    _homeCoffeeTableNoPetRect.left,
+    _homeCoffeeTableNoPetRect.top,
+    _homeCoffeeTableNoPetRect.width,
+    _homeCoffeeTableNoPetRect.height,
+  );
+
+  static Rect get debugRightArmchairSeatCushionRect => Rect.fromLTWH(
+    _rightArmchairSeatCushionRect.left,
+    _rightArmchairSeatCushionRect.top,
+    _rightArmchairSeatCushionRect.width,
+    _rightArmchairSeatCushionRect.height,
+  );
 
   static Rect get debugRightArmchairFrontOccluderRect => Rect.fromLTWH(
     _rightArmchairFrontOccluderRect.left,
