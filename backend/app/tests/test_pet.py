@@ -123,13 +123,43 @@ def test_manual_feed_endpoint_removed(client: TestClient, db: Session) -> None:
     assert response.status_code == 404
 
 
-def test_pet_history_endpoint_removed(client: TestClient, db: Session) -> None:
+def test_pet_history_returns_owner_task_completions(client: TestClient, db: Session) -> None:
     token, family_id, child_id = _setup_family(client, db)
     _assign_pet(client, token, family_id, child_id)
     pet = _get_pets(client, token, family_id)[0]
+    headers = _auth_header(token)
+
+    child_task = client.post(
+        "/api/tasks",
+        json={"title": "Read picture book", "points": 12},
+        headers=headers,
+    ).json()
+    admin_task = client.post(
+        "/api/tasks",
+        json={"title": "Parent only task", "points": 99},
+        headers=headers,
+    ).json()
+
+    client.post(
+        f"/api/tasks/{admin_task['id']}/completions",
+        headers=headers,
+    )
+    client.post(
+        f"/api/tasks/{child_task['id']}/completions",
+        json={"member_id": child_id},
+        headers=headers,
+    )
 
     response = client.get(
         f"/api/pets/{pet['id']}/history",
-        headers=_auth_header(token),
+        headers=headers,
     )
-    assert response.status_code == 404
+    assert response.status_code == 200
+
+    history = response.json()
+    assert len(history) == 1
+    assert history[0]["event_type"] == "task"
+    assert history[0]["task_title"] == "Read picture book"
+    assert history[0]["title"] == "Read picture book"
+    assert history[0]["points"] == 12
+    assert history[0]["task_points"] == 12

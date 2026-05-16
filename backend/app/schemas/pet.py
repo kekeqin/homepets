@@ -16,3 +16,14 @@ class PetResponse(BaseModel):
     level_threshold: int | None
     next_level_image: str | None
     emoji: str | None = None
+
+
+class PetHistoryEntryResponse(BaseModel):
+    id: int
+    event_type: str = "task"
+    title: str
+    task_title: str
+    points: int = 0
+    task_points: int = 0
+    description: str | None = None
+    created_at: datetime

@@ -13,7 +13,7 @@ class PetHistoryEntry {
 
     return PetHistoryEntry(
       title: rawTitle.trim().isEmpty ? _defaultTitleFor(eventType) : rawTitle,
-      points: _toInt(json['points']) ?? 0,
+      points: _toInt(json['points']) ?? _toInt(json['task_points']) ?? 0,
       eventType: eventType,
       description: (json['description'] as String?)?.trim(),
       createdAt: DateTime.tryParse((json['created_at'] ?? '').toString()),
