@@ -88,7 +88,8 @@ const String _taskDeleteButtonAsset =
     'assets/images/ui/task_delete/delete_button.png';
 const String _taskDeleteButtonPressedAsset =
     'assets/images/ui/task_delete/delete_button_pressed.png';
-const String _taskDialogPanelBackgroundAsset = 'assets/images/ui/task/33.png';
+const String _taskDialogPanelBackgroundAsset =
+    TaskBoardReferenceAsset.dialogPanel;
 const String _completeMemberDialogAssetRoot =
     'assets/images/ui/sprites/complete_member_dialog_parts';
 const Size _completeMemberDialogDesignSize = Size(436, 502);
@@ -122,7 +123,7 @@ Size _taskMutationDialogSize(Size screenSize) {
     _taskMutationDialogMaxWidth,
   );
   final maxPanelHeight = screenSize.height * _taskMutationDialogHeightFactor;
-  final panelAspectRatio = TaskEditorSheetSpriteCatalog.panelBlankAspectRatio;
+  final panelAspectRatio = TaskBoardReferenceAsset.dialogPanelAspectRatio;
   final panelWidth = math.min(maxPanelWidth, maxPanelHeight * panelAspectRatio);
 
   return Size(panelWidth, panelWidth / panelAspectRatio);
@@ -3165,6 +3166,10 @@ class _TaskDeleteConfirmPanel extends StatelessWidget {
         final messageFontSize = taskLabel.runes.length > 10
             ? width * 0.034
             : width * 0.039;
+        final buttonGap = width * 0.07;
+        final buttonGroupWidth = width * 0.78;
+        final buttonWidth = (buttonGroupWidth - buttonGap) * 0.5;
+        final buttonLeft = (width - buttonGroupWidth) * 0.5;
 
         return Stack(
           clipBehavior: Clip.none,
@@ -3266,9 +3271,9 @@ class _TaskDeleteConfirmPanel extends StatelessWidget {
               ),
             ),
             Positioned(
-              left: width * 0.095,
+              left: buttonLeft,
               bottom: height * 0.074,
-              width: width * 0.39,
+              width: buttonWidth,
               height: height * 0.166,
               child: _TaskDeleteActionButton(
                 label: '取消',
@@ -3278,9 +3283,9 @@ class _TaskDeleteConfirmPanel extends StatelessWidget {
               ),
             ),
             Positioned(
-              right: width * 0.095,
+              left: buttonLeft + buttonWidth + buttonGap,
               bottom: height * 0.074,
-              width: width * 0.39,
+              width: buttonWidth,
               height: height * 0.166,
               child: _TaskDeleteActionButton(
                 label: '删除',
@@ -4114,11 +4119,20 @@ class _TaskEditorSpriteCard extends StatelessWidget {
         final fieldLeft = panelSize.width * 0.17;
         final buttonBottom =
             panelSize.height * (bottomInset > 0 ? 0.052 : 0.075);
-        final buttonHeight = panelSize.height * 0.112;
-        final buttonSideInset = panelSize.width * 0.17;
-        final cancelButtonWidth =
-            buttonHeight * sprites.cancelButtonBg.aspectRatio;
-        final saveButtonWidth = buttonHeight * sprites.saveButtonBg.aspectRatio;
+        final buttonGap = panelSize.width * 0.035;
+        final buttonMaxGroupWidth = panelSize.width * 0.70;
+        final cancelButtonAspectRatio = sprites.cancelButtonBg.aspectRatio;
+        final saveButtonAspectRatio = sprites.saveButtonBg.aspectRatio;
+        final buttonHeight = math.min(
+          panelSize.height * 0.112,
+          (buttonMaxGroupWidth - buttonGap) /
+              (cancelButtonAspectRatio + saveButtonAspectRatio),
+        );
+        final cancelButtonWidth = buttonHeight * cancelButtonAspectRatio;
+        final saveButtonWidth = buttonHeight * saveButtonAspectRatio;
+        final buttonGroupWidth =
+            cancelButtonWidth + buttonGap + saveButtonWidth;
+        final buttonGroupLeft = (panelSize.width - buttonGroupWidth) * 0.5;
 
         return Stack(
           clipBehavior: Clip.none,
@@ -4245,7 +4259,7 @@ class _TaskEditorSpriteCard extends StatelessWidget {
               ),
             Positioned(
               bottom: buttonBottom,
-              left: buttonSideInset,
+              left: buttonGroupLeft,
               width: cancelButtonWidth,
               height: buttonHeight,
               child: _TaskEditorSpriteImageButton(
@@ -4258,7 +4272,7 @@ class _TaskEditorSpriteCard extends StatelessWidget {
             ),
             Positioned(
               bottom: buttonBottom,
-              right: buttonSideInset,
+              left: buttonGroupLeft + cancelButtonWidth + buttonGap,
               width: saveButtonWidth,
               height: buttonHeight,
               child: _TaskEditorSpriteImageButton(

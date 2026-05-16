@@ -157,10 +157,6 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
     return members.where((member) => member.petType != null).length;
   }
 
-  int _familyPoints(List<FamilyMemberViewData> members) {
-    return members.fold(0, (sum, member) => sum + member.points);
-  }
-
   Future<void> _openPetDetail(Pet pet, String? avatarAssetPath) async {
     await showPetDetailDialog(
       context,
@@ -408,7 +404,6 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
 
     final members = familyState.members;
     final petCount = _petCount(members);
-    final familyPoints = _familyPoints(members);
     final familyTitle = _familyTitle(familyState.familyName);
     final canManageMembers =
         authState.user?.isAdmin == true && !authState.viewOnly;
@@ -437,7 +432,6 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
             child: _FamilyStageCard(
               embedded: widget.embedded,
               title: familyTitle,
-              familyPoints: familyPoints,
               petCount: petCount,
               memberCount: members.length,
               canManageMembers: canManageMembers,
@@ -474,7 +468,6 @@ class _FamilyStageCard extends StatelessWidget {
   const _FamilyStageCard({
     required this.embedded,
     required this.title,
-    required this.familyPoints,
     required this.petCount,
     required this.memberCount,
     required this.canManageMembers,
@@ -486,7 +479,6 @@ class _FamilyStageCard extends StatelessWidget {
 
   final bool embedded;
   final String title;
-  final int familyPoints;
   final int petCount;
   final int memberCount;
   final bool canManageMembers;
@@ -533,7 +525,6 @@ class _FamilyStageCard extends StatelessWidget {
                           child: _QuietFamilyStageHeader(
                             embedded: embedded,
                             title: title,
-                            familyPoints: familyPoints,
                             petCount: petCount,
                             memberCount: memberCount,
                             canManageMembers: canManageMembers,
@@ -797,7 +788,6 @@ class _QuietFamilyStageHeader extends StatelessWidget {
   const _QuietFamilyStageHeader({
     required this.embedded,
     required this.title,
-    required this.familyPoints,
     required this.petCount,
     required this.memberCount,
     required this.canManageMembers,
@@ -807,7 +797,6 @@ class _QuietFamilyStageHeader extends StatelessWidget {
 
   final bool embedded;
   final String title;
-  final int familyPoints;
   final int petCount;
   final int memberCount;
   final bool canManageMembers;
@@ -870,12 +859,6 @@ class _QuietFamilyStageHeader extends StatelessWidget {
                                   compact: compact,
                                   iconRegion: FamilySpriteRegions.statPetIcon,
                                   value: '$petCount',
-                                ),
-                                SizedBox(width: compact ? 5 : 7),
-                                _QuietStatPill(
-                                  compact: compact,
-                                  iconRegion: FamilySpriteRegions.starIcon,
-                                  value: '$familyPoints',
                                 ),
                               ],
                             ),

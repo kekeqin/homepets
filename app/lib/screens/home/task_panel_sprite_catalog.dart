@@ -21,6 +21,8 @@ class TaskBoardReferenceAsset {
   static const String rewardStar = 'assets/images/ui/task/13.png';
   static const double boardWidth = 575;
   static const double boardHeight = 685;
+  static const double dialogPanelWidth = 1149;
+  static const double dialogPanelHeight = 1369;
   static const double clipWidth = 166;
   static const double clipHeight = 116;
   static const double rowWarmWidth = 493;
@@ -34,6 +36,7 @@ class TaskBoardReferenceAsset {
   static const double addTaskButtonWidth = 408;
   static const double addTaskButtonHeight = 124;
   static const Size boardSize = Size(boardWidth, boardHeight);
+  static const Size dialogPanelSize = Size(dialogPanelWidth, dialogPanelHeight);
   static const Size clipSize = Size(clipWidth, clipHeight);
   static const Size rowWarmSize = Size(rowWarmWidth, rowWarmHeight);
   static const Size rowGreenSize = Size(rowGreenWidth, rowGreenHeight);
@@ -48,6 +51,8 @@ class TaskBoardReferenceAsset {
   static const double panelHeight = boardTopOffset + boardHeight;
   static const double panelAspectRatio = panelWidth / panelHeight;
   static const double panelHeightRatio = panelHeight / panelWidth;
+  static const double dialogPanelAspectRatio =
+      dialogPanelWidth / dialogPanelHeight;
   static const double addTaskButtonAspectRatio =
       addTaskButtonWidth / addTaskButtonHeight;
   static const List<String> runtimeAssets = <String>[
