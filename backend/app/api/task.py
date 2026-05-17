@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import desc
@@ -20,12 +20,21 @@ from app.services.pet_service import calculate_level
 
 router = APIRouter(prefix="/api", tags=["tasks"])
 
+LOCAL_DAY_ZONE = timezone(timedelta(hours=8), name="Asia/Shanghai")
+
 
 def _as_utc(value: datetime) -> datetime:
     """将 SQLite 可能返回的 naive datetime 统一为 UTC，避免日期比较出错。"""
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
     return value.astimezone(UTC)
+
+
+def _local_day_start_utc(now: datetime) -> datetime:
+    """Return the start of the current app day in UTC."""
+    local_now = _as_utc(now).astimezone(LOCAL_DAY_ZONE)
+    local_start = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+    return local_start.astimezone(UTC)
 
 
 def _require_family_access(family_id: int, current_user: User) -> None:
@@ -89,8 +98,7 @@ def _list_active_tasks(
         reverse=True,
     )
 
-    now = datetime.now(UTC)
-    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start = _local_day_start_utc(datetime.now(UTC))
     week_start = today_start - timedelta(days=today_start.weekday())
 
     approved_completions: list[TaskCompletion] = []

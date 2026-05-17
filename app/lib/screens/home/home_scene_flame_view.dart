@@ -92,24 +92,32 @@ const String _taskDialogPanelBackgroundAsset =
     TaskBoardReferenceAsset.dialogPanel;
 const String _completeMemberDialogAssetRoot =
     'assets/images/ui/sprites/complete_member_dialog_parts';
-const Size _completeMemberDialogDesignSize = Size(436, 502);
+const double _completeMemberDialogDesignWidth = 436;
+const double _completeMemberFieldHeight = 65;
+const double _completeMemberOptionExtent = 55;
+const double _completeMemberTitleFontSize =
+    _completeMemberDialogDesignWidth * 0.075;
+const double _completeMemberLabelFontSize =
+    _completeMemberDialogDesignWidth * 0.048;
+const double _completeMemberFieldFontSize = _completeMemberFieldHeight * 0.44;
+const double _completeMemberOptionFontSize = _completeMemberOptionExtent * 0.44;
+const Size _completeMemberDialogDesignSize = Size(
+  _completeMemberDialogDesignWidth,
+  _completeMemberDialogDesignWidth /
+      TaskBoardReferenceAsset.dialogPanelAspectRatio,
+);
 const String _completeMemberDialogPanelAsset =
-    '$_completeMemberDialogAssetRoot/complete_member_dialog_panel_blank_large.png';
-const String _completeMemberDialogShadowAsset =
-    '$_completeMemberDialogAssetRoot/complete_member_dialog_shadow_large.png';
-const String _completeMemberHeaderIconAsset =
-    '$_completeMemberDialogAssetRoot/complete_member_header_icon_clipboard_star_left.png';
+    TaskBoardReferenceAsset.dialogPanel;
 const String _completeMemberDropdownArrowAsset =
     '$_completeMemberDialogAssetRoot/complete_member_chevron_down_standalone.png';
 const String _completeMemberCheckmarkAsset =
     '$_completeMemberDialogAssetRoot/complete_member_checkmark_white_right.png';
-const String _completeMemberConfirmButtonAsset =
-    '$_completeMemberDialogAssetRoot/complete_member_confirm_complete_button_bottom.png';
 const Color _completeMemberFieldFillColor = Color(0xFFFFFCF4);
 const Color _completeMemberFieldBorderColor = Color(0xFF76563E);
 const Color _completeMemberMenuFillColor = Color(0xFFFFF4E5);
 const Color _completeMemberOptionFillColor = Color(0xFFFBE3BD);
 const Color _completeMemberOptionSelectedColor = Color(0xFFD7E09A);
+const Duration _taskCompletionFeedbackDuration = Duration(milliseconds: 650);
 const double _taskMutationDialogWidthFactor = 0.86;
 const double _taskMutationDialogMaxWidth = 390;
 const double _taskMutationDialogHeightFactor = 0.76;
@@ -177,6 +185,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   Rect? _taskPanelOriginRect;
   bool _didPrecacheTaskPanelAssets = false;
   String? _taskPanelPressedInteractionKey;
+  int? _taskPanelCompletingTaskId;
   OverlayEntry? _topSnackBarEntry;
 
   static const int _taskPanelPageSize = 4;
@@ -1214,7 +1223,14 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   bool _taskPanelTaskCompleted(Map<String, dynamic> task) {
     return task['is_completed'] == true ||
         task['completed'] == true ||
-        task['done'] == true;
+        task['done'] == true ||
+        task['completed_today'] == true ||
+        task['status'] == 'completed';
+  }
+
+  bool _taskPanelTaskCompleting(Map<String, dynamic> task) {
+    final taskId = _asInt(task['id'], fallback: -1);
+    return taskId > 0 && taskId == _taskPanelCompletingTaskId;
   }
 
   String _taskPanelInteractionKey(
@@ -1506,7 +1522,8 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     required int index,
   }) {
     final taskTitle = _taskPanelTaskTitle(task);
-    final completed = _taskPanelTaskCompleted(task);
+    final completing = _taskPanelTaskCompleting(task);
+    final completed = _taskPanelTaskCompleted(task) || completing;
     final checkboxPressKey = _taskPanelInteractionKey(
       task,
       index,
@@ -1516,146 +1533,243 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     final isCheckboxPressed = _isTaskPanelInteractionPressed(checkboxPressKey);
     final isBodyPressed = _isTaskPanelInteractionPressed(bodyPressKey);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final rowSize = constraints.biggest;
-        final starSize = rowSize.height * 0.40;
-        final checkboxSize = rowSize.height * 0.62;
-        final titleFontSize = rowSize.height * 0.30;
-        final titleColor = const Color(
-          0xFF4D3721,
-        ).withValues(alpha: completed ? 0.56 : 1);
-        final rowOpacity =
-            (completed ? 0.86 : 1.0) * (isBodyPressed ? 0.94 : 1.0);
-        final checkboxOpacity = completed
-            ? 0.92
-            : (isCheckboxPressed ? 0.82 : 1.0);
-        final pointsLabelWidth = math.max(
-          42.0,
-          math.min(rowSize.width * 0.13, 62.0),
-        );
-        final rowAsset = _taskPanelRowAssetForIndex(index);
+    return TweenAnimationBuilder<double>(
+      key: ValueKey<String>(
+        'task-complete-${_asInt(task['id'], fallback: index)}-$completing',
+      ),
+      tween: Tween<double>(begin: 0, end: completing ? 1 : 0),
+      duration: completing
+          ? _taskCompletionFeedbackDuration
+          : const Duration(milliseconds: 120),
+      curve: Curves.easeOutCubic,
+      builder: (context, completionProgress, child) {
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final rowSize = constraints.biggest;
+            final starSize = rowSize.height * 0.40;
+            final checkboxSize = rowSize.height * 0.62;
+            final titleFontSize = rowSize.height * 0.30;
+            final titleColor = const Color(
+              0xFF4D3721,
+            ).withValues(alpha: completed ? 0.56 : 1);
+            final completionFade = Curves.easeOut.transform(
+              completionProgress.clamp(0, 1).toDouble(),
+            );
+            final checkboxPop =
+                1 + (math.sin(completionProgress * math.pi * 2.0) * 0.18);
+            final flyProgress = Curves.easeInOutCubic.transform(
+              completionProgress.clamp(0, 1).toDouble(),
+            );
+            final floatProgress = Curves.easeOutCubic.transform(
+              completionProgress.clamp(0, 1).toDouble(),
+            );
+            final rowOpacity =
+                (completed ? 0.86 : 1.0) *
+                (1 - completionFade * 0.18) *
+                (isBodyPressed ? 0.94 : 1.0);
+            final checkboxOpacity = completed
+                ? 0.92
+                : (isCheckboxPressed ? 0.82 : 1.0);
+            final pointsLabelWidth = math.max(
+              42.0,
+              math.min(rowSize.width * 0.13, 62.0),
+            );
+            final rowAsset = _taskPanelRowAssetForIndex(index);
+            final starBaseRight = rowSize.width * 0.135 + pointsLabelWidth;
+            final starTop = (rowSize.height - starSize) * 0.5;
 
-        return Stack(
-          children: [
-            Positioned.fill(
-              child: AnimatedScale(
-                duration: const Duration(milliseconds: 90),
-                curve: Curves.easeOutCubic,
-                alignment: Alignment.center,
-                scale: isBodyPressed ? 0.992 : 1,
-                child: Opacity(
-                  opacity: rowOpacity,
-                  child: Image.asset(rowAsset, fit: BoxFit.fill),
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned.fill(
+                  child: AnimatedScale(
+                    duration: const Duration(milliseconds: 90),
+                    curve: Curves.easeOutCubic,
+                    alignment: Alignment.center,
+                    scale: isBodyPressed ? 0.992 : 1,
+                    child: Opacity(
+                      opacity: rowOpacity,
+                      child: Image.asset(rowAsset, fit: BoxFit.fill),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            Positioned(
-              right: rowSize.width * 0.050,
-              top: (rowSize.height - checkboxSize) * 0.5,
-              width: checkboxSize,
-              height: checkboxSize,
-              child: AnimatedSlide(
-                duration: const Duration(milliseconds: 90),
-                curve: Curves.easeOutCubic,
-                offset: isCheckboxPressed ? const Offset(0, 0.05) : Offset.zero,
-                child: AnimatedScale(
-                  duration: const Duration(milliseconds: 90),
-                  curve: Curves.easeOutCubic,
-                  scale: isCheckboxPressed ? 0.92 : 1,
+                Positioned(
+                  right: rowSize.width * 0.050,
+                  top: (rowSize.height - checkboxSize) * 0.5,
+                  width: checkboxSize,
+                  height: checkboxSize,
+                  child: AnimatedSlide(
+                    duration: const Duration(milliseconds: 90),
+                    curve: Curves.easeOutCubic,
+                    offset: isCheckboxPressed
+                        ? const Offset(0, 0.05)
+                        : Offset.zero,
+                    child: AnimatedScale(
+                      duration: const Duration(milliseconds: 90),
+                      curve: Curves.easeOutCubic,
+                      scale: completing
+                          ? checkboxPop
+                          : (isCheckboxPressed ? 0.92 : 1),
+                      child: Opacity(
+                        opacity: checkboxOpacity,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.asset(
+                              TaskBoardReferenceAsset.checkboxEmpty,
+                              fit: BoxFit.contain,
+                            ),
+                            if (completed)
+                              Icon(
+                                Icons.check_rounded,
+                                color: const Color(
+                                  0xFF6D8B35,
+                                ).withValues(alpha: 0.92),
+                                size: checkboxSize * 0.72,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: rowSize.width * 0.075,
+                  right: rowSize.width * 0.170 + starSize + pointsLabelWidth,
+                  top: 0,
+                  bottom: 0,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      taskTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: titleColor,
+                        fontSize: titleFontSize,
+                        fontWeight: FontWeight.w900,
+                        height: 1,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: starBaseRight,
+                  top: starTop,
+                  width: starSize,
+                  height: starSize,
                   child: Opacity(
-                    opacity: checkboxOpacity,
+                    opacity: completed ? 0.58 : 1,
                     child: Image.asset(
-                      TaskBoardReferenceAsset.checkboxEmpty,
+                      TaskBoardReferenceAsset.rewardStar,
                       fit: BoxFit.contain,
                     ),
                   ),
                 ),
-              ),
-            ),
-            Positioned(
-              left: rowSize.width * 0.075,
-              right: rowSize.width * 0.170 + starSize + pointsLabelWidth,
-              top: 0,
-              bottom: 0,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  taskTitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: titleColor,
-                    fontSize: titleFontSize,
-                    fontWeight: FontWeight.w900,
-                    height: 1,
-                    letterSpacing: 0,
+                Positioned(
+                  right: rowSize.width * 0.125,
+                  top: 0,
+                  bottom: 0,
+                  child: _buildTaskPanelPointsText(
+                    label: _taskPanelTaskPointsLabel(task),
+                    width: pointsLabelWidth,
+                    fontSize: rowSize.height * 0.30,
+                    completed: completed,
                   ),
                 ),
-              ),
-            ),
-            Positioned(
-              right: rowSize.width * 0.135 + pointsLabelWidth,
-              top: (rowSize.height - starSize) * 0.5,
-              width: starSize,
-              height: starSize,
-              child: Opacity(
-                opacity: completed ? 0.58 : 1,
-                child: Image.asset(
-                  TaskBoardReferenceAsset.rewardStar,
-                  fit: BoxFit.contain,
+                if (completing) ...[
+                  Positioned(
+                    right:
+                        starBaseRight +
+                        (rowSize.width * 0.52 * flyProgress) -
+                        (starSize * 0.20),
+                    top:
+                        starTop -
+                        (rowSize.height * 1.05 * flyProgress) +
+                        (math.sin(flyProgress * math.pi) *
+                            rowSize.height *
+                            0.20),
+                    width: starSize * (1 + 0.20 * (1 - flyProgress)),
+                    height: starSize * (1 + 0.20 * (1 - flyProgress)),
+                    child: Opacity(
+                      opacity: (1 - flyProgress).clamp(0, 1).toDouble(),
+                      child: Image.asset(
+                        TaskBoardReferenceAsset.rewardStar,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    right: rowSize.width * 0.16,
+                    top: rowSize.height * (0.08 - 0.62 * floatProgress),
+                    child: Opacity(
+                      opacity: (1 - floatProgress).clamp(0, 1).toDouble(),
+                      child: Text(
+                        '+${_asInt(task['points'], fallback: 10)}',
+                        style: TextStyle(
+                          color: const Color(0xFFFF8E32),
+                          fontSize: rowSize.height * 0.36,
+                          fontWeight: FontWeight.w900,
+                          height: 1,
+                          letterSpacing: 0,
+                          shadows: const [
+                            Shadow(
+                              color: Color(0xAAFFFFFF),
+                              blurRadius: 3,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  width: rowSize.width * 0.14,
+                  bottom: 0,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTapDown: (_) =>
+                        _setTaskPanelInteractionPressed(checkboxPressKey),
+                    onTapCancel: () =>
+                        _clearTaskPanelInteractionPressed(checkboxPressKey),
+                    onTapUp: (_) => _clearTaskPanelInteractionPressed(
+                      checkboxPressKey,
+                      delayed: true,
+                    ),
+                    onTap: completing
+                        ? null
+                        : () => _completeTaskByLabel(taskTitle),
+                    child: const SizedBox.expand(),
+                  ),
                 ),
-              ),
-            ),
-            Positioned(
-              right: rowSize.width * 0.125,
-              top: 0,
-              bottom: 0,
-              child: _buildTaskPanelPointsText(
-                label: _taskPanelTaskPointsLabel(task),
-                width: pointsLabelWidth,
-                fontSize: rowSize.height * 0.30,
-                completed: completed,
-              ),
-            ),
-            Positioned(
-              right: 0,
-              top: 0,
-              width: rowSize.width * 0.14,
-              bottom: 0,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTapDown: (_) =>
-                    _setTaskPanelInteractionPressed(checkboxPressKey),
-                onTapCancel: () =>
-                    _clearTaskPanelInteractionPressed(checkboxPressKey),
-                onTapUp: (_) => _clearTaskPanelInteractionPressed(
-                  checkboxPressKey,
-                  delayed: true,
+                Positioned(
+                  left: 0,
+                  right: rowSize.width * 0.13,
+                  top: 0,
+                  bottom: 0,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTapDown: (_) =>
+                        _setTaskPanelInteractionPressed(bodyPressKey),
+                    onTapCancel: () =>
+                        _clearTaskPanelInteractionPressed(bodyPressKey),
+                    onTapUp: (_) => _clearTaskPanelInteractionPressed(
+                      bodyPressKey,
+                      delayed: true,
+                    ),
+                    onTap: completing
+                        ? null
+                        : () => _editTaskByLabel(taskTitle),
+                    child: const SizedBox.expand(),
+                  ),
                 ),
-                onTap: () => _completeTaskByLabel(taskTitle),
-                child: const SizedBox.expand(),
-              ),
-            ),
-            Positioned(
-              left: 0,
-              right: rowSize.width * 0.13,
-              top: 0,
-              bottom: 0,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTapDown: (_) => _setTaskPanelInteractionPressed(bodyPressKey),
-                onTapCancel: () =>
-                    _clearTaskPanelInteractionPressed(bodyPressKey),
-                onTapUp: (_) => _clearTaskPanelInteractionPressed(
-                  bodyPressKey,
-                  delayed: true,
-                ),
-                onTap: () => _editTaskByLabel(taskTitle),
-                child: const SizedBox.expand(),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         );
       },
     );
@@ -2128,6 +2242,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     }
 
     final taskId = _asInt(targetTask['id'], fallback: -1);
+    final taskPoints = _asInt(targetTask['points'], fallback: 10);
 
     if (taskId <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -2147,6 +2262,9 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       return;
     }
 
+    final previousPets = List<Pet>.from(_pets);
+    final reactionPetBefore = _petForOwner(previousPets, memberId);
+
     try {
       final dio = ref.read(apiClientProvider).dio;
 
@@ -2155,16 +2273,50 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         data: {'member_id': memberId},
       );
 
-      await _loadHomeTasks();
+      if (mounted) {
+        setState(() => _taskPanelCompletingTaskId = taskId);
+      }
 
+      await Future<void>.delayed(_taskCompletionFeedbackDuration);
       await _loadFamilyPets();
 
       if (!mounted) {
         return;
       }
 
+      final reactionPetAfter = _petForOwner(_pets, memberId);
+      final leveledUp =
+          reactionPetBefore != null &&
+          reactionPetAfter != null &&
+          reactionPetAfter.level > reactionPetBefore.level;
+      final fallbackPetId = reactionPetBefore?.id ?? reactionPetAfter?.id;
+      final reactionMessage = leveledUp
+          ? '升级啦！Lv.${reactionPetAfter.level}'
+          : _taskCompletionMessageFor(taskPoints);
+
+      await _loadHomeTasks();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() => _taskPanelCompletingTaskId = null);
+      if (_taskPanelVisible) {
+        await _hideTaskPanel();
+        if (!mounted) {
+          return;
+        }
+      }
+
+      _game.playPetCompletionReaction(
+        petId: fallbackPetId,
+        message: reactionMessage,
+      );
       _showTopSnackBar('任务完成成功');
     } catch (error) {
+      if (mounted && _taskPanelCompletingTaskId == taskId) {
+        setState(() => _taskPanelCompletingTaskId = null);
+      }
       if (mounted) {
         showFriendlyApiErrorSnackBar(
           context,
@@ -2176,6 +2328,22 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         );
       }
     }
+  }
+
+  Pet? _petForOwner(List<Pet> pets, int ownerId) {
+    for (final pet in pets) {
+      if (pet.ownerId == ownerId) {
+        return pet;
+      }
+    }
+    return null;
+  }
+
+  String _taskCompletionMessageFor(int points) {
+    if (points >= 20) {
+      return '我长大一点啦';
+    }
+    return '谢谢你！';
   }
 
   Future<int?> _pickCompletionMemberId() async {
@@ -3388,10 +3556,12 @@ class _CompletionMemberSelectContent extends StatefulWidget {
 class _CompletionMemberSelectContentState
     extends State<_CompletionMemberSelectContent> {
   late int? _selectedMemberId;
+  late final Future<SpriteAtlas> _spriteAtlasFuture;
 
   @override
   void initState() {
     super.initState();
+    _spriteAtlasFuture = TaskEditorSheetSpriteCatalog.atlasAsset.load();
     _selectedMemberId =
         widget.options.any((option) => option.value == widget.initialMemberId)
         ? widget.initialMemberId
@@ -3427,13 +3597,9 @@ class _CompletionMemberSelectContentState
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.sizeOf(context);
-    final aspect =
-        _completeMemberDialogDesignSize.width /
-        _completeMemberDialogDesignSize.height;
-    final maxWidth = math.min(screenSize.width * 0.92, 436.0);
-    final maxHeight = screenSize.height * 0.74;
-    final panelWidth = math.min(maxWidth, maxHeight * aspect);
-    final panelHeight = panelWidth / aspect;
+    final panelSize = _taskMutationDialogSize(screenSize);
+    final buttonGap = _completeMemberDialogDesignSize.width * 0.035;
+    final buttonMaxGroupWidth = _completeMemberDialogDesignSize.width * 0.70;
 
     return SafeArea(
       minimum: const EdgeInsets.fromLTRB(16, 20, 16, 20),
@@ -3444,125 +3610,154 @@ class _CompletionMemberSelectContentState
           child: Material(
             color: Colors.transparent,
             child: SizedBox(
-              width: panelWidth,
-              height: panelHeight,
+              width: panelSize.width,
+              height: panelSize.height,
               child: FittedBox(
                 fit: BoxFit.fill,
-                child: SizedBox(
-                  width: _completeMemberDialogDesignSize.width,
-                  height: _completeMemberDialogDesignSize.height,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      const Positioned(
-                        left: 82,
-                        bottom: -9,
-                        width: 272,
-                        height: 42,
-                        child: _CompleteMemberAssetImage(
-                          assetPath: _completeMemberDialogShadowAsset,
-                          fit: BoxFit.fill,
-                        ),
-                      ),
-                      const Positioned.fill(
-                        child: _CompleteMemberAssetImage(
-                          assetPath: _completeMemberDialogPanelAsset,
-                          fit: BoxFit.fill,
-                        ),
-                      ),
-                      const Positioned(
-                        left: 43,
-                        top: 28,
-                        width: 64,
-                        height: 69,
-                        child: _CompleteMemberAssetImage(
-                          assetPath: _completeMemberHeaderIconAsset,
-                        ),
-                      ),
-                      const Positioned(
-                        left: 128,
-                        top: 41,
-                        width: 268,
-                        height: 47,
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            '选择完成人员',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Color(0xFF4D3623),
-                              fontSize: 34,
-                              fontWeight: FontWeight.w900,
-                              height: 1,
-                              letterSpacing: 0,
+                child: FutureBuilder<SpriteAtlas>(
+                  future: _spriteAtlasFuture,
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return SizedBox(
+                        width: _completeMemberDialogDesignSize.width,
+                        height: _completeMemberDialogDesignSize.height,
+                      );
+                    }
+
+                    final sprites = TaskEditorSheetSpriteCatalog(
+                      snapshot.requireData,
+                    );
+                    final cancelButtonAspectRatio =
+                        sprites.cancelButtonBg.aspectRatio;
+                    final confirmButtonAspectRatio =
+                        sprites.saveButtonBg.aspectRatio;
+                    final buttonHeight = math.min(
+                      _completeMemberDialogDesignSize.height * 0.112,
+                      (buttonMaxGroupWidth - buttonGap) /
+                          (cancelButtonAspectRatio + confirmButtonAspectRatio),
+                    );
+                    final cancelButtonWidth =
+                        buttonHeight * cancelButtonAspectRatio;
+                    final confirmButtonWidth =
+                        buttonHeight * confirmButtonAspectRatio;
+                    final buttonGroupWidth =
+                        cancelButtonWidth + buttonGap + confirmButtonWidth;
+                    final buttonGroupLeft =
+                        (_completeMemberDialogDesignSize.width -
+                            buttonGroupWidth) *
+                        0.5;
+
+                    return SizedBox(
+                      width: _completeMemberDialogDesignSize.width,
+                      height: _completeMemberDialogDesignSize.height,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          const Positioned.fill(
+                            child: _CompleteMemberAssetImage(
+                              assetPath: _completeMemberDialogPanelAsset,
+                              fit: BoxFit.fill,
                             ),
                           ),
-                        ),
-                      ),
-                      const Positioned(
-                        left: 42,
-                        top: 116,
-                        width: 132,
-                        height: 30,
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            '完成成员',
-                            maxLines: 1,
-                            style: TextStyle(
-                              color: Color(0xFF4D3623),
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                              height: 1,
-                              letterSpacing: 0,
+                          const Positioned(
+                            left: 42,
+                            top: 52,
+                            width: 352,
+                            height: 47,
+                            child: Align(
+                              alignment: Alignment.center,
+                              child: Text(
+                                '选择完成人员',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Color(0xFF4D3623),
+                                  fontSize: _completeMemberTitleFontSize,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1,
+                                  letterSpacing: 0,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                          const Positioned(
+                            left: 74,
+                            top: 126,
+                            width: 132,
+                            height: 30,
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                '完成成员',
+                                maxLines: 1,
+                                style: TextStyle(
+                                  color: Color(0xFF4D3623),
+                                  fontSize: _completeMemberLabelFontSize,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1,
+                                  letterSpacing: 0,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            left: 74,
+                            top: 158,
+                            width: 288,
+                            height: _completeMemberFieldHeight,
+                            child: _CompleteMemberClosedField(
+                              label: _selectedOption?.label ?? '',
+                            ),
+                          ),
+                          Positioned(
+                            left: 74,
+                            top: 214,
+                            width: 288,
+                            height: 193,
+                            child: _CompleteMemberOptionsList(
+                              options: widget.options,
+                              selectedMemberId: _selectedMemberId,
+                              onSelected: _selectMember,
+                            ),
+                          ),
+                          Positioned(
+                            left: buttonGroupLeft,
+                            bottom:
+                                _completeMemberDialogDesignSize.height * 0.075,
+                            width: cancelButtonWidth,
+                            height: buttonHeight,
+                            child: _TaskEditorSpriteImageButton(
+                              sprites: sprites,
+                              backgroundFrame: sprites.cancelButtonBg,
+                              fallbackText: '取消',
+                              semanticsLabel: '取消',
+                              onTap: () => Navigator.of(context).pop(),
+                            ),
+                          ),
+                          Positioned(
+                            left:
+                                buttonGroupLeft + cancelButtonWidth + buttonGap,
+                            bottom:
+                                _completeMemberDialogDesignSize.height * 0.075,
+                            width: confirmButtonWidth,
+                            height: buttonHeight,
+                            child: Opacity(
+                              opacity: _selectedMemberId == null ? 0.55 : 1,
+                              child: _TaskEditorSpriteImageButton(
+                                sprites: sprites,
+                                backgroundFrame: sprites.saveButtonBg,
+                                fallbackText: '确认完成',
+                                semanticsLabel: '确认完成',
+                                onTap: _selectedMemberId == null
+                                    ? () {}
+                                    : _confirm,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      Positioned(
-                        left: 35,
-                        top: 145,
-                        width: 367,
-                        height: 65,
-                        child: _CompleteMemberClosedField(
-                          label: _selectedOption?.label ?? '',
-                        ),
-                      ),
-                      Positioned(
-                        left: 35,
-                        top: 201,
-                        width: 367,
-                        height: 193,
-                        child: _CompleteMemberOptionsList(
-                          options: widget.options,
-                          selectedMemberId: _selectedMemberId,
-                          onSelected: _selectMember,
-                        ),
-                      ),
-                      Positioned(
-                        left: 106,
-                        top: 419,
-                        width: 86,
-                        height: 48,
-                        child: _CompleteMemberTextButton(
-                          label: '取消',
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                      ),
-                      Positioned(
-                        left: 220,
-                        top: 404,
-                        width: 188,
-                        height: 76,
-                        child: _CompleteMemberImageButton(
-                          onPressed: _selectedMemberId == null
-                              ? null
-                              : _confirm,
-                        ),
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ),
             ),
@@ -3628,7 +3823,7 @@ class _CompleteMemberClosedField extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: Color(0xFF4D3623),
-                  fontSize: 28,
+                  fontSize: _completeMemberFieldFontSize,
                   fontWeight: FontWeight.w900,
                   height: 1,
                   letterSpacing: 0,
@@ -3687,7 +3882,7 @@ class _CompleteMemberOptionsList extends StatelessWidget {
           child: ListView.builder(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
             physics: const ClampingScrollPhysics(),
-            itemExtent: 55,
+            itemExtent: _completeMemberOptionExtent,
             itemCount: options.length,
             itemBuilder: (context, index) {
               final option = options[index];
@@ -3751,7 +3946,7 @@ class _CompleteMemberOptionRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Color(0xFF4D3623),
-                    fontSize: 28,
+                    fontSize: _completeMemberOptionFontSize,
                     fontWeight: FontWeight.w900,
                     height: 1,
                     letterSpacing: 0,
@@ -3770,58 +3965,6 @@ class _CompleteMemberOptionRow extends StatelessWidget {
                 ),
               ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CompleteMemberTextButton extends StatelessWidget {
-  const _CompleteMemberTextButton({
-    required this.label,
-    required this.onPressed,
-  });
-
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onPressed,
-      child: Center(
-        child: Text(
-          label,
-          maxLines: 1,
-          style: const TextStyle(
-            color: Color(0xFF4D3623),
-            fontSize: 27,
-            fontWeight: FontWeight.w900,
-            height: 1,
-            letterSpacing: 0,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CompleteMemberImageButton extends StatelessWidget {
-  const _CompleteMemberImageButton({required this.onPressed});
-
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: onPressed == null ? 0.55 : 1,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onPressed,
-        child: const _CompleteMemberAssetImage(
-          assetPath: _completeMemberConfirmButtonAsset,
-          fit: BoxFit.fill,
         ),
       ),
     );

@@ -367,6 +367,13 @@ class _ActivePetMotionAction {
   final bool isTapFeedback;
 }
 
+class _PetSpeechBubble {
+  const _PetSpeechBubble({required this.message, required this.duration});
+
+  final String message;
+  final double duration;
+}
+
 _PetMotionSpec _petMotionSpecForAssetPath(String assetPath) {
   return switch (assetPath) {
     'images/pets/pets/cat_sit.png' => const _PetMotionSpec(
@@ -1542,6 +1549,21 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     });
   }
 
+  void playPetCompletionReaction({int? petId, required String message}) {
+    if (!_ready) {
+      return;
+    }
+    final petComponents = _animatedComponents.whereType<_PetSpriteComponent>();
+    _PetSpriteComponent? target;
+    for (final component in petComponents) {
+      if (petId == null || component.petId == petId) {
+        target = component;
+        break;
+      }
+    }
+    target?.playCompletionReaction(message);
+  }
+
   static bool debugUsesDynamicHomePoseSwitching(String petType) {
     return _shouldRotateHomePetPosesForType(petType);
   }
@@ -1816,6 +1838,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       );
 
       return _PetSpriteSpec(
+        petId: pet.petId,
         rect: poseVariants[initialPoseIndex].rect,
         referenceSpace: _UiReferenceSpace.background,
         poseVariants: poseVariants,
@@ -2805,6 +2828,7 @@ class _ResolvedPetPoseVariant {
 
 class _PetSpriteSpec extends _UiSpec {
   const _PetSpriteSpec({
+    required this.petId,
     required super.rect,
     this.onTap,
     required this.poseVariants,
@@ -2816,6 +2840,7 @@ class _PetSpriteSpec extends _UiSpec {
     required super.entryOffset,
   });
 
+  final int petId;
   final VoidCallback? onTap;
   final List<_PetPoseVariantSpec> poseVariants;
   final int initialPoseIndex;
@@ -2846,6 +2871,7 @@ class _PetSpriteSpec extends _UiSpec {
       },
     );
     return _PetSpriteComponent(
+      petId: petId,
       poseVariants: resolvedPoseVariants,
       initialPoseIndex: initialPoseIndex,
       contactShadow: contactShadow,
@@ -3521,6 +3547,7 @@ class _LoadedPetPoseVariant {
 class _PetSpriteComponent extends _AnimatedSceneComponent
     with HasGameReference<HomeSceneGame> {
   _PetSpriteComponent({
+    required this.petId,
     required List<_ResolvedPetPoseVariant> poseVariants,
     required int initialPoseIndex,
     this.contactShadow,
@@ -3546,6 +3573,7 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
          priority: renderPriority,
        );
 
+  final int petId;
   final List<_ResolvedPetPoseVariant> poseVariants;
   final int _initialPoseIndex;
   final _PetContactShadowSpec? contactShadow;
@@ -3567,10 +3595,12 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
   double _ambientFloatPhase = 0;
   double _framePlaybackCooldown = 0;
   double _motionActionElapsed = 0;
+  double _speechBubbleElapsed = 0;
   double _idleActionCooldown = 0;
   double? _pendingTapCallbackDelay;
   int _animationIndex = 0;
   int _activePoseIndex = 0;
+  _PetSpeechBubble? _speechBubble;
   bool _isFrameAnimationPlaying = false;
 
   @override
@@ -3613,6 +3643,14 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
         onTap?.call();
       } else {
         _pendingTapCallbackDelay = nextTapDelay;
+      }
+    }
+    final speechBubble = _speechBubble;
+    if (speechBubble != null) {
+      _speechBubbleElapsed += dt;
+      if (_speechBubbleElapsed >= speechBubble.duration) {
+        _speechBubble = null;
+        _speechBubbleElapsed = 0;
       }
     }
     if (_ambientMotionElapsed < _ambientActivationDelay) {
@@ -3687,6 +3725,8 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
         actionTransform.rotation != 0) {
       canvas.restore();
     }
+
+    _renderSpeechBubble(canvas);
   }
 
   _LoadedPetPoseVariant? get _activePose {
@@ -3800,6 +3840,81 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
     canvas.drawOval(shadowRect, _shadowPaint);
   }
 
+  void _renderSpeechBubble(Canvas canvas) {
+    final bubble = _speechBubble;
+    if (bubble == null || bubble.message.trim().isEmpty) {
+      return;
+    }
+
+    final progress = (_speechBubbleElapsed / bubble.duration)
+        .clamp(0, 1)
+        .toDouble();
+    final fadeIn = Curves.easeOut.transform((progress / 0.18).clamp(0, 1));
+    final fadeOut = progress < 0.76
+        ? 1.0
+        : 1 - Curves.easeIn.transform(((progress - 0.76) / 0.24).clamp(0, 1));
+    final opacity = (fadeIn * fadeOut).clamp(0, 1).toDouble();
+    if (opacity <= 0) {
+      return;
+    }
+
+    final message = bubble.message;
+    final fontSize = math.max(size.y * 0.12, 13.0);
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: message,
+        style: TextStyle(
+          color: Color(0xFF4D3623).withValues(alpha: opacity),
+          fontSize: fontSize,
+          fontWeight: FontWeight.w900,
+          height: 1,
+        ),
+      ),
+      maxLines: 1,
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: size.x * 2.4);
+
+    final paddingX = fontSize * 0.72;
+    final paddingY = fontSize * 0.44;
+    final bubbleWidth = textPainter.width + paddingX * 2;
+    final bubbleHeight = textPainter.height + paddingY * 2;
+    final centerX = size.x * 0.5;
+    final bottomY = -size.y * 0.08 - (size.y * 0.10 * progress);
+    final rect = Rect.fromCenter(
+      center: Offset(centerX, bottomY - bubbleHeight * 0.5),
+      width: bubbleWidth,
+      height: bubbleHeight,
+    );
+    final radius = Radius.circular(bubbleHeight * 0.45);
+    final fillPaint = Paint()
+      ..color = Color(0xFFFFF8E9).withValues(alpha: opacity * 0.94);
+    final borderPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(fontSize * 0.08, 1.4)
+      ..color = Color(0xFF8A623C).withValues(alpha: opacity * 0.82);
+    final shadowPaint = Paint()
+      ..color = Color(0x55382415).withValues(alpha: opacity * 0.28)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    final rrect = RRect.fromRectAndRadius(rect, radius);
+
+    canvas.drawRRect(rrect.shift(Offset(0, fontSize * 0.10)), shadowPaint);
+    canvas.drawRRect(rrect, fillPaint);
+    canvas.drawRRect(rrect, borderPaint);
+
+    final tailPath = Path()
+      ..moveTo(centerX - fontSize * 0.32, rect.bottom - 1)
+      ..lineTo(centerX + fontSize * 0.18, rect.bottom - 1)
+      ..lineTo(centerX - fontSize * 0.08, rect.bottom + fontSize * 0.36)
+      ..close();
+    canvas.drawPath(tailPath, fillPaint);
+    canvas.drawPath(tailPath, borderPaint);
+
+    textPainter.paint(
+      canvas,
+      Offset(rect.left + paddingX, rect.top + paddingY),
+    );
+  }
+
   void _refreshAmbientMotionProfile() {
     final sceneHeight = math.max(game.size.y, 1);
     final normalizedDepth = ((position.y + size.y) / sceneHeight)
@@ -3897,6 +4012,26 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
 
   void _startRandomIdleAction() {
     _scheduleNextIdleAction();
+  }
+
+  void playCompletionReaction(String message) {
+    _speechBubble = _PetSpeechBubble(message: message, duration: 1.45);
+    _speechBubbleElapsed = 0;
+    _activeMotionAction = _ActivePetMotionAction(
+      kind: _motionSpec.tapActionKind,
+      duration: 0.78,
+      isTapFeedback: true,
+    );
+    _motionActionElapsed = 0;
+    _ambientActivationDelay = math.min(
+      _ambientActivationDelay,
+      _ambientMotionElapsed,
+    );
+    _idleActionCooldown = math.max(_idleActionCooldown, 1.3);
+    final activePose = _activePose;
+    if (activePose != null && activePose.animationFrames.length > 1) {
+      _startFramePlayback();
+    }
   }
 
   double _currentMotionWeight() {

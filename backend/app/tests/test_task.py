@@ -1,9 +1,11 @@
+from datetime import UTC, datetime, timedelta, timezone
 from typing import Any
 
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
 from app.core.security import hash_password
+from app.models.task import TaskCompletion
 from app.models.user import User
 
 
@@ -85,6 +87,41 @@ def test_list_tasks_success_after_completion(client: TestClient, db: Session) ->
     )
     assert tasks_response.status_code == 200
     assert tasks_response.json()[0]["completed_today"] is True
+
+
+def test_list_tasks_resets_completed_today_by_local_day(
+    client: TestClient,
+    db: Session,
+) -> None:
+    token, family_id, member_id, _ = _setup_family(client, db)
+    task = _create_task(client, token, title="Morning task", points=10)
+
+    local_day_zone = timezone(timedelta(hours=8), name="Asia/Shanghai")
+    yesterday_local = datetime.now(local_day_zone) - timedelta(days=1)
+    yesterday_late_local = yesterday_local.replace(
+        hour=23,
+        minute=30,
+        second=0,
+        microsecond=0,
+    )
+    completed_at = yesterday_late_local.astimezone(UTC)
+    completion = TaskCompletion(
+        task_id=task["id"],
+        member_id=member_id,
+        status="approved",
+        created_at=completed_at,
+        reviewed_at=completed_at,
+    )
+    db.add(completion)
+    db.commit()
+
+    response = client.get(
+        f"/api/families/{family_id}/tasks",
+        headers=_auth_header(token),
+    )
+    assert response.status_code == 200
+    assert response.json()[0]["completed_today"] is False
+    assert response.json()[0]["status"] == "pending"
 
 
 def test_completion_auto_feeds_member_pet(client: TestClient, db: Session) -> None:
