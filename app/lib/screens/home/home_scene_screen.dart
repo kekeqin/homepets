@@ -9,13 +9,11 @@ class HomeSceneScreen extends StatelessWidget {
     this.openTasksPanelOnStart = false,
     this.openFamilyPanelOnStart = false,
     this.openShopPanelOnStart = false,
-    this.openPaywallOnStart = false,
   });
 
   final bool openTasksPanelOnStart;
   final bool openFamilyPanelOnStart;
   final bool openShopPanelOnStart;
-  final bool openPaywallOnStart;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +27,6 @@ class HomeSceneScreen extends StatelessWidget {
       openTasksPanelOnStart: openTasksPanelOnStart,
       openFamilyPanelOnStart: openFamilyPanelOnStart,
       openShopPanelOnStart: openShopPanelOnStart,
-      openPaywallOnStart: openPaywallOnStart,
     );
   }
 }

@@ -4,7 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import desc
 from sqlmodel import Session, select
 
-from app.core.dependencies import get_current_admin, get_current_user, get_db
+from app.core.dependencies import (
+    get_current_admin_with_active_access,
+    get_current_user_with_active_access,
+    get_db,
+)
 from app.models.pet import Pet
 from app.models.task import Task, TaskCompletion
 from app.models.user import User
@@ -185,7 +189,7 @@ def _list_family_completion_payload(
 def create_task(
     body: TaskCreate,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin_with_active_access),
 ) -> Task:
     if admin.family_id is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="您还没有家庭")
@@ -202,7 +206,7 @@ def create_task(
 def list_tasks(
     family_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_with_active_access),
 ) -> list[dict]:
     return _list_active_tasks(family_id, db, current_user)
 
@@ -213,7 +217,7 @@ def update_task(
     task_id: int,
     body: TaskUpdate,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin_with_active_access),
 ) -> Task:
     task = db.get(Task, task_id)
     if not task:
@@ -237,7 +241,7 @@ def update_task(
 def delete_task(
     task_id: int,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin_with_active_access),
 ) -> None:
     task = db.get(Task, task_id)
     if not task:
@@ -260,7 +264,7 @@ def submit_completion(
     task_id: int,
     body: CompletionSubmit | None = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_with_active_access),
 ) -> TaskCompletion:
     task = db.get(Task, task_id)
     if not task or not task.is_active:
@@ -310,6 +314,6 @@ def submit_completion(
 def list_completions(
     family_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_with_active_access),
 ) -> list[dict]:
     return _list_family_completion_payload(family_id, db, current_user, limit=20)

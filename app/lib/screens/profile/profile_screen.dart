@@ -174,6 +174,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             title: '关于',
             onTap: () => _showAbout(context),
           ),
+          _MenuItem(
+            icon: Icons.privacy_tip_outlined,
+            iconColor: _AppColors.primary,
+            title: '隐私政策',
+            onTap: () => context.go('/profile/legal/privacy'),
+          ),
+          _MenuItem(
+            icon: Icons.description_outlined,
+            iconColor: _AppColors.secondary,
+            title: '用户协议',
+            onTap: () => context.go('/profile/legal/terms'),
+          ),
+          _MenuItem(
+            icon: Icons.support_agent,
+            iconColor: _AppColors.tertiary,
+            title: '联系客服',
+            onTap: () => context.go('/support'),
+          ),
+          _MenuItem(
+            icon: Icons.delete_forever_outlined,
+            iconColor: Colors.redAccent,
+            title: '删除账号/数据',
+            onTap: () => context.go('/account/delete'),
+          ),
           const SizedBox(height: 24),
           // 退出登录按钮
           _MenuItem(

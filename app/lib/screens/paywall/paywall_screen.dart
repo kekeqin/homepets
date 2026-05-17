@@ -6,18 +6,24 @@ import 'package:go_router/go_router.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 import '../../core/ui/sprite_atlas.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/revenue_cat_provider.dart';
+import '../../providers/subscription_provider.dart';
 import '../../widgets/app_modal_shell.dart';
 import '../family/widgets/family_sprite_slice.dart';
+
+enum PaywallMode { optional, blocking }
 
 Future<void> showPaywallDialog(
   BuildContext context, {
   bool useRootNavigator = true,
+  PaywallMode mode = PaywallMode.optional,
 }) {
   return showAppModalDialog<void>(
     context: context,
     useRootNavigator: useRootNavigator,
     barrierLabel: '会员权益',
+    barrierDismissible: mode == PaywallMode.optional,
     blurSigma: 7,
     barrierTint: HomePetsDialogTheme.barrierTint,
     transitionDuration: const Duration(milliseconds: 260),
@@ -28,7 +34,8 @@ Future<void> showPaywallDialog(
         layout: AppModalLayouts.paywall,
         minimumSafeArea: const EdgeInsets.fromLTRB(10, 12, 10, 12),
         clipChild: false,
-        child: _PaywallSpriteContent(
+        child: PaywallContent(
+          mode: mode,
           onClose: () => Navigator.of(dialogContext).pop(),
         ),
       );
@@ -37,19 +44,61 @@ Future<void> showPaywallDialog(
 }
 
 class PaywallScreen extends ConsumerWidget {
-  const PaywallScreen({super.key});
+  const PaywallScreen({
+    super.key,
+    this.mode = PaywallMode.optional,
+    this.reason,
+    this.returnRoute,
+  });
+
+  final PaywallMode mode;
+  final String? reason;
+  final String? returnRoute;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen<SubscriptionState>(subscriptionProvider, (previous, next) {
+      if (mode != PaywallMode.blocking || !next.accessAllowed) {
+        return;
+      }
+      final target =
+          returnRoute == null ||
+              returnRoute!.isEmpty ||
+              returnRoute == '/paywall'
+          ? '/home'
+          : returnRoute!;
+      context.go(target);
+    });
+
     return Scaffold(
       backgroundColor: const Color(0xFFF9F4EE),
       body: SafeArea(
-        child: _PaywallSpriteContent(onClose: () => _closePaywall(context)),
+        child: PopScope(
+          canPop: mode == PaywallMode.optional,
+          onPopInvokedWithResult: (didPop, result) {
+            if (!didPop && mode == PaywallMode.blocking) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('试用期已结束，请订阅后继续使用。')));
+            }
+          },
+          child: PaywallContent(
+            mode: mode,
+            reason: reason,
+            onClose: () => _closePaywall(context),
+          ),
+        ),
       ),
     );
   }
 
-  static void _closePaywall(BuildContext context) {
+  void _closePaywall(BuildContext context) {
+    if (mode == PaywallMode.blocking) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('试用期已结束，请订阅后继续使用。')));
+      return;
+    }
     if (context.canPop()) {
       context.pop();
       return;
@@ -58,29 +107,37 @@ class PaywallScreen extends ConsumerWidget {
   }
 }
 
-class _PaywallSpriteContent extends ConsumerStatefulWidget {
-  const _PaywallSpriteContent({required this.onClose});
+class PaywallContent extends ConsumerStatefulWidget {
+  const PaywallContent({
+    super.key,
+    required this.mode,
+    required this.onClose,
+    this.reason,
+  });
 
+  final PaywallMode mode;
   final VoidCallback onClose;
+  final String? reason;
 
   @override
-  ConsumerState<_PaywallSpriteContent> createState() =>
-      _PaywallSpriteContentState();
+  ConsumerState<PaywallContent> createState() => _PaywallContentState();
 }
 
-class _PaywallSpriteContentState extends ConsumerState<_PaywallSpriteContent> {
+class _PaywallContentState extends ConsumerState<PaywallContent> {
   var _selectedSlot = 0;
   var _hasManualSelection = false;
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(revenueCatProvider);
+    final authState = ref.watch(authProvider);
     final slotPackages = _packagesBySlot(state.packages);
     final selectedSlot = _hasManualSelection
         ? _selectedSlot
         : _slotForSelectedPackage(slotPackages, state.selectedPackage) ??
               _selectedSlot;
-    final statusMessage = _statusMessageFor(state);
+    final subscriptionState = ref.watch(subscriptionProvider);
+    final statusMessage = _statusMessageFor(state, subscriptionState);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -115,64 +172,35 @@ class _PaywallSpriteContentState extends ConsumerState<_PaywallSpriteContent> {
                       _PaywallSprite.calendarTarget,
                     ),
                     _sprite(_PaywallSprite.star, _PaywallSprite.starTarget),
-                    _sprite(_PaywallSprite.title, _PaywallSprite.titleTarget),
-                    _sprite(
-                      _PaywallSprite.subtitle,
-                      _PaywallSprite.subtitleTarget,
+                    _PaywallHeaderCopy(
+                      mode: widget.mode,
+                      subscriptionState: subscriptionState,
                     ),
-                    _sprite(
-                      _PaywallSprite.benefitFamily,
-                      _PaywallSprite.benefitFamilyTarget,
-                    ),
-                    _sprite(
-                      _PaywallSprite.benefitGrowth,
-                      _PaywallSprite.benefitGrowthTarget,
-                    ),
-                    _sprite(
-                      _PaywallSprite.benefitTasks,
-                      _PaywallSprite.benefitTasksTarget,
-                    ),
-                    _sprite(
-                      _PaywallSprite.divider,
-                      _PaywallSprite.dividerTarget,
-                    ),
+                    const _PaywallBenefitRow(),
+                    _PaywallTrialChip(subscriptionState: subscriptionState),
                     _PaywallPlanCard(
                       target: _PaywallSprite.monthlyCardTarget,
-                      title: '月卡',
-                      price: '9.99',
+                      fallbackTitle: '月度订阅',
                       accentColor: const Color(0xFFD15F52),
                       selected: selectedSlot == 0,
                       package: slotPackages[0],
-                      fallbackLabel: '月卡，9.99 元',
                       onTap: () => _selectPlan(0, slotPackages[0]),
                     ),
                     _PaywallPlanCard(
                       target: _PaywallSprite.annualCardTarget,
-                      title: '年卡',
-                      price: '79.98',
+                      fallbackTitle: '年度订阅',
                       accentColor: const Color(0xFF6F9A4A),
                       selected: selectedSlot == 1,
                       package: slotPackages[1],
-                      fallbackLabel: '年卡，79.98 元',
                       onTap: () => _selectPlan(1, slotPackages[1]),
                     ),
                     _PaywallPlanCard(
                       target: _PaywallSprite.lifetimeCardTarget,
-                      title: '永久会员',
-                      price: '198',
+                      fallbackTitle: '家庭会员',
                       accentColor: const Color(0xFFE09A28),
                       selected: selectedSlot == 2,
                       package: slotPackages[2],
-                      fallbackLabel: '永久会员，198 元',
                       onTap: () => _selectPlan(2, slotPackages[2]),
-                    ),
-                    _sprite(
-                      _PaywallSprite.unlockButton,
-                      _PaywallSprite.unlockButtonTarget,
-                    ),
-                    _sprite(
-                      _PaywallSprite.parentConfirm,
-                      _PaywallSprite.parentConfirmTarget,
                     ),
                     if (statusMessage != null)
                       _PaywallStatusMessage(
@@ -181,14 +209,29 @@ class _PaywallSpriteContentState extends ConsumerState<_PaywallSpriteContent> {
                       ),
                     _PaywallUnlockHitTarget(
                       state: state,
+                      canStartPurchase: authState.user?.isAdmin == true,
                       onPressed: () async {
                         final unlocked = await ref
                             .read(revenueCatProvider.notifier)
                             .purchaseSelectedPackage();
-                        if (!context.mounted || !unlocked) {
+                        if (!context.mounted) {
                           return;
                         }
-                        widget.onClose();
+                        if (unlocked) {
+                          final user = ref.read(authProvider).user;
+                          final backendUnlocked = await ref
+                              .read(subscriptionProvider.notifier)
+                              .syncAfterStorePurchase(
+                                revenueCatAppUserId: user == null
+                                    ? null
+                                    : revenueCatAppUserIdFor(user),
+                              );
+                          if (!context.mounted || !backendUnlocked) {
+                            return;
+                          }
+                          widget.onClose();
+                          return;
+                        }
                       },
                     ),
                     _PaywallRestoreHitTarget(
@@ -197,13 +240,29 @@ class _PaywallSpriteContentState extends ConsumerState<_PaywallSpriteContent> {
                         final restored = await ref
                             .read(revenueCatProvider.notifier)
                             .restorePurchases();
-                        if (!context.mounted || !restored) {
+                        if (!context.mounted) {
                           return;
                         }
-                        widget.onClose();
+                        if (restored) {
+                          final user = ref.read(authProvider).user;
+                          final backendUnlocked = await ref
+                              .read(subscriptionProvider.notifier)
+                              .syncAfterStorePurchase(
+                                revenueCatAppUserId: user == null
+                                    ? null
+                                    : revenueCatAppUserIdFor(user),
+                              );
+                          if (!context.mounted || !backendUnlocked) {
+                            return;
+                          }
+                          widget.onClose();
+                          return;
+                        }
                       },
                     ),
-                    _CloseButton(onPressed: widget.onClose),
+                    const _PaywallComplianceLinks(),
+                    if (widget.mode == PaywallMode.optional)
+                      _CloseButton(onPressed: widget.onClose),
                   ],
                 ),
               ),
@@ -228,27 +287,28 @@ class _PaywallSpriteContentState extends ConsumerState<_PaywallSpriteContent> {
 class _PaywallPlanCard extends StatelessWidget {
   const _PaywallPlanCard({
     required this.target,
-    required this.title,
-    required this.price,
+    required this.fallbackTitle,
     required this.accentColor,
     required this.selected,
     required this.package,
-    required this.fallbackLabel,
     required this.onTap,
   });
 
   final Rect target;
-  final String title;
-  final String price;
+  final String fallbackTitle;
   final Color accentColor;
   final bool selected;
   final Package? package;
-  final String fallbackLabel;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final package = this.package;
+    final title = package == null ? fallbackTitle : _packageTitle(package);
+    final price = package?.storeProduct.priceString ?? '加载中';
+    final period = package == null
+        ? '等待商店返回真实价格'
+        : _packagePeriodLabel(package);
     final borderColor = selected ? const Color(0xFFD15F52) : accentColor;
     return Positioned.fromRect(
       rect: target,
@@ -256,11 +316,11 @@ class _PaywallPlanCard extends StatelessWidget {
         button: true,
         selected: selected,
         label: package == null
-            ? fallbackLabel
+            ? '$fallbackTitle，正在加载'
             : _packageAccessibilityLabel(package),
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: onTap,
+          onTap: package == null ? null : onTap,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
@@ -268,10 +328,10 @@ class _PaywallPlanCard extends StatelessWidget {
                 duration: const Duration(milliseconds: 140),
                 width: target.width,
                 height: target.height,
-                padding: const EdgeInsets.fromLTRB(12, 14, 12, 11),
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFF7E7),
-                  borderRadius: BorderRadius.circular(23),
+                  borderRadius: BorderRadius.circular(18),
                   border: Border.all(
                     color: borderColor,
                     width: selected ? 4 : 2.4,
@@ -295,41 +355,35 @@ class _PaywallPlanCard extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: accentColor,
-                        fontSize: title.length > 2 ? 24 : 27,
+                        fontSize: title.length > 5 ? 19 : 22,
                         fontWeight: FontWeight.w900,
                         height: 1,
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     FittedBox(
                       fit: BoxFit.scaleDown,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.only(bottom: 8),
-                            child: Text(
-                              '¥',
-                              style: TextStyle(
-                                color: Color(0xFF2F2015),
-                                fontSize: 29,
-                                fontWeight: FontWeight.w900,
-                                height: 1,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            price,
-                            style: const TextStyle(
-                              color: Color(0xFF2A1B11),
-                              fontSize: 52,
-                              fontWeight: FontWeight.w900,
-                              height: 0.9,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        price,
+                        style: TextStyle(
+                          color: const Color(0xFF2A1B11),
+                          fontSize: price.length > 7 ? 34 : 40,
+                          fontWeight: FontWeight.w900,
+                          height: 0.95,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 7),
+                    Text(
+                      period,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color(0xFF7B5A37),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        height: 1,
                       ),
                     ),
                   ],
@@ -342,6 +396,186 @@ class _PaywallPlanCard extends StatelessWidget {
                   child: const _PaywallSelectedBadge(),
                 ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PaywallHeaderCopy extends StatelessWidget {
+  const _PaywallHeaderCopy({
+    required this.mode,
+    required this.subscriptionState,
+  });
+
+  final PaywallMode mode;
+  final SubscriptionState subscriptionState;
+
+  @override
+  Widget build(BuildContext context) {
+    final isBlocking = mode == PaywallMode.blocking;
+    final status = subscriptionState.status;
+    final title = isBlocking ? '试用期已结束' : 'HomePets 家庭会员';
+    final subtitle = status?.status == 'trial_expiring'
+        ? '试用期即将结束。订阅后可继续管理家庭任务和宠物成长。'
+        : isBlocking
+        ? '订阅 HomePets 后，可以继续使用家庭任务、宠物成长和成长记录功能。'
+        : '试用期内可完整体验家庭任务、宠物成长和任务记录，试用结束后需要订阅继续使用。';
+    return Positioned.fromRect(
+      rect: Rect.fromLTWH(
+        _PaywallSprite.titleTarget.left,
+        _PaywallSprite.titleTarget.top - 6,
+        _PaywallSprite.titleTarget.width,
+        _PaywallSprite.subtitleTarget.bottom -
+            _PaywallSprite.titleTarget.top +
+            4,
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFF5B371E),
+              fontSize: 46,
+              fontWeight: FontWeight.w900,
+              height: 1,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            subtitle,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFF7A5636),
+              fontSize: 19,
+              fontWeight: FontWeight.w800,
+              height: 1.22,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaywallBenefitRow extends StatelessWidget {
+  const _PaywallBenefitRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fromRect(
+      rect: Rect.fromLTWH(
+        _PaywallSprite.benefitFamilyTarget.left,
+        _PaywallSprite.benefitFamilyTarget.top,
+        _PaywallSprite.benefitTasksTarget.right -
+            _PaywallSprite.benefitFamilyTarget.left,
+        _PaywallSprite.benefitFamilyTarget.height,
+      ),
+      child: const Row(
+        children: [
+          Expanded(
+            child: _BenefitItem(icon: Icons.family_restroom, label: '家庭共享'),
+          ),
+          SizedBox(width: 14),
+          Expanded(
+            child: _BenefitItem(icon: Icons.task_alt, label: '任务管理'),
+          ),
+          SizedBox(width: 14),
+          Expanded(
+            child: _BenefitItem(icon: Icons.auto_graph, label: '成长记录'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BenefitItem extends StatelessWidget {
+  const _BenefitItem({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7E7),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE9CDA3), width: 2),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: const Color(0xFF8D6A3E), size: 42),
+            const SizedBox(height: 10),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFF5F4126),
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                height: 1,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PaywallTrialChip extends StatelessWidget {
+  const _PaywallTrialChip({required this.subscriptionState});
+
+  final SubscriptionState subscriptionState;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = subscriptionState.status;
+    final text = status == null
+        ? '正在确认试用状态'
+        : status.isTrialActive
+        ? '7 天免费体验已开启，还剩 ${status.trialDaysRemaining} 天'
+        : _statusChipText(status.status);
+    return Positioned.fromRect(
+      rect: _PaywallSprite.trialChipTarget,
+      child: Align(
+        alignment: Alignment.center,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF4D5),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: const Color(0xFF9BAE66), width: 2),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+              child: Text(
+                text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF59692A),
+                  fontSize: 17,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -377,42 +611,169 @@ class _PaywallSelectedBadge extends StatelessWidget {
 }
 
 class _PaywallUnlockHitTarget extends StatelessWidget {
-  const _PaywallUnlockHitTarget({required this.state, required this.onPressed});
+  const _PaywallUnlockHitTarget({
+    required this.state,
+    required this.canStartPurchase,
+    required this.onPressed,
+  });
 
   final RevenueCatState state;
+  final bool canStartPurchase;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     final busy = state.isPurchasing || state.isRestoring;
+    final enabled = state.canPurchase && canStartPurchase;
     return Positioned.fromRect(
       rect: _PaywallSprite.unlockButtonTarget,
       child: Semantics(
         button: true,
-        enabled: state.canPurchase,
-        label: state.isPremiumActive ? '已开通家庭会员' : '立即开通家庭会员',
+        enabled: enabled,
+        label: '继续使用 HomePets',
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: state.canPurchase ? onPressed : null,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              const SizedBox.expand(),
-              if (busy)
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: const BoxDecoration(
-                    color: Color(0xCCF7D4BB),
-                    shape: BoxShape.circle,
+          onTap: enabled ? onPressed : null,
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 120),
+            opacity: enabled ? 1 : 0.52,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFB65A),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: const Color(0xFFA8642E), width: 3),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x33604429),
+                    blurRadius: 13,
+                    offset: Offset(0, 6),
                   ),
-                  padding: const EdgeInsets.all(13),
-                  child: const CircularProgressIndicator(
-                    strokeWidth: 4,
-                    color: Color(0xFF7B4D22),
-                  ),
-                ),
-            ],
+                ],
+              ),
+              child: Center(
+                child: busy
+                    ? const SizedBox(
+                        width: 34,
+                        height: 34,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 4,
+                          color: Color(0xFF7B4D22),
+                        ),
+                      )
+                    : Text(
+                        canStartPurchase ? '继续使用 HomePets' : '请家长订阅后继续使用',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF4D3623),
+                          fontSize: 25,
+                          fontWeight: FontWeight.w900,
+                          height: 1,
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PaywallComplianceLinks extends ConsumerWidget {
+  const _PaywallComplianceLinks();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Positioned.fromRect(
+      rect: _PaywallSprite.complianceTarget,
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 14,
+        runSpacing: 8,
+        children: [
+          _ComplianceLink(
+            label: '刷新状态',
+            onTap: () => ref.read(subscriptionProvider.notifier).refresh(),
+          ),
+          _ComplianceLink(
+            label: '管理订阅',
+            onTap: () => _showInfo(
+              context,
+              '管理订阅',
+              '请在 App Store 或 Google Play 的订阅管理页面查看、变更或取消订阅。',
+            ),
+          ),
+          _ComplianceLink(
+            label: '联系客服',
+            onTap: () => _showInfo(
+              context,
+              '联系客服',
+              '请通过 support@homepets.app 联系我们处理订阅、账号或数据问题。',
+            ),
+          ),
+          _ComplianceLink(
+            label: '隐私政策',
+            onTap: () => context.go('/profile/legal/privacy'),
+          ),
+          _ComplianceLink(
+            label: '用户协议',
+            onTap: () => context.go('/profile/legal/terms'),
+          ),
+          _ComplianceLink(
+            label: '删除账号/数据',
+            onTap: () => context.go('/account/delete'),
+          ),
+          _ComplianceLink(
+            label: '版本信息',
+            onTap: () => _showInfo(context, '版本信息', 'HomePets 版本：1.0.0'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static void _showInfo(BuildContext context, String title, String message) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('知道了'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ComplianceLink extends StatelessWidget {
+  const _ComplianceLink({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFF6B543B),
+            fontSize: 17,
+            fontWeight: FontWeight.w900,
+            decoration: TextDecoration.underline,
+            decorationColor: Color(0xFF6B543B),
+            height: 1,
           ),
         ),
       ),
@@ -435,14 +796,19 @@ class _PaywallRestoreHitTarget extends StatelessWidget {
         state.isPurchasing || state.isRestoring || state.isPremiumActive;
     return Positioned.fromRect(
       rect: _PaywallSprite.restoreTarget,
-      child: Semantics(
-        button: true,
-        enabled: !disabled,
-        label: '恢复购买',
-        child: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onTap: disabled ? null : onRestore,
-          child: const SizedBox.expand(),
+      child: Center(
+        child: TextButton(
+          onPressed: disabled ? null : onRestore,
+          child: const Text(
+            '恢复购买',
+            style: TextStyle(
+              color: Color(0xFF6B543B),
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              decoration: TextDecoration.underline,
+              height: 1,
+            ),
+          ),
         ),
       ),
     );
@@ -738,7 +1104,26 @@ bool _hasError(RevenueCatState state) {
       state.restoreError != null;
 }
 
-String? _statusMessageFor(RevenueCatState state) {
+String? _statusMessageFor(
+  RevenueCatState state,
+  SubscriptionState subscriptionState,
+) {
+  if (subscriptionState.isLoading) {
+    return '正在同步后端会员状态...';
+  }
+  if (subscriptionState.error != null) {
+    return subscriptionState.error;
+  }
+  final entitlementStatus = subscriptionState.status?.status;
+  if (entitlementStatus == 'subscription_grace_period') {
+    return '账单处于宽限期，请及时更新付款方式';
+  }
+  if (entitlementStatus == 'subscription_expired') {
+    return '订阅已过期，请重新订阅后继续使用';
+  }
+  if (entitlementStatus == 'offline_unverified_or_expired') {
+    return '离线状态无法确认会员资格，请联网重试';
+  }
   if (state.isPremiumActive) {
     return '家庭会员已开通';
   }
@@ -761,7 +1146,15 @@ String? _statusMessageFor(RevenueCatState state) {
 }
 
 String _packageAccessibilityLabel(Package package) {
-  final title = switch (package.packageType) {
+  return '${_packageTitle(package)}，${package.storeProduct.priceString}，${_packagePeriodLabel(package)}';
+}
+
+String _packageTitle(Package package) {
+  final storeTitle = package.storeProduct.title.trim();
+  if (storeTitle.isNotEmpty) {
+    return storeTitle;
+  }
+  return switch (package.packageType) {
     PackageType.weekly => '周卡',
     PackageType.monthly => '月卡',
     PackageType.twoMonth => '双月卡',
@@ -771,7 +1164,39 @@ String _packageAccessibilityLabel(Package package) {
     PackageType.lifetime => '永久会员',
     PackageType.custom || PackageType.unknown => '会员套餐',
   };
-  return '$title，${package.storeProduct.priceString}';
+}
+
+String _packagePeriodLabel(Package package) {
+  final period = package.storeProduct.subscriptionPeriod;
+  if (period == null || period.isEmpty) {
+    return package.packageType == PackageType.lifetime ? '一次购买' : '自动续订';
+  }
+  return '${_readableSubscriptionPeriod(period)} · 自动续订';
+}
+
+String _readableSubscriptionPeriod(String period) {
+  return switch (period) {
+    'P1W' => '每周',
+    'P1M' => '每月',
+    'P2M' => '每 2 个月',
+    'P3M' => '每季度',
+    'P6M' => '每半年',
+    'P1Y' => '每年',
+    _ => '订阅周期 $period',
+  };
+}
+
+String _statusChipText(String status) {
+  return switch (status) {
+    'trial_expired_unsubscribed' => '试用期已结束',
+    'subscribed_active' => '家庭会员已开通',
+    'subscription_grace_period' => '账单宽限期内',
+    'subscription_expired' => '订阅已过期',
+    'offline_cached_active' => '离线模式，稍后会重新确认',
+    'offline_unverified_or_expired' => '需要联网确认会员状态',
+    'blocked' => '账号访问受限，请联系客服',
+    _ => '正在确认订阅状态',
+  };
 }
 
 class _PaywallSprite {
@@ -786,14 +1211,6 @@ class _PaywallSprite {
   static const gift = Rect.fromLTWH(876, 92, 150, 169);
   static const calendar = Rect.fromLTWH(819, 290, 220, 277);
   static const star = Rect.fromLTWH(618, 370, 151, 149);
-  static const title = Rect.fromLTWH(60, 640, 665, 118);
-  static const subtitle = Rect.fromLTWH(118, 748, 580, 80);
-  static const benefitFamily = Rect.fromLTWH(57, 818, 221, 181);
-  static const benefitGrowth = Rect.fromLTWH(303, 818, 218, 181);
-  static const benefitTasks = Rect.fromLTWH(546, 818, 210, 181);
-  static const divider = Rect.fromLTWH(48, 1008, 720, 12);
-  static const unlockButton = Rect.fromLTWH(128, 1290, 465, 97);
-  static const parentConfirm = Rect.fromLTWH(655, 1318, 250, 55);
 
   static const catTarget = Rect.fromLTWH(82, 58, 238, 276);
   static const giftTarget = Rect.fromLTWH(304, 217, 142, 160);
@@ -802,15 +1219,14 @@ class _PaywallSprite {
   static const titleTarget = Rect.fromLTWH(96, 433, 568, 101);
   static const subtitleTarget = Rect.fromLTWH(142, 526, 476, 66);
   static const benefitFamilyTarget = Rect.fromLTWH(54, 624, 205, 168);
-  static const benefitGrowthTarget = Rect.fromLTWH(278, 624, 204, 168);
   static const benefitTasksTarget = Rect.fromLTWH(502, 624, 204, 168);
-  static const dividerTarget = Rect.fromLTWH(64, 831, 632, 12);
   static const monthlyCardTarget = Rect.fromLTWH(43, 880, 216, 130);
   static const annualCardTarget = Rect.fromLTWH(274, 880, 216, 130);
   static const lifetimeCardTarget = Rect.fromLTWH(505, 880, 216, 130);
   static const unlockButtonTarget = Rect.fromLTWH(151, 1074, 458, 96);
-  static const parentConfirmTarget = Rect.fromLTWH(251, 1170, 258, 57);
   static const closeTarget = Rect.fromLTWH(667, -18, 96, 96);
   static const statusTarget = Rect.fromLTWH(120, 1024, 520, 46);
-  static const restoreTarget = Rect.fromLTWH(305, 1266, 150, 38);
+  static const trialChipTarget = Rect.fromLTWH(118, 805, 524, 46);
+  static const restoreTarget = Rect.fromLTWH(282, 1180, 196, 48);
+  static const complianceTarget = Rect.fromLTWH(82, 1236, 596, 72);
 }

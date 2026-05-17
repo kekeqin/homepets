@@ -3,9 +3,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'auth_session_bus.dart';
 import 'constants.dart';
+import 'subscription_access_bus.dart';
 
 class ApiClient {
-  ApiClient(this._authSessionBus) {
+  ApiClient(
+    this._authSessionBus, [
+    SubscriptionAccessBus? subscriptionAccessBus,
+  ]) : _subscriptionAccessBus = subscriptionAccessBus {
     _dio = Dio(
       BaseOptions(
         baseUrl: ApiConstants.baseUrl,
@@ -31,6 +35,14 @@ class ApiClient {
           if (error.response?.statusCode == 401 && hadAuthHeader) {
             await _handleUnauthorized();
             _authSessionBus.notifyUnauthorized();
+          } else if (_isEntitlementRequired(error)) {
+            final detail = _detailMap(error.response?.data);
+            _subscriptionAccessBus?.notifyEntitlementRequired(
+              reason: detail?['reason']?.toString(),
+              trialEndsAt: DateTime.tryParse(
+                detail?['trial_ends_at']?.toString() ?? '',
+              ),
+            );
           }
           handler.next(error);
         },
@@ -39,6 +51,7 @@ class ApiClient {
   }
 
   final AuthSessionBus _authSessionBus;
+  final SubscriptionAccessBus? _subscriptionAccessBus;
   late final Dio _dio;
 
   Dio get dio => _dio;
@@ -61,5 +74,19 @@ class ApiClient {
   Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(ApiConstants.tokenKey);
+  }
+
+  bool _isEntitlementRequired(DioException error) {
+    if (error.response?.statusCode != 402) {
+      return false;
+    }
+    return _detailMap(error.response?.data)?['code'] == 'ENTITLEMENT_REQUIRED';
+  }
+
+  Map<String, dynamic>? _detailMap(dynamic payload) {
+    if (payload is Map && payload['detail'] is Map) {
+      return Map<String, dynamic>.from(payload['detail'] as Map);
+    }
+    return null;
   }
 }

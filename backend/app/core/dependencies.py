@@ -5,6 +5,7 @@ from sqlmodel import Session, select
 from app.core.database import get_session
 from app.core.security import decode_access_token
 from app.models.user import User
+from app.services.subscription_service import require_subscription_access
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
@@ -34,6 +35,22 @@ def get_current_user(
 
 
 def get_current_admin(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="需要管理员权限")
+    return current_user
+
+
+def get_current_user_with_active_access(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> User:
+    require_subscription_access(db, current_user)
+    return current_user
+
+
+def get_current_admin_with_active_access(
+    current_user: User = Depends(get_current_user_with_active_access),
+) -> User:
     if current_user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="需要管理员权限")
     return current_user

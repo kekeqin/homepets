@@ -1,7 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
-from app.core.dependencies import get_current_admin, get_current_user, get_db
+from app.core.dependencies import (
+    get_current_admin_with_active_access,
+    get_current_user_with_active_access,
+    get_db,
+)
 from app.models.family import Family
 from app.models.pet import Pet
 from app.models.user import User
@@ -14,6 +18,7 @@ from app.schemas.family import (
     MemberResponse,
 )
 from app.services.pet_service import VALID_SELECTABLE_PET_TYPES, create_member_pet
+from app.services.subscription_service import ensure_subscription_for_user
 
 router = APIRouter(prefix="/api/families", tags=["families"])
 
@@ -55,7 +60,7 @@ def _build_family_response(family: Family, db: Session) -> FamilyResponse:
 def create_family(
     body: FamilyCreate,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin_with_active_access),
 ) -> FamilyResponse:
     existing = db.exec(select(Family).where(Family.owner_id == admin.id)).first()
     if existing:
@@ -69,6 +74,7 @@ def create_family(
     admin.family_id = family.id
     db.add(admin)
     db.commit()
+    ensure_subscription_for_user(db, admin)
     return _build_family_response(family, db)
 
 
@@ -77,7 +83,7 @@ def create_family(
 def get_family(
     family_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_with_active_access),
 ) -> FamilyResponse:
     family = db.get(Family, family_id)
     if not family:
@@ -97,7 +103,7 @@ def add_member(
     family_id: int,
     body: MemberCreate,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin_with_active_access),
 ) -> MemberResponse:
     family = db.get(Family, family_id)
     if not family:
@@ -119,7 +125,7 @@ def set_member_pet(
     member_id: int,
     body: MemberPetSelection,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin_with_active_access),
 ) -> MemberResponse:
     family = db.get(Family, family_id)
     if not family:
@@ -159,7 +165,7 @@ def set_member_pet(
 def list_members(
     family_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_with_active_access),
 ) -> list[MemberResponse]:
     family = db.get(Family, family_id)
     if not family:
@@ -176,7 +182,7 @@ def delete_member(
     family_id: int,
     member_id: int,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin_with_active_access),
 ) -> None:
     family = db.get(Family, family_id)
     if not family:
@@ -203,7 +209,7 @@ def update_family(
     family_id: int,
     body: FamilyUpdate,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin_with_active_access),
 ) -> FamilyResponse:
     family = db.get(Family, family_id)
     if not family:

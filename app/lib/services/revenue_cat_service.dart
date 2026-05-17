@@ -64,6 +64,8 @@ class RevenueCatService {
       await Purchases.configure(PurchasesConfiguration(publicSdkKey));
     }
 
+    await Purchases.setLogLevel(kDebugMode ? LogLevel.debug : LogLevel.warn);
+
     if (onCustomerInfoUpdated != null && _customerInfoUpdateListener == null) {
       _customerInfoUpdateListener = onCustomerInfoUpdated;
       Purchases.addCustomerInfoUpdateListener(onCustomerInfoUpdated);
@@ -85,6 +87,10 @@ class RevenueCatService {
 
   Future<CustomerInfo> restorePurchases() {
     return Purchases.restorePurchases();
+  }
+
+  Future<LogInResult> logIn(String appUserId) {
+    return Purchases.logIn(appUserId);
   }
 
   bool hasActiveEntitlement(CustomerInfo? customerInfo) {

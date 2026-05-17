@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/api_client.dart';
 import '../core/api_error_helper.dart';
 import '../core/auth_session_bus.dart';
+import '../core/subscription_access_bus.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
 
@@ -15,7 +16,16 @@ final authSessionBusProvider = Provider<AuthSessionBus>((ref) {
 });
 
 final apiClientProvider = Provider<ApiClient>((ref) {
-  return ApiClient(ref.read(authSessionBusProvider));
+  return ApiClient(
+    ref.read(authSessionBusProvider),
+    ref.read(subscriptionAccessBusProvider),
+  );
+});
+
+final subscriptionAccessBusProvider = Provider<SubscriptionAccessBus>((ref) {
+  final bus = SubscriptionAccessBus();
+  ref.onDispose(bus.dispose);
+  return bus;
 });
 
 final authServiceProvider = Provider<AuthService>((ref) {

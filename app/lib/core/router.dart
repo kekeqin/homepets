@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../providers/auth_provider.dart';
+import '../providers/subscription_provider.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/home/home_scene_screen.dart';
+import '../screens/paywall/paywall_screen.dart';
+import '../screens/profile/legal_info_screen.dart';
 import '../screens/profile/profile_screen.dart';
 
 class _RouterRefreshNotifier extends ChangeNotifier {
@@ -17,6 +20,9 @@ class _RouterRefreshNotifier extends ChangeNotifier {
 final routerRefreshProvider = Provider<_RouterRefreshNotifier>((ref) {
   final notifier = _RouterRefreshNotifier();
   ref.listen<AuthState>(authProvider, (_, _) {
+    notifier.refresh();
+  });
+  ref.listen<SubscriptionState>(subscriptionProvider, (_, _) {
     notifier.refresh();
   });
   ref.onDispose(notifier.dispose);
@@ -37,14 +43,61 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       final isLoggedIn = authState.isAuthenticated;
       final location = state.matchedLocation;
-      const publicRoutes = {'/login', '/register'};
+      final subscriptionState = ref.read(subscriptionProvider);
+      const authRoutes = {'/login', '/register'};
+      const entitlementAllowedRoutes = {
+        '/paywall',
+        '/subscription/loading',
+        '/profile',
+        '/profile/legal/privacy',
+        '/profile/legal/terms',
+        '/support',
+        '/account/delete',
+      };
 
-      if (isLoggedIn && publicRoutes.contains(location)) {
+      if (isLoggedIn && authRoutes.contains(location)) {
         return '/home';
       }
 
-      if (!isLoggedIn && !publicRoutes.contains(location)) {
+      if (!isLoggedIn && !authRoutes.contains(location)) {
         return '/login';
+      }
+
+      if (isLoggedIn &&
+          location == '/subscription/loading' &&
+          subscriptionState.isInitialized) {
+        final returnRoute =
+            state.uri.queryParameters['return']?.trim().isNotEmpty == true
+            ? state.uri.queryParameters['return']!
+            : '/home';
+        if (subscriptionState.shouldBlockCoreAccess) {
+          final reason = Uri.encodeComponent(
+            subscriptionState.status?.reason ??
+                subscriptionState.lastEntitlementReason ??
+                'trial_expired',
+          );
+          return '/paywall?mode=blocking&reason=$reason&return=${Uri.encodeComponent(returnRoute)}';
+        }
+        return returnRoute;
+      }
+
+      if (isLoggedIn &&
+          !subscriptionState.isInitialized &&
+          !entitlementAllowedRoutes.contains(location)) {
+        return '/subscription/loading?return=${Uri.encodeComponent(state.uri.toString())}';
+      }
+
+      if (isLoggedIn &&
+          subscriptionState.shouldBlockCoreAccess &&
+          !entitlementAllowedRoutes.contains(location) &&
+          !authRoutes.contains(location)) {
+        final returnRoute = Uri.encodeComponent(state.uri.toString());
+        final reason = Uri.encodeComponent(
+          subscriptionState.status?.reason ??
+              subscriptionState.lastEntitlementReason ??
+              'trial_expired',
+        );
+        return '/paywall?mode=blocking&reason=$reason&return=$returnRoute';
       }
 
       return null;
@@ -67,8 +120,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                   state.uri.queryParameters['panel'] == 'family',
               openShopPanelOnStart:
                   state.uri.queryParameters['panel'] == 'shop',
-              openPaywallOnStart:
-                  state.uri.queryParameters['panel'] == 'paywall',
             ),
           ),
           GoRoute(
@@ -85,11 +136,49 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/paywall',
-            redirect: (context, state) => '/home?panel=paywall',
+            builder: (context, state) {
+              final subscriptionState = ref.read(subscriptionProvider);
+              final mode =
+                  state.uri.queryParameters['mode'] == 'blocking' ||
+                      subscriptionState.shouldBlockCoreAccess
+                  ? PaywallMode.blocking
+                  : PaywallMode.optional;
+              return PaywallScreen(
+                mode: mode,
+                reason:
+                    state.uri.queryParameters['reason'] ??
+                    subscriptionState.status?.reason,
+                returnRoute: state.uri.queryParameters['return'],
+              );
+            },
+          ),
+          GoRoute(
+            path: '/subscription/loading',
+            builder: (context, state) => const _SubscriptionLoadingScreen(),
           ),
           GoRoute(
             path: '/profile',
             builder: (context, state) => const ProfileScreen(),
+          ),
+          GoRoute(
+            path: '/profile/legal/privacy',
+            builder: (context, state) =>
+                const LegalInfoScreen(kind: LegalInfoKind.privacy),
+          ),
+          GoRoute(
+            path: '/profile/legal/terms',
+            builder: (context, state) =>
+                const LegalInfoScreen(kind: LegalInfoKind.terms),
+          ),
+          GoRoute(
+            path: '/support',
+            builder: (context, state) =>
+                const LegalInfoScreen(kind: LegalInfoKind.support),
+          ),
+          GoRoute(
+            path: '/account/delete',
+            builder: (context, state) =>
+                const LegalInfoScreen(kind: LegalInfoKind.accountDelete),
           ),
         ],
       ),
@@ -105,5 +194,33 @@ class MainShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(backgroundColor: const Color(0xFFFDF6E3), body: child);
+  }
+}
+
+class _SubscriptionLoadingScreen extends StatelessWidget {
+  const _SubscriptionLoadingScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: Color(0xFFFDF6E3),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: Color(0xFF8D6A3E)),
+            SizedBox(height: 18),
+            Text(
+              '正在确认会员状态...',
+              style: TextStyle(
+                color: Color(0xFF5B4632),
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

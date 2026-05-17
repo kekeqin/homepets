@@ -22,6 +22,7 @@ import '../../models/pet_artwork.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/family_provider.dart';
+import '../../providers/subscription_provider.dart';
 import '../../widgets/app_modal_shell.dart';
 import '../../widgets/homepets_button.dart';
 import '../../widgets/homepets_dialog.dart';
@@ -30,7 +31,6 @@ import '../../widgets/homepets_select_field.dart';
 import '../family/family_screen.dart';
 import '../family/models/family_screen_state.dart';
 import '../family/widgets/family_sprite_slice.dart';
-import '../paywall/paywall_screen.dart';
 import '../pet/pet_detail_screen.dart';
 import 'game/home_scene_game.dart';
 import 'settings_dialog.dart';
@@ -144,14 +144,12 @@ class HomeSceneFlameView extends ConsumerStatefulWidget {
     this.openTasksPanelOnStart = false,
     this.openFamilyPanelOnStart = false,
     this.openShopPanelOnStart = false,
-    this.openPaywallOnStart = false,
   });
 
   final HomeSceneDevice device;
   final bool openTasksPanelOnStart;
   final bool openFamilyPanelOnStart;
   final bool openShopPanelOnStart;
-  final bool openPaywallOnStart;
 
   @override
   ConsumerState<HomeSceneFlameView> createState() => _HomeSceneFlameViewState();
@@ -170,10 +168,8 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   bool _didRequestInitialTaskPanel = false;
   bool _didRequestInitialFamilyPanel = false;
   bool _didRequestInitialShopPanel = false;
-  bool _didRequestInitialPaywall = false;
   bool _familyPanelVisible = false;
   bool _shopPanelVisible = false;
-  bool _paywallVisible = false;
   bool _settingsPanelVisible = false;
   bool _taskPanelVisible = false;
   bool _taskPanelExpanded = false;
@@ -217,7 +213,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     _maybeOpenInitialTaskPanel();
     _maybeOpenInitialFamilyPanel();
     _maybeOpenInitialShopPanel();
-    _maybeOpenInitialPaywall();
   }
 
   @override
@@ -299,7 +294,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       _didRequestInitialTaskPanel = false;
       _didRequestInitialFamilyPanel = false;
       _didRequestInitialShopPanel = false;
-      _didRequestInitialPaywall = false;
     }
 
     if (!oldWidget.openTasksPanelOnStart && widget.openTasksPanelOnStart) {
@@ -314,14 +308,9 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       _didRequestInitialShopPanel = false;
     }
 
-    if (!oldWidget.openPaywallOnStart && widget.openPaywallOnStart) {
-      _didRequestInitialPaywall = false;
-    }
-
     _maybeOpenInitialTaskPanel();
     _maybeOpenInitialFamilyPanel();
     _maybeOpenInitialShopPanel();
-    _maybeOpenInitialPaywall();
   }
 
   HomeSceneGame _createGame() {
@@ -425,7 +414,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       return;
     }
 
-    _showPaywallPanel(clearRouteAfterClose: false);
+    context.go('/paywall');
   }
 
   void _openSettings() {
@@ -780,40 +769,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         ];
       },
     );
-  }
-
-  void _maybeOpenInitialPaywall() {
-    if (!widget.openPaywallOnStart || _didRequestInitialPaywall) {
-      return;
-    }
-
-    _didRequestInitialPaywall = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      _showPaywallPanel(clearRouteAfterClose: true);
-    });
-  }
-
-  Future<void> _showPaywallPanel({required bool clearRouteAfterClose}) async {
-    if (_paywallVisible) {
-      return;
-    }
-
-    _paywallVisible = true;
-    await showPaywallDialog(context);
-    _paywallVisible = false;
-
-    if (!mounted || !clearRouteAfterClose) {
-      return;
-    }
-
-    final routerState = GoRouterState.of(context);
-    if (routerState.matchedLocation == '/home' &&
-        routerState.uri.queryParameters['panel'] == 'paywall') {
-      context.go('/home');
-    }
   }
 
   void _maybeOpenInitialShopPanel() {
@@ -3024,11 +2979,68 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                   );
                 },
               ),
+              const _TrialStatusBanner(),
               if (_taskPanelVisible) _buildAnimatedTaskPanelOverlay(size),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+class _TrialStatusBanner extends ConsumerWidget {
+  const _TrialStatusBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final subscriptionState = ref.watch(subscriptionProvider);
+    final status = subscriptionState.status;
+    if (status == null || !status.isTrialActive) {
+      return const SizedBox.shrink();
+    }
+    final text = status.isTrialExpiring
+        ? '试用期即将结束。订阅后可继续管理家庭任务和宠物成长。'
+        : '7 天免费体验已开启，还剩 ${status.trialDaysRemaining} 天';
+
+    return Positioned(
+      left: 16,
+      right: 16,
+      top: MediaQuery.paddingOf(context).top + 12,
+      child: IgnorePointer(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: const Color(0xEEFFF7E7),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFE5CFA3), width: 1.5),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x1F604429),
+                  blurRadius: 14,
+                  offset: Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              child: Text(
+                text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xFF6B543B),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

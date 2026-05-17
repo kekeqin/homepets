@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.auth import router as auth_router
 from app.api.family import router as family_router
 from app.api.pet import router as pet_router
+from app.api.subscription import router as subscription_router
 from app.api.task import router as task_router
 from app.api.user import router as user_router
 from app.core.config import settings
@@ -35,6 +36,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(subscription_router)
 app.include_router(family_router)
 app.include_router(pet_router)
 app.include_router(task_router)

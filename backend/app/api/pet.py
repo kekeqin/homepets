@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import desc
 from sqlmodel import Session, select
 
-from app.core.dependencies import get_current_user, get_db
+from app.core.dependencies import get_current_user_with_active_access, get_db
 from app.models.pet import Pet
 from app.models.task import Task, TaskCompletion
 from app.models.user import User
@@ -47,7 +47,7 @@ def _build_pet_response(pet: Pet, db: Session) -> PetResponse:
 def list_pets(
     family_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_with_active_access),
 ) -> list[PetResponse]:
     if current_user.family_id != family_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权查看此家庭的宠物")
@@ -65,7 +65,7 @@ def list_pets(
 def get_pet(
     pet_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_with_active_access),
 ) -> PetResponse:
     pet = db.get(Pet, pet_id)
     if not pet:
@@ -79,7 +79,7 @@ def get_pet(
 def list_pet_history(
     pet_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_with_active_access),
 ) -> list[dict]:
     pet = db.get(Pet, pet_id)
     if not pet:

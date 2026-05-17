@@ -6,6 +6,7 @@ from app.core.security import create_access_token, hash_password, verify_passwor
 from app.models.family import Family
 from app.models.user import User
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserResponse
+from app.services.subscription_service import ensure_subscription_for_user
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -30,6 +31,7 @@ def _ensure_admin_family(db: Session, user: User) -> None:
     user.family_id = family.id
     db.add(user)
     db.commit()
+    ensure_subscription_for_user(db, user)
 
 
 # 注册家长账号，并自动创建默认家庭。
@@ -50,6 +52,7 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)) -> User:
     db.refresh(user)
 
     _ensure_admin_family(db, user)
+    ensure_subscription_for_user(db, user)
     db.refresh(user)
     return user
 
@@ -62,6 +65,7 @@ def login(body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="手机号或密码错误")
 
     _ensure_admin_family(db, user)
+    ensure_subscription_for_user(db, user)
     token = create_access_token(data={"sub": str(user.id)})
     return TokenResponse(access_token=token)
 

@@ -2,7 +2,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
+import '../models/user.dart';
 import '../services/revenue_cat_service.dart';
+import 'auth_provider.dart';
 
 final revenueCatServiceProvider = Provider<RevenueCatService>((ref) {
   final service = RevenueCatService();
@@ -12,8 +14,16 @@ final revenueCatServiceProvider = Provider<RevenueCatService>((ref) {
 
 final revenueCatProvider =
     StateNotifierProvider<RevenueCatNotifier, RevenueCatState>((ref) {
-      return RevenueCatNotifier(ref.read(revenueCatServiceProvider));
+      return RevenueCatNotifier(ref.read(revenueCatServiceProvider), ref);
     });
+
+String revenueCatAppUserIdFor(User user) {
+  final familyId = user.familyId;
+  if (familyId != null) {
+    return 'family_$familyId';
+  }
+  return 'user_${user.id}';
+}
 
 class RevenueCatState {
   static const _unset = Object();
@@ -124,12 +134,25 @@ class RevenueCatState {
 }
 
 class RevenueCatNotifier extends StateNotifier<RevenueCatState> {
-  RevenueCatNotifier(this._service) : super(const RevenueCatState()) {
+  RevenueCatNotifier(this._service, this._ref)
+    : super(const RevenueCatState()) {
+    _authSubscription = _ref.listen<AuthState>(authProvider, (previous, next) {
+      if (!next.isAuthenticated || next.user == null) {
+        return;
+      }
+      final appUserId = _stableAppUserIdFor(next.user!);
+      if (_loggedInAppUserId != appUserId) {
+        logIn(appUserId);
+      }
+    });
     initialize();
   }
 
   final RevenueCatService _service;
+  final Ref _ref;
+  late final ProviderSubscription<AuthState> _authSubscription;
   Future<void>? _initializeFuture;
+  String? _loggedInAppUserId;
 
   Future<void> initialize() {
     final existingFuture = _initializeFuture;
@@ -154,6 +177,12 @@ class RevenueCatNotifier extends StateNotifier<RevenueCatState> {
       await _service.initialize(
         onCustomerInfoUpdated: _handleCustomerInfoUpdated,
       );
+      final user = _ref.read(authProvider).user;
+      if (user != null) {
+        final appUserId = _stableAppUserIdFor(user);
+        await _service.logIn(appUserId);
+        _loggedInAppUserId = appUserId;
+      }
       final offerings = await _service.fetchOfferings();
       final customerInfo = await _service.fetchCustomerInfo();
       if (!mounted) {
@@ -322,6 +351,28 @@ class RevenueCatNotifier extends StateNotifier<RevenueCatState> {
     }
   }
 
+  Future<void> logIn(String appUserId) async {
+    if (!_service.isSupportedPlatform || !_service.hasPublicSdkKey) {
+      return;
+    }
+    try {
+      await initialize();
+      if (state.isAvailable == false) {
+        return;
+      }
+      await _service.logIn(appUserId);
+      _loggedInAppUserId = appUserId;
+      final customerInfo = await _service.fetchCustomerInfo();
+      if (!mounted) {
+        return;
+      }
+      state = state.copyWith(
+        customerInfo: customerInfo,
+        isPremiumActive: _service.hasActiveEntitlement(customerInfo),
+      );
+    } catch (_) {}
+  }
+
   void clearErrors() {
     state = state.copyWith(
       errorMessage: null,
@@ -351,6 +402,10 @@ class RevenueCatNotifier extends StateNotifier<RevenueCatState> {
       isLoadingOfferings: false,
       errorMessage: message,
     );
+  }
+
+  String _stableAppUserIdFor(User user) {
+    return revenueCatAppUserIdFor(user);
   }
 
   String? _selectedPackageIdentifierFor(
@@ -391,5 +446,11 @@ class RevenueCatNotifier extends StateNotifier<RevenueCatState> {
       PurchasesErrorCode.storeProblemError => '商店服务暂时不可用，请稍后重试。',
       _ => '恢复购买失败，请稍后重试。',
     };
+  }
+
+  @override
+  void dispose() {
+    _authSubscription.close();
+    super.dispose();
   }
 }
