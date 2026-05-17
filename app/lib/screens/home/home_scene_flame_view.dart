@@ -390,6 +390,10 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
     await _loadFamilyPets();
 
+    if (mounted) {
+      _game.shufflePetLayout();
+    }
+
     if (!mounted || !clearRouteAfterClose) {
       return;
     }
@@ -417,12 +421,15 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     context.go('/paywall');
   }
 
-  void _openSettings() {
+  Future<void> _openSettings() async {
     if (!mounted) {
       return;
     }
 
-    _showSettingsPanel();
+    await _showSettingsPanel();
+    if (mounted) {
+      _game.shufflePetLayout();
+    }
   }
 
   Future<void> _showSettingsPanel() async {
@@ -819,6 +826,10 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       },
     );
     _shopPanelVisible = false;
+
+    if (mounted) {
+      _game.shufflePetLayout();
+    }
 
     if (!mounted || !clearRouteAfterClose) {
       return;
@@ -2266,6 +2277,9 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       _game.playPetCompletionReaction(
         petId: fallbackPetId,
         message: reactionMessage,
+        points: taskPoints,
+        leveledUp: leveledUp,
+        level: reactionPetAfter?.level,
       );
       _showTopSnackBar('任务完成成功');
     } catch (error) {
@@ -2295,10 +2309,11 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   }
 
   String _taskCompletionMessageFor(int points) {
-    if (points >= 20) {
-      return '我长大一点啦';
-    }
-    return '谢谢你！';
+    final messages = points >= 20
+        ? const <String>['我长大一点啦', '今天又进步啦', '能量满满！', '谢谢你陪我成长', '我变强一点啦']
+        : const <String>['谢谢你！', '好开心呀', '收到奖励啦', '任务完成啦', '今天也很棒', '我会继续加油'];
+
+    return messages[math.Random().nextInt(messages.length)];
   }
 
   Future<int?> _pickCompletionMemberId() async {
@@ -2840,6 +2855,12 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       pet: pet,
       avatarAssetPath: avatarAssetPath,
     );
+    if (mounted) {
+      await _loadFamilyPets();
+      if (mounted) {
+        _game.shufflePetLayout();
+      }
+    }
   }
 
   void _showTopSnackBar(String message) {

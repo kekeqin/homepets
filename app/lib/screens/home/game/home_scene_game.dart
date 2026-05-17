@@ -116,7 +116,6 @@ const Map<String, double> _homePetScaleByAssetPath = <String, double>{
   'images/pets/pets/turtle_sit.png': 0.73,
   'images/pets/pets/turtle_sleep.png': 0.75,
 };
-final Map<String, int> _homePetSessionPoseIndices = <String, int>{};
 final List<int> _enabledHomePetCandidateIndices = List<int>.unmodifiable(
   List<int>.generate(
     _homePetCandidatePoints.length,
@@ -166,10 +165,6 @@ const _RectFactor _rightArmchairSideOccluderRect = _RectFactor(
 
 bool _shouldRotateHomePetPosesForType(String petType) {
   return _homePetDynamicPoseTypes.contains(normalizePetType(petType));
-}
-
-String _homePetPoseSessionKey(String petType, int petId) {
-  return '${normalizePetType(petType)}#$petId';
 }
 
 bool _assetNameContainsAny(String assetName, Iterable<String> keywords) {
@@ -368,9 +363,28 @@ class _ActivePetMotionAction {
 }
 
 class _PetSpeechBubble {
-  const _PetSpeechBubble({required this.message, required this.duration});
+  const _PetSpeechBubble({
+    required this.message,
+    required this.duration,
+    this.emphasized = false,
+  });
 
   final String message;
+  final double duration;
+  final bool emphasized;
+}
+
+class _PetCompletionReward {
+  const _PetCompletionReward({
+    required this.points,
+    required this.leveledUp,
+    required this.level,
+    required this.duration,
+  });
+
+  final int points;
+  final bool leveledUp;
+  final int? level;
   final double duration;
 }
 
@@ -1412,6 +1426,21 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     }
   }
 
+  void shufflePetLayout() {
+    if (_petEntries.isEmpty) {
+      return;
+    }
+
+    _petPlacements.clear();
+    _petPoseIndices.clear();
+    _syncPetPlacements();
+    _syncPetPoseIndices();
+
+    if (_ready) {
+      _rebuildUiFromProfile();
+    }
+  }
+
   int get debugPetCandidateCount => _enabledHomePetCandidateIndices.length;
 
   Map<int, int> debugPetCandidateAssignments() {
@@ -1500,7 +1529,6 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       final currentPoseIndex = _currentHomePetPoseIndex(
         petType,
         pet.petId,
-        placement,
         poseVariants.length,
       );
       assetPaths[pet.petId] = poseVariants[currentPoseIndex];
@@ -1549,7 +1577,13 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     });
   }
 
-  void playPetCompletionReaction({int? petId, required String message}) {
+  void playPetCompletionReaction({
+    int? petId,
+    required String message,
+    int points = 10,
+    bool leveledUp = false,
+    int? level,
+  }) {
     if (!_ready) {
       return;
     }
@@ -1561,7 +1595,12 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
         break;
       }
     }
-    target?.playCompletionReaction(message);
+    target?.playCompletionReaction(
+      message: message,
+      points: points,
+      leveledUp: leveledUp,
+      level: level,
+    );
   }
 
   static bool debugUsesDynamicHomePoseSwitching(String petType) {
@@ -1710,7 +1749,6 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       final currentPoseIndex = _currentHomePetPoseIndex(
         petType,
         pet.petId,
-        placement,
         poseCount,
       );
       final nextPoseIndex = _nextDynamicHomePetPoseIndex(
@@ -1722,7 +1760,6 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       }
 
       _setCurrentHomePetPoseIndex(
-        petType: petType,
         petId: pet.petId,
         poseIndex: nextPoseIndex,
         poseCount: poseCount,
@@ -1873,7 +1910,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       occupancyCounts[placement.candidateIndex] += 1;
     }
 
-    final availableIndices = _orderedEnabledHomePetCandidateIndices()
+    final availableIndices = _randomizedEnabledHomePetCandidateIndices()
       ..removeWhere((index) => occupancyCounts[index] > 0);
 
     final layout = _petLayoutProfile();
@@ -1949,6 +1986,12 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
         if (enabled.remove(index)) index,
       ...enabled,
     ];
+    return ordered;
+  }
+
+  List<int> _randomizedEnabledHomePetCandidateIndices() {
+    final ordered = _orderedEnabledHomePetCandidateIndices();
+    ordered.shuffle(_petPlacementRandom);
     return ordered;
   }
 
@@ -2096,54 +2139,33 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
         continue;
       }
 
-      if (!_shouldRotateHomePetPosesForType(petType)) {
-        _petPoseIndices.remove(pet.petId);
-        continue;
+      if (_petPoseIndices.containsKey(pet.petId)) {
+        _petPoseIndices[pet.petId] = _normalizeHomePetPoseIndex(
+          _petPoseIndices[pet.petId]!,
+          poseCount,
+        );
+      } else {
+        _petPoseIndices[pet.petId] = _randomHomePetPoseIndex(
+          petType: petType,
+          poseCount: poseCount,
+        );
       }
-
-      final sessionKey = _homePetPoseSessionKey(petType, pet.petId);
-      final currentPoseIndex =
-          _petPoseIndices[pet.petId] ??
-          _homePetSessionPoseIndices[sessionKey] ??
-          deterministicHomePetPoseIndex(petType, pet.petId);
-      final normalizedPoseIndex = _normalizeHomePetPoseIndex(
-        currentPoseIndex,
-        poseCount,
-      );
-      _petPoseIndices[pet.petId] = normalizedPoseIndex;
-      _homePetSessionPoseIndices[sessionKey] = normalizedPoseIndex;
     }
   }
 
-  int _currentHomePetPoseIndex(
-    String petType,
-    int petId,
-    _AssignedPetPlacement placement,
-    int poseCount,
-  ) {
+  int _currentHomePetPoseIndex(String petType, int petId, int poseCount) {
     if (poseCount <= 0) {
       return 0;
     }
-    if (_placementUsesSitPosePreference(placement) ||
-        _placementUsesRestPosePreference(placement) ||
-        !_shouldRotateHomePetPosesForType(petType)) {
-      return _normalizeHomePetPoseIndex(
-        deterministicHomePetPoseIndex(petType, petId),
-        poseCount,
-      );
-    }
-
-    final sessionKey = _homePetPoseSessionKey(petType, petId);
-    final cachedPoseIndex =
-        _petPoseIndices[petId] ?? _homePetSessionPoseIndices[sessionKey];
+    final cachedPoseIndex = _petPoseIndices[petId];
     return _normalizeHomePetPoseIndex(
-      cachedPoseIndex ?? deterministicHomePetPoseIndex(petType, petId),
+      cachedPoseIndex ??
+          _randomHomePetPoseIndex(petType: petType, poseCount: poseCount),
       poseCount,
     );
   }
 
   void _setCurrentHomePetPoseIndex({
-    required String petType,
     required int petId,
     required int poseIndex,
     required int poseCount,
@@ -2153,8 +2175,19 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       poseCount,
     );
     _petPoseIndices[petId] = normalizedPoseIndex;
-    _homePetSessionPoseIndices[_homePetPoseSessionKey(petType, petId)] =
-        normalizedPoseIndex;
+  }
+
+  int _randomHomePetPoseIndex({
+    required String petType,
+    required int poseCount,
+  }) {
+    if (poseCount < 2) {
+      return _normalizeHomePetPoseIndex(
+        deterministicHomePetPoseIndex(petType, 0),
+        poseCount,
+      );
+    }
+    return _petPoseRandom.nextInt(poseCount);
   }
 
   int _nextDynamicHomePetPoseIndex({
@@ -2201,7 +2234,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     if (placement == null) {
       return 0;
     }
-    return _currentHomePetPoseIndex(petType, petId, placement, poseCount);
+    return _currentHomePetPoseIndex(petType, petId, poseCount);
   }
 
   List<String> _homePoseAssetPathsForPlacement(
@@ -2215,16 +2248,11 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     if (_placementUsesRestPosePreference(placement)) {
       return _preferredRestingHomePoseAssetPaths(petType);
     }
-    if (_shouldRotateHomePetPosesForType(petType)) {
-      return List<String>.unmodifiable(
-        petHomePoseVariantsForType(
-          petType,
-        ).map((assetName) => 'images/pets/$assetName'),
-      );
-    }
-    return <String>[
-      petHomeAssetPath(petType, deterministicHomePetPoseIndex(petType, petId)),
-    ];
+    return List<String>.unmodifiable(
+      petHomePoseVariantsForType(
+        petType,
+      ).map((assetName) => 'images/pets/$assetName'),
+    );
   }
 
   List<String> _preferredRestingHomePoseAssetPaths(String petType) {
@@ -2233,12 +2261,14 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       (name) => _assetNameContainsAny(name, const <String>['lie', 'lying']),
     );
     final preferredSleep = variantNames.where((name) => name.contains('sleep'));
-    final chosenVariant = preferredLie.isNotEmpty
-        ? preferredLie.first
-        : (preferredSleep.isNotEmpty
-              ? preferredSleep.first
-              : variantNames.first);
-    return <String>['images/pets/$chosenVariant'];
+    final preferred = <String>[
+      ...preferredLie,
+      ...preferredSleep.where((name) => !preferredLie.contains(name)),
+    ];
+    final variants = preferred.isNotEmpty ? preferred : variantNames;
+    return List<String>.unmodifiable(
+      variants.map((assetName) => 'images/pets/$assetName'),
+    );
   }
 
   List<String> _preferredSittingHomePoseAssetPaths(String petType) {
@@ -2249,10 +2279,14 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     final preferredLie = variantNames.where(
       (name) => _assetNameContainsAny(name, const <String>['lie', 'lying']),
     );
-    final chosenVariant = preferredSit.isNotEmpty
-        ? preferredSit.first
-        : (preferredLie.isNotEmpty ? preferredLie.first : variantNames.first);
-    return <String>['images/pets/$chosenVariant'];
+    final preferred = <String>[
+      ...preferredSit,
+      ...preferredLie.where((name) => !preferredSit.contains(name)),
+    ];
+    final variants = preferred.isNotEmpty ? preferred : variantNames;
+    return List<String>.unmodifiable(
+      variants.map((assetName) => 'images/pets/$assetName'),
+    );
   }
 
   List<_PetPoseVariantSpec> _buildPetPoseVariants({
@@ -3596,11 +3630,13 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
   double _framePlaybackCooldown = 0;
   double _motionActionElapsed = 0;
   double _speechBubbleElapsed = 0;
+  double _completionRewardElapsed = 0;
   double _idleActionCooldown = 0;
   double? _pendingTapCallbackDelay;
   int _animationIndex = 0;
   int _activePoseIndex = 0;
   _PetSpeechBubble? _speechBubble;
+  _PetCompletionReward? _completionReward;
   bool _isFrameAnimationPlaying = false;
 
   @override
@@ -3653,6 +3689,14 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
         _speechBubbleElapsed = 0;
       }
     }
+    final completionReward = _completionReward;
+    if (completionReward != null) {
+      _completionRewardElapsed += dt;
+      if (_completionRewardElapsed >= completionReward.duration) {
+        _completionReward = null;
+        _completionRewardElapsed = 0;
+      }
+    }
     if (_ambientMotionElapsed < _ambientActivationDelay) {
       return;
     }
@@ -3686,28 +3730,35 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
     }
 
     _renderContactShadow(canvas);
+    _renderCompletionSpotlight(canvas);
 
     final floatOffset = _currentFloatOffset();
     final breathScale = _currentBreathScale();
     final actionTransform = _currentActionTransform();
-    final combinedScaleX = breathScale * actionTransform.scaleX;
-    final combinedScaleY = breathScale * actionTransform.scaleY;
+    final rewardTransform = _currentCompletionRewardTransform();
+    final combinedScaleX =
+        breathScale * actionTransform.scaleX * rewardTransform.scaleX;
+    final combinedScaleY =
+        breathScale * actionTransform.scaleY * rewardTransform.scaleY;
 
     if (floatOffset != 0 ||
         actionTransform.offsetX != 0 ||
         actionTransform.offsetY != 0 ||
+        rewardTransform.offsetX != 0 ||
+        rewardTransform.offsetY != 0 ||
         combinedScaleX != 1 ||
         combinedScaleY != 1 ||
-        actionTransform.rotation != 0) {
+        actionTransform.rotation != 0 ||
+        rewardTransform.rotation != 0) {
       final centerX = size.x * 0.5;
       final centerY = size.y * 0.5;
       canvas.save();
       canvas.translate(
-        actionTransform.offsetX,
-        floatOffset + actionTransform.offsetY,
+        actionTransform.offsetX + rewardTransform.offsetX,
+        floatOffset + actionTransform.offsetY + rewardTransform.offsetY,
       );
       canvas.translate(centerX, centerY);
-      canvas.rotate(actionTransform.rotation);
+      canvas.rotate(actionTransform.rotation + rewardTransform.rotation);
       canvas.scale(combinedScaleX, combinedScaleY);
       canvas.translate(-centerX, -centerY);
     }
@@ -3720,12 +3771,16 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
     if (floatOffset != 0 ||
         actionTransform.offsetX != 0 ||
         actionTransform.offsetY != 0 ||
+        rewardTransform.offsetX != 0 ||
+        rewardTransform.offsetY != 0 ||
         combinedScaleX != 1 ||
         combinedScaleY != 1 ||
-        actionTransform.rotation != 0) {
+        actionTransform.rotation != 0 ||
+        rewardTransform.rotation != 0) {
       canvas.restore();
     }
 
+    _renderCompletionReward(canvas);
     _renderSpeechBubble(canvas);
   }
 
@@ -3840,6 +3895,44 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
     canvas.drawOval(shadowRect, _shadowPaint);
   }
 
+  void _renderCompletionSpotlight(Canvas canvas) {
+    final reward = _completionReward;
+    if (reward == null || reward.duration <= 0) {
+      return;
+    }
+
+    final progress = (_completionRewardElapsed / reward.duration)
+        .clamp(0, 1)
+        .toDouble();
+    final fadeIn = Curves.easeOut.transform((progress / 0.14).clamp(0, 1));
+    final fadeOut = progress < 0.84
+        ? 1.0
+        : 1 - Curves.easeIn.transform(((progress - 0.84) / 0.16).clamp(0, 1));
+    final pulse =
+        (0.62 +
+            0.38 *
+                math.sin(progress * math.pi * (reward.leveledUp ? 8.0 : 6.0))) *
+        fadeIn *
+        fadeOut;
+    if (pulse <= 0) {
+      return;
+    }
+
+    final effectUnit = _completionRewardEffectUnit();
+    final spotlightRect = Rect.fromCenter(
+      center: Offset(size.x * 0.5, size.y * 0.88),
+      width: effectUnit * (reward.leveledUp ? 2.08 : 1.68),
+      height: effectUnit * (reward.leveledUp ? 0.56 : 0.42),
+    );
+    final paint = Paint()
+      ..color = Color(
+        reward.leveledUp ? 0xFFFFD45C : 0xFFFFE18A,
+      ).withValues(alpha: pulse * (reward.leveledUp ? 0.40 : 0.30))
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 9);
+
+    canvas.drawOval(spotlightRect, paint);
+  }
+
   void _renderSpeechBubble(Canvas canvas) {
     final bubble = _speechBubble;
     if (bubble == null || bubble.message.trim().isEmpty) {
@@ -3859,7 +3952,10 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
     }
 
     final message = bubble.message;
-    final fontSize = math.max(size.y * 0.12, 13.0);
+    final fontSize = math.max(
+      size.y * (bubble.emphasized ? 0.180 : 0.158),
+      bubble.emphasized ? 24.0 : 20.0,
+    );
     final textPainter = TextPainter(
       text: TextSpan(
         text: message,
@@ -3872,29 +3968,36 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
       ),
       maxLines: 1,
       textDirection: TextDirection.ltr,
-    )..layout(maxWidth: size.x * 2.4);
+    )..layout(maxWidth: math.max(size.x * 3.2, game.size.x * 0.42));
 
     final paddingX = fontSize * 0.72;
     final paddingY = fontSize * 0.44;
     final bubbleWidth = textPainter.width + paddingX * 2;
     final bubbleHeight = textPainter.height + paddingY * 2;
     final centerX = size.x * 0.5;
-    final bottomY = -size.y * 0.08 - (size.y * 0.10 * progress);
+    final popScale =
+        1 +
+        (bubble.emphasized
+            ? 0.18 * _holdPulse(progress, begin: 0.02, end: 0.30)
+            : 0.12 * _holdPulse(progress, begin: 0.02, end: 0.26));
+    final bottomY = -size.y * 0.14 - (size.y * 0.18 * progress);
     final rect = Rect.fromCenter(
       center: Offset(centerX, bottomY - bubbleHeight * 0.5),
-      width: bubbleWidth,
-      height: bubbleHeight,
+      width: bubbleWidth * popScale,
+      height: bubbleHeight * popScale,
     );
     final radius = Radius.circular(bubbleHeight * 0.45);
     final fillPaint = Paint()
-      ..color = Color(0xFFFFF8E9).withValues(alpha: opacity * 0.94);
+      ..color = (bubble.emphasized ? Color(0xFFFFF1BB) : Color(0xFFFFF8E9))
+          .withValues(alpha: opacity * 0.96);
     final borderPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = math.max(fontSize * 0.08, 1.4)
-      ..color = Color(0xFF8A623C).withValues(alpha: opacity * 0.82);
+      ..color = (bubble.emphasized ? Color(0xFFE38A2E) : Color(0xFF8A623C))
+          .withValues(alpha: opacity * 0.86);
     final shadowPaint = Paint()
-      ..color = Color(0x55382415).withValues(alpha: opacity * 0.28)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+      ..color = Color(0x55382415).withValues(alpha: opacity * 0.36)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
     final rrect = RRect.fromRectAndRadius(rect, radius);
 
     canvas.drawRRect(rrect.shift(Offset(0, fontSize * 0.10)), shadowPaint);
@@ -3913,6 +4016,236 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
       canvas,
       Offset(rect.left + paddingX, rect.top + paddingY),
     );
+  }
+
+  void _renderCompletionReward(Canvas canvas) {
+    final reward = _completionReward;
+    if (reward == null) {
+      return;
+    }
+
+    final progress = (_completionRewardElapsed / reward.duration)
+        .clamp(0, 1)
+        .toDouble();
+    final visibleOpacity = progress < 0.78
+        ? Curves.easeOut.transform((progress / 0.12).clamp(0, 1))
+        : progress < 0.88
+        ? 1.0
+        : 1 - Curves.easeIn.transform(((progress - 0.88) / 0.12).clamp(0, 1));
+    final opacity = visibleOpacity.clamp(0, 1).toDouble();
+    if (opacity <= 0) {
+      return;
+    }
+
+    _renderRewardHalo(canvas, progress, opacity, reward.leveledUp);
+    _renderRewardStars(canvas, progress, opacity, reward.leveledUp);
+    _renderRewardPoints(canvas, progress, opacity, reward);
+  }
+
+  void _renderRewardHalo(
+    Canvas canvas,
+    double progress,
+    double opacity,
+    bool leveledUp,
+  ) {
+    final haloProgress = (progress / (leveledUp ? 0.96 : 0.88))
+        .clamp(0, 1)
+        .toDouble();
+    final haloFade = progress < 0.84
+        ? 1.0
+        : 1 - Curves.easeIn.transform(((progress - 0.84) / 0.16).clamp(0, 1));
+    final haloPulse =
+        (0.48 + 0.52 * math.sin(progress * math.pi * (leveledUp ? 6.0 : 4.5))) *
+        Curves.easeOut.transform((progress / 0.12).clamp(0, 1)) *
+        haloFade;
+    if (haloPulse <= 0) {
+      return;
+    }
+
+    final center = Offset(size.x * 0.5, size.y * 0.54);
+    final effectUnit = _completionRewardEffectUnit();
+    final baseRadius = effectUnit * (leveledUp ? 1.12 : 0.88);
+    final radius = baseRadius * (0.58 + haloProgress * 0.72);
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(
+        effectUnit * (leveledUp ? 0.052 : 0.038),
+        leveledUp ? 4.0 : 3.0,
+      )
+      ..color = Color(
+        leveledUp ? 0xFFFFD55B : 0xFFFFC85A,
+      ).withValues(alpha: opacity * haloPulse * (leveledUp ? 0.88 : 0.62));
+
+    canvas.drawCircle(center, radius, paint);
+  }
+
+  void _renderRewardStars(
+    Canvas canvas,
+    double progress,
+    double opacity,
+    bool leveledUp,
+  ) {
+    final count = leveledUp ? 14 : 9;
+    final center = Offset(size.x * 0.5, size.y * 0.38);
+    final minDimension = _completionRewardEffectUnit();
+    for (var index = 0; index < count; index++) {
+      final stagger = index * (leveledUp ? 0.022 : 0.028);
+      final local = ((progress - stagger) / (leveledUp ? 0.84 : 0.76))
+          .clamp(0, 1)
+          .toDouble();
+      if (local <= 0 || local >= 1) {
+        continue;
+      }
+
+      final arrival = Curves.easeOutCubic.transform(local);
+      final angle =
+          (-math.pi * 0.95) + (index * math.pi * 1.9 / math.max(count - 1, 1));
+      final startRadius = minDimension * (leveledUp ? 1.34 : 1.08);
+      final wobble =
+          math.sin((local * math.pi * 2.7) + index) * minDimension * 0.045;
+      final start = Offset(
+        center.dx + math.cos(angle) * startRadius,
+        center.dy + math.sin(angle) * startRadius - minDimension * 0.18,
+      );
+      final target = Offset(
+        center.dx + math.cos(angle * 0.55) * minDimension * 0.26,
+        center.dy + math.sin(angle * 0.40) * minDimension * 0.17,
+      );
+      final position = Offset(
+        ui.lerpDouble(start.dx, target.dx, arrival)! + wobble,
+        ui.lerpDouble(start.dy, target.dy, arrival)! -
+            math.sin(local * math.pi) * minDimension * 0.30,
+      );
+      final starOpacity =
+          opacity *
+          math.sin(local * math.pi).clamp(0, 1).toDouble() *
+          (leveledUp ? 0.96 : 0.82);
+      final starSize =
+          minDimension * (leveledUp ? 0.118 : 0.092) * (1.08 - local * 0.18);
+      _drawRewardStar(
+        canvas,
+        center: position,
+        radius: starSize,
+        rotation: (local * math.pi * 1.4) + index,
+        opacity: starOpacity,
+      );
+    }
+  }
+
+  void _drawRewardStar(
+    Canvas canvas, {
+    required Offset center,
+    required double radius,
+    required double rotation,
+    required double opacity,
+  }) {
+    if (radius <= 0 || opacity <= 0) {
+      return;
+    }
+
+    final path = Path();
+    for (var index = 0; index < 10; index++) {
+      final isOuter = index.isEven;
+      final currentRadius = isOuter ? radius : radius * 0.48;
+      final angle = rotation - math.pi / 2 + (index * math.pi / 5);
+      final point = Offset(
+        center.dx + math.cos(angle) * currentRadius,
+        center.dy + math.sin(angle) * currentRadius,
+      );
+      if (index == 0) {
+        path.moveTo(point.dx, point.dy);
+      } else {
+        path.lineTo(point.dx, point.dy);
+      }
+    }
+    path.close();
+
+    final shadowPaint = Paint()
+      ..color = Color(0xFF7A4B19).withValues(alpha: opacity * 0.20)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+    final fillPaint = Paint()
+      ..color = Color(0xFFFFD75E).withValues(alpha: opacity);
+    final borderPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(radius * 0.12, 1)
+      ..color = Color(0xFFA96C23).withValues(alpha: opacity * 0.82);
+
+    canvas.drawPath(path.shift(Offset(0, radius * 0.12)), shadowPaint);
+    canvas.drawPath(path, fillPaint);
+    canvas.drawPath(path, borderPaint);
+  }
+
+  void _renderRewardPoints(
+    Canvas canvas,
+    double progress,
+    double opacity,
+    _PetCompletionReward reward,
+  ) {
+    final local = ((progress - 0.06) / 0.88).clamp(0, 1).toDouble();
+    if (local <= 0 || local >= 1) {
+      return;
+    }
+
+    final textFadeIn = Curves.easeOut.transform((local / 0.10).clamp(0, 1));
+    final textFadeOut = local < 0.82
+        ? 1.0
+        : 1 - Curves.easeIn.transform(((local - 0.82) / 0.18).clamp(0, 1));
+    final textOpacity = opacity * textFadeIn * textFadeOut;
+    final clampedTextOpacity = textOpacity.clamp(0, 1).toDouble();
+    if (textOpacity <= 0) {
+      return;
+    }
+
+    final label = reward.leveledUp && reward.level != null
+        ? '+${reward.points}  Lv.${reward.level}'
+        : '+${reward.points}';
+    final effectUnit = _completionRewardEffectUnit();
+    final fontSize = math.max(
+      effectUnit * (reward.leveledUp ? 0.34 : 0.28),
+      reward.leveledUp ? 28.0 : 24.0,
+    );
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: label,
+        style: TextStyle(
+          color: Color(
+            reward.leveledUp ? 0xFFFF8E2E : 0xFF6B8F2A,
+          ).withValues(alpha: clampedTextOpacity),
+          fontSize: fontSize,
+          fontWeight: FontWeight.w900,
+          height: 1,
+          shadows: <Shadow>[
+            Shadow(
+              color: Color(
+                0xFFFFF8E8,
+              ).withValues(alpha: clampedTextOpacity * 0.90),
+              blurRadius: 5,
+            ),
+            Shadow(
+              color: Color(
+                0xFF4B2C14,
+              ).withValues(alpha: clampedTextOpacity * 0.22),
+              blurRadius: 2,
+              offset: Offset(0, fontSize * 0.08),
+            ),
+          ],
+        ),
+      ),
+      maxLines: 1,
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: math.max(size.x * 2.0, game.size.x * 0.40));
+
+    final jump = Curves.easeOutCubic.transform((local / 0.72).clamp(0, 1));
+    final x =
+        size.x * 0.52 + math.sin(local * math.pi * 0.9) * effectUnit * 0.08;
+    final y = size.y * 0.12 - (effectUnit * 0.54 * jump);
+    textPainter.paint(canvas, Offset(x, y));
+  }
+
+  double _completionRewardEffectUnit() {
+    final sceneUnit = math.min(game.size.x, game.size.y) * 0.105;
+    final petUnit = math.min(size.x, size.y);
+    return math.max(petUnit, sceneUnit);
   }
 
   void _refreshAmbientMotionProfile() {
@@ -4014,20 +4347,32 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
     _scheduleNextIdleAction();
   }
 
-  void playCompletionReaction(String message) {
-    _speechBubble = _PetSpeechBubble(message: message, duration: 1.45);
-    _speechBubbleElapsed = 0;
-    _activeMotionAction = _ActivePetMotionAction(
-      kind: _motionSpec.tapActionKind,
-      duration: 0.78,
-      isTapFeedback: true,
+  void playCompletionReaction({
+    required String message,
+    required int points,
+    required bool leveledUp,
+    required int? level,
+  }) {
+    _speechBubble = _PetSpeechBubble(
+      message: message,
+      duration: leveledUp ? 4.80 : 4.20,
+      emphasized: leveledUp,
     );
+    _speechBubbleElapsed = 0;
+    _completionReward = _PetCompletionReward(
+      points: math.max(points, 0),
+      leveledUp: leveledUp,
+      level: level,
+      duration: leveledUp ? 4.60 : 4.00,
+    );
+    _completionRewardElapsed = 0;
+    _activeMotionAction = null;
     _motionActionElapsed = 0;
     _ambientActivationDelay = math.min(
       _ambientActivationDelay,
       _ambientMotionElapsed,
     );
-    _idleActionCooldown = math.max(_idleActionCooldown, 1.3);
+    _idleActionCooldown = math.max(_idleActionCooldown, leveledUp ? 4.7 : 4.1);
     final activePose = _activePose;
     if (activePose != null && activePose.animationFrames.length > 1) {
       _startFramePlayback();
@@ -4091,6 +4436,10 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
       unit: unit,
       amplitudeScale: _ambientMotion.wobbleAmplitude * weight,
     );
+  }
+
+  _PetMotionTransform _currentCompletionRewardTransform() {
+    return const _PetMotionTransform();
   }
 
   double _randomBetween(double min, double max) {
