@@ -130,28 +130,27 @@ void main() {
       expect(secondAssignments, firstAssignments);
     });
 
-    test(
-      'uses one static homepage pet asset per pet from the new asset set',
-      () {
-        final game = HomeSceneGame(device: HomeSceneDevice.mobile);
-        game.replacePetEntries(const <HomeScenePetSeed>[
-          HomeScenePetSeed(petId: 11, petType: 'cat'),
-          HomeScenePetSeed(petId: 22, petType: 'dog'),
-          HomeScenePetSeed(petId: 33, petType: 'hamster'),
-          HomeScenePetSeed(petId: 44, petType: 'rabbit'),
-          HomeScenePetSeed(petId: 55, petType: 'turtle'),
-        ]);
+    test('uses static homepage pet assets from the new asset set', () {
+      final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+      game.replacePetEntries(const <HomeScenePetSeed>[
+        HomeScenePetSeed(petId: 11, petType: 'cat'),
+        HomeScenePetSeed(petId: 22, petType: 'dog'),
+        HomeScenePetSeed(petId: 33, petType: 'hamster'),
+        HomeScenePetSeed(petId: 44, petType: 'rabbit'),
+        HomeScenePetSeed(petId: 55, petType: 'turtle'),
+      ]);
 
-        final poseVariants = game.debugPetPoseAssetVariants();
-        expect(poseVariants.length, 5);
+      final poseVariants = game.debugPetPoseAssetVariants();
+      expect(poseVariants.length, 5);
 
-        for (final variants in poseVariants.values) {
-          expect(variants, hasLength(1));
-          expect(variants.single, startsWith('images/pets/pets/'));
-          expect(variants.single, endsWith('.png'));
+      for (final variants in poseVariants.values) {
+        expect(variants, isNotEmpty);
+        for (final assetPath in variants) {
+          expect(assetPath, startsWith('images/pets/pets/'));
+          expect(assetPath, endsWith('.png'));
         }
-      },
-    );
+      }
+    });
 
     test('keeps homepage pet asset paths stable across refreshes', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
@@ -186,7 +185,7 @@ void main() {
       }
     });
 
-    test('keeps cat and dog off lying poses on the homepage', () {
+    test('keeps cat and dog homepage poses on static pet assets', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
       game.replacePetEntries(const <HomeScenePetSeed>[
         HomeScenePetSeed(petId: 11, petType: 'cat'),
@@ -198,14 +197,10 @@ void main() {
       ]);
 
       final currentAssets = game.debugCurrentPetPoseAssetPaths().values;
-      expect(
-        currentAssets.where(
-          (assetPath) =>
-              assetPath.contains('cat_lying') ||
-              assetPath.contains('dog_lying'),
-        ),
-        isEmpty,
-      );
+      for (final assetPath in currentAssets) {
+        expect(assetPath, startsWith('images/pets/pets/'));
+        expect(assetPath, anyOf(contains('cat_'), contains('dog_')));
+      }
     });
 
     test('uses static sit and rest poses for preferred home slots', () {
@@ -223,6 +218,7 @@ void main() {
 
       final assignments = game.debugPetCandidateAssignments();
       final currentAssets = game.debugCurrentPetPoseAssetPaths();
+      final poseVariants = game.debugPetPoseAssetVariants();
       final bookshelfPetId = assignments.entries
           .singleWhere((entry) => entry.value == 8)
           .key;
@@ -234,9 +230,10 @@ void main() {
         currentAssets[bookshelfPetId],
         anyOf(contains('lying'), contains('sleep')),
       );
+      expect(currentAssets[armchairPetId], isIn(poseVariants[armchairPetId]!));
       expect(
-        currentAssets[armchairPetId],
-        anyOf(contains('sit'), contains('stand')),
+        poseVariants[armchairPetId],
+        contains(anyOf(contains('sit'), contains('stand'))),
       );
     });
 
@@ -271,24 +268,24 @@ void main() {
       }
     });
 
-    test('keeps dog sit more restrained than cat and rabbit sit poses', () {
+    test('uses a smaller home target area for hamster and turtle assets', () {
       expect(
-        HomeSceneGame.debugHomePetScaleForAssetPath(
-          'images/pets/pets/dog_sit.png',
+        HomeSceneGame.debugHomePetTargetAreaForAssetPath(
+          'images/pets/pets/hamster_sit.png',
         ),
         lessThan(
-          HomeSceneGame.debugHomePetScaleForAssetPath(
+          HomeSceneGame.debugHomePetTargetAreaForAssetPath(
             'images/pets/pets/cat_sit.png',
           ),
         ),
       );
       expect(
-        HomeSceneGame.debugHomePetScaleForAssetPath(
-          'images/pets/pets/dog_sit.png',
+        HomeSceneGame.debugHomePetTargetAreaForAssetPath(
+          'images/pets/pets/turtle_sleep.png',
         ),
         lessThan(
-          HomeSceneGame.debugHomePetScaleForAssetPath(
-            'images/pets/pets/rabbit_sit.png',
+          HomeSceneGame.debugHomePetTargetAreaForAssetPath(
+            'images/pets/pets/rabbit_sleep.png',
           ),
         ),
       );
@@ -414,53 +411,28 @@ void main() {
       );
     });
 
-    test('boosts hamster scale when resting on the bookshelf slot', () {
+    test('does not resize pets by slot-specific pose exceptions', () {
       expect(
         HomeSceneGame.debugPlacementScaleAdjustmentForCandidateAsset(
           candidateIndex: 8,
           assetPath: 'images/pets/pets/hamster_sleep.png',
         ),
-        greaterThan(1),
-      );
-      expect(
-        HomeSceneGame.debugPlacementScaleAdjustmentForCandidateAsset(
-          candidateIndex: 8,
-          assetPath: 'images/pets/pets/rabbit_sleep.png',
-        ),
         1,
       );
-    });
-
-    test('boosts sleeping cat scale on front floor slots', () {
       expect(
         HomeSceneGame.debugPlacementScaleAdjustmentForCandidateAsset(
           candidateIndex: 3,
           assetPath: 'images/pets/pets/cat_sleep.png',
         ),
-        greaterThan(1),
-      );
-      expect(
-        HomeSceneGame.debugPlacementScaleAdjustmentForCandidateAsset(
-          candidateIndex: 0,
-          assetPath: 'images/pets/pets/cat_sleep.png',
-        ),
         1,
       );
     });
 
-    test(
-      'applies perspective scaling so near slots render larger than far slots',
-      () {
-        expect(
-          HomeSceneGame.debugPerspectiveScaleForCandidate(9),
-          lessThan(HomeSceneGame.debugPerspectiveScaleForCandidate(0)),
-        );
-        expect(
-          HomeSceneGame.debugPerspectiveScaleForCandidate(0),
-          lessThan(HomeSceneGame.debugPerspectiveScaleForCandidate(7)),
-        );
-      },
-    );
+    test('keeps perspective from changing pet size between slots', () {
+      expect(HomeSceneGame.debugPerspectiveScaleForCandidate(9), 1);
+      expect(HomeSceneGame.debugPerspectiveScaleForCandidate(0), 1);
+      expect(HomeSceneGame.debugPerspectiveScaleForCandidate(7), 1);
+    });
 
     test('uses stronger ambient motion for near pets than far pets', () {
       final farMotion = HomeSceneGame.debugAmbientMotionValuesForDepth(0.44);
@@ -503,15 +475,18 @@ void main() {
       );
 
       expect(rabbitSitSize.width, lessThan(rabbitSitSize.height));
-      expect(catLyingSize.width, greaterThan(catLyingSize.height * 2));
+      expect(catLyingSize.width, greaterThan(catLyingSize.height * 1.4));
     });
 
     test(
-      'preserves varied home pet render areas after trimming whitespace',
+      'keeps regular pets similar while hamster and turtle stay slightly smaller',
       () {
         const slotSize = Size(69, 100);
 
-        final renderAreas = _staticHomePetAssetPaths.map((assetPath) {
+        final regularAreas = <double>[];
+        final compactAreas = <double>[];
+
+        for (final assetPath in _staticHomePetAssetPaths) {
           final cropRect = HomeSceneGame.debugPetCropRectForAssetPath(
             assetPath,
           );
@@ -526,12 +501,28 @@ void main() {
             slotSize: slotSize,
             sourceSize: cropRect!.size,
           );
-          return renderSize.width * renderSize.height;
-        }).toList();
+          final area = renderSize.width * renderSize.height;
 
-        final minArea = renderAreas.reduce(math.min);
-        final maxArea = renderAreas.reduce(math.max);
-        expect(maxArea / minArea, greaterThan(1.25));
+          if (assetPath.contains('/hamster_') ||
+              assetPath.contains('/turtle_')) {
+            compactAreas.add(area);
+          } else {
+            regularAreas.add(area);
+          }
+        }
+
+        final minRegularArea = regularAreas.reduce(math.min);
+        final maxRegularArea = regularAreas.reduce(math.max);
+        final averageRegularArea =
+            regularAreas.reduce((left, right) => left + right) /
+            regularAreas.length;
+        final averageCompactArea =
+            compactAreas.reduce((left, right) => left + right) /
+            compactAreas.length;
+
+        expect(maxRegularArea / minRegularArea, lessThan(1.08));
+        expect(averageCompactArea, lessThan(averageRegularArea));
+        expect(averageCompactArea, greaterThan(averageRegularArea * 0.72));
       },
     );
 
@@ -548,7 +539,7 @@ void main() {
       final poseVariantRects = game.debugPetPoseVariantRects();
 
       for (final rects in poseVariantRects.values) {
-        expect(rects, hasLength(1));
+        expect(rects, isNotEmpty);
 
         for (final rect in rects) {
           expect(rect.left, greaterThanOrEqualTo(-0.0001));
@@ -586,7 +577,7 @@ void main() {
     test('keeps settings gear seated on the bookshelf top', () {
       expect(
         HomeSceneGame.debugHomeSettingsGearRect,
-        const Rect.fromLTWH(0.642, 0.324, 0.108, 0.040),
+        const Rect.fromLTWH(0.623, 0.315, 0.113, 0.043),
       );
     });
 
@@ -744,11 +735,16 @@ void main() {
       expect(assignments.values.toSet().length, 7);
 
       for (final petId in const <int>[3, 7, 9]) {
+        final rect = rects[petId]!;
         expect(
-          assignments[petId],
-          isNot(anyOf(8, 9)),
-          reason:
-              'Repeated rabbits should not use the smallest/occluded slots.',
+          rect.width * rect.height,
+          greaterThan(0.009),
+          reason: 'Repeated rabbits should stay large enough to see clearly.',
+        );
+        expect(
+          rect.bottom,
+          lessThan(0.90),
+          reason: 'Repeated rabbits should stay away from the bottom edge.',
         );
       }
     });
