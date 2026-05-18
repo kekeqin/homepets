@@ -86,7 +86,7 @@ class FamilyMemberCard extends StatelessWidget {
     return '还没有宠物';
   }
 
-  String get _progressLeadingLabel {
+  String get _petLevelLabel {
     final pet = member.pet;
     if (pet != null) {
       return 'Lv.${pet.level}';
@@ -95,160 +95,84 @@ class FamilyMemberCard extends StatelessWidget {
     return member.points > 0 ? '成长值' : '待养成';
   }
 
-  String get _progressTrailingLabel {
-    final pet = member.pet;
-    if (pet == null) {
-      return '$_fallbackProgressPoints / 60';
-    }
-
-    final levelThreshold = pet.levelThreshold;
-    if (levelThreshold == null || levelThreshold == 0) {
-      return '已满级';
-    }
-    return '${pet.experience} / $levelThreshold';
-  }
-
-  String get _headerDisplayName => member.nickname;
-
-  _MemberCardStyle get _style {
-    if (displaySlot != null) {
-      return switch (displaySlot! % 4) {
-        0 => _MemberCardStyle.warm,
-        1 => _MemberCardStyle.green,
-        2 => _MemberCardStyle.blue,
-        _ => _MemberCardStyle.pink,
-      };
-    }
-
-    if (member.petType == null && member.pet == null) {
-      return _MemberCardStyle.pink;
+  String get _portraitAssetPath {
+    final normalizedAvatar = normalizedPresetUserAvatarAssetValue(
+      member.avatarUrl,
+    );
+    if (normalizedAvatar != null) {
+      return normalizedAvatar;
     }
 
     final nickname = member.nickname;
     if (nickname.contains('爸') || nickname.contains('爷')) {
-      return _MemberCardStyle.blue;
+      return FamilyPopupAssets.boyPortrait;
     }
-    if (nickname.contains('宝') || nickname.contains('孩')) {
-      return _MemberCardStyle.green;
-    }
-
-    return switch (member.pet?.petType ?? member.petType) {
-      'rabbit' || 'turtle' => _MemberCardStyle.green,
-      'hamster' => _MemberCardStyle.blue,
-      _ => _MemberCardStyle.warm,
-    };
-  }
-
-  String get _fallbackPortraitRegion {
-    final nickname = member.nickname;
-    if (nickname.contains('奶') || nickname.contains('婆')) {
-      return userGirlBobAvatarAssetPath;
-    }
-    if (nickname.contains('爸') || nickname.contains('爷')) {
-      return userDadAvatarAssetPath;
-    }
-    if (nickname.contains('宝') ||
-        nickname.contains('孩') ||
-        nickname.contains('小')) {
-      return userDefaultAvatarAssetPath;
-    }
-    if (nickname.contains('妈')) {
-      return userMomAvatarAssetPath;
+    if (nickname.contains('妈') || nickname.contains('奶')) {
+      return FamilyPopupAssets.girlPortrait;
     }
     if (displaySlot != null) {
       return switch (displaySlot! % 4) {
-        0 => userMomAvatarAssetPath,
-        1 => userDefaultAvatarAssetPath,
-        2 => userDadAvatarAssetPath,
-        _ => userGirlBobAvatarAssetPath,
+        0 =>
+          member.role == 'admin'
+              ? FamilyPopupAssets.boyPortrait
+              : FamilyPopupAssets.girlPortrait,
+        1 => FamilyPopupAssets.adultFemalePortrait,
+        2 => FamilyPopupAssets.childPortrait,
+        _ => FamilyPopupAssets.girlPortrait,
       };
     }
-    if (member.role == 'admin') {
-      return userDadAvatarAssetPath;
-    }
-    return userDefaultAvatarAssetPath;
+    return member.role == 'admin'
+        ? FamilyPopupAssets.boyPortrait
+        : FamilyPopupAssets.childPortrait;
   }
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final style = _style;
         final shortestSide = math.min(
           constraints.maxWidth,
           constraints.maxHeight,
         );
-        final scale = (shortestSide / 156).clamp(0.80, 1.22).toDouble();
-        final cornerRadius = 25 * scale;
+        final scale = (shortestSide / 170).clamp(0.74, 1.16).toDouble();
+        final cornerRadius = 18 * scale;
         final padding = EdgeInsets.fromLTRB(
-          10 * scale,
           9 * scale,
-          10 * scale,
+          9 * scale,
+          9 * scale,
           8 * scale,
         );
-        final headerHeight = (44 * scale).clamp(36.0, 56.0).toDouble();
-        final avatarSize = (41 * scale).clamp(34.0, 52.0).toDouble();
-        final nameSize = (20.0 * scale).clamp(16.0, 23.0).toDouble();
-        final scoreWidth = (58 * scale).clamp(49.0, 70.0).toDouble();
-        final scoreHeight = (27 * scale).clamp(23.0, 32.0).toDouble();
-        final labelHeight = (29 * scale).clamp(23.0, 34.0).toDouble();
-        final progressHeight = (10.0 * scale).clamp(8.0, 12.0).toDouble();
-        final metaSize = (11.0 * scale).clamp(9.5, 13.0).toDouble();
+        final namePlateHeight = (34 * scale).clamp(28.0, 42.0).toDouble();
+        final footerHeight = (52 * scale).clamp(42.0, 64.0).toDouble();
+        final petIconSize = (34 * scale).clamp(26.0, 42.0).toDouble();
 
         final card = DecoratedBox(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [style.backgroundTop, style.backgroundBottom],
-            ),
             borderRadius: BorderRadius.circular(cornerRadius),
-            border: Border.all(
-              color: style.border.withValues(alpha: 0.68),
-              width: 1.45 * scale,
-            ),
-            boxShadow: [
+            boxShadow: const [
               BoxShadow(
-                color: style.outline.withValues(alpha: 0.13),
-                blurRadius: 11 * scale,
-                offset: Offset(0, 4 * scale),
+                color: Color(0x1F3D210C),
+                blurRadius: 5,
+                offset: Offset(0, 2),
               ),
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(cornerRadius),
+            borderRadius: BorderRadius.circular(cornerRadius - 2),
             child: Stack(
               children: [
                 Positioned.fill(
-                  child: IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(cornerRadius),
-                        gradient: RadialGradient(
-                          center: const Alignment(-0.18, -0.38),
-                          radius: 1.08,
-                          colors: [style.highlight, Colors.transparent],
-                          stops: const [0, 1],
-                        ),
-                      ),
-                    ),
+                  child: Image.asset(
+                    FamilyPopupAssets.cardPanel,
+                    fit: BoxFit.cover,
+                    filterQuality: FilterQuality.medium,
+                    isAntiAlias: true,
                   ),
                 ),
                 Positioned.fill(
-                  child: IgnorePointer(
-                    child: Padding(
-                      padding: EdgeInsets.all(3.2 * scale),
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(
-                            cornerRadius - 3.2 * scale,
-                          ),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.36),
-                            width: 1.1 * scale,
-                          ),
-                        ),
-                      ),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
                     ),
                   ),
                 ),
@@ -258,84 +182,38 @@ class FamilyMemberCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       SizedBox(
-                        height: headerHeight,
+                        height: namePlateHeight,
+                        child: _NamePlate(name: member.nickname, scale: scale),
+                      ),
+                      Expanded(
                         child: Stack(
                           clipBehavior: Clip.none,
                           children: [
-                            Positioned(
-                              left: 0,
-                              top: (headerHeight - avatarSize) / 2,
+                            Positioned.fill(
+                              top: 1 * scale,
+                              bottom: -2 * scale,
                               child: _MemberPortraitButton(
                                 member: member,
-                                size: avatarSize,
-                                fallbackRegion: _fallbackPortraitRegion,
+                                assetPath: _portraitAssetPath,
                                 busy: avatarEditBusy,
                                 onTap: onAvatarEditTap,
-                              ),
-                            ),
-                            Positioned(
-                              left: avatarSize + 8 * scale,
-                              right: scoreWidth + 6 * scale,
-                              top: 0,
-                              bottom: 0,
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  alignment: Alignment.centerLeft,
-                                  child: Text(
-                                    _headerDisplayName,
-                                    maxLines: 1,
-                                    style: TextStyle(
-                                      color: style.text,
-                                      fontSize: nameSize,
-                                      height: 1,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              right: 0,
-                              top: (headerHeight - scoreHeight) / 2,
-                              child: _PointsBadge(
-                                points: member.points,
-                                width: scoreWidth,
-                                height: scoreHeight,
-                                scale: scale,
-                                outlineColor: style.outline,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      SizedBox(height: 2 * scale),
-                      Expanded(
-                        child: _PetStage(
-                          assetPath: _petPreviewAssetPath,
-                          title: _petTitle,
-                          labelHeight: labelHeight,
-                          textColor: style.text,
-                          seatColor: style.seatColor,
-                          seatBorderColor: style.seatBorderColor,
+                      SizedBox(
+                        height: footerHeight,
+                        child: _PetFooter(
+                          memberId: member.id,
+                          petAssetPath: _petPreviewAssetPath,
+                          petTitle: _petTitle,
+                          levelLabel: _petLevelLabel,
+                          progressValue: _progressValue,
+                          petIconSize: petIconSize,
                           scale: scale,
-                          badgeKey: Key(
-                            'family_member_pet_button_${member.id}',
-                          ),
                           onTap: member.pet != null ? onPetTap : null,
                         ),
-                      ),
-                      SizedBox(height: 4 * scale),
-                      _ProgressFooter(
-                        leadingLabel: _progressLeadingLabel,
-                        trailingLabel: _progressTrailingLabel,
-                        value: _progressValue,
-                        accentColor: style.accent,
-                        textColor: style.text,
-                        progressHeight: progressHeight,
-                        metaSize: metaSize,
-                        scale: scale,
                       ),
                     ],
                   ),
@@ -359,84 +237,35 @@ class FamilyMemberCard extends StatelessWidget {
   }
 }
 
-class _MemberPortraitButton extends StatelessWidget {
-  const _MemberPortraitButton({
-    required this.member,
-    required this.size,
-    required this.fallbackRegion,
-    required this.busy,
-    required this.onTap,
-  });
+class _NamePlate extends StatelessWidget {
+  const _NamePlate({required this.name, required this.scale});
 
-  final FamilyMemberViewData member;
-  final double size;
-  final String fallbackRegion;
-  final bool busy;
-  final VoidCallback? onTap;
+  final String name;
+  final double scale;
 
   @override
   Widget build(BuildContext context) {
-    final avatarValue =
-        normalizedPresetUserAvatarAssetValue(member.avatarUrl) ??
-        fallbackRegion;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        key: Key('family_member_avatar_edit_button_${member.id}'),
-        onTap: busy ? null : onTap,
-        customBorder: const CircleBorder(),
-        child: SizedBox(
-          width: size,
-          height: size,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0xFFFFFCF3), Color(0xFFFFECCC)],
-                  ),
-                  border: Border.all(
-                    color: const Color(0xFF8F6238),
-                    width: math.max(1.2, size * 0.032),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0x248A5A2C),
-                      blurRadius: size * 0.13,
-                      offset: Offset(0, size * 0.045),
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: EdgeInsets.all(size * 0.055),
-                  child: ClipOval(
-                    child: UserAvatar(
-                      nickname: member.nickname,
-                      avatarValue: avatarValue,
-                      size: size,
-                      backgroundColor: const Color(0xFFFFF5E9),
-                      foregroundColor: const Color(0xFF7B5432),
-                    ),
-                  ),
-                ),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFEF6).withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(16 * scale),
+        border: Border.all(color: const Color(0xFFF2A12A), width: 1.4 * scale),
+      ),
+      child: Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8 * scale),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              name,
+              maxLines: 1,
+              style: TextStyle(
+                color: const Color(0xFF3E230F),
+                fontSize: 25 * scale,
+                height: 1,
+                fontWeight: FontWeight.w900,
               ),
-              if (busy)
-                Center(
-                  child: SizedBox(
-                    width: size * 0.36,
-                    height: size * 0.36,
-                    child: const CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Color(0xFFA86C35),
-                    ),
-                  ),
-                ),
-            ],
+            ),
           ),
         ),
       ),
@@ -444,106 +273,171 @@ class _MemberPortraitButton extends StatelessWidget {
   }
 }
 
-class _PetStage extends StatelessWidget {
-  const _PetStage({
+class _MemberPortraitButton extends StatelessWidget {
+  const _MemberPortraitButton({
+    required this.member,
     required this.assetPath,
-    required this.title,
-    required this.labelHeight,
-    required this.textColor,
-    required this.seatColor,
-    required this.seatBorderColor,
-    required this.scale,
-    required this.badgeKey,
-    this.onTap,
+    required this.busy,
+    required this.onTap,
   });
 
-  final String? assetPath;
-  final String title;
-  final double labelHeight;
-  final Color textColor;
-  final Color seatColor;
-  final Color seatBorderColor;
-  final double scale;
-  final Key badgeKey;
+  final FamilyMemberViewData member;
+  final String assetPath;
+  final bool busy;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final resolvedLabelHeight = math.min(
-          labelHeight,
-          math.max(19 * scale, constraints.maxHeight * 0.29),
-        );
-        final labelWidth = math.min(
-          constraints.maxWidth * 0.63,
-          resolvedLabelHeight * 2.27,
-        );
-        final stageGap = 2 * scale;
-        final stageAreaHeight = math.max(
-          0.0,
-          constraints.maxHeight - resolvedLabelHeight - stageGap,
-        );
-        final stageSize = [
-          stageAreaHeight * 1.60,
-          constraints.maxWidth * 1.08,
-          196 * scale,
-        ].reduce(math.min);
-        final petSize = math.min(stageAreaHeight * 1.05, stageSize * 0.90);
-        final circleSize = [
-          petSize * 1.23,
-          stageSize * 1.10,
-          constraints.maxWidth * 1.02,
-          206 * scale,
-        ].reduce(math.min);
+    final child = Stack(
+      fit: StackFit.expand,
+      children: [
+        Center(
+          child: FractionallySizedBox(
+            widthFactor: 0.82,
+            heightFactor: 1.05,
+            child: Image.asset(
+              assetPath,
+              fit: BoxFit.contain,
+              errorBuilder: (_, _, _) => UserAvatar(
+                nickname: member.nickname,
+                avatarValue: member.avatarUrl,
+                size: 96,
+                backgroundColor: const Color(0x00FFFFFF),
+                foregroundColor: const Color(0xFF7B5432),
+              ),
+            ),
+          ),
+        ),
+        if (busy)
+          const Center(
+            child: SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Color(0xFFA86C35),
+              ),
+            ),
+          ),
+      ],
+    );
 
-        return Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Stack(
-                clipBehavior: Clip.none,
-                alignment: Alignment.center,
-                children: [
-                  OverflowBox(
-                    alignment: Alignment.center,
-                    maxWidth: circleSize,
-                    maxHeight: circleSize,
-                    child: SizedBox(
-                      width: circleSize,
-                      height: circleSize,
-                      child: _PetCircleStage(
-                        color: seatColor,
-                        borderColor: seatBorderColor,
-                        scale: scale,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: Key('family_member_avatar_edit_button_${member.id}'),
+        onTap: busy ? null : onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _PetFooter extends StatelessWidget {
+  const _PetFooter({
+    required this.memberId,
+    required this.petAssetPath,
+    required this.petTitle,
+    required this.levelLabel,
+    required this.progressValue,
+    required this.petIconSize,
+    required this.scale,
+    this.onTap,
+  });
+
+  final int memberId;
+  final String? petAssetPath;
+  final String petTitle;
+  final String levelLabel;
+  final double progressValue;
+  final double petIconSize;
+  final double scale;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFCF3).withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(15 * scale),
+        border: Border.all(color: const Color(0xFFF3A52F), width: 1.2 * scale),
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          7 * scale,
+          5 * scale,
+          7 * scale,
+          5 * scale,
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final iconSize = math.min(
+              petIconSize,
+              (constraints.maxWidth * 0.30).clamp(20.0, petIconSize),
+            );
+            final gap = (5 * scale).clamp(2.0, 7.0).toDouble();
+
+            return Row(
+              children: [
+                _PetPreviewButton(
+                  key: Key('family_member_pet_button_$memberId'),
+                  assetPath: petAssetPath,
+                  size: iconSize,
+                  onTap: onTap,
+                ),
+                SizedBox(width: gap),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        height: (16 * scale).clamp(10.0, 19.0).toDouble(),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                petTitle,
+                                maxLines: 1,
+                                style: TextStyle(
+                                  color: const Color(0xFF3F230D),
+                                  fontSize: 15 * scale,
+                                  height: 1,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              SizedBox(width: 5 * scale),
+                              Text(
+                                levelLabel,
+                                maxLines: 1,
+                                style: TextStyle(
+                                  color: const Color(0xFF3F230D),
+                                  fontSize: 14 * scale,
+                                  height: 1,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
+                      SizedBox(height: 5 * scale),
+                      FamilySpriteProgressBar(
+                        value: progressValue,
+                        height: (10 * scale).clamp(7.0, 12.0).toDouble(),
+                      ),
+                    ],
                   ),
-                  Transform.translate(
-                    offset: Offset(0, -stageSize * 0.006),
-                    child: _PetPreviewButton(
-                      key: badgeKey,
-                      assetPath: assetPath,
-                      size: petSize,
-                      onTap: onTap,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: stageGap),
-            SizedBox(
-              width: labelWidth,
-              height: resolvedLabelHeight,
-              child: _PetNameLabel(
-                text: title,
-                textColor: textColor,
-                scale: scale,
-              ),
-            ),
-          ],
-        );
-      },
+                ),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 }
@@ -566,15 +460,12 @@ class _PetPreviewButton extends StatelessWidget {
       width: size,
       height: size,
       child: assetPath == null
-          ? const FamilySpriteSlice(
-              region: FamilySpriteRegions.emptyPetPaw,
-              sampleInset: 2,
-            )
+          ? const Icon(Icons.pets_rounded, color: Color(0xFF6E3B10), size: 26)
           : Image.asset(
               assetPath!,
               fit: BoxFit.contain,
               filterQuality: FilterQuality.medium,
-              isAntiAlias: false,
+              isAntiAlias: true,
             ),
     );
 
@@ -585,374 +476,6 @@ class _PetPreviewButton extends StatelessWidget {
         customBorder: const CircleBorder(),
         child: child,
       ),
-    );
-  }
-}
-
-class _PetNameLabel extends StatelessWidget {
-  const _PetNameLabel({
-    required this.text,
-    required this.textColor,
-    required this.scale,
-  });
-
-  final String text;
-  final Color textColor;
-  final double scale;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        Positioned.fill(
-          child: Image.asset(
-            FamilyHomePartAssets.petNameLabel,
-            fit: BoxFit.fill,
-            filterQuality: FilterQuality.medium,
-            isAntiAlias: false,
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 9 * scale),
-          child: Center(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                text,
-                maxLines: 1,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 15.8 * scale,
-                  height: 1,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ProgressFooter extends StatelessWidget {
-  const _ProgressFooter({
-    required this.leadingLabel,
-    required this.trailingLabel,
-    required this.value,
-    required this.accentColor,
-    required this.textColor,
-    required this.progressHeight,
-    required this.metaSize,
-    required this.scale,
-  });
-
-  final String leadingLabel;
-  final String trailingLabel;
-  final double value;
-  final Color accentColor;
-  final Color textColor;
-  final double progressHeight;
-  final double metaSize;
-  final double scale;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: math.max(36 * scale, progressHeight + 24 * scale),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 3 * scale),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(999),
-                boxShadow: [
-                  BoxShadow(
-                    color: accentColor.withValues(alpha: 0.20),
-                    blurRadius: 5 * scale,
-                    offset: Offset(0, 2 * scale),
-                  ),
-                ],
-              ),
-              child: FamilySpriteProgressBar(
-                value: value,
-                height: progressHeight,
-              ),
-            ),
-          ),
-          SizedBox(height: 5 * scale),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.44),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: accentColor.withValues(alpha: 0.24),
-                    width: 0.8 * scale,
-                  ),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 7 * scale,
-                    vertical: 2.2 * scale,
-                  ),
-                  child: Text(
-                    leadingLabel,
-                    maxLines: 1,
-                    style: TextStyle(
-                      color: accentColor,
-                      fontSize: metaSize,
-                      height: 1,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: 6 * scale),
-              Flexible(
-                fit: FlexFit.tight,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    trailingLabel,
-                    maxLines: 1,
-                    textAlign: TextAlign.right,
-                    style: TextStyle(
-                      color: textColor.withValues(alpha: 0.82),
-                      fontSize: metaSize,
-                      height: 1,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PointsBadge extends StatelessWidget {
-  const _PointsBadge({
-    required this.points,
-    required this.width,
-    required this.height,
-    required this.scale,
-    required this.outlineColor,
-  });
-
-  final int points;
-  final double width;
-  final double height;
-  final double scale;
-  final Color outlineColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: width,
-      height: height,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Positioned.fill(
-            child: Image.asset(
-              FamilyHomePartAssets.statBadgeFrame,
-              fit: BoxFit.fill,
-              filterQuality: FilterQuality.medium,
-              isAntiAlias: false,
-            ),
-          ),
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(999),
-                boxShadow: [
-                  BoxShadow(
-                    color: outlineColor.withValues(alpha: 0.14),
-                    blurRadius: 5 * scale,
-                    offset: Offset(0, 2.3 * scale),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 6 * scale),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(
-                  width: 16 * scale,
-                  height: 16 * scale,
-                  child: Image.asset(
-                    FamilyHomePartAssets.starIcon,
-                    fit: BoxFit.contain,
-                    filterQuality: FilterQuality.medium,
-                    isAntiAlias: false,
-                  ),
-                ),
-                SizedBox(width: 3 * scale),
-                Flexible(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      '$points',
-                      maxLines: 1,
-                      style: TextStyle(
-                        color: const Color(0xFF704524),
-                        fontSize: 14.2 * scale,
-                        height: 1,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MemberCardStyle {
-  const _MemberCardStyle({
-    required this.backgroundTop,
-    required this.backgroundBottom,
-    required this.border,
-    required this.outline,
-    required this.text,
-    required this.accent,
-    required this.highlight,
-    required this.seatColor,
-    required this.seatBorderColor,
-  });
-
-  static const warm = _MemberCardStyle(
-    backgroundTop: Color(0xFFFFFAEA),
-    backgroundBottom: Color(0xFFFFE4B7),
-    border: Color(0xFFDDA25D),
-    outline: Color(0xFF8D6037),
-    text: Color(0xFF6B4224),
-    accent: Color(0xFF6F9340),
-    highlight: Color(0x42FFFFFF),
-    seatColor: Color(0xFFFFF3C7),
-    seatBorderColor: Color(0xFFD8A95F),
-  );
-
-  static const green = _MemberCardStyle(
-    backgroundTop: Color(0xFFFFFFE7),
-    backgroundBottom: Color(0xFFEAF0BD),
-    border: Color(0xFFBCC371),
-    outline: Color(0xFF81713A),
-    text: Color(0xFF5C5E31),
-    accent: Color(0xFF6F9440),
-    highlight: Color(0x3FFFFFFF),
-    seatColor: Color(0xFFFFF4BF),
-    seatBorderColor: Color(0xFFC8B960),
-  );
-
-  static const blue = _MemberCardStyle(
-    backgroundTop: Color(0xFFFFFFF5),
-    backgroundBottom: Color(0xFFE1EFF2),
-    border: Color(0xFFB9CDD3),
-    outline: Color(0xFF7D6844),
-    text: Color(0xFF5B5D51),
-    accent: Color(0xFF6D9049),
-    highlight: Color(0x3BFFFFFF),
-    seatColor: Color(0xFFFFF0CA),
-    seatBorderColor: Color(0xFFCFAE72),
-  );
-
-  static const pink = _MemberCardStyle(
-    backgroundTop: Color(0xFFFFF5EE),
-    backgroundBottom: Color(0xFFFFD9CB),
-    border: Color(0xFFE2A18F),
-    outline: Color(0xFF926044),
-    text: Color(0xFF75482F),
-    accent: Color(0xFF92723F),
-    highlight: Color(0x3BFFFFFF),
-    seatColor: Color(0xFFFFEDC7),
-    seatBorderColor: Color(0xFFD0AE78),
-  );
-
-  final Color backgroundTop;
-  final Color backgroundBottom;
-  final Color border;
-  final Color outline;
-  final Color text;
-  final Color accent;
-  final Color highlight;
-  final Color seatColor;
-  final Color seatBorderColor;
-}
-
-class _PetCircleStage extends StatelessWidget {
-  const _PetCircleStage({
-    required this.color,
-    required this.borderColor,
-    required this.scale,
-  });
-
-  final Color color;
-  final Color borderColor;
-  final double scale;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        Padding(
-          padding: EdgeInsets.all(2.5 * scale),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                center: const Alignment(-0.18, -0.25),
-                radius: 0.86,
-                colors: [
-                  Colors.white.withValues(alpha: 0.44),
-                  color.withValues(alpha: 0.60),
-                  color.withValues(alpha: 0.22),
-                ],
-                stops: const [0.0, 0.58, 1.0],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: borderColor.withValues(alpha: 0.13),
-                  blurRadius: 8 * scale,
-                  offset: Offset(0, 3 * scale),
-                ),
-              ],
-            ),
-          ),
-        ),
-        Positioned.fill(
-          child: Padding(
-            padding: EdgeInsets.all(1.2 * scale),
-            child: Image.asset(
-              FamilyHomePartAssets.petCircleFrame,
-              fit: BoxFit.contain,
-              color: borderColor.withValues(alpha: 0.82),
-              colorBlendMode: BlendMode.srcIn,
-              filterQuality: FilterQuality.medium,
-              isAntiAlias: false,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

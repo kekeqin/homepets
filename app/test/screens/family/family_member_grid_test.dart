@@ -42,12 +42,13 @@ void main() {
       expect(find.text('member-1'), findsOneWidget);
       expect(find.text('member-4'), findsOneWidget);
       expect(find.text('member-5'), findsNothing);
-      expect(find.byKey(const Key('family_member_grid_prev')), findsNothing);
-      expect(find.byKey(const Key('family_member_grid_next')), findsNothing);
+      expect(find.byKey(const Key('family_member_grid_prev')), findsOneWidget);
+      expect(find.byKey(const Key('family_member_grid_next')), findsOneWidget);
       expect(
         find.byKey(const Key('family_member_grid_page_dots')),
         findsOneWidget,
       );
+      expect(find.text('1 / 2 页'), findsOneWidget);
 
       await tester.drag(
         find.byKey(const Key('family_member_grid_swipe_area')),
@@ -57,9 +58,11 @@ void main() {
       await tester.pump();
 
       expect(find.text('member-5'), findsOneWidget);
+      expect(find.text('邀请成员'), findsOneWidget);
+      expect(find.text('2 / 2 页'), findsOneWidget);
     });
 
-    testWidgets('does not show page dots when there are four members', (
+    testWidgets('shows invite page when there are four members', (
       tester,
     ) async {
       final members = List<FamilyMemberViewData>.generate(
@@ -92,8 +95,19 @@ void main() {
       expect(find.byType(FamilyMemberCard), findsNWidgets(4));
       expect(
         find.byKey(const Key('family_member_grid_page_dots')),
-        findsNothing,
+        findsOneWidget,
       );
+      expect(find.text('1 / 2 页'), findsOneWidget);
+
+      await tester.drag(
+        find.byKey(const Key('family_member_grid_swipe_area')),
+        const Offset(-200, 0),
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pump();
+
+      expect(find.text('邀请成员'), findsOneWidget);
+      expect(find.text('2 / 2 页'), findsOneWidget);
     });
 
     testWidgets('shows ascii member nicknames without replacing them', (

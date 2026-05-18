@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -28,6 +30,7 @@ class _FamilyPalette {
   static const muted = Color(0xFF98745A);
   static const accent = Color(0xFFD99955);
   static const accentDark = Color(0xFFA86C35);
+  static const deepBrown = Color(0xFF3F230D);
 }
 
 Future<void> showFamilyDialog(
@@ -150,7 +153,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
 
   String _familyTitle(String familyName) {
     final trimmed = familyName.trim();
-    return trimmed.isEmpty ? '温暖小家' : trimmed;
+    return trimmed.isEmpty ? '家庭小屋' : trimmed;
   }
 
   int _petCount(List<FamilyMemberViewData> members) {
@@ -401,50 +404,76 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
     return RefreshIndicator(
       color: _FamilyPalette.accentDark,
       onRefresh: _loadFamily,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
-        padding: EdgeInsets.fromLTRB(
-          widget.embedded ? 0 : 22,
-          widget.embedded ? 0 : 18,
-          widget.embedded ? 0 : 22,
-          widget.embedded ? 0 : 26,
-        ),
-        child: FadeTransition(
-          opacity: _contentOpacity,
-          child: SlideTransition(
-            position: _contentOffset,
-            child: _FamilyStageCard(
-              embedded: widget.embedded,
-              title: familyTitle,
-              petCount: petCount,
-              memberCount: members.length,
-              canManageMembers: canManageMembers,
-              addingMember: _addingMember,
-              onLeadingTap: _handleLeadingAction,
-              onAddMemberTap: onAddMemberTap,
-              membersPanel: _FamilyMembersPanel(
-                compact: widget.embedded,
-                members: members,
-                petAvatarAssetPathsById: widget.petAvatarAssetPathsById,
-                entryAnimation: _entryController,
-                canManageMembers: canManageMembers,
-                onAddMemberTap: onAddMemberTap,
-                onPetTap: _openPetDetail,
-                canEditAvatar: (member) =>
-                    _canEditAvatarForMember(authState, member),
-                onAvatarEditTap: (member) =>
-                    _onAvatarEditTap(authState, member),
-                updatingAvatarMemberId: _updatingAvatarMemberId,
-                canDeleteMember: (member) =>
-                    _canDeleteMember(authState, member),
-                onMemberLongPress: (member) =>
-                    _onMemberLongPress(authState, member),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final horizontalPadding = widget.embedded ? 0.0 : 22.0;
+          final verticalPadding = widget.embedded ? 0.0 : 18.0;
+          final availableWidth = (constraints.maxWidth - horizontalPadding * 2)
+              .clamp(0.0, double.infinity)
+              .toDouble();
+          final availableHeight =
+              constraints.hasBoundedHeight && constraints.maxHeight.isFinite
+              ? (constraints.maxHeight - verticalPadding * 2)
+                    .clamp(0.0, double.infinity)
+                    .toDouble()
+              : double.infinity;
+          const stageAspectRatio = 0.64;
+          final heightFromWidth = availableWidth / stageAspectRatio;
+          final stageHeight = availableHeight.isFinite
+              ? math.min(heightFromWidth, availableHeight)
+              : heightFromWidth;
+
+          final stage = SizedBox(
+            height: stageHeight,
+            child: FadeTransition(
+              opacity: _contentOpacity,
+              child: SlideTransition(
+                position: _contentOffset,
+                child: _FamilyStageCard(
+                  embedded: widget.embedded,
+                  title: familyTitle,
+                  petCount: petCount,
+                  memberCount: members.length,
+                  canManageMembers: canManageMembers,
+                  addingMember: _addingMember,
+                  onLeadingTap: _handleLeadingAction,
+                  onAddMemberTap: onAddMemberTap,
+                  membersPanel: _FamilyMembersPanel(
+                    compact: widget.embedded,
+                    members: members,
+                    petAvatarAssetPathsById: widget.petAvatarAssetPathsById,
+                    entryAnimation: _entryController,
+                    canManageMembers: canManageMembers,
+                    onAddMemberTap: onAddMemberTap,
+                    onPetTap: _openPetDetail,
+                    canEditAvatar: (member) =>
+                        _canEditAvatarForMember(authState, member),
+                    onAvatarEditTap: (member) =>
+                        _onAvatarEditTap(authState, member),
+                    updatingAvatarMemberId: _updatingAvatarMemberId,
+                    canDeleteMember: (member) =>
+                        _canDeleteMember(authState, member),
+                    onMemberLongPress: (member) =>
+                        _onMemberLongPress(authState, member),
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
+          );
+
+          return SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            padding: EdgeInsets.fromLTRB(
+              horizontalPadding,
+              widget.embedded ? 0 : verticalPadding,
+              horizontalPadding,
+              widget.embedded ? 0 : verticalPadding + 8,
+            ),
+            child: Align(alignment: Alignment.topCenter, child: stage),
+          );
+        },
       ),
     );
   }
@@ -476,110 +505,145 @@ class _FamilyStageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
-      aspectRatio: 0.61,
+      aspectRatio: 0.64,
       child: Stack(
+        clipBehavior: Clip.none,
         fit: StackFit.expand,
         children: [
-          DecoratedBox(
-            decoration: const BoxDecoration(
-              borderRadius: BorderRadius.all(Radius.circular(32)),
-              boxShadow: [
-                BoxShadow(
-                  color: Color(0x205C3516),
-                  blurRadius: 14,
-                  offset: Offset(0, 7),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(30),
-              child: FamilySpritePanel(
-                skin: FamilySpriteSkins.outerPanel,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final width = constraints.maxWidth;
-                    final height = constraints.maxHeight;
-
-                    return Stack(
-                      clipBehavior: Clip.hardEdge,
-                      children: [
-                        Positioned(
-                          left: width * 0.070,
-                          right: width * 0.150,
-                          top: height * 0.045,
-                          height: height * 0.238,
-                          child: _QuietFamilyStageHeader(
-                            embedded: embedded,
-                            title: title,
-                            petCount: petCount,
-                            memberCount: memberCount,
-                            canManageMembers: canManageMembers,
-                            addingMember: addingMember,
-                            onAddMemberTap: onAddMemberTap,
-                          ),
-                        ),
-                        Positioned(
-                          left: width * 0.040,
-                          right: width * 0.040,
-                          top: height * 0.252,
-                          height: height * 0.704,
-                          child: membersPanel,
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ),
+          Positioned.fill(
+            child: Image.asset(
+              FamilyPopupAssets.mainPanel,
+              fit: BoxFit.fill,
+              filterQuality: FilterQuality.medium,
+              isAntiAlias: true,
             ),
           ),
           Positioned.fill(
             child: IgnorePointer(
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(32),
-                  border: Border.all(
-                    color: const Color(0xFF5F3A20),
-                    width: 3.0,
-                    strokeAlign: BorderSide.strokeAlignInside,
-                  ),
+                  borderRadius: BorderRadius.circular(34),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0x24523319),
-                      blurRadius: 1.2,
-                      spreadRadius: -0.2,
+                      color: Color(0x28552D12),
+                      blurRadius: 18,
+                      offset: Offset(0, 8),
                     ),
                   ],
                 ),
               ),
             ),
           ),
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Padding(
-                padding: const EdgeInsets.all(3.5),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(29),
-                    border: Border.all(
-                      color: const Color(0x665F3A20),
-                      width: 0.8,
-                      strokeAlign: BorderSide.strokeAlignInside,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final height = constraints.maxHeight;
+              final titleWidth = (width * 0.42).clamp(176.0, 288.0).toDouble();
+              final titleHeight = titleWidth / 3.03;
+
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    left: width * 0.047,
+                    top: height * 0.040,
+                    child: canManageMembers
+                        ? _HeroAddButton(
+                            compact: embedded || width < 430,
+                            busy: addingMember,
+                            onTap: onAddMemberTap,
+                          )
+                        : SizedBox(width: width * 0.15, height: width * 0.15),
+                  ),
+                  Positioned(
+                    top: height * 0.055,
+                    left: (width - titleWidth) / 2,
+                    width: titleWidth,
+                    height: titleHeight,
+                    child: Image.asset(
+                      FamilyPopupAssets.title,
+                      fit: BoxFit.contain,
+                      filterQuality: FilterQuality.medium,
+                      isAntiAlias: true,
                     ),
                   ),
-                ),
-              ),
-            ),
+                  Positioned(
+                    top: height * 0.052,
+                    left: width * 0.66,
+                    width: (width * 0.088).clamp(38.0, 58.0).toDouble(),
+                    height: (width * 0.088).clamp(38.0, 58.0).toDouble(),
+                    child: Transform.rotate(
+                      angle: 0.20,
+                      child: const _HeaderNotebookIcon(),
+                    ),
+                  ),
+                  if (title.trim() != '家庭小屋')
+                    Positioned(
+                      top: height * 0.120,
+                      left: width * 0.30,
+                      right: width * 0.30,
+                      child: Center(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            style: const TextStyle(
+                              color: _FamilyPalette.muted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              height: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  Positioned(
+                    left: width * 0.055,
+                    right: width * 0.055,
+                    top: height * 0.195,
+                    bottom: height * 0.062,
+                    child: membersPanel,
+                  ),
+                ],
+              );
+            },
           ),
           Positioned(
-            top: 18,
-            right: 18,
+            top: -6,
+            right: -4,
             child: _CircleIconButton(
               icon: embedded ? Icons.close_rounded : Icons.arrow_back_rounded,
-              tooltip: embedded ? '\u5173\u95ed' : '\u8fd4\u56de\u9996\u9875',
+              tooltip: embedded ? '关闭' : '返回首页',
               onTap: onLeadingTap,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _HeaderNotebookIcon extends StatelessWidget {
+  const _HeaderNotebookIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFB642),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _FamilyPalette.deepBrown, width: 2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x24361D0D),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: const Center(
+        child: Icon(Icons.favorite_rounded, color: Colors.white, size: 23),
       ),
     );
   }
@@ -770,206 +834,6 @@ class _FamilyStatPill extends StatelessWidget {
   }
 }
 
-class _QuietFamilyStageHeader extends StatelessWidget {
-  const _QuietFamilyStageHeader({
-    required this.embedded,
-    required this.title,
-    required this.petCount,
-    required this.memberCount,
-    required this.canManageMembers,
-    required this.addingMember,
-    required this.onAddMemberTap,
-  });
-
-  final bool embedded;
-  final String title;
-  final int petCount;
-  final int memberCount;
-  final bool canManageMembers;
-  final bool addingMember;
-  final VoidCallback onAddMemberTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final maxWidth = constraints.maxWidth;
-        final compact = embedded || maxWidth < 430;
-        final titleSize = compact ? 38.0 : 44.0;
-        final heroWidth = (maxWidth * (maxWidth < 380 ? 0.47 : 0.46))
-            .clamp(146.0, compact ? 188.0 : 228.0)
-            .toDouble();
-        final heroHeight = heroWidth / 1.18;
-
-        return Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(top: compact ? 0 : 2),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: _FamilyPalette.text,
-                            fontSize: titleSize,
-                            fontWeight: FontWeight.w900,
-                            height: 1,
-                          ),
-                        ),
-                        SizedBox(height: compact ? 8 : 10),
-                        SizedBox(
-                          height: compact ? 36 : 40,
-                          child: FittedBox(
-                            alignment: Alignment.centerLeft,
-                            fit: BoxFit.scaleDown,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                _QuietStatPill(
-                                  compact: compact,
-                                  iconRegion:
-                                      FamilySpriteRegions.statMemberIcon,
-                                  value: '$memberCount',
-                                ),
-                                SizedBox(width: compact ? 5 : 7),
-                                _QuietStatPill(
-                                  compact: compact,
-                                  iconRegion: FamilySpriteRegions.statPetIcon,
-                                  value: '$petCount',
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        if (canManageMembers) ...[
-                          SizedBox(height: compact ? 11 : 14),
-                          _HeroAddButton(
-                            compact: compact,
-                            busy: addingMember,
-                            onTap: onAddMemberTap,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(width: compact ? 4 : 10),
-                Padding(
-                  padding: EdgeInsets.only(top: compact ? 1 : 7),
-                  child: SizedBox(
-                    width: heroWidth,
-                    height: heroHeight,
-                    child: Image.asset(
-                      FamilyHomePartAssets.familyIllustration,
-                      fit: BoxFit.contain,
-                      filterQuality: FilterQuality.medium,
-                      isAntiAlias: false,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _QuietStatPill extends StatelessWidget {
-  const _QuietStatPill({
-    required this.compact,
-    required this.iconRegion,
-    required this.value,
-  });
-
-  final bool compact;
-  final Rect iconRegion;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final isStar = iconRegion == FamilySpriteRegions.starIcon;
-    return SizedBox(
-      width: compact ? (isStar ? 74 : 64) : (isStar ? 86 : 74),
-      height: compact ? 32 : 36,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Positioned.fill(
-            child: Image.asset(
-              FamilyHomePartAssets.statBadgeFrame,
-              fit: BoxFit.fill,
-              filterQuality: FilterQuality.medium,
-              isAntiAlias: false,
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 10),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildIcon(compact),
-                SizedBox(width: compact ? 2 : 4),
-                Flexible(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      value,
-                      maxLines: 1,
-                      style: TextStyle(
-                        color: _FamilyPalette.text,
-                        fontSize: compact ? 14 : 15,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildIcon(bool compact) {
-    final isMember = iconRegion == FamilySpriteRegions.statMemberIcon;
-    final isPet = iconRegion == FamilySpriteRegions.statPetIcon;
-    final assetPath = isMember
-        ? FamilyHomePartAssets.memberIcon
-        : isPet
-        ? FamilyHomePartAssets.petIcon
-        : FamilyHomePartAssets.starIcon;
-    final iconWidth = compact
-        ? (isMember ? 22.0 : 17.0)
-        : (isMember ? 24.0 : 19.0);
-    final iconHeight = compact
-        ? (isMember ? 17.0 : 17.0)
-        : (isMember ? 19.0 : 19.0);
-
-    return SizedBox(
-      width: iconWidth,
-      height: iconHeight,
-      child: Image.asset(
-        assetPath,
-        fit: BoxFit.contain,
-        filterQuality: FilterQuality.medium,
-        isAntiAlias: false,
-      ),
-    );
-  }
-}
-
 class _HeroAddButton extends StatelessWidget {
   const _HeroAddButton({
     required this.compact,
@@ -989,13 +853,16 @@ class _HeroAddButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(999),
         child: SizedBox(
-          width: compact ? 154 : 178,
-          height: compact ? 52 : 60,
+          width: compact ? 62 : 76,
+          height: compact ? 62 : 76,
           child: Stack(
             fit: StackFit.expand,
             children: [
-              const FamilySpriteSlice(
-                region: FamilySpriteRegions.addMemberButton,
+              Image.asset(
+                FamilyPopupAssets.addButton,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.medium,
+                isAntiAlias: true,
               ),
               if (busy)
                 Center(
@@ -1047,35 +914,20 @@ class _FamilyMembersPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF5E4).withValues(alpha: 0.62),
-        borderRadius: BorderRadius.circular(compact ? 22 : 26),
-        border: Border.all(
-          color: const Color(0xFFE7C692).withValues(alpha: 0.72),
-          width: 1.2,
-        ),
-      ),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          compact ? 9 : 14,
-          compact ? 10 : 16,
-          compact ? 9 : 14,
-          compact ? 12 : 18,
-        ),
-        child: FamilyMemberGrid(
-          members: members,
-          petAvatarAssetPathsById: petAvatarAssetPathsById,
-          entryAnimation: entryAnimation,
-          canAddMembers: canManageMembers,
-          onAddMemberTap: onAddMemberTap,
-          onPetTap: onPetTap,
-          canEditAvatar: canEditAvatar,
-          onAvatarEditTap: onAvatarEditTap,
-          updatingAvatarMemberId: updatingAvatarMemberId,
-          canDeleteMember: canDeleteMember,
-          onMemberLongPress: onMemberLongPress,
-        ),
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: compact ? 0 : 4),
+      child: FamilyMemberGrid(
+        members: members,
+        petAvatarAssetPathsById: petAvatarAssetPathsById,
+        entryAnimation: entryAnimation,
+        canAddMembers: canManageMembers,
+        onAddMemberTap: onAddMemberTap,
+        onPetTap: onPetTap,
+        canEditAvatar: canEditAvatar,
+        onAvatarEditTap: onAvatarEditTap,
+        updatingAvatarMemberId: updatingAvatarMemberId,
+        canDeleteMember: canDeleteMember,
+        onMemberLongPress: onMemberLongPress,
       ),
     );
   }
@@ -1211,15 +1063,15 @@ class _CircleIconButton extends StatelessWidget {
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
           child: SizedBox(
-            width: 46,
-            height: 46,
+            width: 60,
+            height: 60,
             child: Center(
               child: Image.asset(
-                FamilyHomePartAssets.closeButton,
-                width: 42,
-                height: 42,
+                FamilyPopupAssets.closeButton,
+                width: 58,
+                height: 58,
                 filterQuality: FilterQuality.medium,
-                isAntiAlias: false,
+                isAntiAlias: true,
               ),
             ),
           ),

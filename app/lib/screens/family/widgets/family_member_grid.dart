@@ -46,13 +46,29 @@ class FamilyMemberGrid extends StatefulWidget {
 }
 
 class _FamilyMemberGridState extends State<FamilyMemberGrid> {
-  static const int _visibleMemberCount = 4;
+  static const int _visibleSlotCount = 4;
 
   int _currentPage = 0;
   double _dragDelta = 0;
   bool _movingForward = true;
 
-  int get _pageCount => (widget.members.length / _visibleMemberCount).ceil();
+  int get _slotCount {
+    if (widget.members.isEmpty) {
+      return 0;
+    }
+    final includeInviteSlot =
+        widget.canAddMembers &&
+        widget.members.length < FamilyMemberGrid.maxDisplayMembers;
+    return widget.members.length + (includeInviteSlot ? 1 : 0);
+  }
+
+  int get _pageCount {
+    final slots = _slotCount;
+    if (slots == 0) {
+      return 1;
+    }
+    return (slots / _visibleSlotCount).ceil();
+  }
 
   @override
   void didUpdateWidget(covariant FamilyMemberGrid oldWidget) {
@@ -95,65 +111,107 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
     });
   }
 
+  Widget _buildSlot(int slotIndex) {
+    final memberIndex = _currentPage * _visibleSlotCount + slotIndex;
+    final showInviteSlot =
+        widget.canAddMembers &&
+        widget.members.length < FamilyMemberGrid.maxDisplayMembers &&
+        memberIndex == widget.members.length;
+
+    if (memberIndex >= widget.members.length) {
+      if (!showInviteSlot) {
+        return const SizedBox.shrink();
+      }
+      return _AnimatedMemberCard(
+        index: slotIndex,
+        entryAnimation: widget.entryAnimation,
+        child: FamilyEmptyCard(
+          compact: true,
+          canAddMembers: widget.canAddMembers,
+          onAddTap: widget.onAddMemberTap,
+        ),
+      );
+    }
+
+    final member = widget.members[memberIndex];
+    final pet = member.pet;
+    final petAvatarAssetPath = _petAvatarAssetPathForMember(member);
+
+    return _AnimatedMemberCard(
+      index: slotIndex,
+      entryAnimation: widget.entryAnimation,
+      child: FamilyMemberCard(
+        member: member,
+        displaySlot: memberIndex,
+        petAvatarAssetPath: petAvatarAssetPath,
+        onPetTap: pet != null
+            ? () => widget.onPetTap?.call(pet, petAvatarAssetPath)
+            : null,
+        onAvatarEditTap:
+            (widget.canEditAvatar?.call(member) ?? false) &&
+                widget.onAvatarEditTap != null
+            ? () => widget.onAvatarEditTap!.call(member)
+            : null,
+        avatarEditBusy: widget.updatingAvatarMemberId == member.id,
+        onLongPress:
+            (widget.canDeleteMember?.call(member) ?? false) &&
+                widget.onMemberLongPress != null
+            ? () => widget.onMemberLongPress!.call(member)
+            : null,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        const crossAxisCount = 2;
-        final compact = constraints.maxWidth < 430;
-        final spacing = constraints.maxWidth >= 760 ? 18.0 : 12.0;
-
         if (widget.members.isEmpty) {
-          return FamilyEmptyCard(
-            canAddMembers: widget.canAddMembers,
-            onAddTap: widget.onAddMemberTap,
+          return Center(
+            child: FractionallySizedBox(
+              widthFactor: constraints.maxWidth < 430 ? 0.96 : 0.66,
+              heightFactor: constraints.hasBoundedHeight ? 0.72 : null,
+              child: FamilyEmptyCard(
+                canAddMembers: widget.canAddMembers,
+                onAddTap: widget.onAddMemberTap,
+              ),
+            ),
           );
         }
 
-        final pages = <List<FamilyMemberViewData>>[
-          for (
-            var start = 0;
-            start < widget.members.length;
-            start += _visibleMemberCount
-          )
-            widget.members
-                .skip(start)
-                .take(_visibleMemberCount)
-                .toList(growable: false),
-        ];
-        final pageMembers = pages[_currentPage];
-        const pageGap = 4.0;
-        const pageDotsRowHeight = 20.0;
-        const bottomBreathingRoom = 0.0;
-        final dotsHeight = _pageCount > 1
-            ? pageGap + pageDotsRowHeight + bottomBreathingRoom
-            : 0.0;
-        final gridWidthFactor = compact
-            ? 1.0
-            : constraints.maxWidth >= 760
-            ? 0.94
-            : 1.0;
-        final gridWidth = (constraints.maxWidth * gridWidthFactor)
-            .clamp(0.0, constraints.maxWidth)
-            .toDouble();
-        final cardWidth =
-            (gridWidth - spacing * (crossAxisCount - 1)) / crossAxisCount;
+        final compact = constraints.maxWidth < 430;
+        final sideControlWidth = compact ? 24.0 : 32.0;
+        final sideGap = compact ? 3.0 : 8.0;
+        final spacing = compact ? 10.0 : 14.0;
+        const crossAxisCount = 2;
         final hasBoundedHeight =
             constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
+        final footerHeight = compact ? 34.0 : 40.0;
+        final gridWidth =
+            (constraints.maxWidth - sideControlWidth * 2 - sideGap * 2)
+                .clamp(0.0, constraints.maxWidth)
+                .toDouble();
         final availableGridHeight = hasBoundedHeight
-            ? (constraints.maxHeight - dotsHeight).clamp(0.0, double.infinity)
-            : double.infinity;
-        final slotHeight = hasBoundedHeight
-            ? ((availableGridHeight - spacing) / 2)
-                  .clamp(118.0, double.infinity)
+            ? (constraints.maxHeight - footerHeight)
+                  .clamp(0.0, double.infinity)
                   .toDouble()
             : double.infinity;
-        final targetCardHeight = cardWidth / 0.82;
+        final cardWidth =
+            (gridWidth - spacing * (crossAxisCount - 1)) / crossAxisCount;
+        final targetCardHeight = cardWidth / 0.72;
+        final slotHeight = hasBoundedHeight
+            ? ((availableGridHeight - spacing) / 2)
+                  .clamp(132.0, double.infinity)
+                  .toDouble()
+            : targetCardHeight;
         final cardHeight = hasBoundedHeight
             ? math.min(slotHeight, targetCardHeight)
             : targetCardHeight;
         final gridHeight = cardHeight * 2 + spacing;
-        final childAspectRatio = cardWidth / cardHeight;
+        final contentHeight = hasBoundedHeight
+            ? constraints.maxHeight
+            : gridHeight + footerHeight;
+        final showPaging = _pageCount > 1;
 
         final grid = SizedBox(
           width: gridWidth,
@@ -161,131 +219,104 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
           child: GridView.builder(
             padding: EdgeInsets.zero,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: pageMembers.length,
+            itemCount: _visibleSlotCount,
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: crossAxisCount,
               crossAxisSpacing: spacing,
               mainAxisSpacing: spacing,
-              childAspectRatio: childAspectRatio,
+              childAspectRatio: cardWidth / cardHeight,
             ),
-            itemBuilder: (context, index) {
-              final member = pageMembers[index];
-              final pet = member.pet;
-              final petAvatarAssetPath = _petAvatarAssetPathForMember(member);
-              return _AnimatedMemberCard(
-                index: index,
-                entryAnimation: widget.entryAnimation,
-                child: FamilyMemberCard(
-                  member: member,
-                  displaySlot: index,
-                  petAvatarAssetPath: petAvatarAssetPath,
-                  onPetTap: pet != null
-                      ? () => widget.onPetTap?.call(pet, petAvatarAssetPath)
-                      : null,
-                  onAvatarEditTap:
-                      (widget.canEditAvatar?.call(member) ?? false) &&
-                          widget.onAvatarEditTap != null
-                      ? () => widget.onAvatarEditTap!.call(member)
-                      : null,
-                  avatarEditBusy: widget.updatingAvatarMemberId == member.id,
-                  onLongPress:
-                      (widget.canDeleteMember?.call(member) ?? false) &&
-                          widget.onMemberLongPress != null
-                      ? () => widget.onMemberLongPress!.call(member)
-                      : null,
-                ),
-              );
-            },
+            itemBuilder: (context, index) => _buildSlot(index),
           ),
         );
 
-        if (_pageCount <= 1) {
-          return SizedBox(
-            width: double.infinity,
-            height: hasBoundedHeight ? constraints.maxHeight : gridHeight,
-            child: Align(alignment: Alignment.center, child: grid),
-          );
-        }
-
         return SizedBox(
-          height: hasBoundedHeight
-              ? constraints.maxHeight
-              : gridHeight + dotsHeight,
+          height: contentHeight,
+          width: double.infinity,
           child: Column(
             children: [
-              SizedBox(
-                height: gridHeight,
-                child: GestureDetector(
-                  key: const Key('family_member_grid_swipe_area'),
-                  behavior: HitTestBehavior.opaque,
-                  onHorizontalDragStart: (_) => _dragDelta = 0,
-                  onHorizontalDragUpdate: (details) {
-                    _dragDelta += details.delta.dx;
-                  },
-                  onHorizontalDragEnd: (_) {
-                    if (_dragDelta <= -36) {
-                      _setPage(_currentPage + 1);
-                    } else if (_dragDelta >= 36) {
-                      _setPage(_currentPage - 1);
-                    }
-                    _dragDelta = 0;
-                  },
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 240),
-                    switchInCurve: Curves.easeOutCubic,
-                    switchOutCurve: Curves.easeInCubic,
-                    transitionBuilder: (child, animation) {
-                      final offsetAnimation = Tween<Offset>(
-                        begin: Offset(_movingForward ? 0.05 : -0.05, 0),
-                        end: Offset.zero,
-                      ).animate(animation);
-
-                      return FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(
-                          position: offsetAnimation,
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: KeyedSubtree(
-                      key: ValueKey<int>(_currentPage),
-                      child: Align(alignment: Alignment.topCenter, child: grid),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: pageGap),
-              SizedBox(
-                key: const Key('family_member_grid_page_dots'),
-                height: pageDotsRowHeight,
+              Expanded(
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const _PageDivider(),
-                    const SizedBox(width: 8),
-                    _PageDot(
-                      active: _currentPage == 0,
-                      onTap: () => _setPage(0),
+                    SizedBox(
+                      width: sideControlWidth,
+                      child: showPaging
+                          ? _PageArrowButton(
+                              key: const Key('family_member_grid_prev'),
+                              enabled: _currentPage > 0,
+                              onTap: () => _setPage(_currentPage - 1),
+                            )
+                          : const SizedBox.shrink(),
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${_currentPage + 1}/$_pageCount',
-                      style: const TextStyle(
-                        color: Color(0xFF7D5A36),
-                        fontSize: 15,
-                        height: 1,
-                        fontWeight: FontWeight.w800,
+                    SizedBox(width: sideGap),
+                    Expanded(
+                      child: Center(
+                        child: GestureDetector(
+                          key: const Key('family_member_grid_swipe_area'),
+                          behavior: HitTestBehavior.opaque,
+                          onHorizontalDragStart: (_) => _dragDelta = 0,
+                          onHorizontalDragUpdate: (details) {
+                            _dragDelta += details.delta.dx;
+                          },
+                          onHorizontalDragEnd: (_) {
+                            if (_dragDelta <= -36) {
+                              _setPage(_currentPage + 1);
+                            } else if (_dragDelta >= 36) {
+                              _setPage(_currentPage - 1);
+                            }
+                            _dragDelta = 0;
+                          },
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 240),
+                            switchInCurve: Curves.easeOutCubic,
+                            switchOutCurve: Curves.easeInCubic,
+                            transitionBuilder: (child, animation) {
+                              final offsetAnimation = Tween<Offset>(
+                                begin: Offset(_movingForward ? 0.05 : -0.05, 0),
+                                end: Offset.zero,
+                              ).animate(animation);
+
+                              return FadeTransition(
+                                opacity: animation,
+                                child: SlideTransition(
+                                  position: offsetAnimation,
+                                  child: child,
+                                ),
+                              );
+                            },
+                            child: KeyedSubtree(
+                              key: ValueKey<int>(_currentPage),
+                              child: Align(
+                                alignment: Alignment.center,
+                                child: grid,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    _PageDot(
-                      active: _currentPage == _pageCount - 1,
-                      onTap: () => _setPage(_pageCount - 1),
+                    SizedBox(width: sideGap),
+                    SizedBox(
+                      width: sideControlWidth,
+                      child: showPaging
+                          ? _PageArrowButton(
+                              key: const Key('family_member_grid_next'),
+                              enabled: _currentPage < _pageCount - 1,
+                              flipped: true,
+                              onTap: () => _setPage(_currentPage + 1),
+                            )
+                          : const SizedBox.shrink(),
                     ),
-                    const SizedBox(width: 8),
-                    const _PageDivider(),
                   ],
+                ),
+              ),
+              SizedBox(
+                key: const Key('family_member_grid_page_dots'),
+                height: footerHeight,
+                child: _PageText(
+                  currentPage: _currentPage + 1,
+                  pageCount: _pageCount,
                 ),
               ),
             ],
@@ -296,47 +327,71 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
   }
 }
 
-class _PageDivider extends StatelessWidget {
-  const _PageDivider();
+class _PageArrowButton extends StatelessWidget {
+  const _PageArrowButton({
+    super.key,
+    required this.enabled,
+    required this.onTap,
+    this.flipped = false,
+  });
+
+  final bool enabled;
+  final VoidCallback onTap;
+  final bool flipped;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 36,
-      height: 1.5,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: const Color(0xFFE9B66F).withValues(alpha: 0.68),
-          borderRadius: BorderRadius.circular(999),
+    return Tooltip(
+      message: flipped ? '下一页' : '上一页',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: enabled ? onTap : null,
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 160),
+          opacity: enabled ? 1 : 0.34,
+          child: Transform.scale(
+            scaleX: flipped ? -1 : 1,
+            child: Image.asset(
+              FamilyPopupAssets.pageArrow,
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.medium,
+              isAntiAlias: true,
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
-class _PageDot extends StatelessWidget {
-  const _PageDot({required this.active, required this.onTap});
+class _PageText extends StatelessWidget {
+  const _PageText({required this.currentPage, required this.pageCount});
 
-  final bool active;
-  final VoidCallback onTap;
+  final int currentPage;
+  final int pageCount;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedScale(
-        duration: const Duration(milliseconds: 180),
-        scale: active ? 1 : 0.9,
-        child: SizedBox(
-          width: 12,
-          height: 12,
-          child: FamilySpriteSlice(
-            region: active
-                ? FamilySpriteRegions.pageDotActive
-                : FamilySpriteRegions.pageDotInactive,
-            fit: BoxFit.contain,
-            sampleInset: 1,
-          ),
+    return Center(
+      child: Text(
+        '$currentPage / $pageCount 页',
+        style: const TextStyle(
+          color: Color(0xFF3F230D),
+          fontSize: 28,
+          height: 1,
+          fontWeight: FontWeight.w900,
+          shadows: [
+            Shadow(
+              color: Colors.white,
+              offset: Offset(0, 1.3),
+              blurRadius: 0.2,
+            ),
+            Shadow(
+              color: Color(0x99FFFFFF),
+              offset: Offset(1.1, 0),
+              blurRadius: 0.2,
+            ),
+          ],
         ),
       ),
     );

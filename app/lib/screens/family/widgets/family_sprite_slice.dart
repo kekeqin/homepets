@@ -69,6 +69,24 @@ class FamilyHomePartAssets {
   static const String closeButton = '$_base/5.png';
 }
 
+class FamilyPopupAssets {
+  const FamilyPopupAssets._();
+
+  static const String _base = 'assets/images/ui/family';
+  static const String mainPanel = '$_base/1 (5).png';
+  static const String cardPanel = '$_base/3.png';
+  static const String title = '$_base/8 (3).png';
+  static const String closeButton = '$_base/12 (2).png';
+  static const String addButton = '$_base/2.png';
+  static const String pageArrow = '$_base/9 (2).png';
+  static const String namePlate = '$_base/4 (4).png';
+  static const String boyPortrait = '$_base/5-(2).png';
+  static const String girlPortrait = '$_base/6 (1).png';
+  static const String childPortrait = '$_base/7 (1).png';
+  static const String adultFemalePortrait =
+      '$_base/avatar_adult_male_reference_style.png';
+}
+
 class FamilySpriteSkins {
   const FamilySpriteSkins._();
 

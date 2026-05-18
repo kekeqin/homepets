@@ -7,76 +7,224 @@ class FamilyEmptyCard extends StatelessWidget {
     super.key,
     required this.canAddMembers,
     required this.onAddTap,
+    this.compact = false,
   });
 
   final bool canAddMembers;
   final VoidCallback onAddTap;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFF8E9).withValues(alpha: 0.75),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: const Color(0xFFEAB56B), width: 1.4),
+    final card = DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7E7),
+        borderRadius: BorderRadius.circular(compact ? 18 : 24),
+        border: Border.all(
+          color: const Color(0xFF3F230D),
+          width: compact ? 2.2 : 2.6,
         ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(
-                width: 82,
-                height: 82,
-                child: FamilySpriteSlice(
-                  region: FamilySpriteRegions.emptyPetPaw,
-                  sampleInset: 2,
-                ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1F3D210C),
+            blurRadius: 5,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(compact ? 15 : 21),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Image.asset(
+                FamilyPopupAssets.cardPanel,
+                fit: BoxFit.cover,
+                filterQuality: FilterQuality.medium,
+                isAntiAlias: true,
               ),
-              const SizedBox(height: 16),
-              const Text(
-                '\u8fd8\u6ca1\u6709\u5bb6\u5ead\u6210\u5458',
-                style: TextStyle(
-                  color: Color(0xFF734C2B),
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                canAddMembers
-                    ? '\u5148\u9080\u8bf7\u4e00\u4f4d\u6210\u5458\uff0c'
-                          '\u8fd9\u91cc\u5c31\u4f1a\u5f00\u59cb\u8bb0\u5f55\u5168\u5bb6\u7684'
-                          '\u6210\u957f\u6545\u4e8b\u3002'
-                    : '\u7b49\u5bb6\u957f\u6dfb\u52a0\u6210\u5458\u540e\uff0c'
-                          '\u8fd9\u91cc\u5c31\u4f1a\u51fa\u73b0\u5bb6\u5ead\u6210\u5458\u5361\u7247\u3002',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Color(0xFF8F7356),
-                  fontSize: 14,
-                  height: 1.55,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              if (canAddMembers) ...[
-                const SizedBox(height: 20),
-                GestureDetector(
-                  onTap: onAddTap,
-                  child: const SizedBox(
-                    width: 166,
-                    height: 54,
-                    child: FamilySpriteSlice(
-                      region: FamilySpriteRegions.addMemberButton,
+            ),
+            Positioned.fill(
+              child: Padding(
+                padding: EdgeInsets.all(compact ? 9 : 18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      height: compact ? 34 : 46,
+                      child: _InviteNamePlate(compact: compact),
                     ),
-                  ),
+                    Expanded(
+                      child: Center(child: _InviteSilhouette(compact: compact)),
+                    ),
+                    SizedBox(
+                      height: compact ? 50 : 58,
+                      child: _InviteFooter(
+                        compact: compact,
+                        canAddMembers: canAddMembers,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (!canAddMembers) {
+      return card;
+    }
+
+    return Tooltip(
+      message: '邀请成员',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onAddTap,
+        child: card,
+      ),
+    );
+  }
+}
+
+class _InviteNamePlate extends StatelessWidget {
+  const _InviteNamePlate({required this.compact});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFEF6).withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(compact ? 15 : 18),
+        border: Border.all(
+          color: const Color(0xFFF2A12A),
+          width: compact ? 1.3 : 1.6,
+        ),
+      ),
+      child: Center(
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            '邀请成员',
+            maxLines: 1,
+            style: TextStyle(
+              color: const Color(0xFF3E230F),
+              fontSize: compact ? 24 : 30,
+              height: 1,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+class _InviteSilhouette extends StatelessWidget {
+  const _InviteSilhouette({required this.compact});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = compact ? 112.0 : 142.0;
+    return SizedBox(
+      width: size,
+      height: size * 1.13,
+      child: CustomPaint(
+        painter: _InviteSilhouettePainter(),
+        child: const Center(
+          child: Icon(Icons.add_rounded, color: Colors.white, size: 52),
+        ),
+      ),
+    );
+  }
+}
+
+class _InviteFooter extends StatelessWidget {
+  const _InviteFooter({required this.compact, required this.canAddMembers});
+
+  final bool compact;
+  final bool canAddMembers;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFCF3).withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(compact ? 15 : 18),
+        border: Border.all(
+          color: const Color(0xFFF3A52F),
+          width: compact ? 1.2 : 1.5,
+        ),
+      ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 14),
+        child: Row(
+          children: [
+            const Icon(Icons.pets_rounded, color: Color(0xFF6E3B10), size: 30),
+            SizedBox(width: compact ? 8 : 12),
+            Expanded(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  canAddMembers ? '点击邀请' : '等待家长邀请',
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: const Color(0xFF3F230D),
+                    fontSize: compact ? 19 : 22,
+                    height: 1,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InviteSilhouettePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFE4CBA8).withValues(alpha: 0.55)
+      ..style = PaintingStyle.fill;
+    final stroke = Paint()
+      ..color = const Color(0xFF9E7041).withValues(alpha: 0.82)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2
+      ..strokeCap = StrokeCap.round;
+
+    final path = Path()
+      ..addOval(
+        Rect.fromCenter(
+          center: Offset(size.width * 0.50, size.height * 0.28),
+          width: size.width * 0.50,
+          height: size.height * 0.44,
+        ),
+      )
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(
+            size.width * 0.20,
+            size.height * 0.46,
+            size.width * 0.60,
+            size.height * 0.48,
+          ),
+          Radius.circular(size.width * 0.26),
+        ),
+      );
+    canvas.drawPath(path, paint);
+    canvas.drawPath(path, stroke);
+  }
+
+  @override
+  bool shouldRepaint(covariant _InviteSilhouettePainter oldDelegate) => false;
 }
