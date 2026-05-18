@@ -1,27 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../core/api_error_helper.dart';
 import '../../models/pet.dart';
 import '../../models/user.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/homepets_button.dart';
 import '../../widgets/homepets_dialog.dart';
-import '../member/member_detail_screen.dart';
+import '../../widgets/homepets_text_field.dart';
 import '../member/member_home_screen.dart';
 
-class _AppColors {
-  static const primary = Color(0xFF006B1B);
-  static const primaryContainer = Color(0xFF91F78E);
-  static const onPrimary = Color(0xFFD1FFC8);
-  static const secondary = Color(0xFF755700);
-  static const secondaryContainer = Color(0xFFFFCA4D);
-  static const tertiary = Color(0xFF005E9F);
-  static const tertiaryContainer = Color(0xFF70B5FF);
-  static const background = Color(0xFFFDF6E3);
-  static const surface = Color(0xFFFDF6E3);
-  static const surfaceContainer = Color(0xFFEFE8D2);
-  static const onSurface = Color(0xFF322F22);
-  static const onSurfaceVariant = Color(0xFF5F5B4D);
+class _ProfilePalette {
+  static const backgroundTop = Color(0xFFFFF5D9);
+  static const backgroundBottom = Color(0xFFFFD4AE);
+  static const paperTop = Color(0xFFFFFAEA);
+  static const paperBottom = Color(0xFFFFEED2);
+  static const paperAlt = Color(0xFFFFF6E4);
+  static const ink = Color(0xFF5C3E29);
+  static const mutedInk = Color(0xFF7C634C);
+  static const outline = Color(0xFF8A5734);
+  static const outlineSoft = Color(0xFFE9B47B);
+  static const sage = Color(0xFF79A95C);
+  static const sageSoft = Color(0xFFEAF3D2);
+  static const honey = Color(0xFFE7A846);
+  static const honeySoft = Color(0xFFFFE5A8);
+  static const sky = Color(0xFF74AFC5);
+  static const skySoft = Color(0xFFE2F3F5);
+  static const berry = Color(0xFFD66F5E);
+  static const berrySoft = Color(0xFFFFDDD4);
+  static const toast = Color(0xFF3E2B21);
 }
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -33,8 +41,8 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String _avatarEmoji = '';
-  final int _completedTasks = 0;
-  int _totalExperience = 0;
+  int _petExperience = 0;
+  bool _loadingPetSummary = false;
 
   @override
   void initState() {
@@ -44,179 +52,199 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _loadAvatar() async {
     final user = ref.read(authProvider).user;
-    if (user?.familyId == null) return;
+    if (user?.familyId == null) {
+      return;
+    }
+
+    setState(() => _loadingPetSummary = true);
+
     try {
       final dio = ref.read(apiClientProvider).dio;
-      final resp = await dio.get('/api/families/${user!.familyId}/pets');
-      final pets = (resp.data as List).map((e) => Pet.fromJson(e)).toList();
-      final myPet = pets.where((p) => p.ownerId == user.id).firstOrNull;
-      if (myPet != null) {
-        setState(() {
-          _avatarEmoji = myPet.displayEmoji;
-          _totalExperience = myPet.experience;
-        });
+      final response = await dio.get('/api/families/${user!.familyId}/pets');
+      final pets = (response.data as List<dynamic>)
+          .map((item) => Pet.fromJson(item as Map<String, dynamic>))
+          .toList(growable: false);
+
+      Pet? myPet;
+      for (final pet in pets) {
+        if (pet.ownerId == user.id) {
+          myPet = pet;
+          break;
+        }
       }
-    } catch (_) {}
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _avatarEmoji = myPet?.displayEmoji ?? '';
+        _petExperience = myPet?.experience ?? 0;
+        _loadingPetSummary = false;
+      });
+    } catch (error) {
+      debugPrint('加载个人宠物摘要失败: $error');
+      if (!mounted) {
+        return;
+      }
+      setState(() => _loadingPetSummary = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final user = authState.user;
-    final isLoggedIn = authState.isAuthenticated;
-    final isViewOnly = authState.viewOnly;
 
     return Scaffold(
-      backgroundColor: _AppColors.background,
-      body: Column(
-        children: [
-          // 个人资料头部
-          _ProfileHeader(
-            isLoggedIn: isLoggedIn,
-            nickname: user?.nickname ?? '',
-            avatarEmoji: _avatarEmoji,
-            isAdmin: user?.isAdmin == true,
-            isViewOnly: isViewOnly,
-            points: user?.points ?? 0,
-          ),
-          // 内容区域
-          if (!isLoggedIn || user == null)
-            Expanded(child: _buildGuestContent())
-          else
-            Expanded(child: _buildProfileContent(user)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGuestContent() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const _ClayIcon(icon: Icons.person, size: 80),
-          const SizedBox(height: 16),
-          const Text(
-            '未登录',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: _AppColors.onSurface,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            '登录后可管理家庭和宠物',
-            style: TextStyle(color: _AppColors.onSurfaceVariant),
-          ),
-          const SizedBox(height: 24),
-          _ClayButton(
-            icon: Icons.login,
-            label: '登录 / 注册',
-            onPressed: () => context.go('/login'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfileContent(User user) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          // 统计卡片
-          Row(
-            children: [
-              Expanded(
-                child: _StatCard(
-                  icon: '✅',
-                  label: '完成任务',
-                  value: '$_completedTasks',
-                  color: _AppColors.primaryContainer,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _StatCard(
-                  icon: '⭐',
-                  label: '总经验',
-                  value: '$_totalExperience',
-                  color: _AppColors.secondaryContainer,
-                ),
-              ),
+      backgroundColor: _ProfilePalette.backgroundBottom,
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              _ProfilePalette.backgroundTop,
+              _ProfilePalette.backgroundBottom,
             ],
           ),
-          const SizedBox(height: 24),
-          // 菜单列表
-          _MenuItem(
-            icon: Icons.edit,
-            iconColor: _AppColors.primary,
-            title: '编辑资料',
-            onTap: () => _editProfile(context, ref),
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: authState.isAuthenticated && user != null
+              ? _buildProfileContent(context, user, authState)
+              : _buildGuestContent(context),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGuestContent(BuildContext context) {
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(18, 14, 18, bottomPadding + 26),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _ProfileTopBar(onHomeTap: () => context.go('/home')),
+          const SizedBox(height: 22),
+          _GuestProfilePanel(onLoginTap: () => context.go('/login')),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileContent(
+    BuildContext context,
+    User user,
+    AuthState authState,
+  ) {
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
+    final roleLabel = authState.viewOnly
+        ? '观看模式'
+        : user.isAdmin
+        ? '家庭家长'
+        : '家庭成员';
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(18, 14, 18, bottomPadding + 26),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _ProfileTopBar(onHomeTap: () => context.go('/home')),
+          const SizedBox(height: 18),
+          _ProfileHeroCard(
+            nickname: user.nickname,
+            avatarEmoji: _avatarEmoji,
+            roleLabel: roleLabel,
+            points: user.points,
+            hasFamily: user.familyId != null,
           ),
-          _MenuItem(
+          const SizedBox(height: 14),
+          _ProfileMetricRow(
+            points: user.points,
+            petExperience: _petExperience,
+            loadingPetSummary: _loadingPetSummary,
+          ),
+          const SizedBox(height: 26),
+          const _ProfileSectionTitle('家庭与资料'),
+          const SizedBox(height: 10),
+          _ProfileActionTile(
+            icon: Icons.edit_note_rounded,
+            tone: _ProfilePalette.sage,
+            toneSoft: _ProfilePalette.sageSoft,
+            title: '编辑资料',
+            subtitle: '修改昵称和个人展示信息',
+            onTap: () => _editProfile(ref),
+          ),
+          const SizedBox(height: 10),
+          _ProfileActionTile(
             icon: Icons.cottage_rounded,
-            iconColor: _AppColors.secondary,
+            tone: _ProfilePalette.honey,
+            toneSoft: _ProfilePalette.honeySoft,
             title: '成员主页',
+            subtitle: '查看家庭成员和成长记录',
             onTap: () => _openMemberHome(context),
           ),
-          if (_showMyMemberProfileEntry)
-            _MenuItem(
-              icon: Icons.badge_outlined,
-              iconColor: _AppColors.tertiary,
-              title: '我的成员详情',
-              onTap: () => _openMyMemberProfile(context),
-            ),
-          _MenuItem(
-            icon: Icons.info_outline,
-            iconColor: _AppColors.tertiary,
-            title: '关于',
+          const SizedBox(height: 24),
+          const _ProfileSectionTitle('帮助与协议'),
+          const SizedBox(height: 10),
+          _ProfileActionTile(
+            icon: Icons.info_outline_rounded,
+            tone: _ProfilePalette.sky,
+            toneSoft: _ProfilePalette.skySoft,
+            title: '关于 HomePets',
+            subtitle: '版本和产品说明',
             onTap: () => _showAbout(context),
           ),
-          _MenuItem(
+          const SizedBox(height: 10),
+          _ProfileActionTile(
             icon: Icons.privacy_tip_outlined,
-            iconColor: _AppColors.primary,
+            tone: _ProfilePalette.sage,
+            toneSoft: _ProfilePalette.sageSoft,
             title: '隐私政策',
+            subtitle: '了解数据收集和使用方式',
             onTap: () => context.go('/profile/legal/privacy'),
           ),
-          _MenuItem(
+          const SizedBox(height: 10),
+          _ProfileActionTile(
             icon: Icons.description_outlined,
-            iconColor: _AppColors.secondary,
+            tone: _ProfilePalette.honey,
+            toneSoft: _ProfilePalette.honeySoft,
             title: '用户协议',
+            subtitle: '查看服务使用条款',
             onTap: () => context.go('/profile/legal/terms'),
           ),
-          _MenuItem(
-            icon: Icons.support_agent,
-            iconColor: _AppColors.tertiary,
+          const SizedBox(height: 10),
+          _ProfileActionTile(
+            icon: Icons.support_agent_rounded,
+            tone: _ProfilePalette.sky,
+            toneSoft: _ProfilePalette.skySoft,
             title: '联系客服',
+            subtitle: '反馈问题或获取帮助',
             onTap: () => context.go('/support'),
           ),
-          _MenuItem(
+          const SizedBox(height: 24),
+          const _ProfileSectionTitle('账号'),
+          const SizedBox(height: 10),
+          _ProfileActionTile(
             icon: Icons.delete_forever_outlined,
-            iconColor: Colors.redAccent,
+            tone: _ProfilePalette.berry,
+            toneSoft: _ProfilePalette.berrySoft,
             title: '删除账号/数据',
+            subtitle: '申请删除账号和家庭数据',
             onTap: () => context.go('/account/delete'),
           ),
-          const SizedBox(height: 24),
-          // 退出登录按钮
-          _MenuItem(
-            icon: Icons.logout,
-            iconColor: Colors.red,
+          const SizedBox(height: 10),
+          _ProfileActionTile(
+            icon: Icons.logout_rounded,
+            tone: _ProfilePalette.berry,
+            toneSoft: _ProfilePalette.berrySoft,
             title: '退出登录',
-            titleColor: Colors.red,
-            onTap: () async {
-              final confirmed = await _showLogoutConfirmDialog(context);
-              if (!mounted || !confirmed) {
-                return;
-              }
-
-              await ref.read(authProvider.notifier).logout();
-              if (!mounted) {
-                return;
-              }
-              context.go('/home');
-            },
+            subtitle: '退出当前账号',
+            isDestructive: true,
+            onTap: _handleLogout,
           ),
         ],
       ),
@@ -230,82 +258,148 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  bool get _showMyMemberProfileEntry => false;
+  Future<void> _handleLogout() async {
+    final confirmed = await _showLogoutConfirmDialog(context);
+    if (!mounted || !confirmed) {
+      return;
+    }
 
-  void _openMyMemberProfile(BuildContext context) {
+    await ref.read(authProvider.notifier).logout();
+    if (!mounted) {
+      return;
+    }
+    context.go('/home');
+  }
+
+  Future<void> _editProfile(WidgetRef ref) async {
     final user = ref.read(authProvider).user;
     if (user == null) {
       return;
     }
 
-    showMemberDetailDialog(
-      context,
-      memberId: user.id,
-      nickname: user.nickname,
-      role: user.isAdmin ? 'admin' : 'member',
-    );
-  }
-
-  void _editProfile(BuildContext context, WidgetRef ref) {
-    final user = ref.read(authProvider).user;
-    final nicknameCtrl = TextEditingController(text: user?.nickname);
-    final messenger = ScaffoldMessenger.of(context);
-
-    showDialog(
+    final nicknameController = TextEditingController(text: user.nickname);
+    final nickname = await showHomePetsDialog<String>(
       context: context,
-      builder: (dialogCtx) {
-        return AlertDialog(
-          title: const Text('编辑资料'),
-          content: TextField(
-            controller: nicknameCtrl,
-            decoration: const InputDecoration(labelText: '昵称'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: const Text('取消'),
+      barrierLabel: 'profile_edit_dialog',
+      title: '编辑资料',
+      contentBuilder: (dialogContext) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '这个名字会显示在家庭成员和任务记录里。',
+              style: TextStyle(
+                color: _ProfilePalette.mutedInk,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                height: 1.4,
+                letterSpacing: 0,
+              ),
             ),
-            TextButton(
-              onPressed: () async {
-                if (nicknameCtrl.text.isEmpty) return;
-                try {
-                  final dio = ref.read(apiClientProvider).dio;
-                  await dio.put(
-                    '/api/users/${user!.id}',
-                    data: {'nickname': nicknameCtrl.text},
-                  );
-                  if (dialogCtx.mounted) Navigator.pop(dialogCtx);
-                  await ref.read(authProvider.notifier).refreshUser();
-                  messenger.showSnackBar(const SnackBar(content: Text('修改成功')));
-                } catch (e) {
-                  if (dialogCtx.mounted) {
-                    ScaffoldMessenger.of(
-                      dialogCtx,
-                    ).showSnackBar(SnackBar(content: Text('修改失败: $e')));
-                  }
-                }
-              },
-              child: const Text('保存'),
+            const SizedBox(height: 14),
+            HomePetsTextField(
+              controller: nicknameController,
+              hintText: '请输入昵称',
+              icon: Icons.person_outline_rounded,
+              maxLength: 20,
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) =>
+                  _submitNicknameDialog(dialogContext, nicknameController),
             ),
           ],
         );
       },
+      actionsBuilder: (dialogContext) {
+        return <Widget>[
+          HomePetsButton(
+            label: '取消',
+            variant: HomePetsButtonVariant.secondary,
+            onPressed: () => Navigator.of(dialogContext).pop(),
+          ),
+          HomePetsButton(
+            label: '保存',
+            onPressed: () =>
+                _submitNicknameDialog(dialogContext, nicknameController),
+          ),
+        ];
+      },
     );
+    nicknameController.dispose();
+
+    if (!mounted || nickname == null || nickname == user.nickname.trim()) {
+      return;
+    }
+
+    try {
+      final dio = ref.read(apiClientProvider).dio;
+      await dio.put('/api/users/${user.id}', data: {'nickname': nickname});
+      await ref.read(authProvider.notifier).refreshUser();
+      if (!mounted) {
+        return;
+      }
+      _showProfileSnackBar('资料已更新');
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      _showProfileErrorSnackBar(error, fallbackMessage: '资料更新失败，请稍后重试');
+    }
   }
 
-  void _showAbout(BuildContext context) {
-    showDialog(
+  void _submitNicknameDialog(
+    BuildContext dialogContext,
+    TextEditingController nicknameController,
+  ) {
+    final nickname = nicknameController.text.trim();
+    if (nickname.isEmpty) {
+      ScaffoldMessenger.of(dialogContext).showSnackBar(
+        const SnackBar(
+          content: Text('昵称不能为空'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: _ProfilePalette.toast,
+        ),
+      );
+      return;
+    }
+
+    Navigator.of(dialogContext).pop(nickname);
+  }
+
+  Future<void> _showAbout(BuildContext context) {
+    return showHomePetsDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('关于家庭宠物'),
-        content: const Text('家庭宠物养成系统\n版本: 1.0.0\n\n通过任务互动喂养宠物，增进亲子关系。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('确定'),
+      barrierLabel: 'profile_about_dialog',
+      title: '关于 HomePets',
+      contentBuilder: (dialogContext) {
+        return const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _AboutLine(label: '版本', value: '1.0.0'),
+            SizedBox(height: 10),
+            Text(
+              'HomePets 是面向中国家庭的亲子宠物养成系统。'
+              '家长和孩子可以通过任务、奖励和宠物成长记录每天的陪伴。',
+              style: TextStyle(
+                color: _ProfilePalette.mutedInk,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                height: 1.45,
+                letterSpacing: 0,
+              ),
+            ),
+          ],
+        );
+      },
+      actionsBuilder: (dialogContext) {
+        return <Widget>[
+          HomePetsButton(
+            label: '知道了',
+            onPressed: () => Navigator.of(dialogContext).pop(),
           ),
-        ],
-      ),
+        ];
+      },
     );
   }
 
@@ -316,12 +410,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       title: '退出登录',
       contentBuilder: (dialogContext) {
         return const Text(
-          '确定要退出当前账号吗？',
+          '确定要退出当前账号吗？退出后需要重新登录才能继续管理家庭和宠物。',
           style: TextStyle(
-            color: Color(0xFF6F563D),
-            fontSize: 16,
+            color: _ProfilePalette.mutedInk,
+            fontSize: 15,
             fontWeight: FontWeight.w700,
-            height: 1.4,
+            height: 1.45,
             letterSpacing: 0,
           ),
         );
@@ -343,286 +437,271 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     return result == true;
   }
+
+  void _showProfileSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: _ProfilePalette.toast,
+      ),
+    );
+  }
+
+  void _showProfileErrorSnackBar(
+    Object error, {
+    required String fallbackMessage,
+  }) {
+    if (isUnauthorizedError(error)) {
+      return;
+    }
+
+    _showProfileSnackBar(
+      friendlyApiErrorMessage(error, fallbackMessage: fallbackMessage),
+    );
+  }
 }
 
-// ============ 个人资料主题组件 ============
+class _ProfileTopBar extends StatelessWidget {
+  const _ProfileTopBar({required this.onHomeTap});
 
-class _ProfileHeader extends StatelessWidget {
-  final bool isLoggedIn;
-  final String nickname;
-  final String avatarEmoji;
-  final bool isAdmin;
-  final bool isViewOnly;
-  final int points;
-
-  const _ProfileHeader({
-    required this.isLoggedIn,
-    required this.nickname,
-    required this.avatarEmoji,
-    required this.isAdmin,
-    required this.isViewOnly,
-    required this.points,
-  });
+  final VoidCallback onHomeTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [_AppColors.primaryContainer, _AppColors.onPrimary],
+    return Row(
+      children: [
+        _RoundIconButton(
+          icon: Icons.arrow_back_rounded,
+          tooltip: '返回首页',
+          onTap: onHomeTap,
         ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(32),
-          bottomRight: Radius.circular(32),
-        ),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        const SizedBox(width: 12),
+        const Expanded(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    '👤 个人中心',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                      color: _AppColors.primary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              if (isLoggedIn)
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: _AppColors.surface,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _AppColors.primary.withAlpha(40),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      // 头像
-                      Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          color: _AppColors.secondaryContainer,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: _AppColors.secondary.withAlpha(40),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Center(
-                          child: Text(
-                            avatarEmoji.isNotEmpty
-                                ? avatarEmoji
-                                : (nickname.isNotEmpty
-                                      ? nickname.substring(0, 1)
-                                      : ''),
-                            style: TextStyle(
-                              fontSize: avatarEmoji.isNotEmpty ? 36 : 28,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      // 用户信息
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              nickname,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                                color: _AppColors.onSurface,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: isViewOnly
-                                        ? _AppColors.tertiaryContainer
-                                        : _AppColors.secondaryContainer,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Text(
-                                    isViewOnly
-                                        ? '观看模式'
-                                        : (isAdmin ? '管理员' : '成员'),
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: _AppColors.onSurface,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _AppColors.primaryContainer,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Text(
-                                    '💰 $points',
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: _AppColors.primary,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              else
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _AppColors.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _AppColors.primary.withAlpha(40),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: const Row(
-                    children: [
-                      Text('🏝️', style: TextStyle(fontSize: 28)),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '欢迎来到个人中心！',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: _AppColors.onSurface,
-                              ),
-                            ),
-                            Text(
-                              '登录后管理你的资料和宠物',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: _AppColors.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+              Text(
+                '我的',
+                style: TextStyle(
+                  color: _ProfilePalette.ink,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                  letterSpacing: 0,
                 ),
+              ),
+              SizedBox(height: 6),
+              Text(
+                '资料、设置和家庭入口',
+                style: TextStyle(
+                  color: _ProfilePalette.mutedInk,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0,
+                ),
+              ),
             ],
           ),
         ),
+        const SizedBox(width: 48),
+      ],
+    );
+  }
+}
+
+class _ProfileHeroCard extends StatelessWidget {
+  const _ProfileHeroCard({
+    required this.nickname,
+    required this.avatarEmoji,
+    required this.roleLabel,
+    required this.points,
+    required this.hasFamily,
+  });
+
+  final String nickname;
+  final String avatarEmoji;
+  final String roleLabel;
+  final int points;
+  final bool hasFamily;
+
+  @override
+  Widget build(BuildContext context) {
+    return _HandDrawnPanel(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _AvatarBadge(avatarEmoji: avatarEmoji, fallbackName: nickname),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  nickname.trim().isEmpty ? '家庭成员' : nickname,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _ProfilePalette.ink,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    height: 1.1,
+                    letterSpacing: 0,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _ProfileChip(
+                      icon: Icons.verified_user_outlined,
+                      label: roleLabel,
+                      color: _ProfilePalette.sage,
+                      background: _ProfilePalette.sageSoft,
+                    ),
+                    _ProfileChip(
+                      icon: Icons.stars_rounded,
+                      label: '$points 积分',
+                      color: _ProfilePalette.honey,
+                      background: _ProfilePalette.honeySoft,
+                    ),
+                    _ProfileChip(
+                      icon: Icons.home_rounded,
+                      label: hasFamily ? '已加入家庭' : '未加入家庭',
+                      color: _ProfilePalette.sky,
+                      background: _ProfilePalette.skySoft,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _StatCard extends StatelessWidget {
-  final String icon;
-  final String label;
-  final String value;
-  final Color color;
+class _ProfileMetricRow extends StatelessWidget {
+  const _ProfileMetricRow({
+    required this.points,
+    required this.petExperience,
+    required this.loadingPetSummary,
+  });
 
-  const _StatCard({
+  final int points;
+  final int petExperience;
+  final bool loadingPetSummary;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _ProfileMetricCard(
+            icon: Icons.star_rounded,
+            label: '当前积分',
+            value: '$points',
+            tone: _ProfilePalette.honey,
+            toneSoft: _ProfilePalette.honeySoft,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _ProfileMetricCard(
+            icon: Icons.pets_rounded,
+            label: '宠物经验',
+            value: loadingPetSummary ? '...' : '$petExperience',
+            tone: _ProfilePalette.sage,
+            toneSoft: _ProfilePalette.sageSoft,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProfileMetricCard extends StatelessWidget {
+  const _ProfileMetricCard({
     required this.icon,
     required this.label,
     required this.value,
-    required this.color,
+    required this.tone,
+    required this.toneSoft,
   });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color tone;
+  final Color toneSoft;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      constraints: const BoxConstraints(minHeight: 92),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
-        color: _AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
+        color: _ProfilePalette.paperAlt,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _ProfilePalette.outlineSoft, width: 1.8),
+        boxShadow: const [
           BoxShadow(
-            color: color.withAlpha(60),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+            color: Color(0x205A371F),
+            blurRadius: 12,
+            offset: Offset(0, 5),
           ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(12),
+              color: toneSoft,
+              shape: BoxShape.circle,
+              border: Border.all(color: tone.withValues(alpha: 0.42)),
             ),
-            child: Center(
-              child: Text(icon, style: const TextStyle(fontSize: 20)),
-            ),
+            child: Icon(icon, color: tone, size: 24),
           ),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: _AppColors.onSurfaceVariant,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _ProfilePalette.mutedInk,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0,
+                  ),
                 ),
-              ),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: _AppColors.onSurface,
+                const SizedBox(height: 5),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    value,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      color: _ProfilePalette.ink,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      height: 1,
+                      letterSpacing: 0,
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -630,115 +709,131 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _MenuItem extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final Color? titleColor;
-  final VoidCallback onTap;
+class _ProfileSectionTitle extends StatelessWidget {
+  const _ProfileSectionTitle(this.title);
 
-  const _MenuItem({
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    this.titleColor,
-    required this.onTap,
-  });
+  final String title;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: _AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: _AppColors.onSurface.withAlpha(15),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
+    return Row(
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: const BoxDecoration(
+            color: _ProfilePalette.honey,
+            shape: BoxShape.circle,
+          ),
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: iconColor.withAlpha(30),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: iconColor, size: 22),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: titleColor ?? _AppColors.onSurface,
-                ),
-              ),
-            ),
-            Icon(
-              Icons.chevron_right,
-              color: _AppColors.onSurfaceVariant.withAlpha(150),
-            ),
-          ],
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            color: _ProfilePalette.ink,
+            fontSize: 17,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0,
+          ),
         ),
-      ),
+      ],
     );
   }
 }
 
-class _ClayButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-
-  const _ClayButton({
+class _ProfileActionTile extends StatelessWidget {
+  const _ProfileActionTile({
     required this.icon,
-    required this.label,
-    required this.onPressed,
+    required this.tone,
+    required this.toneSoft,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.isDestructive = false,
   });
+
+  final IconData icon;
+  final Color tone;
+  final Color toneSoft;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final bool isDestructive;
 
   @override
   Widget build(BuildContext context) {
+    final titleColor = isDestructive
+        ? _ProfilePalette.berry
+        : _ProfilePalette.ink;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
           decoration: BoxDecoration(
-            color: _AppColors.primary,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [
+            color: _ProfilePalette.paperTop,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: _ProfilePalette.outlineSoft, width: 1.8),
+            boxShadow: const [
               BoxShadow(
-                color: _AppColors.primary.withAlpha(60),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
+                color: Color(0x185A371F),
+                blurRadius: 9,
+                offset: Offset(0, 4),
               ),
             ],
           ),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 20, color: Colors.white),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: toneSoft,
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: tone.withValues(alpha: 0.38)),
                 ),
+                child: Icon(icon, color: tone, size: 25),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: titleColor,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _ProfilePalette.mutedInk,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        height: 1.25,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: tone.withValues(alpha: 0.86),
+                size: 28,
               ),
             ],
           ),
@@ -748,29 +843,284 @@ class _ClayButton extends StatelessWidget {
   }
 }
 
-class _ClayIcon extends StatelessWidget {
-  final IconData icon;
-  final double size;
+class _GuestProfilePanel extends StatelessWidget {
+  const _GuestProfilePanel({required this.onLoginTap});
 
-  const _ClayIcon({required this.icon, required this.size});
+  final VoidCallback onLoginTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _HandDrawnPanel(
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 30),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 82,
+            height: 82,
+            decoration: BoxDecoration(
+              color: _ProfilePalette.sageSoft,
+              shape: BoxShape.circle,
+              border: Border.all(color: _ProfilePalette.outline, width: 2),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x225A371F),
+                  blurRadius: 12,
+                  offset: Offset(0, 5),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.person_rounded,
+              color: _ProfilePalette.sage,
+              size: 46,
+            ),
+          ),
+          const SizedBox(height: 18),
+          const Text(
+            '还没有登录',
+            style: TextStyle(
+              color: _ProfilePalette.ink,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            '登录后可以管理家庭、任务和宠物成长。',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: _ProfilePalette.mutedInk,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              height: 1.4,
+              letterSpacing: 0,
+            ),
+          ),
+          const SizedBox(height: 24),
+          HomePetsButton(label: '登录 / 注册', onPressed: onLoginTap, width: 180),
+        ],
+      ),
+    );
+  }
+}
+
+class _HandDrawnPanel extends StatelessWidget {
+  const _HandDrawnPanel({required this.child, required this.padding});
+
+  final Widget child;
+  final EdgeInsets padding;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: size,
-      height: size,
+      padding: padding,
       decoration: BoxDecoration(
-        color: _AppColors.surfaceContainer,
-        shape: BoxShape.circle,
-        boxShadow: [
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [_ProfilePalette.paperTop, _ProfilePalette.paperBottom],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: _ProfilePalette.outline, width: 2.2),
+        boxShadow: const [
           BoxShadow(
-            color: _AppColors.primary.withAlpha(30),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Color(0x285A371F),
+            blurRadius: 14,
+            offset: Offset(0, 7),
+          ),
+          BoxShadow(
+            color: Color(0x80FFFFFF),
+            blurRadius: 7,
+            offset: Offset(0, -2),
           ),
         ],
       ),
-      child: Icon(icon, size: size * 0.5, color: _AppColors.onSurfaceVariant),
+      child: child,
+    );
+  }
+}
+
+class _AvatarBadge extends StatelessWidget {
+  const _AvatarBadge({required this.avatarEmoji, required this.fallbackName});
+
+  final String avatarEmoji;
+  final String fallbackName;
+
+  @override
+  Widget build(BuildContext context) {
+    final fallback = fallbackName.trim().isEmpty ? '我' : fallbackName.trim()[0];
+    final label = avatarEmoji.trim().isEmpty ? fallback : avatarEmoji;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: 76,
+          height: 76,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: _ProfilePalette.honeySoft,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: _ProfilePalette.outline, width: 2.2),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x205A371F),
+                blurRadius: 9,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: _ProfilePalette.ink,
+              fontSize: 34,
+              fontWeight: FontWeight.w900,
+              height: 1,
+              letterSpacing: 0,
+            ),
+          ),
+        ),
+        Positioned(
+          right: -5,
+          bottom: -5,
+          child: Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: _ProfilePalette.sageSoft,
+              shape: BoxShape.circle,
+              border: Border.all(color: _ProfilePalette.outline, width: 1.7),
+            ),
+            child: const Icon(
+              Icons.pets_rounded,
+              color: _ProfilePalette.sage,
+              size: 16,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProfileChip extends StatelessWidget {
+  const _ProfileChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.background,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.42)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: const TextStyle(
+              color: _ProfilePalette.ink,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RoundIconButton extends StatelessWidget {
+  const _RoundIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Ink(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: _ProfilePalette.paperTop,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: _ProfilePalette.outline, width: 2),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x205A371F),
+                  blurRadius: 9,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Icon(icon, color: _ProfilePalette.ink, size: 28),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AboutLine extends StatelessWidget {
+  const _AboutLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(
+          '$label：',
+          style: const TextStyle(
+            color: _ProfilePalette.ink,
+            fontSize: 15,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0,
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            color: _ProfilePalette.mutedInk,
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0,
+          ),
+        ),
+      ],
     );
   }
 }
