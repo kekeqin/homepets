@@ -72,6 +72,22 @@ def test_create_task_success(client: TestClient, db: Session) -> None:
     assert response.json()["points"] == 20
 
 
+def test_create_family_task_success(client: TestClient, db: Session) -> None:
+    token, family_id, _, _ = _setup_family(client, db)
+
+    response = client.post(
+        f"/api/families/{family_id}/tasks",
+        json={"title": "Clean room", "points": 20},
+        headers=_auth_header(token),
+    )
+
+    assert response.status_code == 201
+    data = response.json()
+    assert data["title"] == "Clean room"
+    assert data["points"] == 20
+    assert data["family_id"] == family_id
+
+
 def test_list_tasks_success_after_completion(client: TestClient, db: Session) -> None:
     token, family_id, _, _ = _setup_family(client, db)
     task = _create_task(client, token, title="Water plants", points=10)

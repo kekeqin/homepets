@@ -55,6 +55,31 @@ def _build_family_response(family: Family, db: Session) -> FamilyResponse:
     )
 
 
+def _validate_member_pet_selection(body: MemberCreate) -> tuple[str, str] | None:
+    pet_type = body.pet_type.strip().lower() if body.pet_type is not None else None
+    pet_name = (body.pet_name or body.name or "").strip()
+
+    if pet_type is None and not pet_name:
+        return None
+    if pet_type is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="请选择宠物类型",
+        )
+    if pet_type not in VALID_SELECTABLE_PET_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="不支持的宠物类型，可选：cat、dog、hamster、rabbit、turtle",
+        )
+    if not pet_name:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="宠物名称不能为空",
+        )
+
+    return pet_type, pet_name
+
+
 # 创建家庭；通常注册或登录管理员时会自动创建家庭，此接口仅保留兜底能力。
 @router.post("", response_model=FamilyResponse, status_code=status.HTTP_201_CREATED)
 def create_family(
@@ -111,8 +136,21 @@ def add_member(
     if family.owner_id != admin.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权操作此家庭")
 
+    pet_selection = _validate_member_pet_selection(body)
     member = User(nickname=body.nickname, role="child", family_id=family_id)
     db.add(member)
+    db.flush()
+
+    if pet_selection is not None:
+        pet_type, pet_name = pet_selection
+        if member.id is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="成员创建失败",
+            )
+        pet = Pet(**create_member_pet(family_id, member.id, pet_type, pet_name))
+        db.add(pet)
+
     db.commit()
     db.refresh(member)
     return _build_member_response(member, db)

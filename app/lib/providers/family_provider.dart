@@ -70,6 +70,39 @@ class FamilyNotifier extends StateNotifier<FamilyScreenState> {
     return FamilyMemberViewData.fromJson(memberMap);
   }
 
+  Future<FamilyMemberViewData> addMemberWithPet({
+    required String nickname,
+    required String petType,
+    required String petName,
+  }) async {
+    final familyId = _requireFamilyId();
+    final memberMap = await _familyService.addMember(
+      familyId: familyId,
+      nickname: nickname,
+      petType: petType,
+      petName: petName,
+    );
+    var member = FamilyMemberViewData.fromJson(memberMap);
+
+    if (member.petType == null) {
+      await _familyService.assignMemberPet(
+        familyId: familyId,
+        memberId: member.id,
+        petType: petType,
+        petName: petName,
+      );
+    }
+
+    await loadFamily();
+    for (final loadedMember in state.members) {
+      if (loadedMember.id == member.id) {
+        member = loadedMember;
+        break;
+      }
+    }
+    return member;
+  }
+
   Future<void> assignMemberPet({
     required int memberId,
     required String petType,

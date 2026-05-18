@@ -28,9 +28,52 @@ String? extractApiDetailMessage(Object error) {
     if (detail is String && detail.trim().isNotEmpty) {
       return detail.trim();
     }
+    if (detail is Map) {
+      for (final key in const <String>['message', 'detail', 'msg']) {
+        final message = detail[key];
+        if (message is String && message.trim().isNotEmpty) {
+          return message.trim();
+        }
+      }
+    }
+    if (detail is List && detail.isNotEmpty) {
+      final messages = detail
+          .map(_validationDetailMessage)
+          .whereType<String>()
+          .where((message) => message.trim().isNotEmpty)
+          .toList(growable: false);
+      if (messages.isNotEmpty) {
+        return messages.join('\n');
+      }
+    }
   }
 
   return null;
+}
+
+String? _validationDetailMessage(Object? item) {
+  if (item is String) {
+    return item.trim().isEmpty ? null : item.trim();
+  }
+
+  if (item is! Map) {
+    return null;
+  }
+
+  final message = item['msg'];
+  if (message is! String || message.trim().isEmpty) {
+    return null;
+  }
+
+  final location = item['loc'];
+  if (location is List && location.isNotEmpty) {
+    final field = location.last;
+    if (field != null) {
+      return '$field: ${message.trim()}';
+    }
+  }
+
+  return message.trim();
 }
 
 String friendlyApiErrorMessage(

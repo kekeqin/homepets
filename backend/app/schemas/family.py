@@ -9,6 +9,9 @@ class FamilyCreate(BaseModel):
 
 class MemberCreate(BaseModel):
     nickname: str = Field(min_length=1, max_length=50)
+    pet_type: str | None = Field(default=None, min_length=1, max_length=50)
+    pet_name: str | None = Field(default=None, min_length=1, max_length=50)
+    name: str | None = Field(default=None, min_length=1, max_length=50)
 
 
 class MemberPetSelection(BaseModel):

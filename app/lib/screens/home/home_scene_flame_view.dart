@@ -2433,7 +2433,10 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       return;
     }
 
-    if (!_isAdmin) {
+    final authState = ref.read(authProvider);
+    final user = authState.user;
+
+    if (user?.isAdmin != true || authState.viewOnly) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -2442,6 +2445,13 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         ),
       );
 
+      return;
+    }
+
+    if (user?.familyId == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请先创建家庭后再添加任务')));
       return;
     }
 
@@ -2465,10 +2475,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
     try {
       await _createTaskWithCompatibility(newTask);
-
-      _game.addTaskItem(newTask.taskLabel, points: newTask.points);
-
-      await _loadHomeTasks();
     } catch (error) {
       if (mounted) {
         showFriendlyApiErrorSnackBar(
@@ -2480,14 +2486,53 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
               '\u521b\u5efa\u4efb\u52a1\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5',
         );
       }
+      return;
+    }
+
+    _game.addTaskItem(newTask.taskLabel, points: newTask.points);
+
+    try {
+      await _loadHomeTasks();
+    } catch (error) {
+      if (mounted) {
+        showFriendlyApiErrorSnackBar(
+          context,
+          error,
+          fallbackMessage:
+              '\u4efb\u52a1\u5df2\u521b\u5efa\uff0c\u4f46\u5237\u65b0\u4efb\u52a1\u5217\u8868\u5931\u8d25',
+        );
+      }
     }
   }
 
   Future<void> _createTaskWithCompatibility(_TaskEditorResult task) async {
     final dio = ref.read(apiClientProvider).dio;
 
-    final user = ref.read(authProvider).user;
+    final familyId = ref.read(authProvider).user?.familyId;
 
+    if (familyId != null) {
+      try {
+        await dio.post(
+          '/api/families/$familyId/tasks',
+          data: _taskMutationPayload(task),
+        );
+        return;
+      } on DioException catch (error) {
+        final statusCode = error.response?.statusCode;
+        if (statusCode != 404 && statusCode != 405) {
+          rethrow;
+        }
+      }
+    }
+
+    await _createTaskWithLegacyEndpoint(dio, task, familyId: familyId);
+  }
+
+  Future<void> _createTaskWithLegacyEndpoint(
+    Dio dio,
+    _TaskEditorResult task, {
+    int? familyId,
+  }) async {
     try {
       await dio.post('/api/tasks', data: _taskMutationPayload(task));
     } on DioException catch (error) {
@@ -2505,7 +2550,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
           includeCompatibilityFields: true,
 
-          familyId: user?.familyId,
+          familyId: familyId,
         ),
       );
     }

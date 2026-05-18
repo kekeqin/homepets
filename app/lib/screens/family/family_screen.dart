@@ -318,37 +318,23 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
 
     try {
       final notifier = ref.read(familyProvider.notifier);
-      final member = await notifier.addMember(draft.nickname);
+      final member = await notifier.addMemberWithPet(
+        nickname: draft.nickname,
+        petType: draft.petType,
+        petName: draft.petName,
+      );
       if (!mounted) {
         return;
       }
 
-      try {
-        await notifier.assignMemberPet(
-          memberId: member.id,
-          petType: draft.petType,
-          petName: draft.petName,
-        );
-        if (!mounted) {
-          return;
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('已添加${member.nickname}，并领养了${draft.petName}')),
-        );
-        return;
-      } catch (error) {
-        if (!mounted) {
-          return;
-        }
-        showFriendlyApiErrorSnackBar(
-          context,
-          error,
-          fallbackMessage: '选择宠物失败，请重试',
-        );
-        await _loadFamily();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('已添加${member.nickname}，并领养了${draft.petName}')),
+      );
+    } catch (error) {
+      if (!mounted) {
         return;
       }
-    } catch (error) {
+      await _loadFamily();
       if (!mounted) {
         return;
       }

@@ -138,6 +138,19 @@ def _list_active_tasks(
     ]
 
 
+def _create_task_for_family(
+    *,
+    db: Session,
+    family_id: int,
+    body: TaskCreate,
+) -> Task:
+    task = Task(title=body.title, points=body.points, family_id=family_id)
+    db.add(task)
+    db.commit()
+    db.refresh(task)
+    return task
+
+
 def _list_family_completion_payload(
     family_id: int,
     db: Session,
@@ -194,11 +207,26 @@ def create_task(
     if admin.family_id is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="您还没有家庭")
 
-    task = Task(title=body.title, points=body.points, family_id=admin.family_id)
-    db.add(task)
-    db.commit()
-    db.refresh(task)
-    return task
+    return _create_task_for_family(db=db, family_id=admin.family_id, body=body)
+
+
+@router.post(
+    "/families/{family_id}/tasks",
+    response_model=TaskResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_family_task(
+    family_id: int,
+    body: TaskCreate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin_with_active_access),
+) -> Task:
+    if admin.family_id is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="您还没有家庭")
+    if admin.family_id != family_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权操作此家庭")
+
+    return _create_task_for_family(db=db, family_id=family_id, body=body)
 
 
 # 列出家庭当前有效任务，并标记今日和本周是否完成过。

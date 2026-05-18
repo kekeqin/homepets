@@ -85,6 +85,33 @@ def test_add_member_success_requires_pet_selection(client: TestClient, db: Sessi
     assert data["pet_type"] is None
 
 
+def test_add_member_can_create_selected_pet_in_one_request(
+    client: TestClient,
+    db: Session,
+) -> None:
+    _create_admin(db)
+    token = _login(client)
+    family_id = _get_me(client, token)["family_id"]
+
+    response = client.post(
+        f"/api/families/{family_id}/members",
+        json={"nickname": "Ming", "pet_type": "dog", "pet_name": "Tuantuan"},
+        headers=_auth_header(token),
+    )
+
+    assert response.status_code == 201
+    data = response.json()
+    assert data["nickname"] == "Ming"
+    assert data["pet_type"] == "dog"
+    assert data["pet_id"] is not None
+    assert data["needs_pet_selection"] is False
+
+    pets = _list_pets(client, token, family_id)
+    member_pet = next(pet for pet in pets if pet["owner_id"] == data["id"])
+    assert member_pet["name"] == "Tuantuan"
+    assert member_pet["pet_type"] == "dog"
+
+
 def test_set_member_pet_success_with_name(client: TestClient, db: Session) -> None:
     _create_admin(db)
     token = _login(client)

@@ -34,10 +34,18 @@ class FamilyService {
   Future<Map<String, dynamic>> addMember({
     required int familyId,
     required String nickname,
+    String? petType,
+    String? petName,
   }) async {
+    final data = <String, dynamic>{'nickname': nickname};
+    if (petType != null && petName != null) {
+      data['pet_type'] = petType;
+      data['pet_name'] = petName;
+    }
+
     final response = await _apiClient.dio.post(
       '/api/families/$familyId/members',
-      data: {'nickname': nickname},
+      data: data,
     );
     return _extractMap(response.data, fallbackMessage: '成员信息返回异常');
   }

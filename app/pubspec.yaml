@@ -87,6 +87,7 @@ flutter:
     - assets/images/ui/setup/
     - "assets/images/ui/Change profile picture/"
     - assets/images/ui/home/
+    - assets/images/ui/login/
     - assets/images/ui/paywall/
     - assets/images/ui/task/
     - assets/images/ui/task_delete/
