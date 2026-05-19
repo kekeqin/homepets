@@ -145,7 +145,10 @@ class FamilyMemberCard extends StatelessWidget {
         final namePlateHeight = (34 * scale).clamp(28.0, 42.0).toDouble();
         final footerHeight = (52 * scale).clamp(42.0, 64.0).toDouble();
         final petIconSize = (34 * scale).clamp(26.0, 42.0).toDouble();
-        final portraitSize = (124 * scale).clamp(94.0, 138.0).toDouble();
+        final portraitSize = math.min(
+          constraints.maxWidth * 0.80,
+          (156 * scale).clamp(118.0, 176.0).toDouble(),
+        );
 
         final card = ClipRRect(
           borderRadius: BorderRadius.circular(cornerRadius),
@@ -170,8 +173,8 @@ class FamilyMemberCard extends StatelessWidget {
                           clipBehavior: Clip.none,
                           children: [
                             Positioned.fill(
-                              top: 0,
-                              bottom: -10 * scale,
+                              top: -3 * scale,
+                              bottom: -16 * scale,
                               child: _MemberPortraitButton(
                                 member: member,
                                 assetPath: _portraitAssetPath,

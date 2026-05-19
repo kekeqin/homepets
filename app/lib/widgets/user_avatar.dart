@@ -245,19 +245,19 @@ class _AvatarAssetTransform {
         scale: 1.08,
       ),
       'assets/images/ui/family/5-(2).png' => const _AvatarAssetTransform(
-        offset: Offset(0, -0.02),
-        scale: 1.18,
+        offset: Offset(0, 0.01),
+        scale: 1.04,
       ),
       'assets/images/ui/family/6 (1).png' => const _AvatarAssetTransform(
-        offset: Offset(0, -0.02),
-        scale: 1.12,
+        offset: Offset(0, 0.01),
+        scale: 1.03,
       ),
       'assets/images/ui/family/7 (1).png' => const _AvatarAssetTransform(
-        offset: Offset(0, -0.01),
-        scale: 1.13,
+        offset: Offset(0, 0),
+        scale: 1.0,
       ),
       'assets/images/ui/family/avatar_adult_male_reference_style.png' =>
-        const _AvatarAssetTransform(offset: Offset(0, -0.01), scale: 1.72),
+        const _AvatarAssetTransform(offset: Offset(0, 0.01), scale: 1.04),
       _ => const _AvatarAssetTransform(),
     };
   }
