@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../../../models/pet.dart';
 import '../../../models/pet_artwork.dart';
 import '../models/family_member_view_data.dart';
-import 'family_empty_card.dart';
 import 'family_member_card.dart';
 import 'family_sprite_slice.dart';
 
@@ -53,13 +52,7 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
   bool _movingForward = true;
 
   int get _slotCount {
-    if (widget.members.isEmpty) {
-      return 0;
-    }
-    final includeInviteSlot =
-        widget.canAddMembers &&
-        widget.members.length < FamilyMemberGrid.maxDisplayMembers;
-    return widget.members.length + (includeInviteSlot ? 1 : 0);
+    return widget.members.length;
   }
 
   int get _pageCount {
@@ -113,24 +106,9 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
 
   Widget _buildSlot(int slotIndex) {
     final memberIndex = _currentPage * _visibleSlotCount + slotIndex;
-    final showInviteSlot =
-        widget.canAddMembers &&
-        widget.members.length < FamilyMemberGrid.maxDisplayMembers &&
-        memberIndex == widget.members.length;
 
     if (memberIndex >= widget.members.length) {
-      if (!showInviteSlot) {
-        return const SizedBox.shrink();
-      }
-      return _AnimatedMemberCard(
-        index: slotIndex,
-        entryAnimation: widget.entryAnimation,
-        child: FamilyEmptyCard(
-          compact: true,
-          canAddMembers: widget.canAddMembers,
-          onAddTap: widget.onAddMemberTap,
-        ),
-      );
+      return const SizedBox.shrink();
     }
 
     final member = widget.members[memberIndex];
@@ -166,19 +144,6 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (widget.members.isEmpty) {
-          return Center(
-            child: FractionallySizedBox(
-              widthFactor: constraints.maxWidth < 430 ? 0.96 : 0.66,
-              heightFactor: constraints.hasBoundedHeight ? 0.72 : null,
-              child: FamilyEmptyCard(
-                canAddMembers: widget.canAddMembers,
-                onAddTap: widget.onAddMemberTap,
-              ),
-            ),
-          );
-        }
-
         final compact = constraints.maxWidth < 430;
         final sideControlWidth = compact ? 24.0 : 32.0;
         final sideGap = compact ? 3.0 : 8.0;

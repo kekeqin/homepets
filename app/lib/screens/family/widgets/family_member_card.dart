@@ -145,37 +145,17 @@ class FamilyMemberCard extends StatelessWidget {
         final namePlateHeight = (34 * scale).clamp(28.0, 42.0).toDouble();
         final footerHeight = (52 * scale).clamp(42.0, 64.0).toDouble();
         final petIconSize = (34 * scale).clamp(26.0, 42.0).toDouble();
+        final portraitSize = (124 * scale).clamp(94.0, 138.0).toDouble();
 
-        final card = DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(cornerRadius),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x1F3D210C),
-                blurRadius: 5,
-                offset: Offset(0, 2),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(cornerRadius - 2),
+        final card = ClipRRect(
+          borderRadius: BorderRadius.circular(cornerRadius),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(cornerRadius),
+              border: Border.all(color: Colors.black, width: 2.2 * scale),
+            ),
             child: Stack(
               children: [
-                Positioned.fill(
-                  child: Image.asset(
-                    FamilyPopupAssets.cardPanel,
-                    fit: BoxFit.cover,
-                    filterQuality: FilterQuality.medium,
-                    isAntiAlias: true,
-                  ),
-                ),
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.18),
-                    ),
-                  ),
-                ),
                 Padding(
                   padding: padding,
                   child: Column(
@@ -190,12 +170,13 @@ class FamilyMemberCard extends StatelessWidget {
                           clipBehavior: Clip.none,
                           children: [
                             Positioned.fill(
-                              top: 1 * scale,
-                              bottom: -2 * scale,
+                              top: 0,
+                              bottom: -10 * scale,
                               child: _MemberPortraitButton(
                                 member: member,
                                 assetPath: _portraitAssetPath,
                                 busy: avatarEditBusy,
+                                size: portraitSize,
                                 onTap: onAvatarEditTap,
                               ),
                             ),
@@ -278,12 +259,14 @@ class _MemberPortraitButton extends StatelessWidget {
     required this.member,
     required this.assetPath,
     required this.busy,
+    required this.size,
     required this.onTap,
   });
 
   final FamilyMemberViewData member;
   final String assetPath;
   final bool busy;
+  final double size;
   final VoidCallback? onTap;
 
   @override
@@ -292,16 +275,15 @@ class _MemberPortraitButton extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         Center(
-          child: FractionallySizedBox(
-            widthFactor: 0.82,
-            heightFactor: 1.05,
-            child: Image.asset(
-              assetPath,
+          child: SizedBox.square(
+            dimension: size,
+            child: CenteredAvatarAsset(
+              assetPath: assetPath,
               fit: BoxFit.contain,
               errorBuilder: (_, _, _) => UserAvatar(
                 nickname: member.nickname,
                 avatarValue: member.avatarUrl,
-                size: 96,
+                size: size,
                 backgroundColor: const Color(0x00FFFFFF),
                 foregroundColor: const Color(0xFF7B5432),
               ),

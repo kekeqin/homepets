@@ -58,11 +58,11 @@ void main() {
       await tester.pump();
 
       expect(find.text('member-5'), findsOneWidget);
-      expect(find.text('邀请成员'), findsOneWidget);
+      expect(find.text('邀请成员'), findsNothing);
       expect(find.text('2 / 2 页'), findsOneWidget);
     });
 
-    testWidgets('shows invite page when there are four members', (
+    testWidgets('does not show invite page when there are four members', (
       tester,
     ) async {
       final members = List<FamilyMemberViewData>.generate(
@@ -97,7 +97,9 @@ void main() {
         find.byKey(const Key('family_member_grid_page_dots')),
         findsOneWidget,
       );
-      expect(find.text('1 / 2 页'), findsOneWidget);
+      expect(find.text('1 / 1 页'), findsOneWidget);
+      expect(find.byKey(const Key('family_member_grid_prev')), findsNothing);
+      expect(find.byKey(const Key('family_member_grid_next')), findsNothing);
 
       await tester.drag(
         find.byKey(const Key('family_member_grid_swipe_area')),
@@ -106,8 +108,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 600));
       await tester.pump();
 
-      expect(find.text('邀请成员'), findsOneWidget);
-      expect(find.text('2 / 2 页'), findsOneWidget);
+      expect(find.text('邀请成员'), findsNothing);
+      expect(find.text('1 / 1 页'), findsOneWidget);
     });
 
     testWidgets('shows ascii member nicknames without replacing them', (

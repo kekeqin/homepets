@@ -51,7 +51,7 @@ Future<void> showFamilyDialog(
       return AppModalShell(
         layout: AppModalLayouts.family,
         minimumSafeArea: const EdgeInsets.fromLTRB(4, 10, 4, 8),
-        boxShadow: HomePetsDialogTheme.shellShadow,
+        clipChild: false,
         child: FamilyScreen(
           embedded: true,
           petAvatarAssetPathsById: petAvatarAssetPathsById,
@@ -520,17 +520,11 @@ class _FamilyStageCard extends StatelessWidget {
           ),
           Positioned.fill(
             child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(34),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x28552D12),
-                      blurRadius: 18,
-                      offset: Offset(0, 8),
-                    ),
-                  ],
-                ),
+              child: Image.asset(
+                FamilyPopupAssets.mainPanelOutline,
+                fit: BoxFit.fill,
+                filterQuality: FilterQuality.medium,
+                isAntiAlias: true,
               ),
             ),
           ),
@@ -540,13 +534,14 @@ class _FamilyStageCard extends StatelessWidget {
               final height = constraints.maxHeight;
               final titleWidth = (width * 0.42).clamp(176.0, 288.0).toDouble();
               final titleHeight = titleWidth / 3.03;
+              final notebookSize = (width * 0.078).clamp(34.0, 52.0).toDouble();
 
               return Stack(
                 clipBehavior: Clip.none,
                 children: [
                   Positioned(
-                    left: width * 0.047,
-                    top: height * 0.040,
+                    left: width * 0.070,
+                    top: height * 0.058,
                     child: canManageMembers
                         ? _HeroAddButton(
                             compact: embedded || width < 430,
@@ -569,9 +564,9 @@ class _FamilyStageCard extends StatelessWidget {
                   ),
                   Positioned(
                     top: height * 0.052,
-                    left: width * 0.66,
-                    width: (width * 0.088).clamp(38.0, 58.0).toDouble(),
-                    height: (width * 0.088).clamp(38.0, 58.0).toDouble(),
+                    left: width * 0.705,
+                    width: notebookSize,
+                    height: notebookSize,
                     child: Transform.rotate(
                       angle: 0.20,
                       child: const _HeaderNotebookIcon(),
@@ -610,8 +605,8 @@ class _FamilyStageCard extends StatelessWidget {
             },
           ),
           Positioned(
-            top: -6,
-            right: -4,
+            top: 0,
+            right: 2,
             child: _CircleIconButton(
               icon: embedded ? Icons.close_rounded : Icons.arrow_back_rounded,
               tooltip: embedded ? '关闭' : '返回首页',
@@ -863,6 +858,24 @@ class _HeroAddButton extends StatelessWidget {
                 fit: BoxFit.contain,
                 filterQuality: FilterQuality.medium,
                 isAntiAlias: true,
+              ),
+              Positioned(
+                left: compact ? 8 : 10,
+                right: compact ? 8 : 10,
+                bottom: compact ? 5 : 7,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    '添加',
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: const Color(0xFF3F230D),
+                      fontSize: compact ? 17 : 20,
+                      height: 1,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
               ),
               if (busy)
                 Center(

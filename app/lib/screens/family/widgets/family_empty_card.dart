@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'family_sprite_slice.dart';
-
 class FamilyEmptyCard extends StatelessWidget {
   const FamilyEmptyCard({
     super.key,
@@ -18,57 +16,35 @@ class FamilyEmptyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final card = DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7E7),
         borderRadius: BorderRadius.circular(compact ? 18 : 24),
         border: Border.all(
           color: const Color(0xFF3F230D),
           width: compact ? 2.2 : 2.6,
         ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x1F3D210C),
-            blurRadius: 5,
-            offset: Offset(0, 2),
-          ),
-        ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(compact ? 15 : 21),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: Image.asset(
-                FamilyPopupAssets.cardPanel,
-                fit: BoxFit.cover,
-                filterQuality: FilterQuality.medium,
-                isAntiAlias: true,
+        child: Padding(
+          padding: EdgeInsets.all(compact ? 9 : 18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                height: compact ? 34 : 46,
+                child: _InviteNamePlate(compact: compact),
               ),
-            ),
-            Positioned.fill(
-              child: Padding(
-                padding: EdgeInsets.all(compact ? 9 : 18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SizedBox(
-                      height: compact ? 34 : 46,
-                      child: _InviteNamePlate(compact: compact),
-                    ),
-                    Expanded(
-                      child: Center(child: _InviteSilhouette(compact: compact)),
-                    ),
-                    SizedBox(
-                      height: compact ? 50 : 58,
-                      child: _InviteFooter(
-                        compact: compact,
-                        canAddMembers: canAddMembers,
-                      ),
-                    ),
-                  ],
+              Expanded(
+                child: Center(child: _InviteSilhouette(compact: compact)),
+              ),
+              SizedBox(
+                height: compact ? 50 : 58,
+                child: _InviteFooter(
+                  compact: compact,
+                  canAddMembers: canAddMembers,
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
