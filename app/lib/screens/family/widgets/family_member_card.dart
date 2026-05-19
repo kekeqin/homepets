@@ -105,25 +105,29 @@ class FamilyMemberCard extends StatelessWidget {
 
     final nickname = member.nickname;
     if (nickname.contains('爸') || nickname.contains('爷')) {
-      return FamilyPopupAssets.boyPortrait;
+      return userDadAvatarAssetPath;
     }
     if (nickname.contains('妈') || nickname.contains('奶')) {
-      return FamilyPopupAssets.girlPortrait;
+      return userMomAvatarAssetPath;
     }
     if (displaySlot != null) {
-      return switch (displaySlot! % 4) {
+      return switch (displaySlot! % 8) {
         0 =>
           member.role == 'admin'
-              ? FamilyPopupAssets.boyPortrait
-              : FamilyPopupAssets.girlPortrait,
-        1 => FamilyPopupAssets.adultFemalePortrait,
-        2 => FamilyPopupAssets.childPortrait,
-        _ => FamilyPopupAssets.girlPortrait,
+              ? userDadAvatarAssetPath
+              : userDefaultAvatarAssetPath,
+        1 => userMomAvatarAssetPath,
+        2 => userBoyAvatarAssetPath,
+        3 => userGirlAvatarAssetPath,
+        4 => userDadAvatarAssetPath,
+        5 => userMomYellowAvatarAssetPath,
+        6 => userBoyGreenAvatarAssetPath,
+        _ => userGirlBobAvatarAssetPath,
       };
     }
     return member.role == 'admin'
-        ? FamilyPopupAssets.boyPortrait
-        : FamilyPopupAssets.childPortrait;
+        ? userDadAvatarAssetPath
+        : userDefaultAvatarAssetPath;
   }
 
   @override
@@ -280,9 +284,8 @@ class _MemberPortraitButton extends StatelessWidget {
         Center(
           child: SizedBox.square(
             dimension: size,
-            child: CenteredAvatarAsset(
+            child: _FamilyMemberPortraitAsset(
               assetPath: assetPath,
-              fit: BoxFit.contain,
               errorBuilder: (_, _, _) => UserAvatar(
                 nickname: member.nickname,
                 avatarValue: member.avatarUrl,
@@ -316,6 +319,83 @@ class _MemberPortraitButton extends StatelessWidget {
         child: child,
       ),
     );
+  }
+}
+
+class _FamilyMemberPortraitAsset extends StatelessWidget {
+  const _FamilyMemberPortraitAsset({
+    required this.assetPath,
+    this.errorBuilder,
+  });
+
+  final String assetPath;
+  final ImageErrorWidgetBuilder? errorBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    final transform = _FamilyMemberPortraitTransform.forPath(assetPath);
+
+    return FractionalTranslation(
+      translation: transform.offset,
+      child: Transform.scale(
+        scale: transform.scale,
+        child: Image.asset(
+          assetPath,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.medium,
+          isAntiAlias: true,
+          errorBuilder: errorBuilder,
+        ),
+      ),
+    );
+  }
+}
+
+class _FamilyMemberPortraitTransform {
+  const _FamilyMemberPortraitTransform({
+    this.offset = Offset.zero,
+    this.scale = 1,
+  });
+
+  final Offset offset;
+  final double scale;
+
+  static _FamilyMemberPortraitTransform forPath(String assetPath) {
+    return switch (assetPath.trim()) {
+      userDadAvatarAssetPath => const _FamilyMemberPortraitTransform(
+        offset: Offset(-0.014, 0.010),
+        scale: 1.033,
+      ),
+      userBoyGreenAvatarAssetPath => const _FamilyMemberPortraitTransform(
+        offset: Offset(-0.015, 0.031),
+        scale: 1.062,
+      ),
+      userMomYellowAvatarAssetPath => const _FamilyMemberPortraitTransform(
+        offset: Offset(-0.009, 0.025),
+        scale: 0.952,
+      ),
+      userMomAvatarAssetPath => const _FamilyMemberPortraitTransform(
+        offset: Offset(-0.014, 0.021),
+        scale: 1.029,
+      ),
+      userBoyAvatarAssetPath => const _FamilyMemberPortraitTransform(
+        offset: Offset(-0.017, 0.016),
+        scale: 1.083,
+      ),
+      userDefaultAvatarAssetPath => const _FamilyMemberPortraitTransform(
+        offset: Offset(-0.015, 0.022),
+        scale: 1.033,
+      ),
+      userGirlBobAvatarAssetPath => const _FamilyMemberPortraitTransform(
+        offset: Offset(0, 0),
+        scale: 1,
+      ),
+      userGirlAvatarAssetPath => const _FamilyMemberPortraitTransform(
+        offset: Offset(-0.015, -0.005),
+        scale: 1.150,
+      ),
+      _ => const _FamilyMemberPortraitTransform(),
+    };
   }
 }
 

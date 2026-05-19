@@ -11,65 +11,25 @@ const List<_AvatarOption> _avatarOptions = <_AvatarOption>[
     key: 'default',
     label: '默认',
     avatarValue: userDefaultAvatarAssetPath,
-    legacyAvatarValues: <String>[
-      'assets/images/ui/sprites/avatar_edit_default_avatar.png',
-    ],
   ),
-  _AvatarOption(
-    key: 'dad',
-    label: '爸爸',
-    avatarValue: userDadAvatarAssetPath,
-    legacyAvatarValues: <String>[
-      'assets/images/ui/sprites/avatar_edit_dad_avatar.png',
-    ],
-  ),
-  _AvatarOption(
-    key: 'mom',
-    label: '妈妈',
-    avatarValue: userMomAvatarAssetPath,
-    legacyAvatarValues: <String>[
-      'assets/images/ui/sprites/avatar_edit_mom_avatar.png',
-    ],
-  ),
-  _AvatarOption(
-    key: 'boy',
-    label: '男孩',
-    avatarValue: userBoyAvatarAssetPath,
-    legacyAvatarValues: <String>[
-      'assets/images/ui/sprites/avatar_edit_boy_avatar.png',
-    ],
-  ),
-  _AvatarOption(
-    key: 'girl',
-    label: '女孩',
-    avatarValue: userGirlAvatarAssetPath,
-    legacyAvatarValues: <String>[
-      'assets/images/ui/sprites/avatar_edit_girl_avatar.png',
-    ],
-  ),
+  _AvatarOption(key: 'dad', label: '爸爸', avatarValue: userDadAvatarAssetPath),
+  _AvatarOption(key: 'mom', label: '妈妈', avatarValue: userMomAvatarAssetPath),
+  _AvatarOption(key: 'boy', label: '男孩', avatarValue: userBoyAvatarAssetPath),
+  _AvatarOption(key: 'girl', label: '女孩', avatarValue: userGirlAvatarAssetPath),
   _AvatarOption(
     key: 'mom_yellow',
     label: '妈妈',
     avatarValue: userMomYellowAvatarAssetPath,
-    legacyAvatarValues: <String>[
-      'assets/images/ui/sprites/avatar_edit_cat_avatar.png',
-    ],
   ),
   _AvatarOption(
     key: 'boy_green',
     label: '男孩',
     avatarValue: userBoyGreenAvatarAssetPath,
-    legacyAvatarValues: <String>[
-      'assets/images/ui/sprites/avatar_edit_dog_avatar.png',
-    ],
   ),
   _AvatarOption(
     key: 'girl_bob',
     label: '女孩',
     avatarValue: userGirlBobAvatarAssetPath,
-    legacyAvatarValues: <String>[
-      'assets/images/ui/sprites/avatar_edit_rabbit_avatar.png',
-    ],
   ),
 ];
 
@@ -530,18 +490,11 @@ class _AvatarOption {
     required this.key,
     required this.label,
     required this.avatarValue,
-    this.legacyAvatarValues = const <String>[],
   });
 
   final String key;
   final String label;
   final String avatarValue;
-  final List<String> legacyAvatarValues;
 
-  bool matches(String value) {
-    if (value == avatarValue) {
-      return true;
-    }
-    return legacyAvatarValues.contains(value);
-  }
+  bool matches(String value) => value == avatarValue;
 }

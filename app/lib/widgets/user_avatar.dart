@@ -1,16 +1,27 @@
 import 'package:flutter/material.dart';
 
-const String userAvatarAssetBasePath =
-    'assets/images/ui/Change profile picture';
-const String userDefaultAvatarAssetPath = '$userAvatarAssetBasePath/16.png';
-const String userDadAvatarAssetPath = '$userAvatarAssetBasePath/11.png';
-const String userMomAvatarAssetPath = '$userAvatarAssetBasePath/14.png';
-const String userBoyAvatarAssetPath = '$userAvatarAssetBasePath/15.png';
-const String userGirlAvatarAssetPath = '$userAvatarAssetBasePath/18.png';
+const String userAvatarAssetBasePath = 'assets/images/ui/family';
+const String userDefaultAvatarAssetPath = '$userAvatarAssetBasePath/8.png';
+const String userDadAvatarAssetPath = '$userAvatarAssetBasePath/9.png';
+const String userMomAvatarAssetPath =
+    '$userAvatarAssetBasePath/avatar_adult_male_reference_style.png';
+const String userBoyAvatarAssetPath = '$userAvatarAssetBasePath/12.png';
+const String userGirlAvatarAssetPath = '$userAvatarAssetBasePath/11.png';
 const String userMomYellowAvatarAssetPath =
-    '$userAvatarAssetBasePath/13 (1).png';
-const String userBoyGreenAvatarAssetPath = '$userAvatarAssetBasePath/12.png';
-const String userGirlBobAvatarAssetPath = '$userAvatarAssetBasePath/17.png';
+    '$userAvatarAssetBasePath/6 (1).png';
+const String userBoyGreenAvatarAssetPath = '$userAvatarAssetBasePath/13.png';
+const String userGirlBobAvatarAssetPath = '$userAvatarAssetBasePath/7 (1).png';
+
+const Set<String> _presetUserAvatarAssetPaths = <String>{
+  userDefaultAvatarAssetPath,
+  userDadAvatarAssetPath,
+  userMomAvatarAssetPath,
+  userBoyAvatarAssetPath,
+  userGirlAvatarAssetPath,
+  userMomYellowAvatarAssetPath,
+  userBoyGreenAvatarAssetPath,
+  userGirlBobAvatarAssetPath,
+};
 
 const List<String> presetAvatarEmojis = <String>[
   '🐶',
@@ -61,6 +72,19 @@ String? normalizedUserAvatarAssetValue(String? avatarValue) {
   }
 
   return switch (value) {
+    'assets/images/ui/Change profile picture/16.png' =>
+      userDefaultAvatarAssetPath,
+    'assets/images/ui/Change profile picture/11.png' => userDadAvatarAssetPath,
+    'assets/images/ui/Change profile picture/14.png' => userMomAvatarAssetPath,
+    'assets/images/ui/Change profile picture/15.png' => userBoyAvatarAssetPath,
+    'assets/images/ui/Change profile picture/18.png' => userGirlAvatarAssetPath,
+    'assets/images/ui/Change profile picture/13 (1).png' =>
+      userMomYellowAvatarAssetPath,
+    'assets/images/ui/Change profile picture/12.png' =>
+      userBoyGreenAvatarAssetPath,
+    'assets/images/ui/Change profile picture/17.png' =>
+      userGirlBobAvatarAssetPath,
+    'assets/images/ui/family/5-(2).png' => userBoyAvatarAssetPath,
     'assets/images/ui/sprites/avatar_edit_default_avatar.png' =>
       userDefaultAvatarAssetPath,
     'assets/images/ui/sprites/avatar_edit_dad_avatar.png' =>
@@ -84,7 +108,7 @@ String? normalizedUserAvatarAssetValue(String? avatarValue) {
 
 bool isPresetUserAvatarAssetValue(String? avatarValue) {
   final value = avatarValue?.trim();
-  return value != null && value.startsWith('$userAvatarAssetBasePath/');
+  return value != null && _presetUserAvatarAssetPaths.contains(value);
 }
 
 String? normalizedPresetUserAvatarAssetValue(String? avatarValue) {
@@ -213,51 +237,37 @@ class _AvatarAssetTransform {
   static _AvatarAssetTransform forPath(String assetPath) {
     return switch (assetPath.trim()) {
       userDadAvatarAssetPath => const _AvatarAssetTransform(
-        offset: Offset(-0.01, -0.05),
-        scale: 1.08,
+        offset: Offset(-0.014, 0.010),
+        scale: 1.033,
       ),
       userBoyGreenAvatarAssetPath => const _AvatarAssetTransform(
-        offset: Offset(0.02, -0.05),
-        scale: 1.08,
+        offset: Offset(-0.015, 0.031),
+        scale: 1.062,
       ),
       userMomYellowAvatarAssetPath => const _AvatarAssetTransform(
-        offset: Offset(0.01, -0.04),
-        scale: 1.08,
+        offset: Offset(-0.009, 0.025),
+        scale: 0.952,
       ),
       userMomAvatarAssetPath => const _AvatarAssetTransform(
-        offset: Offset(0.05, -0.02),
-        scale: 1.08,
+        offset: Offset(-0.014, 0.021),
+        scale: 1.029,
       ),
       userBoyAvatarAssetPath => const _AvatarAssetTransform(
-        offset: Offset(-0.04, -0.02),
-        scale: 1.08,
+        offset: Offset(-0.017, 0.016),
+        scale: 1.083,
       ),
       userDefaultAvatarAssetPath => const _AvatarAssetTransform(
-        offset: Offset(0, -0.03),
-        scale: 1.08,
+        offset: Offset(-0.015, 0.022),
+        scale: 1.033,
       ),
       userGirlBobAvatarAssetPath => const _AvatarAssetTransform(
-        offset: Offset(0, -0.04),
-        scale: 1.08,
+        offset: Offset(0, 0),
+        scale: 1,
       ),
       userGirlAvatarAssetPath => const _AvatarAssetTransform(
-        offset: Offset(-0.03, -0.03),
-        scale: 1.08,
+        offset: Offset(-0.015, -0.005),
+        scale: 1.150,
       ),
-      'assets/images/ui/family/5-(2).png' => const _AvatarAssetTransform(
-        offset: Offset(0, 0.01),
-        scale: 1.04,
-      ),
-      'assets/images/ui/family/6 (1).png' => const _AvatarAssetTransform(
-        offset: Offset(0, 0.01),
-        scale: 1.03,
-      ),
-      'assets/images/ui/family/7 (1).png' => const _AvatarAssetTransform(
-        offset: Offset(0, 0),
-        scale: 1.0,
-      ),
-      'assets/images/ui/family/avatar_adult_male_reference_style.png' =>
-        const _AvatarAssetTransform(offset: Offset(0, 0.01), scale: 1.04),
       _ => const _AvatarAssetTransform(),
     };
   }
