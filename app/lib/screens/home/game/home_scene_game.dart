@@ -188,7 +188,9 @@ double _homePetPlacementScaleAdjustment({
 double _homePetTargetAreaForAssetPath(String assetPath) {
   final normalizedPath = assetPath.toLowerCase();
   if (normalizedPath.contains('/hamster_') ||
-      normalizedPath.contains('/turtle_')) {
+      normalizedPath.contains('/turtle_') ||
+      normalizedPath.contains('/hamster/') ||
+      normalizedPath.contains('/turtle/')) {
     return _homePetCompactTargetArea;
   }
   return _homePetRegularTargetArea;
@@ -233,6 +235,51 @@ const Map<String, Size> _homePetImagePixelSizes = <String, Size>{
   'images/pets/pets/turtle_lying.png': Size(715, 339),
   'images/pets/pets/turtle_sit.png': Size(435, 489),
   'images/pets/pets/turtle_sleep.png': Size(690, 334),
+  'images/pets/grow/cat/baby/lying.png': Size(1459, 1078),
+  'images/pets/grow/cat/baby/sitting.png': Size(1458, 1079),
+  'images/pets/grow/cat/baby/stage.png': Size(1456, 1080),
+  'images/pets/grow/cat/companion/sitting.png': Size(1185, 1327),
+  'images/pets/grow/cat/companion/stage.png': Size(1467, 1072),
+  'images/pets/grow/cat/companion/stretching.png': Size(1465, 1074),
+  'images/pets/grow/cat/growing/lying.png': Size(1401, 1123),
+  'images/pets/grow/cat/growing/sitting.png': Size(508, 696),
+  'images/pets/grow/cat/growing/sleeping.png': Size(755, 445),
+  'images/pets/grow/dog/baby/lying.png': Size(1402, 1122),
+  'images/pets/grow/dog/baby/sitting.png': Size(1254, 1254),
+  'images/pets/grow/dog/baby/sleeping.png': Size(1402, 1122),
+  'images/pets/grow/dog/companion/lying.png': Size(1402, 1122),
+  'images/pets/grow/dog/companion/sitting.png': Size(1145, 1373),
+  'images/pets/grow/dog/companion/stage.png': Size(1402, 1122),
+  'images/pets/grow/dog/growing/lying.png': Size(1402, 1122),
+  'images/pets/grow/dog/growing/sitting.png': Size(350, 511),
+  'images/pets/grow/dog/growing/sleeping.png': Size(583, 375),
+  'images/pets/grow/hamster/baby/lying.png': Size(1326, 1186),
+  'images/pets/grow/hamster/baby/sitting.png': Size(1199, 1312),
+  'images/pets/grow/hamster/baby/sleeping.png': Size(1300, 1209),
+  'images/pets/grow/hamster/companion/lying.png': Size(1487, 1058),
+  'images/pets/grow/hamster/companion/sleeping.png': Size(1302, 1208),
+  'images/pets/grow/hamster/companion/stage.png': Size(1175, 1338),
+  'images/pets/grow/hamster/growing/sitting.png': Size(377, 420),
+  'images/pets/grow/hamster/growing/sleeping.png': Size(1419, 1108),
+  'images/pets/grow/hamster/growing/standing.png': Size(388, 621),
+  'images/pets/grow/rabbit/baby/lying.png': Size(1254, 1254),
+  'images/pets/grow/rabbit/baby/sleeping.png': Size(1362, 1155),
+  'images/pets/grow/rabbit/baby/stage.png': Size(1254, 1254),
+  'images/pets/grow/rabbit/companion/lying.png': Size(1451, 1084),
+  'images/pets/grow/rabbit/companion/stage.png': Size(1163, 1353),
+  'images/pets/grow/rabbit/companion/stretching.png': Size(1465, 1073),
+  'images/pets/grow/rabbit/growing/lying.png': Size(351, 378),
+  'images/pets/grow/rabbit/growing/sitting.png': Size(255, 429),
+  'images/pets/grow/rabbit/growing/sleeping.png': Size(379, 234),
+  'images/pets/grow/turtle/baby/crawling.png': Size(1402, 1122),
+  'images/pets/grow/turtle/baby/sleeping.png': Size(1402, 1122),
+  'images/pets/grow/turtle/baby/stage.png': Size(1254, 1254),
+  'images/pets/grow/turtle/companion/crawling.png': Size(1402, 1122),
+  'images/pets/grow/turtle/companion/sleeping.png': Size(1402, 1122),
+  'images/pets/grow/turtle/companion/waving.png': Size(1173, 1341),
+  'images/pets/grow/turtle/growing/crawling.png': Size(715, 339),
+  'images/pets/grow/turtle/growing/sitting.png': Size(435, 489),
+  'images/pets/grow/turtle/growing/sleeping.png': Size(690, 334),
 };
 
 Size _resolvedPetSourceSize(String assetPath, Size normalizedCropSize) {
@@ -1141,10 +1188,15 @@ class HomeSceneTaskSeed {
 }
 
 class HomeScenePetSeed {
-  const HomeScenePetSeed({required this.petId, required this.petType});
+  const HomeScenePetSeed({
+    required this.petId,
+    required this.petType,
+    this.level = 1,
+  });
 
   final int petId;
   final String petType;
+  final int level;
 }
 
 bool _homeScenePetSeedsEqual(
@@ -1159,7 +1211,8 @@ bool _homeScenePetSeedsEqual(
     final leftSeed = left[index];
     final rightSeed = right[index];
     if (leftSeed.petId != rightSeed.petId ||
-        leftSeed.petType != rightSeed.petType) {
+        leftSeed.petType != rightSeed.petType ||
+        leftSeed.level != rightSeed.level) {
       return false;
     }
   }
@@ -1500,6 +1553,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           final petType = _normalizedPetType(pet.petType, index: index);
           final poseVariants = _buildPetPoseVariants(
             petType: petType,
+            level: pet.level,
             petId: pet.petId,
             placement: _petPlacements[pet.petId]!,
             layout: layout,
@@ -1527,6 +1581,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           final petType = _normalizedPetType(pet.petType, index: index);
           final poseVariants = _buildPetPoseVariants(
             petType: petType,
+            level: pet.level,
             petId: pet.petId,
             placement: _petPlacements[pet.petId]!,
             layout: layout,
@@ -1552,6 +1607,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       }
       final poseVariants = _homePoseAssetPathsForPlacement(
         petType,
+        pet.level,
         pet.petId,
         placement,
       );
@@ -1588,6 +1644,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           final petType = _normalizedPetType(pet.petType, index: index);
           final poseVariants = _buildPetPoseVariants(
             petType: petType,
+            level: pet.level,
             petId: pet.petId,
             placement: _petPlacements[pet.petId]!,
             layout: layout,
@@ -1703,6 +1760,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           final candidate = _homePetCandidatePoints[placement.candidateIndex];
           final poseVariants = _buildPetPoseVariants(
             petType: petType,
+            level: pet.level,
             petId: pet.petId,
             placement: placement,
             layout: layout,
@@ -1768,6 +1826,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       final placement = _petPlacements[pet.petId]!;
       final poseCount = _homePoseAssetPathsForPlacement(
         petType,
+        pet.level,
         pet.petId,
         placement,
       ).length;
@@ -1894,6 +1953,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       final candidate = _homePetCandidatePoints[placement.candidateIndex];
       final poseVariants = _buildPetPoseVariants(
         petType: petType,
+        level: pet.level,
         petId: pet.petId,
         placement: placement,
         layout: layout,
@@ -2174,6 +2234,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       }
       final poseCount = _homePoseAssetPathsForPlacement(
         petType,
+        pet.level,
         pet.petId,
         placement,
       ).length;
@@ -2265,9 +2326,11 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     if (!candidate.preferSitPose) {
       return true;
     }
-    return petHomePoseVariantsForType(petType).any(
+    return petGrowthHomePoseVariantsForType(petType, 1).any(
       (assetName) =>
-          _assetNameContainsAny(assetName, const <String>['sit', 'stand']),
+          _assetNameContainsAny(assetName, const <String>['sit', 'stand']) ||
+          assetName.contains('stage') ||
+          assetName.contains('waving'),
     );
   }
 
@@ -2281,26 +2344,28 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
 
   List<String> _homePoseAssetPathsForPlacement(
     String petType,
+    int level,
     int petId,
     _AssignedPetPlacement placement,
   ) {
     if (_placementUsesSitPosePreference(placement)) {
-      return _preferredSittingHomePoseAssetPaths(petType);
+      return _preferredSittingHomePoseAssetPaths(petType, level);
     }
     if (_placementUsesRestPosePreference(placement)) {
-      return _preferredRestingHomePoseAssetPaths(petType);
+      return _preferredRestingHomePoseAssetPaths(petType, level);
     }
     return List<String>.unmodifiable(
-      petHomePoseVariantsForType(
-        petType,
-      ).map((assetName) => 'images/pets/$assetName'),
+      petGrowthHomePoseVariantsForType(petType, level).map(
+        (assetName) => petGrowthHomeAssetPathForPose(petType, level, assetName),
+      ),
     );
   }
 
-  List<String> _preferredRestingHomePoseAssetPaths(String petType) {
-    final variantNames = petHomePoseVariantsForType(petType);
+  List<String> _preferredRestingHomePoseAssetPaths(String petType, int level) {
+    final variantNames = petGrowthHomePoseVariantsForType(petType, level);
     final preferredLie = variantNames.where(
-      (name) => _assetNameContainsAny(name, const <String>['lie', 'lying']),
+      (name) =>
+          _assetNameContainsAny(name, const <String>['crawl', 'lie', 'lying']),
     );
     final preferredSleep = variantNames.where((name) => name.contains('sleep'));
     final preferred = <String>[
@@ -2309,17 +2374,23 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     ];
     final variants = preferred.isNotEmpty ? preferred : variantNames;
     return List<String>.unmodifiable(
-      variants.map((assetName) => 'images/pets/$assetName'),
+      variants.map(
+        (assetName) => petGrowthHomeAssetPathForPose(petType, level, assetName),
+      ),
     );
   }
 
-  List<String> _preferredSittingHomePoseAssetPaths(String petType) {
-    final variantNames = petHomePoseVariantsForType(petType);
+  List<String> _preferredSittingHomePoseAssetPaths(String petType, int level) {
+    final variantNames = petGrowthHomePoseVariantsForType(petType, level);
     final preferredSit = variantNames.where(
-      (name) => _assetNameContainsAny(name, const <String>['sit', 'stand']),
+      (name) =>
+          _assetNameContainsAny(name, const <String>['sit', 'stand']) ||
+          name.contains('stage') ||
+          name.contains('waving'),
     );
     final preferredLie = variantNames.where(
-      (name) => _assetNameContainsAny(name, const <String>['lie', 'lying']),
+      (name) =>
+          _assetNameContainsAny(name, const <String>['crawl', 'lie', 'lying']),
     );
     final preferred = <String>[
       ...preferredSit,
@@ -2327,18 +2398,22 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     ];
     final variants = preferred.isNotEmpty ? preferred : variantNames;
     return List<String>.unmodifiable(
-      variants.map((assetName) => 'images/pets/$assetName'),
+      variants.map(
+        (assetName) => petGrowthHomeAssetPathForPose(petType, level, assetName),
+      ),
     );
   }
 
   List<_PetPoseVariantSpec> _buildPetPoseVariants({
     required String petType,
+    required int level,
     required int petId,
     required _AssignedPetPlacement placement,
     required _PetLayoutProfile layout,
   }) {
     final assetPaths = _homePoseAssetPathsForPlacement(
       petType,
+      level,
       petId,
       placement,
     );
@@ -2779,6 +2854,276 @@ const Map<String, _RectFactor> _homePetCropRects = <String, _RectFactor>{
     0.9325,
   ),
   'images/pets/pets/turtle_sleep.png': _RectFactor(
+    0.0275,
+    0.0599,
+    0.9420,
+    0.9072,
+  ),
+  'images/pets/grow/cat/baby/lying.png': _RectFactor(
+    0.2008,
+    0.2588,
+    0.6313,
+    0.4898,
+  ),
+  'images/pets/grow/cat/baby/sitting.png': _RectFactor(
+    0.2737,
+    0.1279,
+    0.4122,
+    0.6988,
+  ),
+  'images/pets/grow/cat/baby/stage.png': _RectFactor(
+    0.1834,
+    0.2037,
+    0.6133,
+    0.5574,
+  ),
+  'images/pets/grow/cat/companion/sitting.png': _RectFactor(
+    0.1443,
+    0.0686,
+    0.7013,
+    0.8478,
+  ),
+  'images/pets/grow/cat/companion/stage.png': _RectFactor(
+    0.0941,
+    0.1166,
+    0.8344,
+    0.7528,
+  ),
+  'images/pets/grow/cat/companion/stretching.png': _RectFactor(
+    0.0485,
+    0.1527,
+    0.9003,
+    0.7225,
+  ),
+  'images/pets/grow/cat/growing/lying.png': _RectFactor(
+    0.0521,
+    0.1808,
+    0.9094,
+    0.6848,
+  ),
+  'images/pets/grow/cat/growing/sitting.png': _RectFactor(
+    0.0335,
+    0.0201,
+    0.9528,
+    0.9727,
+  ),
+  'images/pets/grow/cat/growing/sleeping.png': _RectFactor(
+    0.0331,
+    0.0404,
+    0.9391,
+    0.9079,
+  ),
+  'images/pets/grow/dog/baby/lying.png': _RectFactor(
+    0.1576,
+    0.2371,
+    0.6797,
+    0.5526,
+  ),
+  'images/pets/grow/dog/baby/sitting.png': _RectFactor(
+    0.2065,
+    0.1619,
+    0.5710,
+    0.6388,
+  ),
+  'images/pets/grow/dog/baby/sleeping.png': _RectFactor(
+    0.1469,
+    0.2585,
+    0.7275,
+    0.4510,
+  ),
+  'images/pets/grow/dog/companion/lying.png': _RectFactor(
+    0.0720,
+    0.1168,
+    0.8787,
+    0.7398,
+  ),
+  'images/pets/grow/dog/companion/sitting.png': _RectFactor(
+    0.1362,
+    0.0940,
+    0.7729,
+    0.7822,
+  ),
+  'images/pets/grow/dog/companion/stage.png': _RectFactor(
+    0.1334,
+    0.0989,
+    0.7354,
+    0.7870,
+  ),
+  'images/pets/grow/dog/growing/lying.png': _RectFactor(
+    0.0870,
+    0.1774,
+    0.8488,
+    0.6533,
+  ),
+  'images/pets/grow/dog/growing/sitting.png': _RectFactor(
+    0.0457,
+    0.0215,
+    0.9086,
+    0.9589,
+  ),
+  'images/pets/grow/dog/growing/sleeping.png': _RectFactor(
+    0.0395,
+    0.0373,
+    0.9280,
+    0.9173,
+  ),
+  'images/pets/grow/hamster/baby/lying.png': _RectFactor(
+    0.1154,
+    0.2319,
+    0.7353,
+    0.5447,
+  ),
+  'images/pets/grow/hamster/baby/sitting.png': _RectFactor(
+    0.1827,
+    0.1814,
+    0.6339,
+    0.6441,
+  ),
+  'images/pets/grow/hamster/baby/sleeping.png': _RectFactor(
+    0.0685,
+    0.2134,
+    0.8438,
+    0.5633,
+  ),
+  'images/pets/grow/hamster/companion/lying.png': _RectFactor(
+    0.0760,
+    0.1853,
+    0.8171,
+    0.6106,
+  ),
+  'images/pets/grow/hamster/companion/sleeping.png': _RectFactor(
+    0.1022,
+    0.1887,
+    0.8003,
+    0.5985,
+  ),
+  'images/pets/grow/hamster/companion/stage.png': _RectFactor(
+    0.1200,
+    0.0269,
+    0.7166,
+    0.9327,
+  ),
+  'images/pets/grow/hamster/growing/sitting.png': _RectFactor(
+    0.0133,
+    0.0262,
+    0.9523,
+    0.9500,
+  ),
+  'images/pets/grow/hamster/growing/sleeping.png': _RectFactor(
+    0.1008,
+    0.1435,
+    0.8379,
+    0.6661,
+  ),
+  'images/pets/grow/hamster/growing/standing.png': _RectFactor(
+    0.0438,
+    0.0789,
+    0.9072,
+    0.9002,
+  ),
+  'images/pets/grow/rabbit/baby/lying.png': _RectFactor(
+    0.2217,
+    0.1794,
+    0.6132,
+    0.5845,
+  ),
+  'images/pets/grow/rabbit/baby/sleeping.png': _RectFactor(
+    0.1623,
+    0.1056,
+    0.7261,
+    0.7584,
+  ),
+  'images/pets/grow/rabbit/baby/stage.png': _RectFactor(
+    0.2265,
+    0.1045,
+    0.5327,
+    0.7416,
+  ),
+  'images/pets/grow/rabbit/companion/lying.png': _RectFactor(
+    0.1599,
+    0.0664,
+    0.7105,
+    0.8081,
+  ),
+  'images/pets/grow/rabbit/companion/stage.png': _RectFactor(
+    0.2519,
+    0.0665,
+    0.5340,
+    0.8174,
+  ),
+  'images/pets/grow/rabbit/companion/stretching.png': _RectFactor(
+    0.1543,
+    0.1295,
+    0.6976,
+    0.7148,
+  ),
+  'images/pets/grow/rabbit/growing/lying.png': _RectFactor(
+    0.0570,
+    0.0582,
+    0.8803,
+    0.8862,
+  ),
+  'images/pets/grow/rabbit/growing/sitting.png': _RectFactor(
+    0.0549,
+    0.0303,
+    0.8863,
+    0.9464,
+  ),
+  'images/pets/grow/rabbit/growing/sleeping.png': _RectFactor(
+    0.0317,
+    0.0598,
+    0.9420,
+    0.8932,
+  ),
+  'images/pets/grow/turtle/baby/crawling.png': _RectFactor(
+    0.1840,
+    0.2620,
+    0.6369,
+    0.4724,
+  ),
+  'images/pets/grow/turtle/baby/sleeping.png': _RectFactor(
+    0.1954,
+    0.2843,
+    0.6170,
+    0.4305,
+  ),
+  'images/pets/grow/turtle/baby/stage.png': _RectFactor(
+    0.2368,
+    0.1611,
+    0.5144,
+    0.6850,
+  ),
+  'images/pets/grow/turtle/companion/crawling.png': _RectFactor(
+    0.0991,
+    0.2121,
+    0.8017,
+    0.5829,
+  ),
+  'images/pets/grow/turtle/companion/sleeping.png': _RectFactor(
+    0.0492,
+    0.2255,
+    0.8987,
+    0.5428,
+  ),
+  'images/pets/grow/turtle/companion/waving.png': _RectFactor(
+    0.1415,
+    0.1178,
+    0.7059,
+    0.7360,
+  ),
+  'images/pets/grow/turtle/growing/crawling.png': _RectFactor(
+    0.0336,
+    0.0501,
+    0.9427,
+    0.8791,
+  ),
+  'images/pets/grow/turtle/growing/sitting.png': _RectFactor(
+    0.0483,
+    0.0429,
+    0.9057,
+    0.9325,
+  ),
+  'images/pets/grow/turtle/growing/sleeping.png': _RectFactor(
     0.0275,
     0.0599,
     0.9420,

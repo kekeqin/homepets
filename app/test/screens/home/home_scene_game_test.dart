@@ -23,6 +23,81 @@ const _staticHomePetAssetPaths = <String>[
   'images/pets/pets/turtle_sleep.png',
 ];
 
+const _growthHomePetAssetPaths = <String>[
+  'images/pets/grow/cat/baby/lying.png',
+  'images/pets/grow/cat/baby/sitting.png',
+  'images/pets/grow/cat/baby/stage.png',
+  'images/pets/grow/cat/growing/lying.png',
+  'images/pets/grow/cat/growing/sitting.png',
+  'images/pets/grow/cat/growing/sleeping.png',
+  'images/pets/grow/cat/companion/sitting.png',
+  'images/pets/grow/cat/companion/stage.png',
+  'images/pets/grow/cat/companion/stretching.png',
+  'images/pets/grow/dog/baby/lying.png',
+  'images/pets/grow/dog/baby/sitting.png',
+  'images/pets/grow/dog/baby/sleeping.png',
+  'images/pets/grow/dog/growing/lying.png',
+  'images/pets/grow/dog/growing/sitting.png',
+  'images/pets/grow/dog/growing/sleeping.png',
+  'images/pets/grow/dog/companion/lying.png',
+  'images/pets/grow/dog/companion/sitting.png',
+  'images/pets/grow/dog/companion/stage.png',
+  'images/pets/grow/hamster/baby/lying.png',
+  'images/pets/grow/hamster/baby/sitting.png',
+  'images/pets/grow/hamster/baby/sleeping.png',
+  'images/pets/grow/hamster/growing/standing.png',
+  'images/pets/grow/hamster/growing/sitting.png',
+  'images/pets/grow/hamster/growing/sleeping.png',
+  'images/pets/grow/hamster/companion/lying.png',
+  'images/pets/grow/hamster/companion/sleeping.png',
+  'images/pets/grow/hamster/companion/stage.png',
+  'images/pets/grow/rabbit/baby/lying.png',
+  'images/pets/grow/rabbit/baby/sleeping.png',
+  'images/pets/grow/rabbit/baby/stage.png',
+  'images/pets/grow/rabbit/growing/lying.png',
+  'images/pets/grow/rabbit/growing/sitting.png',
+  'images/pets/grow/rabbit/growing/sleeping.png',
+  'images/pets/grow/rabbit/companion/lying.png',
+  'images/pets/grow/rabbit/companion/stage.png',
+  'images/pets/grow/rabbit/companion/stretching.png',
+  'images/pets/grow/turtle/baby/crawling.png',
+  'images/pets/grow/turtle/baby/sleeping.png',
+  'images/pets/grow/turtle/baby/stage.png',
+  'images/pets/grow/turtle/growing/crawling.png',
+  'images/pets/grow/turtle/growing/sitting.png',
+  'images/pets/grow/turtle/growing/sleeping.png',
+  'images/pets/grow/turtle/companion/crawling.png',
+  'images/pets/grow/turtle/companion/sleeping.png',
+  'images/pets/grow/turtle/companion/waving.png',
+];
+
+const _transparentGrowthCanvasCropRects = <String, Rect>{
+  'images/pets/grow/dog/baby/sleeping.png': Rect.fromLTWH(
+    0.1469,
+    0.2585,
+    0.7275,
+    0.4510,
+  ),
+  'images/pets/grow/hamster/companion/lying.png': Rect.fromLTWH(
+    0.0760,
+    0.1853,
+    0.8171,
+    0.6106,
+  ),
+  'images/pets/grow/hamster/companion/sleeping.png': Rect.fromLTWH(
+    0.1022,
+    0.1887,
+    0.8003,
+    0.5985,
+  ),
+  'images/pets/grow/rabbit/baby/lying.png': Rect.fromLTWH(
+    0.2217,
+    0.1794,
+    0.6132,
+    0.5845,
+  ),
+};
+
 const _rightArmchairSitAssetPaths = <String>[
   'images/pets/pets/cat_sit.png',
   'images/pets/pets/dog_sit.png',
@@ -130,7 +205,7 @@ void main() {
       expect(secondAssignments, firstAssignments);
     });
 
-    test('uses static homepage pet assets from the new asset set', () {
+    test('uses growth-stage homepage pet assets', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
       game.replacePetEntries(const <HomeScenePetSeed>[
         HomeScenePetSeed(petId: 11, petType: 'cat'),
@@ -146,10 +221,44 @@ void main() {
       for (final variants in poseVariants.values) {
         expect(variants, isNotEmpty);
         for (final assetPath in variants) {
-          expect(assetPath, startsWith('images/pets/pets/'));
+          expect(assetPath, startsWith('images/pets/grow/'));
           expect(assetPath, endsWith('.png'));
         }
       }
+    });
+
+    test('maps pet levels to baby, growing, and companion assets', () {
+      final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+      game.replacePetEntries(const <HomeScenePetSeed>[
+        HomeScenePetSeed(petId: 11, petType: 'dog', level: 1),
+        HomeScenePetSeed(petId: 22, petType: 'dog', level: 2),
+        HomeScenePetSeed(petId: 33, petType: 'dog', level: 3),
+        HomeScenePetSeed(petId: 44, petType: 'dog', level: 4),
+        HomeScenePetSeed(petId: 55, petType: 'dog', level: 5),
+      ]);
+
+      final poseVariants = game.debugPetPoseAssetVariants();
+
+      expect(
+        poseVariants[11]!.every((path) => path.contains('/baby/')),
+        isTrue,
+      );
+      expect(
+        poseVariants[22]!.every((path) => path.contains('/growing/')),
+        isTrue,
+      );
+      expect(
+        poseVariants[33]!.every((path) => path.contains('/growing/')),
+        isTrue,
+      );
+      expect(
+        poseVariants[44]!.every((path) => path.contains('/companion/')),
+        isTrue,
+      );
+      expect(
+        poseVariants[55]!.every((path) => path.contains('/companion/')),
+        isTrue,
+      );
     });
 
     test('keeps homepage pet asset paths stable across refreshes', () {
@@ -185,7 +294,7 @@ void main() {
       }
     });
 
-    test('keeps cat and dog homepage poses on static pet assets', () {
+    test('keeps cat and dog homepage poses on growth-stage pet assets', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
       game.replacePetEntries(const <HomeScenePetSeed>[
         HomeScenePetSeed(petId: 11, petType: 'cat'),
@@ -198,8 +307,8 @@ void main() {
 
       final currentAssets = game.debugCurrentPetPoseAssetPaths().values;
       for (final assetPath in currentAssets) {
-        expect(assetPath, startsWith('images/pets/pets/'));
-        expect(assetPath, anyOf(contains('cat_'), contains('dog_')));
+        expect(assetPath, startsWith('images/pets/grow/'));
+        expect(assetPath, anyOf(contains('/cat/'), contains('/dog/')));
       }
     });
 
@@ -233,7 +342,7 @@ void main() {
       expect(currentAssets[armchairPetId], isIn(poseVariants[armchairPetId]!));
       expect(
         poseVariants[armchairPetId],
-        contains(anyOf(contains('sit'), contains('stand'))),
+        contains(anyOf(contains('sit'), contains('stand'), contains('stage'))),
       );
     });
 
@@ -263,8 +372,26 @@ void main() {
     });
 
     test('defines a home scale override for every homepage pose asset', () {
-      for (final assetPath in _staticHomePetAssetPaths) {
+      for (final assetPath in _growthHomePetAssetPaths) {
         expect(HomeSceneGame.debugHasHomePetScaleOverride(assetPath), isTrue);
+      }
+    });
+
+    test('crops transparent growth canvases to visible pet artwork', () {
+      for (final entry in _transparentGrowthCanvasCropRects.entries) {
+        final cropRect = HomeSceneGame.debugPetCropRectForAssetPath(entry.key);
+
+        expect(cropRect, isNotNull);
+        expect(cropRect!.left, closeTo(entry.value.left, 0.0001));
+        expect(cropRect.top, closeTo(entry.value.top, 0.0001));
+        expect(cropRect.width, closeTo(entry.value.width, 0.0001));
+        expect(cropRect.height, closeTo(entry.value.height, 0.0001));
+        expect(
+          cropRect.width * cropRect.height,
+          lessThan(0.51),
+          reason:
+              '${entry.key} should not lay out from the full transparent canvas.',
+        );
       }
     });
 
