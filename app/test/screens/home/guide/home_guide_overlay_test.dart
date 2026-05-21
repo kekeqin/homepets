@@ -26,6 +26,10 @@ void main() {
     );
 
     expect(find.text('点击这里打开任务面板'), findsOneWidget);
+    expect(
+      find.image(const AssetImage('assets/images/ui/login/bubble.png')),
+      findsOneWidget,
+    );
     expect(find.byType(Image), findsWidgets);
 
     await tester.tap(find.text('稍后再看'));

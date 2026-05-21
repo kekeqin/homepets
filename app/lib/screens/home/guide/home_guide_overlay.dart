@@ -10,6 +10,7 @@ import '../task_panel_sprite_catalog.dart';
 import 'home_guide_controller.dart';
 
 const String _guideFingerAsset = 'assets/images/ui/login/finger1.png';
+const String _guideBubbleAsset = 'assets/images/ui/login/bubble.png';
 
 class HomeGuideOverlay extends StatelessWidget {
   const HomeGuideOverlay({
@@ -74,6 +75,7 @@ class HomeGuideOverlay extends StatelessWidget {
               Positioned.fromRect(
                 rect: bubble,
                 child: _GuideBubble(
+                  step: step,
                   message: _messageFor(step),
                   stepLabel: _stepLabelFor(step),
                   onSkip: onSkip,
@@ -104,11 +106,19 @@ class HomeGuideOverlay extends StatelessWidget {
   Rect _previewRectFor(Rect anchor, Size size) {
     const margin = 18.0;
     final compact = size.width < 520;
-    final width = compact
-        ? math.min(size.width * 0.46, 178.0)
-        : math.min(size.width * 0.30, 238.0);
+    final width = switch (step) {
+      HomeGuideStep.taskSticker =>
+        compact
+            ? math.min(size.width * 0.55, 224.0)
+            : math.min(size.width * 0.36, 320.0),
+      _ =>
+        compact
+            ? math.min(size.width * 0.46, 178.0)
+            : math.min(size.width * 0.30, 238.0),
+    };
     final height = switch (step) {
-      HomeGuideStep.taskSticker => width * 1.04,
+      HomeGuideStep.taskSticker =>
+        width * TaskBoardReferenceAsset.panelHeightRatio,
       HomeGuideStep.familyFrame => width * 0.86,
       HomeGuideStep.petArea => width * 0.78,
       HomeGuideStep.done => width * 0.72,
@@ -135,8 +145,11 @@ class HomeGuideOverlay extends StatelessWidget {
 
   Rect _bubbleRectFor(Rect preview, Size size) {
     const margin = 18.0;
-    final width = math.min(size.width - (margin * 2), 320.0);
-    const height = 104.0;
+    final isTaskGuide = step == HomeGuideStep.taskSticker;
+    final width = isTaskGuide
+        ? math.min(size.width - (margin * 2), 340.0)
+        : math.min(size.width - (margin * 2), 320.0);
+    final height = isTaskGuide ? width * 0.40 : 104.0;
     var left = preview.center.dx - width * 0.5;
     var top = preview.bottom + 14;
     if (top + height > size.height - margin) {
@@ -179,17 +192,86 @@ class HomeGuideOverlay extends StatelessWidget {
 
 class _GuideBubble extends StatelessWidget {
   const _GuideBubble({
+    required this.step,
     required this.message,
     required this.stepLabel,
     required this.onSkip,
   });
 
+  final HomeGuideStep step;
   final String message;
   final String stepLabel;
   final VoidCallback onSkip;
 
   @override
   Widget build(BuildContext context) {
+    if (step == HomeGuideStep.taskSticker) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            _guideBubbleAsset,
+            fit: BoxFit.fill,
+            filterQuality: FilterQuality.medium,
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(34, 22, 28, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        message,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF6B4C36),
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          height: 1.05,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      stepLabel,
+                      style: const TextStyle(
+                        color: Color(0xFF9D7653),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        height: 1,
+                      ),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                Align(
+                  alignment: Alignment.bottomRight,
+                  child: TextButton(
+                    onPressed: onSkip,
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(64, 30),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      foregroundColor: const Color(0xFF8E6748),
+                      textStyle: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    child: const Text('稍后再看'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
     return DecoratedBox(
       decoration: BoxDecoration(
         color: const Color(0xFFFFF8EA),

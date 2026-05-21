@@ -114,6 +114,7 @@ void main() {
         'assets/images/ui/guide/hotspot_pet_highlight.png',
         'assets/images/ui/guide/guide_asset_manifest.json',
         'assets/images/ui/login/finger1.png',
+        'assets/images/ui/login/bubble.png',
       ];
 
       for (final assetPath in guideAssetPaths) {
