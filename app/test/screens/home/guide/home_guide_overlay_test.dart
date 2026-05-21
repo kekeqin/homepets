@@ -78,6 +78,6 @@ void main() {
     );
 
     expect(find.text('点击宠物查看成长'), findsOneWidget);
-    expect(find.byIcon(Icons.pets_rounded), findsOneWidget);
+    expect(find.byType(Image), findsWidgets);
   });
 }
