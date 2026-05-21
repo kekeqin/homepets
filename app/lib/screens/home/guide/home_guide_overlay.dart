@@ -3,7 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../core/ui/sprite_atlas.dart';
-import '../../../widgets/user_avatar.dart';
+import '../../../models/pet.dart';
+import '../../family/models/family_member_view_data.dart';
+import '../../family/widgets/family_member_grid.dart';
 import '../../family/widgets/family_sprite_slice.dart';
 import '../../pet/pet_detail_sprite_catalog.dart';
 import '../task_panel_sprite_catalog.dart';
@@ -35,8 +37,8 @@ class HomeGuideOverlay extends StatelessWidget {
     final safeAnchor = _clampAnchor(anchorRect, screenSize);
     final preview = _previewRectFor(safeAnchor, screenSize);
     final bubble = _bubbleRectFor(preview, screenSize);
-    final pointer = _pointerRectFor(safeAnchor, preview);
-    final arrowStart = _arrowStartFor(safeAnchor, pointer);
+    final pointer = _pointerRectFor(safeAnchor, preview, screenSize);
+    final arrowStart = _arrowStartFor(safeAnchor, pointer, preview);
     final arrowEnd = _arrowEndFor(preview);
 
     return SizedBox.expand(
@@ -54,7 +56,7 @@ class HomeGuideOverlay extends StatelessWidget {
                   child: _GuideObjectGlow(step: step),
                 ),
               ),
-              if (step == HomeGuideStep.taskSticker)
+              if (step != HomeGuideStep.done)
                 Positioned.fromRect(
                   rect: _taskPetRectFor(screenSize),
                   child: const IgnorePointer(
@@ -129,105 +131,47 @@ class HomeGuideOverlay extends StatelessWidget {
     return Rect.fromLTWH(left, top, width, height);
   }
 
-  Rect _previewRectFor(Rect anchor, Size size) {
+  Rect _previewRectFor(Rect _, Size size) {
     const margin = 18.0;
     final compact = size.width < 520;
 
-    if (step == HomeGuideStep.taskSticker) {
-      final maxWidth = math.max(0.0, size.width - margin * 2);
-      final targetWidth = compact
-          ? math.max(size.width * 0.66, 258.0)
-          : math.min(size.width * 0.62, 620.0);
-      final width = math.min(maxWidth, targetWidth);
-      final height = width * TaskBoardReferenceAsset.panelHeightRatio;
-      final desiredCenterX = size.width * (compact ? 0.60 : 0.58);
-      var left = desiredCenterX - width * 0.5;
-      var top = size.height * (compact ? 0.18 : 0.16);
-
-      left = left
-          .clamp(margin, math.max(margin, size.width - width - margin))
-          .toDouble();
-      top = top
-          .clamp(margin + 8, math.max(margin + 8, size.height - height - 238))
-          .toDouble();
-
-      return Rect.fromLTWH(left, top, width, height);
+    if (step == HomeGuideStep.done) {
+      return Rect.zero;
     }
 
-    final width = switch (step) {
-      _ =>
-        compact
-            ? math.min(size.width * 0.46, 178.0)
-            : math.min(size.width * 0.30, 238.0),
-    };
-    final height = switch (step) {
-      HomeGuideStep.taskSticker =>
-        width * TaskBoardReferenceAsset.panelHeightRatio,
-      HomeGuideStep.familyFrame => width * 0.86,
-      HomeGuideStep.petArea => width * 0.78,
-      HomeGuideStep.done => width * 0.72,
-    };
-
-    var left = anchor.center.dx < size.width * 0.56
-        ? anchor.right + 28
-        : anchor.left - width - 28;
-    if (left < margin || left + width > size.width - margin) {
-      left = anchor.center.dx - width * 0.5;
-    }
-
-    var top = step == HomeGuideStep.taskSticker
-        ? math.max(size.height * 0.14, anchor.center.dy - height * 0.28)
-        : anchor.center.dy - height * 0.46;
+    final maxWidth = math.max(0.0, size.width - margin * 2);
+    final targetWidth = compact
+        ? math.max(size.width * 0.66, 258.0)
+        : math.min(size.width * 0.62, 620.0);
+    final width = math.min(maxWidth, targetWidth);
+    final height = width * TaskBoardReferenceAsset.panelHeightRatio;
+    final desiredCenterX = size.width * (compact ? 0.60 : 0.58);
+    var left = desiredCenterX - width * 0.5;
+    var top = size.height * (compact ? 0.3 : 0.3);
 
     left = left
         .clamp(margin, math.max(margin, size.width - width - margin))
         .toDouble();
-    final bottomReserve = step == HomeGuideStep.taskSticker ? 248.0 : 112.0;
     top = top
-        .clamp(
-          margin + 8,
-          math.max(margin + 8, size.height - height - bottomReserve),
-        )
+        .clamp(margin + 8, math.max(margin + 8, size.height - height - 238))
         .toDouble();
 
     return Rect.fromLTWH(left, top, width, height);
   }
 
-  Rect _bubbleRectFor(Rect preview, Size size) {
+  Rect _bubbleRectFor(Rect _, Size size) {
     const margin = 18.0;
-    final isTaskGuide = step == HomeGuideStep.taskSticker;
-
-    if (isTaskGuide) {
-      final width = math.min(
-        size.width - margin * 2,
-        math.max(size.width * 0.62, 242.0),
-      );
-      final height = width * (1024 / 1536);
-      final targetCenterX = size.width * 0.50;
-      var left = targetCenterX - width * 0.5;
-      var top = size.height * 0.64;
-
-      left = left.clamp(margin, size.width - width - margin).toDouble();
-      top = top
-          .clamp(
-            margin + 8,
-            math.max(margin + 8, size.height - height - margin),
-          )
-          .toDouble();
-      return Rect.fromLTWH(left, top, width, height);
+    if (step == HomeGuideStep.done) {
+      return Rect.zero;
     }
-
-    final width = isTaskGuide
-        ? math.min(size.width * 0.58, 330.0)
-        : math.min(size.width - (margin * 2), 320.0);
-    final height = isTaskGuide ? width * 0.38 : 104.0;
-    var left = isTaskGuide
-        ? size.width * 0.38
-        : preview.center.dx - width * 0.5;
-    var top = isTaskGuide ? preview.bottom + 20 : preview.bottom + 14;
-    if (top + height > size.height - margin) {
-      top = preview.top - height - 14;
-    }
+    final width = math.min(
+      size.width - margin * 2,
+      math.max(size.width * 0.62, 242.0),
+    );
+    final height = width * (1024 / 1536);
+    final targetCenterX = size.width * 0.50;
+    var left = targetCenterX - width * 0.5;
+    var top = size.height * 0.72;
 
     left = left.clamp(margin, size.width - width - margin).toDouble();
     top = top
@@ -237,9 +181,9 @@ class HomeGuideOverlay extends StatelessWidget {
   }
 
   Rect _taskPetRectFor(Size size) {
-    final petSize = size.width.clamp(360.0, 560.0) * 0.18;
-    final left = size.width * 0.004;
-    final bottom = size.height * 0.018;
+    final petSize = size.width.clamp(360.0, 560.0) * 0.32;
+    final left = size.width * 0.009;
+    final bottom = size.height * 0.046;
     return Rect.fromLTWH(
       left,
       size.height - bottom - petSize,
@@ -248,34 +192,55 @@ class HomeGuideOverlay extends StatelessWidget {
     );
   }
 
-  Rect _pointerRectFor(Rect anchor, Rect preview) {
+  Rect _pointerRectFor(Rect anchor, Rect preview, Size screenSize) {
     const size = 76.0;
     if (step == HomeGuideStep.taskSticker) {
       return Rect.fromLTWH(
         anchor.center.dx - size * 0.08,
-        anchor.center.dy - size * 0.34,
+        anchor.center.dy - size * 0.73,
         size,
         size,
       );
     }
 
-    final fromLeft = preview.center.dx > anchor.center.dx;
-    final left = fromLeft ? anchor.right - 8 : anchor.left - size + 8;
-    final top = anchor.center.dy - size * 0.34;
+    final leftFactor = step == HomeGuideStep.familyFrame ? 0.10 : 0.12;
+    final topFactor = step == HomeGuideStep.familyFrame ? 0.64 : 0.64;
+    final left = (anchor.center.dx - size * leftFactor)
+        .clamp(8.0, math.max(8.0, screenSize.width - size - 8))
+        .toDouble();
+    final top = (anchor.center.dy - size * topFactor)
+        .clamp(8.0, math.max(8.0, screenSize.height - size - 8))
+        .toDouble();
     return Rect.fromLTWH(left, top, size, size);
   }
 
-  Offset _arrowStartFor(Rect anchor, Rect pointer) {
+  Offset _arrowStartFor(Rect anchor, Rect pointer, Rect preview) {
     if (step == HomeGuideStep.taskSticker) {
       return Offset(pointer.right - 12, pointer.top + pointer.height * 0.46);
     }
-    return anchor.center;
+    final pointsRight = preview.center.dx >= pointer.center.dx;
+    return Offset(
+      pointsRight ? pointer.right - 12 : pointer.left + 12,
+      pointer.top + pointer.height * 0.50,
+    );
   }
 
   Offset _arrowEndFor(Rect preview) {
     if (step == HomeGuideStep.taskSticker) {
       return Offset(
         preview.left + preview.width * 0.24,
+        preview.top + preview.height * 0.20,
+      );
+    }
+    if (step == HomeGuideStep.familyFrame) {
+      return Offset(
+        preview.left + preview.width * 0.24,
+        preview.top + preview.height * 0.22,
+      );
+    }
+    if (step == HomeGuideStep.petArea) {
+      return Offset(
+        preview.left + preview.width * 0.32,
         preview.top + preview.height * 0.20,
       );
     }
@@ -316,154 +281,85 @@ class _GuideBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (step == HomeGuideStep.taskSticker) {
-      return Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset(
-            _guideBubbleAsset,
-            fit: BoxFit.fill,
-            filterQuality: FilterQuality.medium,
-          ),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final messageFontSize = (constraints.maxWidth * 0.048)
-                  .clamp(13.0, 14.0)
-                  .toDouble();
-              final stepFontSize = (messageFontSize - 4).clamp(9.0, 10.5);
-              final skipFontSize = (messageFontSize - 3).clamp(10.0, 11.5);
-              return Padding(
-                padding: EdgeInsets.fromLTRB(
-                  constraints.maxWidth * 0.30,
-                  constraints.maxHeight * 0.33,
-                  constraints.maxWidth * 0.26,
-                  constraints.maxHeight * 0.22,
-                ),
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          message,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: const Color(0xFF6B4C36),
-                            fontSize: messageFontSize,
-                            fontWeight: FontWeight.w700,
-                            height: 1.05,
-                          ),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.asset(
+          _guideBubbleAsset,
+          fit: BoxFit.fill,
+          filterQuality: FilterQuality.medium,
+        ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final messageFontSize = (constraints.maxWidth * 0.07)
+                .clamp(13.0, 14.0)
+                .toDouble();
+            final stepFontSize = (messageFontSize - 4).clamp(9.0, 10.5);
+            final skipFontSize = (messageFontSize - 3).clamp(10.0, 11.5);
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                constraints.maxWidth * 0.18,
+                constraints.maxHeight * 0.18,
+                constraints.maxWidth * 0.26,
+                constraints.maxHeight * 0.22,
+              ),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        message,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: const Color(0xFF6B4C36),
+                          fontSize: messageFontSize,
+                          fontWeight: FontWeight.w700,
+                          height: 1.05,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Align(
-                      alignment: Alignment.bottomRight,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            stepLabel,
-                            style: TextStyle(
-                              color: const Color(0xFF9D7653),
-                              fontSize: stepFontSize,
+                  ),
+                  const SizedBox(height: 2),
+                  Align(
+                    alignment: Alignment.bottomRight,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          stepLabel,
+                          style: TextStyle(
+                            color: const Color(0xFF9D7653),
+                            fontSize: stepFontSize,
+                            fontWeight: FontWeight.w800,
+                            height: 1,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        TextButton(
+                          onPressed: onSkip,
+                          style: TextButton.styleFrom(
+                            minimumSize: const Size(52, 24),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            foregroundColor: const Color(0xFF8E6748),
+                            textStyle: TextStyle(
+                              fontSize: skipFontSize,
                               fontWeight: FontWeight.w800,
-                              height: 1,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          TextButton(
-                            onPressed: onSkip,
-                            style: TextButton.styleFrom(
-                              minimumSize: const Size(52, 24),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                              ),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              foregroundColor: const Color(0xFF8E6748),
-                              textStyle: TextStyle(
-                                fontSize: skipFontSize,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            child: const Text('稍后再看'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
-      );
-    }
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8EA),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE5C48D), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF6D4A2E).withValues(alpha: 0.16),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 14, 14, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    message,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF6B4C36),
-                      fontSize: 17,
-                      fontWeight: FontWeight.w900,
-                      height: 1.1,
+                          child: const Text('稍后再看'),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                Text(
-                  stepLabel,
-                  style: const TextStyle(
-                    color: Color(0xFF9D7653),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    height: 1,
-                  ),
-                ),
-              ],
-            ),
-            const Spacer(),
-            Align(
-              alignment: Alignment.bottomRight,
-              child: TextButton(
-                onPressed: onSkip,
-                style: TextButton.styleFrom(
-                  minimumSize: const Size(64, 34),
-                  foregroundColor: const Color(0xFF8E6748),
-                  textStyle: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                child: const Text('稍后再看'),
+                ],
               ),
-            ),
-          ],
+            );
+          },
         ),
-      ),
+      ],
     );
   }
 }
@@ -654,7 +550,7 @@ class _TaskPanelPreview extends StatelessWidget {
                   ],
                 ),
               ),
-              for (var index = 0; index < 3; index++)
+              for (var index = 0; index < 4; index++)
                 Positioned(
                   left: rowLeft,
                   top: rowsTop + index * (rowHeight + rowGap),
@@ -748,69 +644,227 @@ class _FamilyAlbumPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return const _CurrentFamilyPagePreview();
+  }
+}
+
+class _CurrentFamilyPagePreview extends StatelessWidget {
+  const _CurrentFamilyPagePreview();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      fit: StackFit.expand,
+      children: [
+        Positioned.fill(
+          child: Image.asset(
+            FamilyPopupAssets.mainPanel,
+            fit: BoxFit.fill,
+            filterQuality: FilterQuality.medium,
+            isAntiAlias: true,
+          ),
+        ),
+        Positioned.fill(
+          child: IgnorePointer(
+            child: Image.asset(
+              FamilyPopupAssets.mainPanelOutline,
+              fit: BoxFit.fill,
+              filterQuality: FilterQuality.medium,
+              isAntiAlias: true,
+            ),
+          ),
+        ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            final height = constraints.maxHeight;
+            final titleWidth = (width * 0.42).clamp(96.0, 288.0).toDouble();
+            final titleHeight = titleWidth / 3.03;
+            final addSize = (width * 0.16).clamp(30.0, 66.0).toDouble();
+            final notebookSize = (width * 0.078).clamp(22.0, 46.0).toDouble();
+
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned(
+                  left: width * 0.070,
+                  top: height * 0.058,
+                  width: addSize,
+                  height: addSize,
+                  child: Image.asset(
+                    FamilyPopupAssets.addButton,
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.medium,
+                    isAntiAlias: true,
+                  ),
+                ),
+                Positioned(
+                  top: height * 0.055,
+                  left: (width - titleWidth) / 2,
+                  width: titleWidth,
+                  height: titleHeight,
+                  child: Image.asset(
+                    FamilyPopupAssets.title,
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.medium,
+                    isAntiAlias: true,
+                  ),
+                ),
+                Positioned(
+                  top: height * 0.052,
+                  left: width * 0.705,
+                  width: notebookSize,
+                  height: notebookSize,
+                  child: Transform.rotate(
+                    angle: 0.20,
+                    child: const _FamilyNotebookPreviewIcon(),
+                  ),
+                ),
+                Positioned(
+                  left: width * 0.055,
+                  right: width * 0.055,
+                  top: height * 0.195,
+                  bottom: height * 0.062,
+                  child: FamilyMemberGrid(
+                    members: _previewFamilyMembers,
+                    petAvatarAssetPathsById: _previewFamilyPetAvatarAssetPaths,
+                    entryAnimation: const AlwaysStoppedAnimation<double>(1),
+                    canAddMembers: true,
+                    onAddMemberTap: () {},
+                  ),
+                ),
+                Positioned(
+                  top: 0,
+                  right: 2,
+                  child: SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Image.asset(
+                      FamilyPopupAssets.closeButton,
+                      fit: BoxFit.contain,
+                      filterQuality: FilterQuality.medium,
+                      isAntiAlias: true,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+final List<FamilyMemberViewData> _previewFamilyMembers = [
+  FamilyMemberViewData(
+    id: 1,
+    nickname: '妈妈',
+    role: 'admin',
+    points: 74,
+    petId: 101,
+    petType: 'cat',
+    pet: Pet(
+      id: 101,
+      name: '团团',
+      petType: 'cat',
+      petForm: 'pet',
+      level: 3,
+      experience: 44,
+      ownerId: 1,
+      familyId: 1,
+      levelThreshold: 60,
+    ),
+  ),
+  FamilyMemberViewData(
+    id: 2,
+    nickname: '孩子',
+    role: 'member',
+    points: 46,
+    petId: 102,
+    petType: 'dog',
+    pet: Pet(
+      id: 102,
+      name: '豆豆',
+      petType: 'dog',
+      petForm: 'pet',
+      level: 2,
+      experience: 28,
+      ownerId: 2,
+      familyId: 1,
+      levelThreshold: 60,
+    ),
+  ),
+  FamilyMemberViewData(
+    id: 3,
+    nickname: '妹妹',
+    role: 'member',
+    points: 32,
+    petId: 103,
+    petType: 'rabbit',
+    avatarUrl: 'assets/images/ui/family/11.png',
+    pet: Pet(
+      id: 103,
+      name: '雪球',
+      petType: 'rabbit',
+      petForm: 'pet',
+      level: 2,
+      experience: 18,
+      ownerId: 3,
+      familyId: 1,
+      levelThreshold: 60,
+    ),
+  ),
+  FamilyMemberViewData(
+    id: 4,
+    nickname: '哥哥',
+    role: 'member',
+    points: 58,
+    petId: 104,
+    petType: 'hamster',
+    avatarUrl: 'assets/images/ui/family/13.png',
+    pet: Pet(
+      id: 104,
+      name: '米粒',
+      petType: 'hamster',
+      petForm: 'pet',
+      level: 3,
+      experience: 52,
+      ownerId: 4,
+      familyId: 1,
+      levelThreshold: 60,
+    ),
+  ),
+];
+
+const Map<int, String> _previewFamilyPetAvatarAssetPaths = {
+  101: 'assets/images/pets/grow/cat/growing/sitting.png',
+  102: 'assets/images/pets/grow/dog/growing/sitting.png',
+  103: 'assets/images/pets/grow/rabbit/growing/sitting.png',
+  104: 'assets/images/pets/grow/hamster/growing/sitting.png',
+};
+
+class _FamilyNotebookPreviewIcon extends StatelessWidget {
+  const _FamilyNotebookPreviewIcon();
+
+  @override
+  Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFFFFF0DC), Color(0xFFF1DDBF)],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
+        color: const Color(0xFFFFB642),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFF3E230F), width: 2),
+        boxShadow: const [
           BoxShadow(
-            color: const Color(0xFF604429).withValues(alpha: 0.16),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            color: Color(0x24361D0D),
+            blurRadius: 4,
+            offset: Offset(0, 2),
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(9, 10, 9, 8),
-        child: Column(
-          children: [
-            const _FamilyPreviewHeader(),
-            const SizedBox(height: 8),
-            Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                physics: const NeverScrollableScrollPhysics(),
-                padding: EdgeInsets.zero,
-                children: const [
-                  _RealFamilyMemberPreviewCard(
-                    skin: FamilySpriteSkins.memberCardWarm,
-                    avatarAsset: userMomAvatarAssetPath,
-                    petAsset: 'assets/images/pets/grow/cat/growing/sitting.png',
-                    name: '妈妈',
-                    progress: 0.74,
-                  ),
-                  _RealFamilyMemberPreviewCard(
-                    skin: FamilySpriteSkins.memberCardGreen,
-                    avatarAsset: userBoyAvatarAssetPath,
-                    petAsset: 'assets/images/pets/grow/dog/growing/sitting.png',
-                    name: '孩子',
-                    progress: 0.46,
-                  ),
-                  _RealFamilyMemberPreviewCard(
-                    skin: FamilySpriteSkins.memberCardBlue,
-                    name: '等待',
-                    progress: 0.0,
-                    empty: true,
-                  ),
-                  _RealFamilyMemberPreviewCard(
-                    skin: FamilySpriteSkins.memberCardPink,
-                    name: '添加',
-                    progress: 0.0,
-                    add: true,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 4),
-            const _FamilyPreviewPageDots(),
-          ],
-        ),
+      child: const Center(
+        child: Icon(Icons.favorite_rounded, color: Colors.white, size: 21),
       ),
     );
   }
@@ -821,90 +875,398 @@ class _PetGrowthPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: 499 / 793,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          const Positioned.fill(
-            child: _PetDetailSpritePreview(
-              frame: PetDetailSheetSpriteCatalog.panelBlank,
-              fit: BoxFit.fill,
-              sampleInset: 1,
-            ),
+    return FittedBox(
+      fit: BoxFit.fill,
+      child: SizedBox(
+        width: 412,
+        height: 655,
+        child: DefaultTextStyle.merge(
+          style: const TextStyle(
+            color: Color(0xFF6B4C36),
+            decoration: TextDecoration.none,
+            fontWeight: FontWeight.w800,
           ),
-          const Positioned(
-            left: 38,
-            right: 38,
-            top: -6,
-            height: 42,
-            child: _PetNameBannerPreview(),
-          ),
-          Positioned(
-            left: 17,
-            top: 52,
-            width: 86,
-            bottom: 112,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                const _PetDetailSpritePreview(
-                  frame: PetDetailSheetSpriteCatalog.portraitFrameBlank,
-                  fit: BoxFit.fill,
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(10, 15, 10, 16),
-                  child: Image.asset(
-                    'assets/images/pets/grow/cat/growing/sitting.png',
-                    fit: BoxFit.contain,
-                    filterQuality: FilterQuality.medium,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0x2D402413),
+                        blurRadius: 22,
+                        offset: Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: _PetDetailSpritePreview(
+                    frame: PetDetailSheetSpriteCatalog.panelBlank,
+                    fit: BoxFit.fill,
+                    sampleInset: 1,
                   ),
                 ),
-              ],
+              ),
+              const Positioned(
+                top: -18,
+                left: 76,
+                width: 260,
+                height: 86,
+                child: _GuidePetNameBanner(text: '团团'),
+              ),
+              const Positioned(
+                left: 34,
+                top: 94,
+                width: 186,
+                height: 268,
+                child: _GuidePetPortraitFrame(
+                  assetPath: 'assets/images/pets/grow/cat/growing/sitting.png',
+                ),
+              ),
+              const Positioned(
+                left: 226,
+                top: 98,
+                width: 166,
+                child: Column(
+                  children: [
+                    _GuidePetMetricCard(
+                      frame: PetDetailSheetSpriteCatalog.stageCard,
+                      title: '成长阶段',
+                      value: '成长期 LV3',
+                      progress: 0.72,
+                      height: 100,
+                    ),
+                    SizedBox(height: 11),
+                    _GuidePetMetricCard(
+                      frame: PetDetailSheetSpriteCatalog.growthCard,
+                      title: '成长值',
+                      value: '44 / 60',
+                      height: 82,
+                    ),
+                    SizedBox(height: 12),
+                    _GuidePetMetricCard(
+                      frame: PetDetailSheetSpriteCatalog.feedCard,
+                      title: '所属成员',
+                      value: '妈妈',
+                      height: 82,
+                    ),
+                  ],
+                ),
+              ),
+              const Positioned(
+                left: 30,
+                top: 401,
+                width: 248,
+                height: 207,
+                child: _GuidePetRecentPanel(),
+              ),
+              const Positioned(
+                left: 274,
+                top: 388,
+                width: 128,
+                height: 205,
+                child: _GuidePetAchievementTag(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GuidePetNameBanner extends StatelessWidget {
+  const _GuidePetNameBanner({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const _PetDetailSpritePreview(
+          frame: PetDetailSheetSpriteCatalog.nameBanner,
+          fit: BoxFit.fill,
+        ),
+        Align(
+          alignment: const Alignment(0, -0.12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 60),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                text,
+                maxLines: 1,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 28,
+                  height: 1,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF6B4C36),
+                ),
+              ),
             ),
           ),
-          const Positioned(
-            right: 13,
-            top: 58,
-            width: 86,
-            child: Column(
-              children: [
-                _PetMetricCardPreview(
-                  frame: PetDetailSheetSpriteCatalog.stageCard,
-                  valueWidth: 0.70,
-                  progress: 0.72,
-                  height: 50,
-                ),
-                SizedBox(height: 6),
-                _PetMetricCardPreview(
-                  frame: PetDetailSheetSpriteCatalog.growthCard,
-                  valueWidth: 0.82,
-                  height: 43,
-                ),
-                SizedBox(height: 6),
-                _PetMetricCardPreview(
-                  frame: PetDetailSheetSpriteCatalog.feedCard,
-                  valueWidth: 0.58,
-                  height: 43,
-                ),
-              ],
+        ),
+      ],
+    );
+  }
+}
+
+class _GuidePetPortraitFrame extends StatelessWidget {
+  const _GuidePetPortraitFrame({required this.assetPath});
+
+  final String assetPath;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const _PetDetailSpritePreview(
+          frame: PetDetailSheetSpriteCatalog.portraitFrameBlank,
+          fit: BoxFit.fill,
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
+          child: Center(
+            child: Image.asset(
+              assetPath,
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.high,
             ),
           ),
-          const Positioned(
-            left: 15,
-            right: 92,
-            bottom: 35,
-            height: 76,
-            child: _PetRecentPanelPreview(),
+        ),
+      ],
+    );
+  }
+}
+
+class _GuidePetMetricCard extends StatelessWidget {
+  const _GuidePetMetricCard({
+    required this.frame,
+    required this.title,
+    required this.value,
+    required this.height,
+    this.progress,
+  });
+
+  final SpriteAtlasFrame frame;
+  final String title;
+  final String value;
+  final double height;
+  final double? progress;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: height,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          _PetDetailSpritePreview(frame: frame, fit: BoxFit.fill),
+          Positioned(
+            left: 51,
+            top: progress == null ? 17 : 15,
+            right: 10,
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF6B4C36),
+              ),
+            ),
           ),
-          const Positioned(
-            right: 13,
-            bottom: 34,
-            width: 62,
-            height: 82,
-            child: _PetAchievementPreview(),
+          Positioned(
+            left: 51,
+            top: 40,
+            right: 8,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                value,
+                maxLines: 1,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF6B4C36),
+                ),
+              ),
+            ),
           ),
+          if (progress != null)
+            Positioned(
+              left: 18,
+              right: 12,
+              bottom: 14,
+              height: 12,
+              child: _GuidePetProgressBar(value: progress!),
+            ),
         ],
+      ),
+    );
+  }
+}
+
+class _GuidePetProgressBar extends StatelessWidget {
+  const _GuidePetProgressBar({required this.value});
+
+  final double value;
+
+  @override
+  Widget build(BuildContext context) {
+    final clampedValue = value.clamp(0.0, 1.0).toDouble();
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF4C6),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFE3B66F), width: 1.6),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(1.5),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: FractionallySizedBox(
+            alignment: Alignment.centerLeft,
+            widthFactor: clampedValue,
+            child: const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFFFFC957), Color(0xFFF09944)],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GuidePetRecentPanel extends StatelessWidget {
+  const _GuidePetRecentPanel();
+
+  static const _rows = ['整理书包 +10', '喂宠物 +8', '睡前阅读 +12'];
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const _PetDetailSpritePreview(
+          frame: PetDetailSheetSpriteCatalog.recentPanel,
+          fit: BoxFit.fill,
+        ),
+        const Positioned(
+          left: 42,
+          top: 24,
+          right: 24,
+          child: Text(
+            '最近互动',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 17,
+              height: 1,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF6B4C36),
+            ),
+          ),
+        ),
+        for (var index = 0; index < _rows.length; index++)
+          Positioned(
+            left: 42,
+            top: <double>[66, 108, 150][index],
+            right: 24,
+            height: 34,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                _rows[index],
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 17,
+                  height: 1,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF6B4C36),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _GuidePetAchievementTag extends StatelessWidget {
+  const _GuidePetAchievementTag();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: AspectRatio(
+        aspectRatio: 245 / 358,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const _PetDetailSpritePreview(
+              frame: PetDetailSheetSpriteCatalog.achievementTag,
+              fit: BoxFit.contain,
+            ),
+            Align(
+              alignment: const Alignment(0.1, 0.42),
+              child: Transform.rotate(
+                angle: 0.12,
+                child: const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 70,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'LV3',
+                          style: TextStyle(
+                            fontSize: 22,
+                            height: 1,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFFD46F35),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      '成长',
+                      style: TextStyle(
+                        fontSize: 19,
+                        height: 1,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF6E9245),
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      '伙伴',
+                      style: TextStyle(
+                        fontSize: 19,
+                        height: 1,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF6B4C36),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -917,7 +1279,7 @@ class _RealTaskRowPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const titles = ['整理书包', '喂宠物', '收拾玩具'];
+    const titles = ['整理书包', '喂宠物', '收拾玩具', '睡前阅读'];
     final rowAsset = switch (index % 4) {
       0 => TaskBoardReferenceAsset.rowWarm,
       1 => TaskBoardReferenceAsset.rowGreen,
@@ -982,179 +1344,6 @@ class _RealTaskRowPreview extends StatelessWidget {
   }
 }
 
-class _FamilyPreviewHeader extends StatelessWidget {
-  const _FamilyPreviewHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 20,
-      child: Row(
-        children: [
-          Image.asset(
-            FamilyHomePartAssets.familyIllustration,
-            width: 30,
-            fit: BoxFit.contain,
-            filterQuality: FilterQuality.medium,
-          ),
-          const SizedBox(width: 6),
-          const Expanded(
-            child: Text(
-              '家庭相册',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Color(0xFF684328),
-                fontSize: 13,
-                fontWeight: FontWeight.w900,
-                height: 1,
-              ),
-            ),
-          ),
-          SizedBox.square(
-            dimension: 22,
-            child: Image.asset(
-              FamilyPopupAssets.addButton,
-              fit: BoxFit.contain,
-              filterQuality: FilterQuality.medium,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RealFamilyMemberPreviewCard extends StatelessWidget {
-  const _RealFamilyMemberPreviewCard({
-    required this.skin,
-    required this.name,
-    required this.progress,
-    this.avatarAsset,
-    this.petAsset,
-    this.empty = false,
-    this.add = false,
-  });
-
-  final FamilySpritePanelSkin skin;
-  final String name;
-  final double progress;
-  final String? avatarAsset;
-  final String? petAsset;
-  final bool empty;
-  final bool add;
-
-  @override
-  Widget build(BuildContext context) {
-    return FamilySpritePanel(
-      skin: skin,
-      padding: const EdgeInsets.all(5),
-      child: Column(
-        children: [
-          SizedBox(
-            height: 18,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFEF6).withValues(alpha: 0.92),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFF2A12A), width: 0.8),
-              ),
-              child: Center(
-                child: Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF3E230F),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    height: 1,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: Center(
-              child: empty || add
-                  ? Icon(
-                      add ? Icons.add_rounded : Icons.pets_rounded,
-                      color: const Color(0xFF8F663F),
-                      size: 28,
-                    )
-                  : Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        if (petAsset != null)
-                          Image.asset(
-                            petAsset!,
-                            fit: BoxFit.contain,
-                            filterQuality: FilterQuality.medium,
-                          ),
-                        if (avatarAsset != null)
-                          Positioned(
-                            left: 0,
-                            top: 2,
-                            width: 22,
-                            height: 22,
-                            child: Image.asset(
-                              avatarAsset!,
-                              fit: BoxFit.contain,
-                              filterQuality: FilterQuality.medium,
-                            ),
-                          ),
-                      ],
-                    ),
-            ),
-          ),
-          SizedBox(
-            height: 20,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFCF3).withValues(alpha: 0.94),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFF3A52F), width: 0.8),
-              ),
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 5),
-                  child: FamilySpriteProgressBar(value: progress, height: 7),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FamilyPreviewPageDots extends StatelessWidget {
-  const _FamilyPreviewPageDots();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Image.asset(
-          TaskBoardReferenceAsset.paginationDotActive,
-          width: 8,
-          height: 8,
-          filterQuality: FilterQuality.medium,
-        ),
-        const SizedBox(width: 5),
-        Image.asset(
-          TaskBoardReferenceAsset.paginationDotInactive,
-          width: 8,
-          height: 8,
-          filterQuality: FilterQuality.medium,
-        ),
-      ],
-    );
-  }
-}
-
 class _PetDetailSpritePreview extends StatelessWidget {
   const _PetDetailSpritePreview({
     required this.frame,
@@ -1175,206 +1364,6 @@ class _PetDetailSpritePreview extends StatelessWidget {
       fit: fit,
       filterQuality: FilterQuality.medium,
       sampleInset: sampleInset,
-    );
-  }
-}
-
-class _PetNameBannerPreview extends StatelessWidget {
-  const _PetNameBannerPreview();
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        const _PetDetailSpritePreview(
-          frame: PetDetailSheetSpriteCatalog.nameBanner,
-          fit: BoxFit.fill,
-        ),
-        Center(
-          child: Container(
-            width: 46,
-            height: 7,
-            decoration: BoxDecoration(
-              color: const Color(0xFF684328).withValues(alpha: 0.28),
-              borderRadius: BorderRadius.circular(99),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PetMetricCardPreview extends StatelessWidget {
-  const _PetMetricCardPreview({
-    required this.frame,
-    required this.valueWidth,
-    required this.height,
-    this.progress,
-  });
-
-  final SpriteAtlasFrame frame;
-  final double valueWidth;
-  final double height;
-  final double? progress;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: height,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          _PetDetailSpritePreview(frame: frame, fit: BoxFit.fill),
-          Positioned(
-            left: 14,
-            right: 16,
-            top: 11,
-            child: Container(
-              height: 5,
-              decoration: BoxDecoration(
-                color: const Color(0xFF684328).withValues(alpha: 0.26),
-                borderRadius: BorderRadius.circular(99),
-              ),
-            ),
-          ),
-          Positioned(
-            left: 14,
-            top: 23,
-            width: 52 * valueWidth,
-            child: Container(
-              height: 6,
-              decoration: BoxDecoration(
-                color: const Color(0xFF88613E).withValues(alpha: 0.22),
-                borderRadius: BorderRadius.circular(99),
-              ),
-            ),
-          ),
-          if (progress != null)
-            Positioned(
-              left: 14,
-              right: 16,
-              bottom: 8,
-              height: 8,
-              child: _PetProgressPreview(value: progress!),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PetRecentPanelPreview extends StatelessWidget {
-  const _PetRecentPanelPreview();
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        const _PetDetailSpritePreview(
-          frame: PetDetailSheetSpriteCatalog.recentPanel,
-          fit: BoxFit.fill,
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(13, 18, 13, 13),
-          child: Column(
-            children: const [
-              _PetDetailTextLine(widthFactor: 0.72),
-              SizedBox(height: 8),
-              _PetDetailTextLine(widthFactor: 0.88),
-              SizedBox(height: 8),
-              _PetDetailTextLine(widthFactor: 0.64),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PetAchievementPreview extends StatelessWidget {
-  const _PetAchievementPreview();
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        const _PetDetailSpritePreview(
-          frame: PetDetailSheetSpriteCatalog.achievementTag,
-          fit: BoxFit.fill,
-        ),
-        Center(
-          child: Image.asset(
-            TaskBoardReferenceAsset.rewardStar,
-            width: 22,
-            fit: BoxFit.contain,
-            filterQuality: FilterQuality.medium,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PetDetailTextLine extends StatelessWidget {
-  const _PetDetailTextLine({required this.widthFactor});
-
-  final double widthFactor;
-
-  @override
-  Widget build(BuildContext context) {
-    return FractionallySizedBox(
-      alignment: Alignment.centerLeft,
-      widthFactor: widthFactor,
-      child: Container(
-        height: 5,
-        decoration: BoxDecoration(
-          color: const Color(0xFF88613E).withValues(alpha: 0.26),
-          borderRadius: BorderRadius.circular(99),
-        ),
-      ),
-    );
-  }
-}
-
-class _PetProgressPreview extends StatelessWidget {
-  const _PetProgressPreview({required this.value});
-
-  final double value;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF6D9),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFF536F2B), width: 0.8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(1),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: value.clamp(0.0, 1.0).toDouble(),
-              child: const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0xFF9ABC4D), Color(0xFF86A941)],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
