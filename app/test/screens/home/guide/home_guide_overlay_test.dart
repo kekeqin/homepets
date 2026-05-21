@@ -189,10 +189,8 @@ void main() {
     expect(previewRect.top, inInclusiveRange(150, 165));
     expect(bubbleRect.top, greaterThan(500));
     expect(_isTextCenteredInBubble(bubbleRect, bubbleTextRect), isTrue);
-    expect(petRect.left, lessThan(previewRect.left));
-    expect(petRect.right, lessThan(previewRect.left + 55));
-    expect(petRect.top, greaterThan(425));
-    expect(petRect.bottom, lessThan(690));
+    expect(petRect.left, lessThan(4));
+    expect(petRect.bottom, greaterThan(660));
     expect(find.byType(Image), findsWidgets);
   });
 }

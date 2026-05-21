@@ -59,7 +59,7 @@ class HomeGuideOverlay extends StatelessWidget {
               ),
               if (step != HomeGuideStep.done)
                 Positioned.fromRect(
-                  rect: _taskPetRectFor(screenSize, preview),
+                  rect: _taskPetRectFor(screenSize),
                   child: const IgnorePointer(
                     child: SizedBox.expand(
                       key: ValueKey('home_guide_task_pet'),
@@ -179,17 +179,8 @@ class HomeGuideOverlay extends StatelessWidget {
     return Rect.fromLTWH(left, top, width, height);
   }
 
-  Rect _taskPetRectFor(Size size, Rect preview) {
+  Rect _taskPetRectFor(Size size) {
     final petSize = size.width.clamp(360.0, 560.0) * 0.32;
-    if (step == HomeGuideStep.petArea) {
-      final left = math.max(8.0, preview.left - petSize * 0.66);
-      final top = math.min(
-        preview.bottom - petSize * 0.42,
-        size.height - petSize - 18,
-      );
-      return Rect.fromLTWH(left, top, petSize, petSize);
-    }
-
     final left = size.width * 0.009;
     final bottom = size.height * 0.046;
     return Rect.fromLTWH(
@@ -226,6 +217,9 @@ class HomeGuideOverlay extends StatelessWidget {
     if (step == HomeGuideStep.taskSticker) {
       return Offset(pointer.right - 6, pointer.top + pointer.height * 0.46);
     }
+    if (step == HomeGuideStep.petArea) {
+      return Offset(preview.left + preview.width * 0.16, preview.bottom + 46);
+    }
     final pointsRight = preview.center.dx >= pointer.center.dx;
     return Offset(
       pointsRight ? pointer.right - 6 : pointer.left + 6,
@@ -248,8 +242,8 @@ class HomeGuideOverlay extends StatelessWidget {
     }
     if (step == HomeGuideStep.petArea) {
       return Offset(
-        preview.left + preview.width * 0.10,
-        preview.top + preview.height * 0.15,
+        preview.left + preview.width * 0.34,
+        preview.bottom - preview.height * 0.08,
       );
     }
     return preview.center;
