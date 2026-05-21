@@ -115,6 +115,7 @@ void main() {
         'assets/images/ui/guide/guide_asset_manifest.json',
         'assets/images/ui/login/finger1.png',
         'assets/images/ui/login/bubble.png',
+        'assets/images/pets/grow/dog/baby/sitting.png',
       ];
 
       for (final assetPath in guideAssetPaths) {

@@ -30,6 +30,12 @@ void main() {
       find.image(const AssetImage('assets/images/ui/login/bubble.png')),
       findsOneWidget,
     );
+    expect(
+      find.image(
+        const AssetImage('assets/images/pets/grow/dog/baby/sitting.png'),
+      ),
+      findsOneWidget,
+    );
     expect(find.byType(Image), findsWidgets);
 
     await tester.tap(find.text('稍后再看'));

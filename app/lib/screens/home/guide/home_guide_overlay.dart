@@ -11,6 +11,8 @@ import 'home_guide_controller.dart';
 
 const String _guideFingerAsset = 'assets/images/ui/login/finger1.png';
 const String _guideBubbleAsset = 'assets/images/ui/login/bubble.png';
+const String _guideTaskPetAsset =
+    'assets/images/pets/grow/dog/baby/sitting.png';
 
 class HomeGuideOverlay extends StatelessWidget {
   const HomeGuideOverlay({
@@ -68,6 +70,11 @@ class HomeGuideOverlay extends StatelessWidget {
                   ),
                 ),
               ),
+              if (step == HomeGuideStep.taskSticker)
+                Positioned.fromRect(
+                  rect: _taskPetRectFor(screenSize),
+                  child: const IgnorePointer(child: _GuideTaskPet()),
+                ),
               Positioned.fromRect(
                 rect: preview,
                 child: IgnorePointer(child: _GuidePreviewCard(step: step)),
@@ -109,8 +116,8 @@ class HomeGuideOverlay extends StatelessWidget {
     final width = switch (step) {
       HomeGuideStep.taskSticker =>
         compact
-            ? math.min(size.width * 0.55, 224.0)
-            : math.min(size.width * 0.36, 320.0),
+            ? math.min(size.width * 0.52, 270.0)
+            : math.min(size.width * 0.34, 340.0),
       _ =>
         compact
             ? math.min(size.width * 0.46, 178.0)
@@ -131,13 +138,19 @@ class HomeGuideOverlay extends StatelessWidget {
       left = anchor.center.dx - width * 0.5;
     }
 
-    var top = anchor.center.dy - height * 0.46;
+    var top = step == HomeGuideStep.taskSticker
+        ? math.max(size.height * 0.14, anchor.center.dy - height * 0.28)
+        : anchor.center.dy - height * 0.46;
 
     left = left
         .clamp(margin, math.max(margin, size.width - width - margin))
         .toDouble();
+    final bottomReserve = step == HomeGuideStep.taskSticker ? 248.0 : 112.0;
     top = top
-        .clamp(margin + 8, math.max(margin + 8, size.height - height - 112))
+        .clamp(
+          margin + 8,
+          math.max(margin + 8, size.height - height - bottomReserve),
+        )
         .toDouble();
 
     return Rect.fromLTWH(left, top, width, height);
@@ -147,11 +160,13 @@ class HomeGuideOverlay extends StatelessWidget {
     const margin = 18.0;
     final isTaskGuide = step == HomeGuideStep.taskSticker;
     final width = isTaskGuide
-        ? math.min(size.width - (margin * 2), 340.0)
+        ? math.min(size.width * 0.58, 330.0)
         : math.min(size.width - (margin * 2), 320.0);
-    final height = isTaskGuide ? width * 0.40 : 104.0;
-    var left = preview.center.dx - width * 0.5;
-    var top = preview.bottom + 14;
+    final height = isTaskGuide ? width * 0.38 : 104.0;
+    var left = isTaskGuide
+        ? size.width * 0.38
+        : preview.center.dx - width * 0.5;
+    var top = isTaskGuide ? preview.bottom + 20 : preview.bottom + 14;
     if (top + height > size.height - margin) {
       top = preview.top - height - 14;
     }
@@ -161,6 +176,18 @@ class HomeGuideOverlay extends StatelessWidget {
         .clamp(margin + 8, math.max(margin + 8, size.height - height - margin))
         .toDouble();
     return Rect.fromLTWH(left, top, width, height);
+  }
+
+  Rect _taskPetRectFor(Size size) {
+    final petSize = size.width.clamp(360.0, 560.0) * 0.22;
+    final left = size.width * 0.07;
+    final bottom = size.height * 0.12;
+    return Rect.fromLTWH(
+      left,
+      size.height - bottom - petSize,
+      petSize,
+      petSize,
+    );
   }
 
   Rect _pointerRectFor(Rect anchor, Rect preview) {
@@ -229,7 +256,7 @@ class _GuideBubble extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Color(0xFF6B4C36),
-                          fontSize: 20,
+                          fontSize: 17,
                           fontWeight: FontWeight.w900,
                           height: 1.05,
                         ),
@@ -386,6 +413,19 @@ class _GuideFingerState extends State<_GuideFinger>
         fit: BoxFit.contain,
         filterQuality: FilterQuality.medium,
       ),
+    );
+  }
+}
+
+class _GuideTaskPet extends StatelessWidget {
+  const _GuideTaskPet();
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      _guideTaskPetAsset,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.medium,
     );
   }
 }
