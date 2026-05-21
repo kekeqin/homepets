@@ -36,6 +36,8 @@ class HomeGuideOverlay extends StatelessWidget {
     final preview = _previewRectFor(safeAnchor, screenSize);
     final bubble = _bubbleRectFor(preview, screenSize);
     final pointer = _pointerRectFor(safeAnchor, preview);
+    final arrowStart = _arrowStartFor(safeAnchor, pointer);
+    final arrowEnd = _arrowEndFor(preview);
 
     return SizedBox.expand(
       child: IgnorePointer(
@@ -52,40 +54,57 @@ class HomeGuideOverlay extends StatelessWidget {
                   child: _GuideObjectGlow(step: step),
                 ),
               ),
-              Positioned.fromRect(
-                rect: pointer,
-                child: IgnorePointer(
-                  child: _GuideFinger(
-                    flipX: pointer.center.dx < safeAnchor.center.dx,
+              if (step == HomeGuideStep.taskSticker)
+                Positioned.fromRect(
+                  rect: _taskPetRectFor(screenSize),
+                  child: const IgnorePointer(
+                    child: SizedBox.expand(
+                      key: ValueKey('home_guide_task_pet'),
+                      child: _GuideTaskPet(),
+                    ),
                   ),
                 ),
-              ),
               Positioned.fill(
                 child: IgnorePointer(
                   child: CustomPaint(
+                    key: const ValueKey('home_guide_arrow'),
                     painter: _GuideArrowPainter(
-                      start: safeAnchor.center,
-                      end: preview.center,
+                      start: arrowStart,
+                      end: arrowEnd,
                     ),
                   ),
                 ),
               ),
-              if (step == HomeGuideStep.taskSticker)
-                Positioned.fromRect(
-                  rect: _taskPetRectFor(screenSize),
-                  child: const IgnorePointer(child: _GuideTaskPet()),
+              Positioned.fromRect(
+                rect: pointer,
+                child: IgnorePointer(
+                  child: SizedBox.expand(
+                    key: const ValueKey('home_guide_finger'),
+                    child: _GuideFinger(
+                      flipX: pointer.center.dx < safeAnchor.center.dx,
+                    ),
+                  ),
                 ),
+              ),
               Positioned.fromRect(
                 rect: preview,
-                child: IgnorePointer(child: _GuidePreviewCard(step: step)),
+                child: IgnorePointer(
+                  child: SizedBox.expand(
+                    key: ValueKey('home_guide_preview'),
+                    child: _GuidePreviewCard(step: step),
+                  ),
+                ),
               ),
               Positioned.fromRect(
                 rect: bubble,
-                child: _GuideBubble(
-                  step: step,
-                  message: _messageFor(step),
-                  stepLabel: _stepLabelFor(step),
-                  onSkip: onSkip,
+                child: SizedBox.expand(
+                  key: ValueKey('home_guide_bubble'),
+                  child: _GuideBubble(
+                    step: step,
+                    message: _messageFor(step),
+                    stepLabel: _stepLabelFor(step),
+                    onSkip: onSkip,
+                  ),
                 ),
               ),
             ],
@@ -113,11 +132,29 @@ class HomeGuideOverlay extends StatelessWidget {
   Rect _previewRectFor(Rect anchor, Size size) {
     const margin = 18.0;
     final compact = size.width < 520;
+
+    if (step == HomeGuideStep.taskSticker) {
+      final maxWidth = math.max(0.0, size.width - margin * 2);
+      final targetWidth = compact
+          ? math.max(size.width * 0.66, 258.0)
+          : math.min(size.width * 0.62, 620.0);
+      final width = math.min(maxWidth, targetWidth);
+      final height = width * TaskBoardReferenceAsset.panelHeightRatio;
+      final desiredCenterX = size.width * (compact ? 0.60 : 0.58);
+      var left = desiredCenterX - width * 0.5;
+      var top = size.height * (compact ? 0.18 : 0.16);
+
+      left = left
+          .clamp(margin, math.max(margin, size.width - width - margin))
+          .toDouble();
+      top = top
+          .clamp(margin + 8, math.max(margin + 8, size.height - height - 238))
+          .toDouble();
+
+      return Rect.fromLTWH(left, top, width, height);
+    }
+
     final width = switch (step) {
-      HomeGuideStep.taskSticker =>
-        compact
-            ? math.min(size.width * 0.52, 270.0)
-            : math.min(size.width * 0.34, 340.0),
       _ =>
         compact
             ? math.min(size.width * 0.46, 178.0)
@@ -159,6 +196,27 @@ class HomeGuideOverlay extends StatelessWidget {
   Rect _bubbleRectFor(Rect preview, Size size) {
     const margin = 18.0;
     final isTaskGuide = step == HomeGuideStep.taskSticker;
+
+    if (isTaskGuide) {
+      final width = math.min(
+        size.width - margin * 2,
+        math.max(size.width * 0.62, 242.0),
+      );
+      final height = width * (1024 / 1536);
+      final targetCenterX = size.width * 0.50;
+      var left = targetCenterX - width * 0.5;
+      var top = size.height * 0.64;
+
+      left = left.clamp(margin, size.width - width - margin).toDouble();
+      top = top
+          .clamp(
+            margin + 8,
+            math.max(margin + 8, size.height - height - margin),
+          )
+          .toDouble();
+      return Rect.fromLTWH(left, top, width, height);
+    }
+
     final width = isTaskGuide
         ? math.min(size.width * 0.58, 330.0)
         : math.min(size.width - (margin * 2), 320.0);
@@ -179,9 +237,9 @@ class HomeGuideOverlay extends StatelessWidget {
   }
 
   Rect _taskPetRectFor(Size size) {
-    final petSize = size.width.clamp(360.0, 560.0) * 0.22;
-    final left = size.width * 0.07;
-    final bottom = size.height * 0.12;
+    final petSize = size.width.clamp(360.0, 560.0) * 0.18;
+    final left = size.width * 0.004;
+    final bottom = size.height * 0.018;
     return Rect.fromLTWH(
       left,
       size.height - bottom - petSize,
@@ -191,16 +249,42 @@ class HomeGuideOverlay extends StatelessWidget {
   }
 
   Rect _pointerRectFor(Rect anchor, Rect preview) {
-    const size = 66.0;
+    const size = 76.0;
+    if (step == HomeGuideStep.taskSticker) {
+      return Rect.fromLTWH(
+        anchor.center.dx - size * 0.08,
+        anchor.center.dy - size * 0.34,
+        size,
+        size,
+      );
+    }
+
     final fromLeft = preview.center.dx > anchor.center.dx;
     final left = fromLeft ? anchor.right - 8 : anchor.left - size + 8;
     final top = anchor.center.dy - size * 0.34;
     return Rect.fromLTWH(left, top, size, size);
   }
 
+  Offset _arrowStartFor(Rect anchor, Rect pointer) {
+    if (step == HomeGuideStep.taskSticker) {
+      return Offset(pointer.right - 12, pointer.top + pointer.height * 0.46);
+    }
+    return anchor.center;
+  }
+
+  Offset _arrowEndFor(Rect preview) {
+    if (step == HomeGuideStep.taskSticker) {
+      return Offset(
+        preview.left + preview.width * 0.24,
+        preview.top + preview.height * 0.20,
+      );
+    }
+    return preview.center;
+  }
+
   String _messageFor(HomeGuideStep step) {
     return switch (step) {
-      HomeGuideStep.taskSticker => '点击这里打开任务面板',
+      HomeGuideStep.taskSticker => '点击这里打开\n任务面板',
       HomeGuideStep.familyFrame => '点击这里管理家庭成员',
       HomeGuideStep.petArea => '点击宠物查看成长',
       HomeGuideStep.done => '',
@@ -241,59 +325,77 @@ class _GuideBubble extends StatelessWidget {
             fit: BoxFit.fill,
             filterQuality: FilterQuality.medium,
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(34, 22, 28, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final messageFontSize = (constraints.maxWidth * 0.048)
+                  .clamp(13.0, 14.0)
+                  .toDouble();
+              final stepFontSize = (messageFontSize - 4).clamp(9.0, 10.5);
+              final skipFontSize = (messageFontSize - 3).clamp(10.0, 11.5);
+              return Padding(
+                padding: EdgeInsets.fromLTRB(
+                  constraints.maxWidth * 0.30,
+                  constraints.maxHeight * 0.33,
+                  constraints.maxWidth * 0.26,
+                  constraints.maxHeight * 0.22,
+                ),
+                child: Column(
                   children: [
                     Expanded(
-                      child: Text(
-                        message,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF6B4C36),
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                          height: 1.05,
+                      child: Center(
+                        child: Text(
+                          message,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: const Color(0xFF6B4C36),
+                            fontSize: messageFontSize,
+                            fontWeight: FontWeight.w700,
+                            height: 1.05,
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Text(
-                      stepLabel,
-                      style: const TextStyle(
-                        color: Color(0xFF9D7653),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        height: 1,
+                    const SizedBox(height: 2),
+                    Align(
+                      alignment: Alignment.bottomRight,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            stepLabel,
+                            style: TextStyle(
+                              color: const Color(0xFF9D7653),
+                              fontSize: stepFontSize,
+                              fontWeight: FontWeight.w800,
+                              height: 1,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton(
+                            onPressed: onSkip,
+                            style: TextButton.styleFrom(
+                              minimumSize: const Size(52, 24),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              foregroundColor: const Color(0xFF8E6748),
+                              textStyle: TextStyle(
+                                fontSize: skipFontSize,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            child: const Text('稍后再看'),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-                const Spacer(),
-                Align(
-                  alignment: Alignment.bottomRight,
-                  child: TextButton(
-                    onPressed: onSkip,
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size(64, 30),
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      foregroundColor: const Color(0xFF8E6748),
-                      textStyle: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    child: const Text('稍后再看'),
-                  ),
-                ),
-              ],
-            ),
+              );
+            },
           ),
         ],
       );
