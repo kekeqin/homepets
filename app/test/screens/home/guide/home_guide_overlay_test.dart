@@ -25,8 +25,8 @@ void main() {
       ),
     );
 
-    expect(find.text('任务入口'), findsOneWidget);
-    expect(find.text('点贴纸查看任务'), findsOneWidget);
+    expect(find.text('点击这里打开任务面板'), findsOneWidget);
+    expect(find.byType(Image), findsWidgets);
 
     await tester.tap(find.text('稍后再看'));
     expect(skipped, isTrue);
@@ -56,5 +56,28 @@ void main() {
     await tester.tapAt(const Offset(312, 242));
 
     expect(tapped, isTrue);
+  });
+
+  testWidgets('renders step-specific preview copy', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 390,
+            height: 720,
+            child: HomeGuideOverlay(
+              step: HomeGuideStep.petArea,
+              anchorRect: const Rect.fromLTWH(140, 410, 110, 90),
+              screenSize: const Size(390, 720),
+              onHotspotTap: () {},
+              onSkip: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('点击宠物查看成长'), findsOneWidget);
+    expect(find.byIcon(Icons.pets_rounded), findsOneWidget);
   });
 }

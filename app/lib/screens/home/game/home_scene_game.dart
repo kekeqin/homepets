@@ -2766,6 +2766,22 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   }
 
   Rect? primaryPetRect() {
+    return _primaryPetComponent()?.sceneRect;
+  }
+
+  int? primaryPetId() {
+    return _primaryPetComponent()?.petId;
+  }
+
+  String? primaryPetDetailAvatarAssetPath() {
+    final petId = primaryPetId();
+    if (petId == null) {
+      return null;
+    }
+    return debugPetDetailAvatarAssetPaths()[petId];
+  }
+
+  _PetSpriteComponent? _primaryPetComponent() {
     final petComponents = _animatedComponents.whereType<_PetSpriteComponent>();
     if (petComponents.isEmpty) {
       return null;
@@ -2776,7 +2792,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       final rightArea = right.sceneRect.width * right.sceneRect.height;
       return rightArea > leftArea ? right : left;
     });
-    return component.sceneRect;
+    return component;
   }
 
   Future<void> _addAnimated(_AnimatedSceneComponent component) async {

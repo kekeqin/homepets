@@ -593,7 +593,13 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         await _advanceHomeGuide(step);
         break;
       case HomeGuideStep.petArea:
-        _game.playPetCompletionReaction(message: '完成任务后，我会陪你一起成长', points: 0);
+        final petId = _game.primaryPetId();
+        final avatarAssetPath = _game.primaryPetDetailAvatarAssetPath();
+        if (petId != null && avatarAssetPath != null) {
+          await _openPetDetail(petId, avatarAssetPath);
+        } else {
+          _game.playPetCompletionReaction(message: '完成任务后，我会陪你一起成长', points: 0);
+        }
         await _advanceHomeGuide(step);
         break;
       case HomeGuideStep.done:
