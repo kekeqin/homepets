@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/ui/sprite_atlas.dart';
 import '../../../models/pet.dart';
+import '../../../widgets/user_avatar.dart';
 import '../../family/models/family_member_view_data.dart';
 import '../../family/widgets/family_member_grid.dart';
 import '../../family/widgets/family_sprite_slice.dart';
@@ -58,7 +59,7 @@ class HomeGuideOverlay extends StatelessWidget {
               ),
               if (step != HomeGuideStep.done)
                 Positioned.fromRect(
-                  rect: _taskPetRectFor(screenSize),
+                  rect: _taskPetRectFor(screenSize, preview),
                   child: const IgnorePointer(
                     child: SizedBox.expand(
                       key: ValueKey('home_guide_task_pet'),
@@ -66,17 +67,6 @@ class HomeGuideOverlay extends StatelessWidget {
                     ),
                   ),
                 ),
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: CustomPaint(
-                    key: const ValueKey('home_guide_arrow'),
-                    painter: _GuideArrowPainter(
-                      start: arrowStart,
-                      end: arrowEnd,
-                    ),
-                  ),
-                ),
-              ),
               Positioned.fromRect(
                 rect: pointer,
                 child: IgnorePointer(
@@ -101,11 +91,17 @@ class HomeGuideOverlay extends StatelessWidget {
                 rect: bubble,
                 child: SizedBox.expand(
                   key: ValueKey('home_guide_bubble'),
-                  child: _GuideBubble(
-                    step: step,
-                    message: _messageFor(step),
-                    stepLabel: _stepLabelFor(step),
-                    onSkip: onSkip,
+                  child: _GuideBubble(step: step),
+                ),
+              ),
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    key: const ValueKey('home_guide_arrow'),
+                    painter: _GuideArrowPainter(
+                      start: arrowStart,
+                      end: arrowEnd,
+                    ),
                   ),
                 ),
               ),
@@ -145,7 +141,10 @@ class HomeGuideOverlay extends StatelessWidget {
         : math.min(size.width * 0.62, 620.0);
     final width = math.min(maxWidth, targetWidth);
     final height = width * TaskBoardReferenceAsset.panelHeightRatio;
-    final desiredCenterX = size.width * (compact ? 0.60 : 0.58);
+    final desiredCenterX = switch (step) {
+      HomeGuideStep.familyFrame => size.width * (compact ? 0.42 : 0.45),
+      _ => size.width * (compact ? 0.60 : 0.58),
+    };
     var left = desiredCenterX - width * 0.5;
     var top = size.height * (compact ? 0.3 : 0.3);
 
@@ -180,8 +179,17 @@ class HomeGuideOverlay extends StatelessWidget {
     return Rect.fromLTWH(left, top, width, height);
   }
 
-  Rect _taskPetRectFor(Size size) {
+  Rect _taskPetRectFor(Size size, Rect preview) {
     final petSize = size.width.clamp(360.0, 560.0) * 0.32;
+    if (step == HomeGuideStep.petArea) {
+      final left = math.max(8.0, preview.left - petSize * 0.66);
+      final top = math.min(
+        preview.bottom - petSize * 0.42,
+        size.height - petSize - 18,
+      );
+      return Rect.fromLTWH(left, top, petSize, petSize);
+    }
+
     final left = size.width * 0.009;
     final bottom = size.height * 0.046;
     return Rect.fromLTWH(
@@ -216,11 +224,11 @@ class HomeGuideOverlay extends StatelessWidget {
 
   Offset _arrowStartFor(Rect anchor, Rect pointer, Rect preview) {
     if (step == HomeGuideStep.taskSticker) {
-      return Offset(pointer.right - 12, pointer.top + pointer.height * 0.46);
+      return Offset(pointer.right - 6, pointer.top + pointer.height * 0.46);
     }
     final pointsRight = preview.center.dx >= pointer.center.dx;
     return Offset(
-      pointsRight ? pointer.right - 12 : pointer.left + 12,
+      pointsRight ? pointer.right - 6 : pointer.left + 6,
       pointer.top + pointer.height * 0.50,
     );
   }
@@ -228,56 +236,30 @@ class HomeGuideOverlay extends StatelessWidget {
   Offset _arrowEndFor(Rect preview) {
     if (step == HomeGuideStep.taskSticker) {
       return Offset(
-        preview.left + preview.width * 0.24,
-        preview.top + preview.height * 0.20,
+        preview.left + preview.width * 0.08,
+        preview.top + preview.height * 0.12,
       );
     }
     if (step == HomeGuideStep.familyFrame) {
       return Offset(
-        preview.left + preview.width * 0.24,
-        preview.top + preview.height * 0.22,
+        preview.right - preview.width * 0.08,
+        preview.top + preview.height * 0.18,
       );
     }
     if (step == HomeGuideStep.petArea) {
       return Offset(
-        preview.left + preview.width * 0.32,
-        preview.top + preview.height * 0.20,
+        preview.left + preview.width * 0.10,
+        preview.top + preview.height * 0.15,
       );
     }
     return preview.center;
   }
-
-  String _messageFor(HomeGuideStep step) {
-    return switch (step) {
-      HomeGuideStep.taskSticker => '点击这里打开\n任务面板',
-      HomeGuideStep.familyFrame => '点击这里管理家庭成员',
-      HomeGuideStep.petArea => '点击宠物查看成长',
-      HomeGuideStep.done => '',
-    };
-  }
-
-  String _stepLabelFor(HomeGuideStep step) {
-    return switch (step) {
-      HomeGuideStep.familyFrame => '1/3',
-      HomeGuideStep.taskSticker => '2/3',
-      HomeGuideStep.petArea => '3/3',
-      HomeGuideStep.done => '',
-    };
-  }
 }
 
 class _GuideBubble extends StatelessWidget {
-  const _GuideBubble({
-    required this.step,
-    required this.message,
-    required this.stepLabel,
-    required this.onSkip,
-  });
+  const _GuideBubble({required this.step});
 
   final HomeGuideStep step;
-  final String message;
-  final String stepLabel;
-  final VoidCallback onSkip;
 
   @override
   Widget build(BuildContext context) {
@@ -291,76 +273,61 @@ class _GuideBubble extends StatelessWidget {
         ),
         LayoutBuilder(
           builder: (context, constraints) {
-            final messageFontSize = (constraints.maxWidth * 0.07)
-                .clamp(13.0, 14.0)
+            final messageFontSize = (constraints.maxWidth * 0.093)
+                .clamp(20.0, 24.0)
                 .toDouble();
-            final stepFontSize = (messageFontSize - 4).clamp(9.0, 10.5);
-            final skipFontSize = (messageFontSize - 3).clamp(10.0, 11.5);
             return Padding(
               padding: EdgeInsets.fromLTRB(
                 constraints.maxWidth * 0.18,
                 constraints.maxHeight * 0.18,
-                constraints.maxWidth * 0.26,
-                constraints.maxHeight * 0.22,
+                constraints.maxWidth * 0.23,
+                constraints.maxHeight * 0.26,
               ),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        message,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: const Color(0xFF6B4C36),
-                          fontSize: messageFontSize,
-                          fontWeight: FontWeight.w700,
-                          height: 1.05,
-                        ),
-                      ),
+              child: Center(
+                child: RichText(
+                  key: const ValueKey('home_guide_bubble_message'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  text: _messageSpanFor(
+                    step,
+                    TextStyle(
+                      color: const Color(0xFF6B4C36),
+                      fontSize: messageFontSize,
+                      fontWeight: FontWeight.w900,
+                      height: 1.12,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Align(
-                    alignment: Alignment.bottomRight,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          stepLabel,
-                          style: TextStyle(
-                            color: const Color(0xFF9D7653),
-                            fontSize: stepFontSize,
-                            fontWeight: FontWeight.w800,
-                            height: 1,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        TextButton(
-                          onPressed: onSkip,
-                          style: TextButton.styleFrom(
-                            minimumSize: const Size(52, 24),
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            foregroundColor: const Color(0xFF8E6748),
-                            textStyle: TextStyle(
-                              fontSize: skipFontSize,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          child: const Text('稍后再看'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
             );
           },
         ),
       ],
     );
+  }
+
+  TextSpan _messageSpanFor(HomeGuideStep step, TextStyle baseStyle) {
+    const highlightStyle = TextStyle(color: Color(0xFFD8665B));
+    TextSpan span(String text, {bool highlight = false}) {
+      return TextSpan(
+        text: text,
+        style: highlight ? baseStyle.merge(highlightStyle) : baseStyle,
+      );
+    }
+
+    return switch (step) {
+      HomeGuideStep.familyFrame => TextSpan(
+        children: [span('点击这里管理\n'), span('家庭成员', highlight: true)],
+      ),
+      HomeGuideStep.taskSticker => TextSpan(
+        children: [span('点击这里打开\n'), span('任务', highlight: true), span('面板')],
+      ),
+      HomeGuideStep.petArea => TextSpan(
+        children: [span('点这里查看\n'), span('宠物详情', highlight: true)],
+      ),
+      HomeGuideStep.done => span(''),
+    };
   }
 }
 
@@ -760,11 +727,12 @@ class _CurrentFamilyPagePreview extends StatelessWidget {
 final List<FamilyMemberViewData> _previewFamilyMembers = [
   FamilyMemberViewData(
     id: 1,
-    nickname: '妈妈',
+    nickname: '爸爸',
     role: 'admin',
     points: 74,
     petId: 101,
     petType: 'cat',
+    avatarUrl: userDadAvatarAssetPath,
     pet: Pet(
       id: 101,
       name: '团团',
@@ -779,11 +747,12 @@ final List<FamilyMemberViewData> _previewFamilyMembers = [
   ),
   FamilyMemberViewData(
     id: 2,
-    nickname: '孩子',
+    nickname: '妈妈',
     role: 'member',
     points: 46,
     petId: 102,
     petType: 'dog',
+    avatarUrl: userMomAvatarAssetPath,
     pet: Pet(
       id: 102,
       name: '豆豆',
@@ -798,12 +767,12 @@ final List<FamilyMemberViewData> _previewFamilyMembers = [
   ),
   FamilyMemberViewData(
     id: 3,
-    nickname: '妹妹',
+    nickname: '哥哥',
     role: 'member',
     points: 32,
     petId: 103,
     petType: 'rabbit',
-    avatarUrl: 'assets/images/ui/family/11.png',
+    avatarUrl: userBoyAvatarAssetPath,
     pet: Pet(
       id: 103,
       name: '雪球',
@@ -818,12 +787,12 @@ final List<FamilyMemberViewData> _previewFamilyMembers = [
   ),
   FamilyMemberViewData(
     id: 4,
-    nickname: '哥哥',
+    nickname: '妹妹',
     role: 'member',
     points: 58,
     petId: 104,
     petType: 'hamster',
-    avatarUrl: 'assets/images/ui/family/13.png',
+    avatarUrl: userGirlAvatarAssetPath,
     pet: Pet(
       id: 104,
       name: '米粒',
@@ -961,9 +930,9 @@ class _PetGrowthPreview extends StatelessWidget {
                 child: _GuidePetRecentPanel(),
               ),
               const Positioned(
-                left: 274,
-                top: 388,
-                width: 128,
+                left: 258,
+                top: 386,
+                width: 118,
                 height: 205,
                 child: _GuidePetAchievementTag(),
               ),
@@ -1162,26 +1131,10 @@ class _GuidePetRecentPanel extends StatelessWidget {
           frame: PetDetailSheetSpriteCatalog.recentPanel,
           fit: BoxFit.fill,
         ),
-        const Positioned(
-          left: 42,
-          top: 24,
-          right: 24,
-          child: Text(
-            '最近互动',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 17,
-              height: 1,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF6B4C36),
-            ),
-          ),
-        ),
         for (var index = 0; index < _rows.length; index++)
           Positioned(
             left: 42,
-            top: <double>[66, 108, 150][index],
+            top: <double>[44, 94, 144][index],
             right: 24,
             height: 34,
             child: Align(
@@ -1207,17 +1160,21 @@ class _GuidePetRecentPanel extends StatelessWidget {
 class _GuidePetAchievementTag extends StatelessWidget {
   const _GuidePetAchievementTag();
 
+  static const _assetPath = 'assets/images/ui/sprites/label_blank.png';
+  static const _aspectRatio = 266 / 368;
+
   @override
   Widget build(BuildContext context) {
     return Center(
       child: AspectRatio(
-        aspectRatio: 245 / 358,
+        aspectRatio: _aspectRatio,
         child: Stack(
           fit: StackFit.expand,
           children: [
-            const _PetDetailSpritePreview(
-              frame: PetDetailSheetSpriteCatalog.achievementTag,
+            Image.asset(
+              _assetPath,
               fit: BoxFit.contain,
+              filterQuality: FilterQuality.high,
             ),
             Align(
               alignment: const Alignment(0.1, 0.42),
@@ -1280,6 +1237,7 @@ class _RealTaskRowPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const titles = ['整理书包', '喂宠物', '收拾玩具', '睡前阅读'];
+    const points = [10, 8, 6, 12];
     final rowAsset = switch (index % 4) {
       0 => TaskBoardReferenceAsset.rowWarm,
       1 => TaskBoardReferenceAsset.rowGreen,
@@ -1310,7 +1268,7 @@ class _RealTaskRowPreview extends StatelessWidget {
         ),
         Positioned(
           left: 34,
-          right: 36,
+          right: 56,
           top: 0,
           bottom: 0,
           child: Align(
@@ -1329,14 +1287,36 @@ class _RealTaskRowPreview extends StatelessWidget {
           ),
         ),
         Positioned(
-          right: 12,
+          right: 8,
           top: 0,
           bottom: 0,
-          width: 22,
-          child: Image.asset(
-            TaskBoardReferenceAsset.rewardStar,
-            fit: BoxFit.contain,
-            filterQuality: FilterQuality.medium,
+          width: 48,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset(
+                  TaskBoardReferenceAsset.rewardStar,
+                  width: 16,
+                  height: 16,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.medium,
+                ),
+                const SizedBox(width: 2),
+                Text(
+                  '+${points[index]}',
+                  maxLines: 1,
+                  style: const TextStyle(
+                    color: Color(0xFF7A4C24),
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w900,
+                    height: 1,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -1446,13 +1426,16 @@ class _GuideArrowPainter extends CustomPainter {
     }
 
     final direction = delta / delta.distance;
-    final from = start + direction * 34;
-    final to = end - direction * 34;
+    final from = start + direction * 18;
+    final to = end - direction * 18;
+    final normal = Offset(-direction.dy, direction.dx);
+    final curveSign = start.dx <= end.dx ? -1.0 : 1.0;
+    final curveOffset = normal * 30 * curveSign;
     final path = Path()
       ..moveTo(from.dx, from.dy)
       ..quadraticBezierTo(
-        (from.dx + to.dx) * 0.5,
-        (from.dy + to.dy) * 0.5 - 22,
+        (from.dx + to.dx) * 0.5 + curveOffset.dx,
+        (from.dy + to.dy) * 0.5 + curveOffset.dy,
         to.dx,
         to.dy,
       );
