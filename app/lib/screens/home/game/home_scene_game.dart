@@ -1259,6 +1259,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   final List<_AnimatedSceneComponent> _animatedComponents =
       <_AnimatedSceneComponent>[];
   _SceneSpriteComponent? _taskNoteComponent;
+  _SceneSpriteComponent? _familyPhotoComponent;
   _TaskPanelOverlay? _taskPanelOverlay;
   final List<_TaskPanelEntry> _taskEntries = <_TaskPanelEntry>[];
   final List<HomeScenePetSeed> _petEntries = <HomeScenePetSeed>[];
@@ -2691,6 +2692,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     );
     final nextComponents = <_AnimatedSceneComponent>[];
     _SceneSpriteComponent? nextTaskNoteComponent;
+    _SceneSpriteComponent? nextFamilyPhotoComponent;
     try {
       final sceneSpecs = <_UiSpec>[..._profile.specs, ..._buildPetSpecs()];
       final backgroundRect = _background.layoutRect;
@@ -2703,6 +2705,10 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
         if (component is _SceneSpriteComponent &&
             component.behavior == _SceneSpriteBehavior.taskNote) {
           nextTaskNoteComponent = component;
+        }
+        if (component is _SceneSpriteComponent &&
+            component.behavior == _SceneSpriteBehavior.familyPhoto) {
+          nextFamilyPhotoComponent = component;
         }
         nextComponents.add(component);
       }
@@ -2737,6 +2743,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       ..clear()
       ..addAll(nextComponents);
     _taskNoteComponent = nextTaskNoteComponent;
+    _familyPhotoComponent = nextFamilyPhotoComponent;
     _lastUiLayoutSize = _sceneSize.clone();
   }
 
@@ -2749,6 +2756,28 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   }
 
   Rect? taskPanelOriginRect() => _resolveTaskPanelOriginRect();
+
+  Rect? familyPhotoRect() {
+    final familyPhoto = _familyPhotoComponent;
+    if (familyPhoto == null || familyPhoto.parent == null) {
+      return null;
+    }
+    return familyPhoto.sceneRect;
+  }
+
+  Rect? primaryPetRect() {
+    final petComponents = _animatedComponents.whereType<_PetSpriteComponent>();
+    if (petComponents.isEmpty) {
+      return null;
+    }
+
+    final component = petComponents.reduce((left, right) {
+      final leftArea = left.sceneRect.width * left.sceneRect.height;
+      final rightArea = right.sceneRect.width * right.sceneRect.height;
+      return rightArea > leftArea ? right : left;
+    });
+    return component.sceneRect;
+  }
 
   Future<void> _addAnimated(_AnimatedSceneComponent component) async {
     await world.add(component);

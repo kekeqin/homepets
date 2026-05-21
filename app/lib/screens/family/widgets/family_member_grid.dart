@@ -19,6 +19,7 @@ class FamilyMemberGrid extends StatefulWidget {
     required this.onAddMemberTap,
     this.petAvatarAssetPathsById = const <int, String>{},
     this.onPetTap,
+    this.onMissingPetTap,
     this.canEditAvatar,
     this.onAvatarEditTap,
     this.updatingAvatarMemberId,
@@ -34,6 +35,7 @@ class FamilyMemberGrid extends StatefulWidget {
   final VoidCallback onAddMemberTap;
   final Map<int, String> petAvatarAssetPathsById;
   final FamilyPetTap? onPetTap;
+  final ValueChanged<FamilyMemberViewData>? onMissingPetTap;
   final bool Function(FamilyMemberViewData member)? canEditAvatar;
   final ValueChanged<FamilyMemberViewData>? onAvatarEditTap;
   final int? updatingAvatarMemberId;
@@ -90,7 +92,8 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
     }
 
     final seed = pet?.id ?? member.petId ?? member.id;
-    return defaultHomePetDetailAvatarAssetPath(petType, seed);
+    final level = pet?.level ?? 1;
+    return defaultGrowthPetDetailAvatarAssetPath(petType, level, seed);
   }
 
   void _setPage(int page) {
@@ -124,6 +127,9 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
         petAvatarAssetPath: petAvatarAssetPath,
         onPetTap: pet != null
             ? () => widget.onPetTap?.call(pet, petAvatarAssetPath)
+            : null,
+        onMissingPetTap: pet == null && widget.onMissingPetTap != null
+            ? () => widget.onMissingPetTap!.call(member)
             : null,
         onAvatarEditTap:
             (widget.canEditAvatar?.call(member) ?? false) &&

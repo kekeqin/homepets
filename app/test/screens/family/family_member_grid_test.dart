@@ -192,6 +192,44 @@ void main() {
       expect(tapped, isTrue);
     });
 
+    testWidgets('taps missing pet footer to trigger select pet callback', (
+      tester,
+    ) async {
+      var tapped = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 220,
+              height: 220,
+              child: FamilyMemberGrid(
+                members: const <FamilyMemberViewData>[
+                  FamilyMemberViewData(
+                    id: 11,
+                    nickname: 'owner',
+                    role: 'admin',
+                    needsPetSelection: true,
+                  ),
+                ],
+                entryAnimation: const AlwaysStoppedAnimation<double>(1),
+                canAddMembers: true,
+                onAddMemberTap: () {},
+                onMissingPetTap: (_) => tapped = true,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(
+        find.byKey(const Key('family_member_missing_pet_button_11')),
+      );
+      await tester.pump();
+
+      expect(tapped, isTrue);
+    });
+
     testWidgets('uses attached pet data for pet preview image', (tester) async {
       final pet = Pet(
         id: 42,
@@ -203,8 +241,9 @@ void main() {
         ownerId: 1,
         familyId: 99,
       );
-      final expectedAssetPath = defaultHomePetDetailAvatarAssetPath(
+      final expectedAssetPath = defaultGrowthPetDetailAvatarAssetPath(
         pet.petType,
+        pet.level,
         pet.id,
       );
 
@@ -323,8 +362,9 @@ void main() {
           ownerId: 1,
           familyId: 99,
         );
-        final expectedAssetPath = defaultHomePetDetailAvatarAssetPath(
+        final expectedAssetPath = defaultGrowthPetDetailAvatarAssetPath(
           pet.petType,
+          pet.level,
           pet.id,
         );
         Pet? tappedPet;

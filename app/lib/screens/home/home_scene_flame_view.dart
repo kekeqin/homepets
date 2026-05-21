@@ -14,6 +14,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:go_router/go_router.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../core/api_error_helper.dart';
 import '../../core/ui/sprite_atlas.dart';
 
@@ -29,10 +31,13 @@ import '../../widgets/homepets_dialog.dart';
 import '../../widgets/homepets_select_field.dart';
 
 import '../family/family_screen.dart';
+import '../family/models/family_member_view_data.dart';
 import '../family/models/family_screen_state.dart';
 import '../family/widgets/family_sprite_slice.dart';
 import '../pet/pet_detail_screen.dart';
 import 'game/home_scene_game.dart';
+import 'guide/home_guide_controller.dart';
+import 'guide/home_guide_overlay.dart';
 import 'settings_dialog.dart';
 import 'task_panel_sprite_catalog.dart';
 
@@ -48,10 +53,16 @@ class _ProfileEditResult {
 String _homePetBindingSignature(FamilyScreenState state) {
   final memberSignatures = List<String>.from(
     state.members.map(
-      (member) => '${member.id}:${member.petId ?? ''}:${member.petType ?? ''}',
+      (member) =>
+          '${member.id}:${member.petId ?? ''}:${member.petType ?? ''}:${member.pet?.level ?? ''}:${member.needsPetSelection}',
     ),
   )..sort();
   return '${state.hasFamily}|${memberSignatures.join('|')}';
+}
+
+String _homeGuideAuthScopeSignature(AuthState state) {
+  final user = state.user;
+  return '${user?.id ?? 'anonymous'}:${user?.familyId ?? 'no_family'}';
 }
 
 const String _taskContextMenuBoardAsset =
@@ -182,6 +193,9 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   bool _didPrecacheTaskPanelAssets = false;
   String? _taskPanelPressedInteractionKey;
   int? _taskPanelCompletingTaskId;
+  HomeGuideController? _homeGuideController;
+  HomeGuideProgress? _homeGuideProgress;
+  bool _homeGuideLoading = true;
   OverlayEntry? _topSnackBarEntry;
 
   static const int _taskPanelPageSize = 4;
@@ -209,7 +223,9 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
     _loadFamilyPets();
 
+    _loadFamilyForHomeGuide();
     _loadHomeTasks();
+    _initHomeGuide();
     _maybeOpenInitialTaskPanel();
     _maybeOpenInitialFamilyPanel();
     _maybeOpenInitialShopPanel();
@@ -402,6 +418,186 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     if (routerState.matchedLocation == '/home' &&
         routerState.uri.queryParameters['panel'] == 'family') {
       context.go('/home');
+    }
+  }
+
+  HomeGuideSnapshot get _homeGuideSnapshot {
+    final familyState = ref.read(familyProvider);
+    final authState = ref.read(authProvider);
+    return HomeGuideSnapshot(
+      hasFamilyMembers: familyState.members.isNotEmpty,
+      hasActiveTasks: _activeHomeTasks.isNotEmpty,
+      hasCurrentUserPet: _currentUserHasPet(authState, familyState),
+      hasMembersMissingPets: familyState.members.any(_memberNeedsPet),
+    );
+  }
+
+  bool _currentUserHasPet(AuthState authState, FamilyScreenState familyState) {
+    final user = authState.user;
+    if (user == null) {
+      return false;
+    }
+
+    for (final member in familyState.members) {
+      if (member.id == user.id) {
+        return !_memberNeedsPet(member);
+      }
+    }
+
+    return false;
+  }
+
+  bool _memberNeedsPet(FamilyMemberViewData member) {
+    return member.needsPetSelection ||
+        (member.pet == null && member.petId == null);
+  }
+
+  String get _homeGuideScopeId {
+    final user = ref.read(authProvider).user;
+    if (user == null) {
+      return 'anonymous';
+    }
+
+    final familyId = user.familyId == null
+        ? 'no_family'
+        : 'family_${user.familyId}';
+    return 'user_${user.id}_$familyId';
+  }
+
+  Future<void> _initHomeGuide() async {
+    final preferences = await SharedPreferences.getInstance();
+    if (!mounted) {
+      return;
+    }
+    final controller = HomeGuideController(
+      preferences: preferences,
+      scopeId: _homeGuideScopeId,
+    );
+    setState(() {
+      _homeGuideController = controller;
+      _homeGuideProgress = controller.readProgress(_homeGuideSnapshot);
+      _homeGuideLoading = false;
+    });
+  }
+
+  Future<void> _loadFamilyForHomeGuide() async {
+    try {
+      await ref.read(familyProvider.notifier).loadFamily();
+      _refreshHomeGuideProgress();
+    } catch (error) {
+      debugPrint('Home guide failed to load family state: $error');
+    }
+  }
+
+  void _refreshHomeGuideProgress() {
+    final controller = _homeGuideController;
+    if (controller == null || _homeGuideLoading) {
+      return;
+    }
+    final nextProgress = controller.readProgress(_homeGuideSnapshot);
+    final currentProgress = _homeGuideProgress;
+    if (currentProgress?.currentStep == nextProgress.currentStep &&
+        currentProgress?.completed == nextProgress.completed &&
+        currentProgress?.skipped == nextProgress.skipped) {
+      return;
+    }
+    if (mounted) {
+      setState(() => _homeGuideProgress = nextProgress);
+    } else {
+      _homeGuideProgress = nextProgress;
+    }
+  }
+
+  Rect _defaultFamilyFrameRect(Size size) {
+    return Rect.fromLTWH(
+      size.width * 0.80,
+      size.height * 0.31,
+      math.min(size.width * 0.16, 92.0),
+      math.min(size.height * 0.09, 70.0),
+    );
+  }
+
+  Rect _defaultPetAreaRect(Size size) {
+    final width = math.min(size.width * 0.28, 160.0);
+    final height = width * 0.88;
+    return Rect.fromCenter(
+      center: Offset(size.width * 0.55, size.height * 0.74),
+      width: width,
+      height: height,
+    );
+  }
+
+  Rect? _homeGuideAnchorRect(Size size) {
+    final progress = _homeGuideProgress;
+    if (progress == null || !progress.shouldShow) {
+      return null;
+    }
+    final rawRect = switch (progress.currentStep) {
+      HomeGuideStep.taskSticker =>
+        _game.taskPanelOriginRect() ?? _defaultTaskPanelOriginRect(size),
+      HomeGuideStep.familyFrame =>
+        _game.familyPhotoRect() ?? _defaultFamilyFrameRect(size),
+      HomeGuideStep.petArea =>
+        _game.primaryPetRect() ?? _defaultPetAreaRect(size),
+      HomeGuideStep.done => null,
+    };
+    if (rawRect == null) {
+      return null;
+    }
+    return _clampPanelRect(rawRect.inflate(6), size);
+  }
+
+  bool get _shouldShowHomeGuideOverlay {
+    final progress = _homeGuideProgress;
+    return !_homeGuideLoading &&
+        progress != null &&
+        progress.shouldShow &&
+        !_taskPanelVisible &&
+        !_familyPanelVisible &&
+        !_shopPanelVisible &&
+        !_settingsPanelVisible;
+  }
+
+  Future<void> _skipHomeGuide() async {
+    final controller = _homeGuideController;
+    if (controller == null) {
+      return;
+    }
+    final nextProgress = await controller.skip();
+    if (!mounted) {
+      return;
+    }
+    setState(() => _homeGuideProgress = nextProgress);
+  }
+
+  Future<void> _advanceHomeGuide(HomeGuideStep step) async {
+    final controller = _homeGuideController;
+    if (controller == null) {
+      return;
+    }
+    final nextProgress = await controller.advance(step, _homeGuideSnapshot);
+    if (!mounted) {
+      return;
+    }
+    setState(() => _homeGuideProgress = nextProgress);
+  }
+
+  Future<void> _handleHomeGuideHotspotTap(HomeGuideStep step) async {
+    switch (step) {
+      case HomeGuideStep.taskSticker:
+        await _handleTaskStickerTap();
+        await _advanceHomeGuide(step);
+        break;
+      case HomeGuideStep.familyFrame:
+        await _showFamilyPanel(clearRouteAfterClose: false);
+        await _advanceHomeGuide(step);
+        break;
+      case HomeGuideStep.petArea:
+        _game.playPetCompletionReaction(message: '完成任务后，我会陪你一起成长', points: 0);
+        await _advanceHomeGuide(step);
+        break;
+      case HomeGuideStep.done:
+        break;
     }
   }
 
@@ -2703,6 +2899,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         .toList();
 
     _game.replaceTaskEntries(seeds);
+    _refreshHomeGuideProgress();
   }
 
   void _syncGamePetsFromServer() {
@@ -2735,10 +2932,17 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       if (!renderedOwnerIds.add(pet.ownerId)) {
         continue;
       }
-      seeds.add(HomeScenePetSeed(petId: pet.id, petType: _homePetTypeFor(pet)));
+      seeds.add(
+        HomeScenePetSeed(
+          petId: pet.id,
+          petType: _homePetTypeFor(pet),
+          level: pet.level,
+        ),
+      );
     }
 
     _game.replacePetEntries(seeds);
+    _refreshHomeGuideProgress();
   }
 
   String _homePetTypeFor(Pet pet) {
@@ -2992,7 +3196,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<int?>(authProvider.select((state) => state.user?.familyId), (
+    ref.listen<String>(authProvider.select(_homeGuideAuthScopeSignature), (
       previous,
       next,
     ) {
@@ -3000,6 +3204,17 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         return;
       }
 
+      if (mounted) {
+        setState(() {
+          _homeGuideLoading = true;
+          _homeGuideProgress = null;
+        });
+      } else {
+        _homeGuideLoading = true;
+        _homeGuideProgress = null;
+      }
+      _initHomeGuide();
+      _loadFamilyForHomeGuide();
       _loadFamilyPets();
       _loadHomeTasks();
     });
@@ -3012,7 +3227,9 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         return;
       }
 
+      _loadFamilyForHomeGuide();
       _loadFamilyPets();
+      _refreshHomeGuideProgress();
     });
 
     return LayoutBuilder(
@@ -3047,6 +3264,25 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
               ),
               const _TrialStatusBanner(),
               if (_taskPanelVisible) _buildAnimatedTaskPanelOverlay(size),
+              if (_shouldShowHomeGuideOverlay)
+                Builder(
+                  builder: (context) {
+                    final anchorRect = _homeGuideAnchorRect(size);
+                    final step = _homeGuideProgress?.currentStep;
+                    if (anchorRect == null ||
+                        step == null ||
+                        step == HomeGuideStep.done) {
+                      return const SizedBox.shrink();
+                    }
+                    return HomeGuideOverlay(
+                      step: step,
+                      anchorRect: anchorRect,
+                      screenSize: size,
+                      onHotspotTap: () => _handleHomeGuideHotspotTap(step),
+                      onSkip: _skipHomeGuide,
+                    );
+                  },
+                ),
             ],
           ),
         );

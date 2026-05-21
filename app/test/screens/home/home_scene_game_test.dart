@@ -136,6 +136,15 @@ void main() {
       expect(game.addTaskItem('Task overflow'), isFalse);
     });
 
+    test('exposes null guide anchors before scene components are loaded', () {
+      final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+      game.onGameResize(Vector2(390, 844));
+
+      expect(game.taskPanelOriginRect(), isNull);
+      expect(game.familyPhotoRect(), isNull);
+      expect(game.primaryPetRect(), isNull);
+    });
+
     test('caps replaced task entries at twelve', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
 

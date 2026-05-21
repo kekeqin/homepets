@@ -108,13 +108,7 @@ class _PetDetailViewState extends ConsumerState<PetDetailView> {
   }
 
   String _stageLabel(Pet pet) {
-    return switch (pet.level) {
-      1 => '幼崽期',
-      2 => '成长期',
-      3 => '活力期',
-      4 => '闪耀期',
-      _ => '传奇期',
-    };
+    return petGrowthStageLabel(petGrowthStageForLevel(pet.level));
   }
 
   String _growthValueLabel(Pet pet) {
@@ -379,9 +373,10 @@ class _PetPoseImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final resolvedAssetPath =
         assetPath ??
-        petAvatarAssetPath(
+        petGrowthAvatarAssetPath(
           pet.petType,
-          deterministicPetPoseIndex(pet.petType, pet.id),
+          pet.level,
+          deterministicPetGrowthPoseIndex(pet.petType, pet.level, pet.id),
         );
 
     return Image.asset(

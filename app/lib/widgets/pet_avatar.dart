@@ -24,9 +24,10 @@ class PetAvatar extends StatelessWidget {
     final seed = poseSeed ?? pet.id;
     final resolvedAssetPath =
         assetPath ??
-        petAvatarAssetPath(
+        petGrowthAvatarAssetPath(
           pet.petType,
-          deterministicPetPoseIndex(pet.petType, seed),
+          pet.level,
+          deterministicPetGrowthPoseIndex(pet.petType, pet.level, seed),
         );
     final avatarChild = Padding(
       padding: EdgeInsets.all(showBackground ? size * 0.08 : 0),

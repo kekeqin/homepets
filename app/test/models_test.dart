@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:homepets/models/pet_artwork.dart';
 import 'package:homepets/models/subscription_status.dart';
 import 'package:homepets/models/user.dart';
 
@@ -78,5 +79,26 @@ void main() {
 
     expect(status.blocksCoreAccess, true);
     expect(status.reason, 'trial_expired');
+  });
+
+  test('Pet artwork maps levels to growth stage asset paths', () {
+    expect(petGrowthStageForLevel(1), PetGrowthStage.baby);
+    expect(petGrowthStageForLevel(2), PetGrowthStage.growing);
+    expect(petGrowthStageForLevel(3), PetGrowthStage.growing);
+    expect(petGrowthStageForLevel(4), PetGrowthStage.companion);
+    expect(petGrowthStageForLevel(5), PetGrowthStage.companion);
+
+    expect(
+      petGrowthAvatarAssetPath('dog', 1, 0),
+      'assets/images/pets/grow/dog/baby/lying.png',
+    );
+    expect(
+      petGrowthAvatarAssetPath('dog', 2, 0),
+      'assets/images/pets/grow/dog/growing/lying.png',
+    );
+    expect(
+      petGrowthAvatarAssetPath('dog', 5, 0),
+      'assets/images/pets/grow/dog/companion/lying.png',
+    );
   });
 }

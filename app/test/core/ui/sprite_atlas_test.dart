@@ -100,6 +100,32 @@ void main() {
       );
     });
 
+    test('loads first-login guide overlay assets', () async {
+      const guideAssetPaths = <String>[
+        'assets/images/ui/guide/guide_glow_soft.png',
+        'assets/images/ui/guide/guide_pointer_hand.png',
+        'assets/images/ui/guide/guide_arrow_dashed.png',
+        'assets/images/ui/guide/guide_bubble_bg_9slice.png',
+        'assets/images/ui/guide/guide_step_dot_active.png',
+        'assets/images/ui/guide/guide_step_dot_inactive.png',
+        'assets/images/ui/guide/guide_sparkle.png',
+        'assets/images/ui/guide/hotspot_task_sticker_highlight.png',
+        'assets/images/ui/guide/hotspot_family_frame_highlight.png',
+        'assets/images/ui/guide/hotspot_pet_highlight.png',
+        'assets/images/ui/guide/guide_asset_manifest.json',
+      ];
+
+      for (final assetPath in guideAssetPaths) {
+        final bytes = await rootBundle.load(assetPath);
+
+        expect(
+          bytes.lengthInBytes,
+          greaterThan(0),
+          reason: '$assetPath should be bundled and non-empty.',
+        );
+      }
+    });
+
     test('loads the clean task editor sheet atlas', () async {
       final atlas = await TaskEditorSheetSpriteCatalog.atlasAsset.load();
       final sprites = TaskEditorSheetSpriteCatalog(atlas);

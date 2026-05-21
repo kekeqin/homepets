@@ -16,11 +16,29 @@ class AddMemberFlowResult {
   final String petName;
 }
 
+class SelectPetFlowResult {
+  const SelectPetFlowResult({required this.petType, required this.petName});
+
+  final String petType;
+  final String petName;
+}
+
 Future<AddMemberFlowResult?> showAddMemberFlowDialog(BuildContext context) {
   return showDialog<AddMemberFlowResult>(
     context: context,
     barrierColor: const Color(0x4D5A3A21),
     builder: (_) => const AddMemberFlowDialog(),
+  );
+}
+
+Future<SelectPetFlowResult?> showSelectPetFlowDialog(
+  BuildContext context, {
+  required String memberName,
+}) {
+  return showDialog<SelectPetFlowResult>(
+    context: context,
+    barrierColor: const Color(0x4D5A3A21),
+    builder: (_) => SelectPetFlowDialog(memberName: memberName),
   );
 }
 
@@ -306,6 +324,254 @@ class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
   }
 }
 
+class SelectPetFlowDialog extends StatefulWidget {
+  const SelectPetFlowDialog({super.key, required this.memberName});
+
+  final String memberName;
+
+  @override
+  State<SelectPetFlowDialog> createState() => _SelectPetFlowDialogState();
+}
+
+class _SelectPetFlowDialogState extends State<SelectPetFlowDialog> {
+  final TextEditingController _petNameController = TextEditingController(
+    text: petTypeLabel(selectablePetTypes.first),
+  );
+
+  String _selectedPetType = selectablePetTypes.first;
+  String? _petNameError;
+  bool _petNameDirty = false;
+
+  @override
+  void dispose() {
+    _petNameController.dispose();
+    super.dispose();
+  }
+
+  void _selectPetType(String petType) {
+    final previousDefault = petTypeLabel(_selectedPetType);
+
+    setState(() {
+      _selectedPetType = petType;
+      if (!_petNameDirty ||
+          _petNameController.text.trim().isEmpty ||
+          _petNameController.text.trim() == previousDefault) {
+        _petNameController.text = petTypeLabel(petType);
+        _petNameController.selection = TextSelection.fromPosition(
+          TextPosition(offset: _petNameController.text.length),
+        );
+        _petNameError = null;
+        _petNameDirty = false;
+      }
+    });
+  }
+
+  void _submit() {
+    final petName = _petNameController.text.trim();
+
+    setState(() {
+      _petNameError = petName.isEmpty ? '宠物名字不能为空' : null;
+    });
+
+    if (_petNameError != null) {
+      return;
+    }
+
+    Navigator.of(
+      context,
+    ).pop(SelectPetFlowResult(petType: _selectedPetType, petName: petName));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final viewportHeight = MediaQuery.sizeOf(context).height;
+    final dense = viewportHeight < 700;
+    final memberName = widget.memberName.trim().isEmpty
+        ? '这个成员'
+        : widget.memberName.trim();
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 390,
+          maxHeight: viewportHeight * 0.92,
+        ),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [_AddMemberPalette.paperTop, _AddMemberPalette.paper],
+            ),
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(color: _AddMemberPalette.ink, width: 1.8),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x2A5A3A21),
+                blurRadius: 28,
+                offset: Offset(0, 14),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(32),
+            child: Stack(
+              children: [
+                SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(
+                    dense ? 22 : 26,
+                    dense ? 22 : 28,
+                    dense ? 22 : 26,
+                    dense ? 18 : 24,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: _SelectPetDialogTitle(
+                          memberName: memberName,
+                          dense: dense,
+                        ),
+                      ),
+                      SizedBox(height: dense ? 18 : 28),
+                      _SectionLabel(text: '选择宠物', dense: dense),
+                      SizedBox(height: dense ? 10 : 12),
+                      _PetOptionGrid(
+                        dense: dense,
+                        selectedPetType: _selectedPetType,
+                        onSelect: _selectPetType,
+                      ),
+                      _DashedDivider(dense: dense),
+                      _SectionLabel(text: '宠物名字', dense: dense),
+                      SizedBox(height: dense ? 8 : 10),
+                      TextField(
+                        key: const Key('family_select_pet_name_field'),
+                        controller: _petNameController,
+                        maxLength: 20,
+                        autofocus: true,
+                        textInputAction: TextInputAction.done,
+                        style: const TextStyle(
+                          color: _AddMemberPalette.ink,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        onChanged: (_) {
+                          _petNameDirty = true;
+                          if (_petNameError != null) {
+                            setState(() => _petNameError = null);
+                          }
+                        },
+                        onSubmitted: (_) => _submit(),
+                        decoration: _inputDecoration(
+                          dense: dense,
+                          hintText: '团团',
+                          errorText: _petNameError,
+                        ),
+                      ),
+                      SizedBox(height: dense ? 16 : 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 8,
+                            child: _DialogActionButton(
+                              label: '稍后',
+                              dense: dense,
+                              variant: _DialogActionButtonVariant.secondary,
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 13,
+                            child: _DialogActionButton(
+                              key: const Key('family_select_pet_submit_button'),
+                              label: '确认领养',
+                              dense: dense,
+                              variant: _DialogActionButtonVariant.primary,
+                              onPressed: _submit,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: _DialogCloseButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration({
+    required bool dense,
+    required String hintText,
+    required String? errorText,
+  }) {
+    final borderRadius = BorderRadius.circular(18);
+
+    return InputDecoration(
+      hintText: hintText,
+      errorText: errorText,
+      counterText: '',
+      isDense: true,
+      hintStyle: TextStyle(
+        color: _AddMemberPalette.ink.withValues(alpha: 0.38),
+        fontSize: 17,
+        fontWeight: FontWeight.w900,
+      ),
+      errorStyle: const TextStyle(
+        color: _AddMemberPalette.error,
+        fontSize: 12,
+        fontWeight: FontWeight.w800,
+      ),
+      filled: true,
+      fillColor: Colors.white.withValues(alpha: 0.42),
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: 18,
+        vertical: dense ? 12 : 16,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: const BorderSide(color: _AddMemberPalette.line, width: 1.6),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: const BorderSide(color: _AddMemberPalette.line, width: 1.6),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: const BorderSide(color: _AddMemberPalette.ink, width: 1.8),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: const BorderSide(
+          color: _AddMemberPalette.error,
+          width: 1.6,
+        ),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: const BorderSide(
+          color: _AddMemberPalette.error,
+          width: 1.8,
+        ),
+      ),
+    );
+  }
+}
+
 class _AddMemberPalette {
   const _AddMemberPalette._();
 
@@ -337,6 +603,45 @@ class _DialogTitle extends StatelessWidget {
         fontWeight: FontWeight.w900,
         height: 1,
       ),
+    );
+  }
+}
+
+class _SelectPetDialogTitle extends StatelessWidget {
+  const _SelectPetDialogTitle({required this.memberName, required this.dense});
+
+  final String memberName;
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '选择宠物',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: _AddMemberPalette.ink,
+            fontSize: dense ? 26 : 30,
+            fontWeight: FontWeight.w900,
+            height: 1,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '给 $memberName 选择一位伙伴',
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: _AddMemberPalette.ink.withValues(alpha: 0.68),
+            fontSize: dense ? 13 : 15,
+            fontWeight: FontWeight.w800,
+            height: 1.1,
+          ),
+        ),
+      ],
     );
   }
 }

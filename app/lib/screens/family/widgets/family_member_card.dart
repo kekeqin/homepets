@@ -14,6 +14,7 @@ class FamilyMemberCard extends StatelessWidget {
     this.displaySlot,
     this.petAvatarAssetPath,
     this.onPetTap,
+    this.onMissingPetTap,
     this.onAvatarEditTap,
     this.avatarEditBusy = false,
     this.onLongPress,
@@ -23,6 +24,7 @@ class FamilyMemberCard extends StatelessWidget {
   final int? displaySlot;
   final String? petAvatarAssetPath;
   final VoidCallback? onPetTap;
+  final VoidCallback? onMissingPetTap;
   final VoidCallback? onAvatarEditTap;
   final bool avatarEditBusy;
   final VoidCallback? onLongPress;
@@ -69,7 +71,8 @@ class FamilyMemberCard extends StatelessWidget {
     }
 
     final seed = pet?.id ?? member.petId ?? member.id;
-    return defaultHomePetDetailAvatarAssetPath(petType, seed);
+    final level = pet?.level ?? 1;
+    return defaultGrowthPetDetailAvatarAssetPath(petType, level, seed);
   }
 
   String get _petTitle {
@@ -201,6 +204,9 @@ class FamilyMemberCard extends StatelessWidget {
                           petIconSize: petIconSize,
                           scale: scale,
                           onTap: member.pet != null ? onPetTap : null,
+                          onMissingPetTap: member.pet == null
+                              ? onMissingPetTap
+                              : null,
                         ),
                       ),
                     ],
@@ -409,6 +415,7 @@ class _PetFooter extends StatelessWidget {
     required this.petIconSize,
     required this.scale,
     this.onTap,
+    this.onMissingPetTap,
   });
 
   final int memberId;
@@ -419,10 +426,11 @@ class _PetFooter extends StatelessWidget {
   final double petIconSize;
   final double scale;
   final VoidCallback? onTap;
+  final VoidCallback? onMissingPetTap;
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
+    final content = DecoratedBox(
       decoration: BoxDecoration(
         color: const Color(0xFFFFFCF3).withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(15 * scale),
@@ -449,7 +457,7 @@ class _PetFooter extends StatelessWidget {
                   key: Key('family_member_pet_button_$memberId'),
                   assetPath: petAssetPath,
                   size: iconSize,
-                  onTap: onTap,
+                  onTap: onTap ?? onMissingPetTap,
                 ),
                 SizedBox(width: gap),
                 Expanded(
@@ -502,6 +510,21 @@ class _PetFooter extends StatelessWidget {
             );
           },
         ),
+      ),
+    );
+
+    if (onMissingPetTap == null) {
+      return content;
+    }
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(15 * scale),
+      child: InkWell(
+        key: Key('family_member_missing_pet_button_$memberId'),
+        onTap: onMissingPetTap,
+        borderRadius: BorderRadius.circular(15 * scale),
+        child: content,
       ),
     );
   }

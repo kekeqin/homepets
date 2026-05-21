@@ -114,6 +114,61 @@ void main() {
     expect(member.petType, 'rabbit');
     expect(member.pet?.name, '团团');
   });
+
+  test(
+    'assignMemberPet refreshes family and binds pet to existing owner',
+    () async {
+      final service = _FakeFamilyService(
+        memberResponse: const <String, dynamic>{
+          'id': 2,
+          'nickname': '小宝',
+          'role': 'child',
+          'points': 0,
+          'pet_id': null,
+          'pet_type': null,
+          'needs_pet_selection': true,
+        },
+        familyResult: _familyResult(
+          members: const <Map<String, dynamic>>[
+            <String, dynamic>{
+              'id': 1,
+              'nickname': '家长',
+              'role': 'admin',
+              'points': 0,
+              'pet_id': 20,
+              'pet_type': 'cat',
+              'needs_pet_selection': false,
+            },
+          ],
+          pets: const <Map<String, dynamic>>[
+            <String, dynamic>{
+              'id': 20,
+              'name': '米米',
+              'pet_type': 'cat',
+              'level': 1,
+              'experience': 0,
+              'owner_id': 1,
+              'family_id': 99,
+              'created_at': '2026-05-18T00:00:00Z',
+              'level_threshold': 100,
+            },
+          ],
+        ),
+      );
+      final notifier = _notifier(service);
+
+      await notifier.assignMemberPet(
+        memberId: 1,
+        petType: 'cat',
+        petName: '团团',
+      );
+
+      expect(service.assignMemberPetCalls, 1);
+      expect(service.assignedMemberId, 1);
+      expect(notifier.state.members.single.petType, 'cat');
+      expect(notifier.state.members.single.pet?.name, '米米');
+    },
+  );
 }
 
 family_provider.FamilyNotifier _notifier(_FakeFamilyService service) {

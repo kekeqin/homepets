@@ -85,6 +85,8 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
   bool _addingMember = false;
   int? _updatingAvatarMemberId;
   int? _deletingMemberId;
+  int? _selectingPetMemberId;
+  bool _didAutoPromptCurrentUserPet = false;
 
   late final AnimationController _entryController;
   late final Animation<double> _contentOpacity;
@@ -120,6 +122,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
       await ref.read(familyProvider.notifier).loadFamily();
       if (mounted) {
         _entryController.forward(from: 0);
+        _maybePromptCurrentUserPetSelection();
       }
     } catch (error) {
       if (!mounted) {
@@ -135,6 +138,51 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
 
   Future<AddMemberFlowResult?> _showAddMemberFlowDialog() async {
     return showAddMemberFlowDialog(context);
+  }
+
+  bool _memberHasPet(FamilyMemberViewData member) {
+    return member.pet != null || member.petId != null;
+  }
+
+  FamilyMemberViewData? _currentUserMemberWithoutPet(
+    AuthState authState,
+    FamilyScreenState familyState,
+  ) {
+    final user = authState.user;
+    if (user == null || familyState.loading || !familyState.hasFamily) {
+      return null;
+    }
+
+    for (final member in familyState.members) {
+      if (member.id == user.id &&
+          (member.needsPetSelection || !_memberHasPet(member))) {
+        return member;
+      }
+    }
+    return null;
+  }
+
+  void _maybePromptCurrentUserPetSelection() {
+    if (!mounted ||
+        _didAutoPromptCurrentUserPet ||
+        _selectingPetMemberId != null) {
+      return;
+    }
+    final member = _currentUserMemberWithoutPet(
+      ref.read(authProvider),
+      ref.read(familyProvider),
+    );
+    if (member == null) {
+      return;
+    }
+
+    _didAutoPromptCurrentUserPet = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _selectingPetMemberId != null) {
+        return;
+      }
+      _onMissingPetTap(ref.read(authProvider), member, autoPrompt: true);
+    });
   }
 
   void _handleLeadingAction() {
@@ -194,6 +242,87 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
       return false;
     }
     return user.id != member.id;
+  }
+
+  bool _canAssignPetForMember(
+    AuthState authState,
+    FamilyMemberViewData member,
+  ) {
+    if (authState.viewOnly || _selectingPetMemberId != null) {
+      return false;
+    }
+
+    final user = authState.user;
+    if (user == null) {
+      return false;
+    }
+
+    return user.id == member.id || user.isAdmin;
+  }
+
+  Future<void> _onMissingPetTap(
+    AuthState authState,
+    FamilyMemberViewData member, {
+    bool autoPrompt = false,
+  }) async {
+    if (!_canAssignPetForMember(authState, member)) {
+      if (!autoPrompt) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('请家长为成员选择宠物')));
+      }
+      return;
+    }
+
+    final draft = await showSelectPetFlowDialog(
+      context,
+      memberName: member.nickname,
+    );
+    if (draft == null) {
+      return;
+    }
+
+    setState(() => _selectingPetMemberId = member.id);
+
+    try {
+      await ref
+          .read(familyProvider.notifier)
+          .assignMemberPet(
+            memberId: member.id,
+            petType: draft.petType,
+            petName: draft.petName,
+          );
+      await _loadFamily();
+      if (!mounted) {
+        return;
+      }
+      if (authState.user?.id == member.id) {
+        await ref.read(authProvider.notifier).refreshUser();
+      }
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${member.nickname} 已领养 ${draft.petName}')),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await _loadFamily();
+      if (!mounted) {
+        return;
+      }
+      showFriendlyApiErrorSnackBar(
+        context,
+        error,
+        fallbackMessage: '选择宠物失败，请稍后重试',
+      );
+    } finally {
+      if (mounted && _selectingPetMemberId == member.id) {
+        setState(() => _selectingPetMemberId = null);
+      }
+    }
   }
 
   Future<void> _onAvatarEditTap(
@@ -357,6 +486,9 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final familyState = ref.watch(familyProvider);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybePromptCurrentUserPetSelection();
+    });
 
     if (widget.embedded) {
       return _buildBody(authState, familyState);
@@ -446,6 +578,8 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
                     canManageMembers: canManageMembers,
                     onAddMemberTap: onAddMemberTap,
                     onPetTap: _openPetDetail,
+                    onMissingPetTap: (member) =>
+                        _onMissingPetTap(authState, member),
                     canEditAvatar: (member) =>
                         _canEditAvatarForMember(authState, member),
                     onAvatarEditTap: (member) =>
@@ -905,6 +1039,7 @@ class _FamilyMembersPanel extends StatelessWidget {
     required this.canManageMembers,
     required this.onAddMemberTap,
     required this.onPetTap,
+    required this.onMissingPetTap,
     required this.canEditAvatar,
     required this.onAvatarEditTap,
     required this.updatingAvatarMemberId,
@@ -919,6 +1054,7 @@ class _FamilyMembersPanel extends StatelessWidget {
   final bool canManageMembers;
   final VoidCallback onAddMemberTap;
   final FamilyPetTap onPetTap;
+  final ValueChanged<FamilyMemberViewData> onMissingPetTap;
   final bool Function(FamilyMemberViewData member) canEditAvatar;
   final ValueChanged<FamilyMemberViewData> onAvatarEditTap;
   final int? updatingAvatarMemberId;
@@ -936,6 +1072,7 @@ class _FamilyMembersPanel extends StatelessWidget {
         canAddMembers: canManageMembers,
         onAddMemberTap: onAddMemberTap,
         onPetTap: onPetTap,
+        onMissingPetTap: onMissingPetTap,
         canEditAvatar: canEditAvatar,
         onAvatarEditTap: onAvatarEditTap,
         updatingAvatarMemberId: updatingAvatarMemberId,
