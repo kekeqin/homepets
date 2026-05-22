@@ -145,6 +145,36 @@ void main() {
       expect(game.primaryPetRect(), isNull);
     });
 
+    test(
+      'pins primary pet above guide companion during pet detail guide focus',
+      () {
+        final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+        game.onGameResize(Vector2(390, 844));
+        game.replacePetEntries(const <HomeScenePetSeed>[
+          HomeScenePetSeed(petId: 7, petType: 'dog'),
+        ]);
+
+        final normalRect = game.debugPetRects()[7]!;
+        game.setPetGuideFocusActive(true);
+        final focusedRect = game.debugPetRects()[7]!;
+        final guidePetSize = 390 * 0.32;
+        final guidePetLeft = 390 * 0.009;
+        final guidePetTop = 844 - (844 * 0.046) - guidePetSize;
+        final guidePetCenterX = guidePetLeft + guidePetSize * 0.5;
+
+        expect(
+          focusedRect.bottom,
+          lessThanOrEqualTo((guidePetTop - 13.5) / 844),
+        );
+        expect(focusedRect.center.dx, closeTo(guidePetCenterX / 390, 0.02));
+        expect(focusedRect.width, closeTo(normalRect.width, 0.0001));
+        expect(focusedRect.height, closeTo(normalRect.height, 0.0001));
+
+        game.setPetGuideFocusActive(false);
+        expect(game.debugPetRects()[7], normalRect);
+      },
+    );
+
     test('caps replaced task entries at twelve', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
 

@@ -57,15 +57,15 @@ void main() {
     final fingerRect = tester.getRect(
       find.byKey(const ValueKey('home_guide_finger')),
     );
-    expect(find.byKey(const ValueKey('home_guide_arrow')), findsOneWidget);
+    final fingertip = _fingerTipFor(fingerRect);
+    expect(find.byKey(const ValueKey('home_guide_arrow')), findsNothing);
     expect(find.text('睡前阅读'), findsOneWidget);
     expect(find.text('+12'), findsOneWidget);
     expect(previewRect.width, inInclusiveRange(255, 270));
     expect(previewRect.height, inInclusiveRange(320, 340));
     expect(previewRect.top, inInclusiveRange(150, 165));
-    expect(fingerRect.left, greaterThanOrEqualTo(70));
-    expect(fingerRect.right, lessThanOrEqualTo(170));
-    expect(fingerRect.top, lessThan(100));
+    expect(fingertip.dx, closeTo(122, 1));
+    expect(fingertip.dy, closeTo(150, 1));
     expect(bubbleRect.top, greaterThan(450));
     expect(bubbleRect.width, greaterThan(238));
     expect(_isTextCenteredInBubble(bubbleRect, bubbleTextRect), isTrue);
@@ -105,12 +105,16 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('home_guide_finger')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home_guide_arrow')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home_guide_arrow')), findsNothing);
     expect(find.text('爸爸'), findsOneWidget);
     expect(find.text('妈妈'), findsOneWidget);
     expect(find.text('哥哥'), findsOneWidget);
     expect(find.text('妹妹'), findsOneWidget);
     expect(_guideBubbleText(tester), '点击这里管理\n家庭成员');
+    final fingerRect = tester.getRect(
+      find.byKey(const ValueKey('home_guide_finger')),
+    );
+    final fingertip = _fingerTipFor(fingerRect);
     final previewRect = tester.getRect(
       find.byKey(const ValueKey('home_guide_preview')),
     );
@@ -128,6 +132,8 @@ void main() {
     expect(previewRect.height, inInclusiveRange(320, 340));
     expect(previewRect.top, inInclusiveRange(150, 165));
     expect(previewRect.left, lessThan(45));
+    expect(fingertip.dx, closeTo(346, 1));
+    expect(fingertip.dy, closeTo(272, 1));
     expect(bubbleRect.top, greaterThan(500));
     expect(_isTextCenteredInBubble(bubbleRect, bubbleTextRect), isTrue);
     expect(petRect.left, lessThan(4));
@@ -135,7 +141,9 @@ void main() {
   });
 
   testWidgets('renders step-specific preview copy', (tester) async {
+    var tapped = false;
     _setSurface(tester, const Size(390, 720));
+    const petAnchor = Rect.fromLTWH(92, 452, 110, 90);
 
     await tester.pumpWidget(
       MaterialApp(
@@ -145,9 +153,9 @@ void main() {
             height: 720,
             child: HomeGuideOverlay(
               step: HomeGuideStep.petArea,
-              anchorRect: const Rect.fromLTWH(140, 410, 110, 90),
+              anchorRect: petAnchor,
               screenSize: const Size(390, 720),
-              onHotspotTap: () {},
+              onHotspotTap: () => tapped = true,
               onSkip: () {},
             ),
           ),
@@ -161,7 +169,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('home_guide_finger')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home_guide_arrow')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home_guide_arrow')), findsNothing);
     expect(find.text('团团'), findsOneWidget);
     expect(find.textContaining('LV'), findsWidgets);
     expect(find.text('最近互动'), findsNothing);
@@ -184,6 +192,10 @@ void main() {
     final petRect = tester.getRect(
       find.byKey(const ValueKey('home_guide_task_pet')),
     );
+    final fingerRect = tester.getRect(
+      find.byKey(const ValueKey('home_guide_finger')),
+    );
+    final fingertip = _fingerTipFor(fingerRect);
     expect(previewRect.width, inInclusiveRange(255, 270));
     expect(previewRect.height, inInclusiveRange(320, 340));
     expect(previewRect.top, inInclusiveRange(150, 165));
@@ -191,8 +203,28 @@ void main() {
     expect(_isTextCenteredInBubble(bubbleRect, bubbleTextRect), isTrue);
     expect(petRect.left, lessThan(4));
     expect(petRect.bottom, greaterThan(660));
+    expect(
+      fingertip.dx,
+      closeTo(petAnchor.center.dx + petAnchor.width * 0.12, 1),
+    );
+    expect(
+      fingertip.dy,
+      closeTo(petAnchor.center.dy + petAnchor.height * 0.16, 1),
+    );
+    expect(fingertip.dx, inInclusiveRange(petAnchor.left, petAnchor.right));
+    expect(fingertip.dy, inInclusiveRange(petAnchor.top, petAnchor.bottom));
+
+    await tester.tapAt(const Offset(250, 520));
+    expect(tapped, isFalse);
+    await tester.tapAt(petAnchor.center);
+    expect(tapped, isTrue);
     expect(find.byType(Image), findsWidgets);
   });
+}
+
+Offset _fingerTipFor(Rect fingerRect) {
+  return fingerRect.topLeft +
+      Offset(fingerRect.width * 0.235, fingerRect.height * 0.207);
 }
 
 String _guideBubbleText(WidgetTester tester) {

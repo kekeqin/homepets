@@ -16,6 +16,12 @@ const String _guideFingerAsset = 'assets/images/ui/login/finger1.png';
 const String _guideBubbleAsset = 'assets/images/ui/login/bubble.png';
 const String _guideTaskPetAsset =
     'assets/images/pets/grow/dog/baby/sitting.png';
+const double _guideCompanionPetLeftFactor = 0.009;
+const double _guideCompanionPetBottomFactor = 0.046;
+const double _guideCompanionPetSizeBaseline = 0.32;
+const double _guideFingerSize = 76.0;
+// finger1.png is 176x169; the visible fingertip is near pixel (41, 33).
+const Offset _guideFingerTipFraction = Offset(0.235, 0.207);
 
 class HomeGuideOverlay extends StatelessWidget {
   const HomeGuideOverlay({
@@ -39,8 +45,6 @@ class HomeGuideOverlay extends StatelessWidget {
     final preview = _previewRectFor(safeAnchor, screenSize);
     final bubble = _bubbleRectFor(preview, screenSize);
     final pointer = _pointerRectFor(safeAnchor, preview, screenSize);
-    final arrowStart = _arrowStartFor(safeAnchor, pointer, preview);
-    final arrowEnd = _arrowEndFor(preview);
 
     return SizedBox.expand(
       child: IgnorePointer(
@@ -50,7 +54,7 @@ class HomeGuideOverlay extends StatelessWidget {
           child: Stack(
             children: [
               Positioned.fromRect(
-                rect: safeAnchor.inflate(20),
+                rect: _hotspotRectFor(safeAnchor),
                 child: GestureDetector(
                   behavior: HitTestBehavior.translucent,
                   onTap: onHotspotTap,
@@ -72,9 +76,7 @@ class HomeGuideOverlay extends StatelessWidget {
                 child: IgnorePointer(
                   child: SizedBox.expand(
                     key: const ValueKey('home_guide_finger'),
-                    child: _GuideFinger(
-                      flipX: pointer.center.dx < safeAnchor.center.dx,
-                    ),
+                    child: const _GuideFinger(),
                   ),
                 ),
               ),
@@ -82,7 +84,7 @@ class HomeGuideOverlay extends StatelessWidget {
                 rect: preview,
                 child: IgnorePointer(
                   child: SizedBox.expand(
-                    key: ValueKey('home_guide_preview'),
+                    key: const ValueKey('home_guide_preview'),
                     child: _GuidePreviewCard(step: step),
                   ),
                 ),
@@ -90,19 +92,8 @@ class HomeGuideOverlay extends StatelessWidget {
               Positioned.fromRect(
                 rect: bubble,
                 child: SizedBox.expand(
-                  key: ValueKey('home_guide_bubble'),
+                  key: const ValueKey('home_guide_bubble'),
                   child: _GuideBubble(step: step),
-                ),
-              ),
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: CustomPaint(
-                    key: const ValueKey('home_guide_arrow'),
-                    painter: _GuideArrowPainter(
-                      start: arrowStart,
-                      end: arrowEnd,
-                    ),
-                  ),
                 ),
               ),
             ],
@@ -180,9 +171,10 @@ class HomeGuideOverlay extends StatelessWidget {
   }
 
   Rect _taskPetRectFor(Size size) {
-    final petSize = size.width.clamp(360.0, 560.0) * 0.32;
-    final left = size.width * 0.009;
-    final bottom = size.height * 0.046;
+    final petSize =
+        size.width.clamp(360.0, 560.0) * _guideCompanionPetSizeBaseline;
+    final left = size.width * _guideCompanionPetLeftFactor;
+    final bottom = size.height * _guideCompanionPetBottomFactor;
     return Rect.fromLTWH(
       left,
       size.height - bottom - petSize,
@@ -191,62 +183,32 @@ class HomeGuideOverlay extends StatelessWidget {
     );
   }
 
+  Rect _hotspotRectFor(Rect anchor) {
+    if (step != HomeGuideStep.petArea) {
+      return anchor.inflate(20);
+    }
+    return anchor.inflate(10);
+  }
+
   Rect _pointerRectFor(Rect anchor, Rect preview, Size screenSize) {
-    const size = 76.0;
-    if (step == HomeGuideStep.taskSticker) {
-      return Rect.fromLTWH(
-        anchor.center.dx - size * 0.08,
-        anchor.center.dy - size * 0.73,
-        size,
-        size,
-      );
-    }
-
-    final leftFactor = step == HomeGuideStep.familyFrame ? 0.10 : 0.12;
-    final topFactor = step == HomeGuideStep.familyFrame ? 0.64 : 0.64;
-    final left = (anchor.center.dx - size * leftFactor)
-        .clamp(8.0, math.max(8.0, screenSize.width - size - 8))
-        .toDouble();
-    final top = (anchor.center.dy - size * topFactor)
-        .clamp(8.0, math.max(8.0, screenSize.height - size - 8))
-        .toDouble();
-    return Rect.fromLTWH(left, top, size, size);
-  }
-
-  Offset _arrowStartFor(Rect anchor, Rect pointer, Rect preview) {
-    if (step == HomeGuideStep.taskSticker) {
-      return Offset(pointer.right - 6, pointer.top + pointer.height * 0.46);
-    }
-    if (step == HomeGuideStep.petArea) {
-      return Offset(preview.left + preview.width * 0.16, preview.bottom + 46);
-    }
-    final pointsRight = preview.center.dx >= pointer.center.dx;
-    return Offset(
-      pointsRight ? pointer.right - 6 : pointer.left + 6,
-      pointer.top + pointer.height * 0.50,
+    final target = switch (step) {
+      HomeGuideStep.taskSticker => anchor.bottomRight + const Offset(2, -2),
+      HomeGuideStep.familyFrame => anchor.bottomRight + const Offset(2, -2),
+      HomeGuideStep.petArea =>
+        anchor.center + Offset(anchor.width * 0.12, anchor.height * 0.16),
+      HomeGuideStep.done => anchor.center,
+    };
+    final maxLeft = math.max(
+      8.0,
+      screenSize.width - _guideFingerSize * (1 - _guideFingerTipFraction.dx),
     );
-  }
-
-  Offset _arrowEndFor(Rect preview) {
-    if (step == HomeGuideStep.taskSticker) {
-      return Offset(
-        preview.left + preview.width * 0.08,
-        preview.top + preview.height * 0.12,
-      );
-    }
-    if (step == HomeGuideStep.familyFrame) {
-      return Offset(
-        preview.right - preview.width * 0.08,
-        preview.top + preview.height * 0.18,
-      );
-    }
-    if (step == HomeGuideStep.petArea) {
-      return Offset(
-        preview.left + preview.width * 0.34,
-        preview.bottom - preview.height * 0.08,
-      );
-    }
-    return preview.center;
+    final left = (target.dx - _guideFingerSize * _guideFingerTipFraction.dx)
+        .clamp(8.0, maxLeft)
+        .toDouble();
+    final top = (target.dy - _guideFingerSize * _guideFingerTipFraction.dy)
+        .clamp(8.0, math.max(8.0, screenSize.height - _guideFingerSize - 8))
+        .toDouble();
+    return Rect.fromLTWH(left, top, _guideFingerSize, _guideFingerSize);
   }
 }
 
@@ -326,9 +288,7 @@ class _GuideBubble extends StatelessWidget {
 }
 
 class _GuideFinger extends StatefulWidget {
-  const _GuideFinger({required this.flipX});
-
-  final bool flipX;
+  const _GuideFinger();
 
   @override
   State<_GuideFinger> createState() => _GuideFingerState();
@@ -353,19 +313,7 @@ class _GuideFingerState extends State<_GuideFinger>
       animation: _controller,
       builder: (context, child) {
         final press = Curves.easeInOut.transform(_controller.value);
-        final matrix = Matrix4.identity()
-          ..translateByDouble(
-            widget.flipX ? 8.0 - press * 6 : press * 6,
-            press * 5,
-            0,
-            1,
-          )
-          ..scaleByDouble(widget.flipX ? -1.0 : 1.0, 1.0, 1.0, 1.0);
-        return Transform(
-          alignment: Alignment.center,
-          transform: matrix,
-          child: child,
-        );
+        return Opacity(opacity: 0.94 + press * 0.06, child: child);
       },
       child: Image.asset(
         _guideFingerAsset,
@@ -1403,85 +1351,5 @@ class _GuideObjectGlowPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _GuideObjectGlowPainter oldDelegate) {
     return oldDelegate.progress != progress || oldDelegate.shape != shape;
-  }
-}
-
-class _GuideArrowPainter extends CustomPainter {
-  const _GuideArrowPainter({required this.start, required this.end});
-
-  final Offset start;
-  final Offset end;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final delta = end - start;
-    if (delta.distance < 12) {
-      return;
-    }
-
-    final direction = delta / delta.distance;
-    final from = start + direction * 18;
-    final to = end - direction * 18;
-    final normal = Offset(-direction.dy, direction.dx);
-    final curveSign = start.dx <= end.dx ? -1.0 : 1.0;
-    final curveOffset = normal * 30 * curveSign;
-    final path = Path()
-      ..moveTo(from.dx, from.dy)
-      ..quadraticBezierTo(
-        (from.dx + to.dx) * 0.5 + curveOffset.dx,
-        (from.dy + to.dy) * 0.5 + curveOffset.dy,
-        to.dx,
-        to.dy,
-      );
-
-    final shadowPaint = Paint()
-      ..color = const Color(0xFF6D4A2E).withValues(alpha: 0.20)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 5
-      ..strokeCap = StrokeCap.round;
-    final paint = Paint()
-      ..color = const Color(0xFFFFF3C2)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round;
-    _drawDashedPath(canvas, path, shadowPaint, 10, 8);
-    _drawDashedPath(canvas, path, paint, 10, 8);
-
-    final arrowAngle = math.atan2(delta.dy, delta.dx);
-    final arrowPath = Path()
-      ..moveTo(to.dx, to.dy)
-      ..lineTo(
-        to.dx - math.cos(arrowAngle - 0.55) * 13,
-        to.dy - math.sin(arrowAngle - 0.55) * 13,
-      )
-      ..moveTo(to.dx, to.dy)
-      ..lineTo(
-        to.dx - math.cos(arrowAngle + 0.55) * 13,
-        to.dy - math.sin(arrowAngle + 0.55) * 13,
-      );
-    canvas.drawPath(arrowPath, shadowPaint);
-    canvas.drawPath(arrowPath, paint);
-  }
-
-  void _drawDashedPath(
-    Canvas canvas,
-    Path path,
-    Paint paint,
-    double dash,
-    double gap,
-  ) {
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        final next = math.min(distance + dash, metric.length);
-        canvas.drawPath(metric.extractPath(distance, next), paint);
-        distance = next + gap;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _GuideArrowPainter oldDelegate) {
-    return oldDelegate.start != start || oldDelegate.end != end;
   }
 }

@@ -291,6 +291,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       }
       _syncGameTasksFromServer();
       _syncGamePetsFromServer();
+      _syncPetGuideFocus();
     });
   }
 
@@ -327,6 +328,11 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     _maybeOpenInitialTaskPanel();
     _maybeOpenInitialFamilyPanel();
     _maybeOpenInitialShopPanel();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _syncPetGuideFocus();
+      }
+    });
   }
 
   HomeSceneGame _createGame() {
@@ -506,6 +512,15 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     } else {
       _homeGuideProgress = nextProgress;
     }
+    _syncPetGuideFocus();
+  }
+
+  void _syncPetGuideFocus() {
+    final progress = _homeGuideProgress;
+    _game.setPetGuideFocusActive(
+      _shouldShowHomeGuideOverlay &&
+          progress?.currentStep == HomeGuideStep.petArea,
+    );
   }
 
   Rect _defaultFamilyFrameRect(Size size) {
@@ -568,6 +583,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       return;
     }
     setState(() => _homeGuideProgress = nextProgress);
+    _syncPetGuideFocus();
   }
 
   Future<void> _advanceHomeGuide(HomeGuideStep step) async {
@@ -580,6 +596,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       return;
     }
     setState(() => _homeGuideProgress = nextProgress);
+    _syncPetGuideFocus();
   }
 
   Future<void> _handleHomeGuideHotspotTap(HomeGuideStep step) async {
@@ -3210,6 +3227,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         return;
       }
 
+      _game.setPetGuideFocusActive(false);
       if (mounted) {
         setState(() {
           _homeGuideLoading = true;
@@ -3241,6 +3259,11 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = constraints.biggest;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _syncPetGuideFocus();
+          }
+        });
         return ColoredBox(
           color: const Color(0xFFF6E8CB),
           child: Stack(
