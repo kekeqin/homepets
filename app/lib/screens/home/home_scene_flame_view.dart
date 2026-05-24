@@ -221,11 +221,15 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       reverseDuration: _taskPanelTransitionDuration,
     );
 
-    _loadFamilyPets();
-
-    _loadFamilyForHomeGuide();
     _loadHomeTasks();
     _initHomeGuide();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _loadFamilyForHomeGuide();
+      _loadFamilyPets();
+    });
     _maybeOpenInitialTaskPanel();
     _maybeOpenInitialFamilyPanel();
     _maybeOpenInitialShopPanel();
@@ -291,7 +295,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       }
       _syncGameTasksFromServer();
       _syncGamePetsFromServer();
-      _syncPetGuideFocus();
     });
   }
 
@@ -330,7 +333,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     _maybeOpenInitialShopPanel();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _syncPetGuideFocus();
+        _syncGamePetsFromServer();
       }
     });
   }
@@ -355,7 +358,17 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       onOpenPetDetail: (petId, avatarAssetPath) {
         _openPetDetail(petId, avatarAssetPath);
       },
+      onGuideAnchorLayoutChanged: _handleGuideAnchorLayoutChanged,
     );
+  }
+
+  void _handleGuideAnchorLayoutChanged() {
+    if (!_shouldShowHomeGuideOverlay) {
+      return;
+    }
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _maybeOpenInitialTaskPanel() {
@@ -512,34 +525,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     } else {
       _homeGuideProgress = nextProgress;
     }
-    _syncPetGuideFocus();
-  }
-
-  void _syncPetGuideFocus() {
-    final progress = _homeGuideProgress;
-    _game.setPetGuideFocusActive(
-      _shouldShowHomeGuideOverlay &&
-          progress?.currentStep == HomeGuideStep.petArea,
-    );
-  }
-
-  Rect _defaultFamilyFrameRect(Size size) {
-    return Rect.fromLTWH(
-      size.width * 0.80,
-      size.height * 0.31,
-      math.min(size.width * 0.16, 92.0),
-      math.min(size.height * 0.09, 70.0),
-    );
-  }
-
-  Rect _defaultPetAreaRect(Size size) {
-    final width = math.min(size.width * 0.28, 160.0);
-    final height = width * 0.88;
-    return Rect.fromCenter(
-      center: Offset(size.width * 0.55, size.height * 0.74),
-      width: width,
-      height: height,
-    );
   }
 
   Rect? _homeGuideAnchorRect(Size size) {
@@ -548,18 +533,15 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       return null;
     }
     final rawRect = switch (progress.currentStep) {
-      HomeGuideStep.taskSticker =>
-        _game.taskPanelOriginRect() ?? _defaultTaskPanelOriginRect(size),
-      HomeGuideStep.familyFrame =>
-        _game.familyPhotoRect() ?? _defaultFamilyFrameRect(size),
-      HomeGuideStep.petArea =>
-        _game.primaryPetRect() ?? _defaultPetAreaRect(size),
+      HomeGuideStep.taskSticker => _game.taskPanelOriginRect(),
+      HomeGuideStep.familyFrame => _game.familyPhotoRect(),
+      HomeGuideStep.petArea => _game.primaryPetRect(),
       HomeGuideStep.done => null,
     };
     if (rawRect == null) {
       return null;
     }
-    return _clampPanelRect(rawRect.inflate(6), size);
+    return _clampPanelRect(rawRect, size);
   }
 
   bool get _shouldShowHomeGuideOverlay {
@@ -583,7 +565,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       return;
     }
     setState(() => _homeGuideProgress = nextProgress);
-    _syncPetGuideFocus();
   }
 
   Future<void> _advanceHomeGuide(HomeGuideStep step) async {
@@ -596,7 +577,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       return;
     }
     setState(() => _homeGuideProgress = nextProgress);
-    _syncPetGuideFocus();
   }
 
   Future<void> _handleHomeGuideHotspotTap(HomeGuideStep step) async {
@@ -3227,7 +3207,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         return;
       }
 
-      _game.setPetGuideFocusActive(false);
       if (mounted) {
         setState(() {
           _homeGuideLoading = true;
@@ -3259,11 +3238,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = constraints.biggest;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            _syncPetGuideFocus();
-          }
-        });
         return ColoredBox(
           color: const Color(0xFFF6E8CB),
           child: Stack(

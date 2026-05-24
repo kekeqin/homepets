@@ -145,8 +145,26 @@ void main() {
       expect(game.primaryPetRect(), isNull);
     });
 
+    test('debug guide sprite rects resolve to real home targets', () {
+      final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+
+      final taskRect = game.debugTaskNoteHomeRect(const Size(390, 844));
+      final familyRect = game.debugFamilyPhotoHomeRect(const Size(390, 844));
+
+      expect(taskRect, isNotNull);
+      expect(familyRect, isNotNull);
+      expect(taskRect!.left, closeTo(83, 2));
+      expect(taskRect.top, closeTo(111, 2));
+      expect(taskRect.width, closeTo(69, 2));
+      expect(taskRect.height, closeTo(76, 2));
+      expect(familyRect!.left, closeTo(316, 2));
+      expect(familyRect.top, closeTo(280, 2));
+      expect(familyRect.width, closeTo(47, 2));
+      expect(familyRect.height, closeTo(55, 2));
+    });
+
     test(
-      'pins primary pet above guide companion during pet detail guide focus',
+      'keeps primary pet rect at its real home placement for guide anchors',
       () {
         final game = HomeSceneGame(device: HomeSceneDevice.mobile);
         game.onGameResize(Vector2(390, 844));
@@ -154,24 +172,14 @@ void main() {
           HomeScenePetSeed(petId: 7, petType: 'dog'),
         ]);
 
-        final normalRect = game.debugPetRects()[7]!;
-        game.setPetGuideFocusActive(true);
-        final focusedRect = game.debugPetRects()[7]!;
-        final guidePetSize = 390 * 0.32;
-        final guidePetLeft = 390 * 0.009;
-        final guidePetTop = 844 - (844 * 0.046) - guidePetSize;
-        final guidePetCenterX = guidePetLeft + guidePetSize * 0.5;
+        final petRect = game.debugPetRects()[7]!;
 
-        expect(
-          focusedRect.bottom,
-          lessThanOrEqualTo((guidePetTop - 13.5) / 844),
-        );
-        expect(focusedRect.center.dx, closeTo(guidePetCenterX / 390, 0.02));
-        expect(focusedRect.width, closeTo(normalRect.width, 0.0001));
-        expect(focusedRect.height, closeTo(normalRect.height, 0.0001));
-
-        game.setPetGuideFocusActive(false);
-        expect(game.debugPetRects()[7], normalRect);
+        expect(petRect.left, inInclusiveRange(0, 1));
+        expect(petRect.top, inInclusiveRange(0, 1));
+        expect(petRect.right, inInclusiveRange(0, 1));
+        expect(petRect.bottom, inInclusiveRange(0, 1));
+        expect(petRect.width, greaterThan(0));
+        expect(petRect.height, greaterThan(0));
       },
     );
 

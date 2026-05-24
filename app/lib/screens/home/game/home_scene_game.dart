@@ -22,6 +22,8 @@ const String _homeFamilyPhotoFrameAsset =
 const String _homePaywallAsset = 'images/ui/home/home_paywall.png';
 const String _homeShopAsset = 'images/ui/home/home_shop.png';
 const String _homeSetupAsset = 'images/ui/19.png';
+const Size _homeSceneBackgroundSize = Size(840, 1871);
+const Duration _homeGuideAnchorReadyDelay = Duration(milliseconds: 1250);
 
 const Map<String, String> _homeSceneAssetFallbacks = <String, String>{
   'scenes/4.png': 'scenes/4.jpg',
@@ -1114,11 +1116,6 @@ _PetFrameAnimationSpec? _homePetAnimationForAsset(String assetPath) {
   };
 }
 
-const double _homeGuideCompanionPetBottomFactor = 0.046;
-const double _homeGuideCompanionPetLeftFactor = 0.009;
-const double _homeGuideCompanionPetSizeBaseline = 0.32;
-const double _homeGuideRealPetGapAboveCompanion = 14;
-
 class _PetCandidatePoint {
   const _PetCandidatePoint({
     required this.centerX,
@@ -1236,6 +1233,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     this.onTaskItemLongPress,
     this.onTaskAddTap,
     this.onOpenPetDetail,
+    this.onGuideAnchorLayoutChanged,
   }) : super(world: World()) {
     _profile = _profileFor(
       device,
@@ -1257,6 +1255,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   onTaskItemLongPress;
   final Future<void> Function()? onTaskAddTap;
   final void Function(int petId, String avatarAssetPath)? onOpenPetDetail;
+  final VoidCallback? onGuideAnchorLayoutChanged;
   late final _SceneProfile _profile;
 
   late Vector2 _sceneSize;
@@ -1273,7 +1272,6 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   final Map<int, int> _petPoseIndices = <int, int>{};
   final math.Random _petPlacementRandom = math.Random();
   final math.Random _petPoseRandom = math.Random();
-  bool _petGuideFocusActive = false;
   Vector2? _lastUiLayoutSize;
   int _uiRebuildGeneration = 0;
 
@@ -1509,13 +1507,6 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       ..addAll(nextPetEntries);
     _syncPetPlacements();
     _syncPetPoseIndices();
-    for (final component
-        in _animatedComponents.whereType<_PetSpriteComponent>()) {
-      component.setGuideFocusOffset(
-        _petGuideFocusOffsetFor(component.petId, component.baseSceneRect),
-      );
-    }
-
     if (_ready) {
       unawaited(_rebuildUiFromProfile());
     }
@@ -1530,13 +1521,6 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     _petPoseIndices.clear();
     _syncPetPlacements();
     _syncPetPoseIndices();
-    for (final component
-        in _animatedComponents.whereType<_PetSpriteComponent>()) {
-      component.setGuideFocusOffset(
-        _petGuideFocusOffsetFor(component.petId, component.baseSceneRect),
-      );
-    }
-
     if (_ready) {
       unawaited(_rebuildUiFromProfile());
     }
@@ -1590,9 +1574,33 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
             rect.width,
             rect.height,
           );
-          return _petGuideFocusRectFor(petId: pet.petId, rect: resolvedRect);
+          return resolvedRect;
         }(),
     });
+  }
+
+  Rect? debugTaskNoteHomeRect(Size sceneSize) {
+    return _debugHomeSpriteRect(sceneSize, _SceneSpriteBehavior.taskNote);
+  }
+
+  Rect? debugFamilyPhotoHomeRect(Size sceneSize) {
+    return _debugHomeSpriteRect(sceneSize, _SceneSpriteBehavior.familyPhoto);
+  }
+
+  Rect? _debugHomeSpriteRect(Size sceneSize, _SceneSpriteBehavior behavior) {
+    final backgroundSize = Vector2(sceneSize.width, sceneSize.height);
+    final backgroundRect = _homeSceneBackgroundLayoutRect(
+      sourceSize: _homeSceneBackgroundSize,
+      sceneSize: backgroundSize,
+      fit: _profile.backgroundFit,
+    );
+    for (final spec in _profile.specs.whereType<_SceneSpriteSpec>()) {
+      if (spec.behavior != behavior) {
+        continue;
+      }
+      return spec.resolveRect(backgroundSize, backgroundRect);
+    }
+    return null;
   }
 
   Map<int, List<String>> debugPetPoseAssetVariants() {
@@ -2766,50 +2774,42 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     _animatedComponents
       ..clear()
       ..addAll(nextComponents);
-    for (final component
-        in _animatedComponents.whereType<_PetSpriteComponent>()) {
-      component.setGuideFocusOffset(
-        _petGuideFocusOffsetFor(component.petId, component.baseSceneRect),
-      );
-    }
     _taskNoteComponent = nextTaskNoteComponent;
     _familyPhotoComponent = nextFamilyPhotoComponent;
     _lastUiLayoutSize = _sceneSize.clone();
+    onGuideAnchorLayoutChanged?.call();
+    Future<void>.delayed(_homeGuideAnchorReadyDelay, () {
+      if (_exitTriggered || rebuildGeneration != _uiRebuildGeneration) {
+        return;
+      }
+      onGuideAnchorLayoutChanged?.call();
+    });
   }
 
   Rect? _resolveTaskPanelOriginRect() {
     final taskNote = _taskNoteComponent;
-    if (taskNote == null || taskNote.parent == null) {
+    if (taskNote == null || !taskNote.isGuideAnchorReady) {
       return null;
     }
-    return taskNote.sceneRect;
+    return taskNote.guideSceneRect;
   }
 
   Rect? taskPanelOriginRect() => _resolveTaskPanelOriginRect();
 
   Rect? familyPhotoRect() {
     final familyPhoto = _familyPhotoComponent;
-    if (familyPhoto == null || familyPhoto.parent == null) {
+    if (familyPhoto == null || !familyPhoto.isGuideAnchorReady) {
       return null;
     }
-    return familyPhoto.sceneRect;
+    return familyPhoto.guideSceneRect;
   }
 
   Rect? primaryPetRect() {
-    return _primaryPetComponent()?.sceneRect;
-  }
-
-  void setPetGuideFocusActive(bool active) {
-    if (_petGuideFocusActive == active) {
-      return;
+    final pet = _primaryPetComponent();
+    if (pet == null || !pet.isGuideAnchorReady) {
+      return null;
     }
-    _petGuideFocusActive = active;
-    for (final component
-        in _animatedComponents.whereType<_PetSpriteComponent>()) {
-      component.setGuideFocusOffset(
-        _petGuideFocusOffsetFor(component.petId, component.baseSceneRect),
-      );
-    }
+    return pet.guideSceneRect;
   }
 
   int? primaryPetId() {
@@ -2836,86 +2836,6 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       return rightArea > leftArea ? right : left;
     });
     return component;
-  }
-
-  Offset _petGuideFocusOffsetFor(int petId, Rect rect) {
-    if (!_petGuideFocusActive ||
-        _primaryPetIdForGuideFocus() != petId ||
-        _sceneSize.x <= 0 ||
-        _sceneSize.y <= 0) {
-      return Offset.zero;
-    }
-    final companionRect = _guideCompanionPetRect();
-    final targetTop =
-        companionRect.top - rect.height - _homeGuideRealPetGapAboveCompanion;
-    final minTop = math.max(0.0, _sceneSize.y * 0.08);
-    final clampedTargetTop = math.max(minTop, targetTop);
-    final targetLeft = companionRect.center.dx - rect.width * 0.5;
-    final maxLeft = math.max(0.0, _sceneSize.x - rect.width - 8);
-    final clampedTargetLeft = targetLeft.clamp(8.0, maxLeft).toDouble();
-    return Offset(clampedTargetLeft - rect.left, clampedTargetTop - rect.top);
-  }
-
-  Rect _petGuideFocusRectFor({required int petId, required Rect rect}) {
-    if (!_petGuideFocusActive) {
-      return rect;
-    }
-    final isNormalizedRect = _isNormalizedRect(rect);
-    final sceneRect = isNormalizedRect
-        ? Rect.fromLTWH(
-            rect.left * _sceneSize.x,
-            rect.top * _sceneSize.y,
-            rect.width * _sceneSize.x,
-            rect.height * _sceneSize.y,
-          )
-        : rect;
-    final offset = _petGuideFocusOffsetFor(petId, sceneRect);
-    if (offset == Offset.zero) {
-      return rect;
-    }
-    final adjustedSceneRect = sceneRect.shift(offset);
-    if (!isNormalizedRect) {
-      return adjustedSceneRect;
-    }
-    return Rect.fromLTWH(
-      adjustedSceneRect.left / _sceneSize.x,
-      adjustedSceneRect.top / _sceneSize.y,
-      adjustedSceneRect.width / _sceneSize.x,
-      adjustedSceneRect.height / _sceneSize.y,
-    );
-  }
-
-  Rect _guideCompanionPetRect() {
-    final companionSize =
-        _sceneSize.x.clamp(360.0, 560.0) * _homeGuideCompanionPetSizeBaseline;
-    return Rect.fromLTWH(
-      _sceneSize.x * _homeGuideCompanionPetLeftFactor,
-      _sceneSize.y -
-          (_sceneSize.y * _homeGuideCompanionPetBottomFactor) -
-          companionSize,
-      companionSize,
-      companionSize,
-    );
-  }
-
-  bool _isNormalizedRect(Rect rect) {
-    return rect.width <= 1.0 &&
-        rect.height <= 1.0 &&
-        rect.left >= -0.1 &&
-        rect.top >= -0.1 &&
-        rect.right <= 1.1 &&
-        rect.bottom <= 1.1;
-  }
-
-  int? _primaryPetIdForGuideFocus() {
-    final component = _primaryPetComponent();
-    if (component != null) {
-      return component.petId;
-    }
-    if (_petEntries.isEmpty) {
-      return null;
-    }
-    return _petEntries.first.petId;
   }
 
   Future<void> _addAnimated(_AnimatedSceneComponent component) async {
@@ -3323,6 +3243,30 @@ Size _resolveHomePetRenderSize({
 
 enum _UiReferenceSpace { viewport, background }
 
+Rect _homeSceneBackgroundLayoutRect({
+  required Size sourceSize,
+  required Vector2 sceneSize,
+  required _SceneBackgroundFit fit,
+}) {
+  final scaleFactor = switch (fit) {
+    _SceneBackgroundFit.cover => math.max(
+      sceneSize.x / sourceSize.width,
+      sceneSize.y / sourceSize.height,
+    ),
+    _SceneBackgroundFit.contain => math.min(
+      sceneSize.x / sourceSize.width,
+      sceneSize.y / sourceSize.height,
+    ),
+  };
+  final width = sourceSize.width * scaleFactor;
+  final height = sourceSize.height * scaleFactor;
+  return Rect.fromCenter(
+    center: Offset(sceneSize.x * 0.5, sceneSize.y * 0.5),
+    width: width,
+    height: height,
+  );
+}
+
 Rect _resolveUiRectForReferenceSpace({
   required _RectFactor rect,
   required Vector2 sceneSize,
@@ -3546,18 +3490,13 @@ class _SceneBackgroundComponent extends SpriteComponent {
   }
 
   void _applyLayout() {
-    final scaleFactor = switch (fit) {
-      _SceneBackgroundFit.cover => math.max(
-        _sceneSize.x / _sourceSize.x,
-        _sceneSize.y / _sourceSize.y,
-      ),
-      _SceneBackgroundFit.contain => math.min(
-        _sceneSize.x / _sourceSize.x,
-        _sceneSize.y / _sourceSize.y,
-      ),
-    };
-    size = _sourceSize * scaleFactor;
-    position = _sceneSize / 2;
+    final rect = _homeSceneBackgroundLayoutRect(
+      sourceSize: Size(_sourceSize.x, _sourceSize.y),
+      sceneSize: _sceneSize,
+      fit: fit,
+    );
+    size = Vector2(rect.width, rect.height);
+    position = Vector2(rect.center.dx, rect.center.dy);
   }
 
   Rect get layoutRect => Rect.fromCenter(
@@ -3665,11 +3604,27 @@ abstract class _AnimatedSceneComponent extends PositionComponent
   }
 
   Rect get sceneRect {
+    return _rectForPosition(position);
+  }
+
+  Rect get guideSceneRect {
+    return _rectForPosition(_restPosition);
+  }
+
+  bool get isGuideAnchorReady {
+    if (parent == null || _exitStarted || opacity < 0.92) {
+      return false;
+    }
+    return (position.x - _restPosition.x).abs() <= 1.5 &&
+        (position.y - _restPosition.y).abs() <= 1.5;
+  }
+
+  Rect _rectForPosition(Vector2 rectPosition) {
     final scaledWidth = size.x * scale.x;
     final scaledHeight = size.y * scale.y;
     return Rect.fromLTWH(
-      position.x - (scaledWidth * anchor.x),
-      position.y - (scaledHeight * anchor.y),
+      rectPosition.x - (scaledWidth * anchor.x),
+      rectPosition.y - (scaledHeight * anchor.y),
       scaledWidth,
       scaledHeight,
     );
@@ -4215,7 +4170,6 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
   _PetSpeechBubble? _speechBubble;
   _PetCompletionReward? _completionReward;
   bool _isFrameAnimationPlaying = false;
-  Offset _guideFocusOffset = Offset.zero;
 
   @override
   Future<void> onLoad() async {
@@ -4300,18 +4254,10 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
 
   @override
   void render(Canvas canvas) {
-    if (_guideFocusOffset != Offset.zero) {
-      canvas.save();
-      canvas.translate(_guideFocusOffset.dx, _guideFocusOffset.dy);
-    }
-
     super.render(canvas);
 
     final sprite = _activeSprite;
     if (sprite == null) {
-      if (_guideFocusOffset != Offset.zero) {
-        canvas.restore();
-      }
       return;
     }
 
@@ -4368,20 +4314,7 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
 
     _renderCompletionReward(canvas);
     _renderSpeechBubble(canvas);
-
-    if (_guideFocusOffset != Offset.zero) {
-      canvas.restore();
-    }
   }
-
-  void setGuideFocusOffset(Offset offset) {
-    _guideFocusOffset = offset;
-  }
-
-  Rect get baseSceneRect => super.sceneRect;
-
-  @override
-  Rect get sceneRect => super.sceneRect.shift(_guideFocusOffset);
 
   _LoadedPetPoseVariant? get _activePose {
     if (_loadedPoseVariants.isEmpty) {
