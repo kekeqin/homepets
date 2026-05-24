@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../../widgets/app_modal_shell.dart';
 
 const String _settingsDialogPanelAsset =
-    'assets/images/ui/setup/setup_panel.png';
+    'assets/images/ui/setup/setup_panel_frame_composite.png';
 const double _settingsDialogDesignWidth = 441;
 const double _settingsDialogDesignHeight = 512;
 
