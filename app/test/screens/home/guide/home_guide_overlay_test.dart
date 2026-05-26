@@ -235,6 +235,41 @@ void main() {
     await tester.tapAt(petAnchor.center);
     expect(tapped, isTrue);
   });
+
+  testWidgets('accepts target alpha mask asset for wrapped glow', (
+    tester,
+  ) async {
+    _setSurface(tester, const Size(390, 720));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 390,
+            height: 720,
+            child: HomeGuideOverlay(
+              step: HomeGuideStep.familyFrame,
+              anchorRect: const Rect.fromLTWH(280, 210, 64, 64),
+              screenSize: const Size(390, 720),
+              targetAssetPath:
+                  'assets/images/ui/home/home_family_photo_frame.png',
+              onHotspotTap: () {},
+              onSkip: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(
+      find.byKey(const ValueKey('home_guide_target_glow')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('home_guide_hotspot')), findsOneWidget);
+  });
 }
 
 Offset _fingerTipFor(Rect fingerRect) {

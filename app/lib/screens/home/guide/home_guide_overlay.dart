@@ -15,10 +15,19 @@ const double _guideBubbleWidthFactor = 0.62;
 const double _guideBubbleAspectRatio = 1024 / 1536;
 const double _guideBubbleTailYFraction = 0.70;
 const double _guideBubbleFingerGap = 20.0;
+const String _guideAlphaGlowShaderAsset = 'shaders/guide_alpha_glow.frag';
 // finger1.png is 176x169; the visible fingertip is near pixel (41, 33).
 const Offset _guideFingerTipFraction = Offset(0.235, 0.207);
 
 typedef _GuideFingerTargetResolver = Offset Function(Rect targetRect);
+
+String? _guideFlutterAssetPath(String? assetPath) {
+  if (assetPath == null || assetPath.trim().isEmpty) {
+    return null;
+  }
+  final trimmed = assetPath.trim();
+  return trimmed.startsWith('assets/') ? trimmed : 'assets/$trimmed';
+}
 
 class _GuideTextSegment {
   const _GuideTextSegment(this.text, {this.highlight = false});
@@ -292,6 +301,8 @@ class HomeGuideOverlay extends StatelessWidget {
     required this.step,
     required this.anchorRect,
     required this.screenSize,
+    this.targetAssetPath,
+    this.targetAssetCropRect,
     required this.onHotspotTap,
     required this.onSkip,
   });
@@ -299,6 +310,8 @@ class HomeGuideOverlay extends StatelessWidget {
   final HomeGuideStep step;
   final Rect anchorRect;
   final Size screenSize;
+  final String? targetAssetPath;
+  final Rect? targetAssetCropRect;
   final VoidCallback onHotspotTap;
   final VoidCallback onSkip;
 
@@ -321,6 +334,8 @@ class HomeGuideOverlay extends StatelessWidget {
                 child: _GuideObjectGlow(
                   key: const ValueKey('home_guide_target_glow'),
                   step: step,
+                  targetAssetPath: targetAssetPath,
+                  targetAssetCropRect: targetAssetCropRect,
                 ),
               ),
             ),
@@ -519,9 +534,16 @@ class _GuideFingerTapPainter extends CustomPainter {
 }
 
 class _GuideObjectGlow extends StatefulWidget {
-  const _GuideObjectGlow({super.key, required this.step});
+  const _GuideObjectGlow({
+    super.key,
+    required this.step,
+    required this.targetAssetPath,
+    required this.targetAssetCropRect,
+  });
 
   final HomeGuideStep step;
+  final String? targetAssetPath;
+  final Rect? targetAssetCropRect;
 
   @override
   State<_GuideObjectGlow> createState() => _GuideObjectGlowState();
@@ -529,15 +551,110 @@ class _GuideObjectGlow extends StatefulWidget {
 
 class _GuideObjectGlowState extends State<_GuideObjectGlow>
     with SingleTickerProviderStateMixin {
+  static bool _shaderLoadStarted = false;
+  static ui.FragmentProgram? _shaderProgram;
+
+  ImageStream? _targetImageStream;
+  ImageStreamListener? _targetImageListener;
+  ui.Image? _targetImage;
+  Object? _targetImageKey;
+
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1550),
   )..repeat(reverse: true);
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _ensureShaderProgram();
+    _resolveTargetImage();
+  }
+
+  @override
+  void didUpdateWidget(covariant _GuideObjectGlow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.targetAssetPath != widget.targetAssetPath) {
+      _resolveTargetImage();
+    }
+  }
+
+  @override
   void dispose() {
+    final listener = _targetImageListener;
+    if (listener != null) {
+      _targetImageStream?.removeListener(listener);
+    }
+    _targetImage?.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  void _resolveTargetImage() {
+    final assetPath = _guideFlutterAssetPath(widget.targetAssetPath);
+    final nextKey = assetPath;
+    if (_targetImageKey == nextKey) {
+      return;
+    }
+
+    if (_targetImageStream != null && _targetImageListener != null) {
+      _targetImageStream!.removeListener(_targetImageListener!);
+    }
+    _targetImageStream = null;
+    _targetImageListener = null;
+    _targetImage?.dispose();
+    _targetImage = null;
+    _targetImageKey = nextKey;
+
+    if (assetPath == null) {
+      if (mounted) {
+        setState(() {});
+      }
+      return;
+    }
+
+    final provider = AssetImage(assetPath);
+    final stream = provider.resolve(createLocalImageConfiguration(context));
+    late final ImageStreamListener listener;
+    listener = ImageStreamListener(
+      (imageInfo, synchronousCall) {
+        final image = imageInfo.image.clone();
+        imageInfo.dispose();
+        if (!mounted) {
+          image.dispose();
+          return;
+        }
+        setState(() {
+          _targetImage?.dispose();
+          _targetImage = image;
+        });
+      },
+      onError: (Object error, StackTrace? stackTrace) {
+        debugPrint('Home guide target image failed to load: $assetPath');
+        debugPrint('$error');
+      },
+    );
+    _targetImageStream = stream;
+    _targetImageListener = listener;
+    stream.addListener(listener);
+  }
+
+  void _ensureShaderProgram() {
+    if (_shaderLoadStarted || _shaderProgram != null) {
+      return;
+    }
+    _shaderLoadStarted = true;
+    ui.FragmentProgram.fromAsset(_guideAlphaGlowShaderAsset)
+        .then((program) {
+          _shaderProgram = program;
+          if (mounted) {
+            setState(() {});
+          }
+        })
+        .catchError((Object error, StackTrace stackTrace) {
+          debugPrint('Home guide alpha glow shader failed to load.');
+          debugPrint('$error');
+        });
   }
 
   @override
@@ -550,6 +667,9 @@ class _GuideObjectGlowState extends State<_GuideObjectGlow>
           painter: _GuideObjectGlowPainter(
             progress: value,
             shape: _GuideObjectGlowShape.forStep(widget.step),
+            targetImage: _targetImage,
+            targetAssetCropRect: widget.targetAssetCropRect,
+            shaderProgram: _shaderProgram,
           ),
         );
       },
@@ -572,10 +692,19 @@ enum _GuideObjectGlowShape {
 }
 
 class _GuideObjectGlowPainter extends CustomPainter {
-  const _GuideObjectGlowPainter({required this.progress, required this.shape});
+  const _GuideObjectGlowPainter({
+    required this.progress,
+    required this.shape,
+    required this.targetImage,
+    required this.targetAssetCropRect,
+    required this.shaderProgram,
+  });
 
   final double progress;
   final _GuideObjectGlowShape shape;
+  final ui.Image? targetImage;
+  final Rect? targetAssetCropRect;
+  final ui.FragmentProgram? shaderProgram;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -583,45 +712,336 @@ class _GuideObjectGlowPainter extends CustomPainter {
       return;
     }
 
-    final pulse = 0.86 + progress * 0.14;
+    final image = targetImage;
+    if (image != null) {
+      _paintAssetMaskedGlow(canvas, size, image);
+      return;
+    }
+
+    _paintFallbackGeometryGlow(canvas, size);
+  }
+
+  void _paintAssetMaskedGlow(Canvas canvas, Size size, ui.Image image) {
+    final targetRect = _targetRectFor(size);
+    if (targetRect.isEmpty) {
+      return;
+    }
+
+    if (_paintFragmentShaderGlow(
+      canvas: canvas,
+      size: size,
+      image: image,
+      targetRect: targetRect,
+    )) {
+      return;
+    }
+
+    _paintImageFilterGlow(canvas, size, image, targetRect);
+  }
+
+  bool _paintFragmentShaderGlow({
+    required Canvas canvas,
+    required Size size,
+    required ui.Image image,
+    required Rect targetRect,
+  }) {
+    final program = shaderProgram;
+    if (program == null) {
+      return false;
+    }
+
+    final shader = program.fragmentShader();
+    try {
+      final sourceRect = _imageSourceRectFor(image);
+      shader
+        ..getUniformFloat('u_size', 0).set(size.width)
+        ..getUniformFloat('u_size', 1).set(size.height)
+        ..getUniformFloat('u_target_origin', 0).set(targetRect.left)
+        ..getUniformFloat('u_target_origin', 1).set(targetRect.top)
+        ..getUniformFloat('u_target_size', 0).set(targetRect.width)
+        ..getUniformFloat('u_target_size', 1).set(targetRect.height)
+        ..getUniformFloat('u_image_size', 0).set(image.width.toDouble())
+        ..getUniformFloat('u_image_size', 1).set(image.height.toDouble())
+        ..getUniformFloat('u_source_rect', 0).set(sourceRect.left)
+        ..getUniformFloat('u_source_rect', 1).set(sourceRect.top)
+        ..getUniformFloat('u_source_rect', 2).set(sourceRect.width)
+        ..getUniformFloat('u_source_rect', 3).set(sourceRect.height)
+        ..getUniformFloat(
+          'u_outline_width',
+          0,
+        ).set(math.max(3.0, size.shortestSide * 0.092))
+        ..getUniformFloat(
+          'u_softness',
+          0,
+        ).set(math.max(1.5, size.shortestSide * 0.036))
+        ..getUniformFloat('u_progress', 0).set(progress)
+        ..setImageSampler(0, image, filterQuality: FilterQuality.medium);
+
+      canvas.drawRect(
+        Offset.zero & size,
+        Paint()
+          ..shader = shader
+          ..blendMode = BlendMode.plus,
+      );
+      return true;
+    } catch (error) {
+      debugPrint('Home guide alpha glow shader paint failed.');
+      debugPrint('$error');
+      return false;
+    } finally {
+      shader.dispose();
+    }
+  }
+
+  void _paintImageFilterGlow(
+    Canvas canvas,
+    Size size,
+    ui.Image image,
+    Rect targetRect,
+  ) {
+    final pulse = 0.84 + progress * 0.16;
+    final imageSourceRect = _imageSourceRectFor(image);
+    final layerRect = Offset.zero & size;
+    final glowSpread = math.max(4.5, size.shortestSide * 0.092);
+    final edgeSpread = math.max(2.0, size.shortestSide * 0.030);
+    final edgeWidth = math.max(2.0, size.shortestSide * 0.026);
+    final sweepRotation = progress * math.pi * 2;
+
+    canvas.saveLayer(layerRect, Paint()..blendMode = BlendMode.plus);
+    _paintMaskPass(
+      canvas: canvas,
+      paintBounds: layerRect,
+      targetRect: targetRect,
+      image: image,
+      sourceRect: imageSourceRect,
+      shader: ui.Gradient.radial(
+        targetRect.center,
+        math.max(targetRect.width, targetRect.height) * 0.72,
+        <Color>[
+          const Color(0xFFFFF8CF).withValues(alpha: 0.30 * pulse),
+          const Color(0xFFFFDE70).withValues(alpha: 0.46 * pulse),
+          const Color(0xFFFFC85A).withValues(alpha: 0.16 * pulse),
+          const Color(0xFFFFF8CF).withValues(alpha: 0.00),
+        ],
+        const <double>[0.0, 0.50, 0.78, 1.0],
+      ),
+      imageFilter: ui.ImageFilter.compose(
+        outer: ui.ImageFilter.blur(
+          sigmaX: glowSpread,
+          sigmaY: glowSpread,
+          tileMode: TileMode.decal,
+        ),
+        inner: ui.ImageFilter.dilate(radiusX: edgeSpread, radiusY: edgeSpread),
+      ),
+      opacity: 0.92,
+    );
+    _paintMaskPass(
+      canvas: canvas,
+      paintBounds: layerRect,
+      targetRect: targetRect,
+      image: image,
+      sourceRect: imageSourceRect,
+      shader: ui.Gradient.sweep(
+        targetRect.center,
+        <Color>[
+          const Color(0xFFFFEF95).withValues(alpha: 0.58 * pulse),
+          const Color(0xFFFFFFFF).withValues(alpha: 0.88 * pulse),
+          const Color(0xFFFFD05E).withValues(alpha: 0.34 * pulse),
+          const Color(0xFFFFFEED).withValues(alpha: 0.78 * pulse),
+          const Color(0xFFFFEF95).withValues(alpha: 0.58 * pulse),
+        ],
+        const <double>[0.0, 0.18, 0.42, 0.62, 1.0],
+        TileMode.clamp,
+        sweepRotation,
+        sweepRotation + math.pi * 2,
+      ),
+      imageFilter: ui.ImageFilter.dilate(
+        radiusX: edgeWidth,
+        radiusY: edgeWidth,
+      ),
+      opacity: 0.82,
+    );
+    _paintMaskPass(
+      canvas: canvas,
+      paintBounds: layerRect,
+      targetRect: targetRect,
+      image: image,
+      sourceRect: imageSourceRect,
+      shader: ui.Gradient.sweep(
+        targetRect.center,
+        <Color>[
+          const Color(0xFFFFFFFF).withValues(alpha: 0.00),
+          const Color(0xFFFFFFFF).withValues(alpha: 0.00),
+          const Color(0xFFFFFFFF).withValues(alpha: 0.72 * pulse),
+          const Color(0xFFFFFFFF).withValues(alpha: 0.00),
+          const Color(0xFFFFFFFF).withValues(alpha: 0.00),
+        ],
+        const <double>[0.0, 0.40, 0.48, 0.56, 1.0],
+        TileMode.clamp,
+        sweepRotation - math.pi * 0.22,
+        sweepRotation + math.pi * 1.78,
+      ),
+      imageFilter: ui.ImageFilter.dilate(
+        radiusX: math.max(1.0, edgeWidth * 0.46),
+        radiusY: math.max(1.0, edgeWidth * 0.46),
+      ),
+      opacity: 0.82,
+    );
+    canvas.restore();
+  }
+
+  void _paintMaskPass({
+    required Canvas canvas,
+    required Rect paintBounds,
+    required Rect targetRect,
+    required ui.Image image,
+    required Rect sourceRect,
+    required ui.Shader shader,
+    required ui.ImageFilter imageFilter,
+    required double opacity,
+  }) {
+    canvas.saveLayer(paintBounds, Paint()..blendMode = BlendMode.srcOver);
+    canvas.saveLayer(paintBounds, Paint()..imageFilter = imageFilter);
+    canvas.drawRect(paintBounds, Paint()..shader = shader);
+    canvas.drawImageRect(
+      image,
+      sourceRect,
+      targetRect,
+      Paint()
+        ..blendMode = BlendMode.dstIn
+        ..filterQuality = FilterQuality.medium
+        ..color = const Color(0xFFFFFFFF).withValues(alpha: opacity),
+    );
+    canvas.restore();
+    canvas.drawImageRect(
+      image,
+      sourceRect,
+      targetRect,
+      Paint()
+        ..blendMode = BlendMode.dstOut
+        ..filterQuality = FilterQuality.medium,
+    );
+    canvas.restore();
+  }
+
+  Rect _targetRectFor(Size size) {
+    final inset = math.min(_guideTargetGlowOutset, size.shortestSide * 0.22);
+    final rect = (Offset.zero & size).deflate(inset);
+    if (rect.isEmpty) {
+      return Offset.zero & size;
+    }
+    return rect;
+  }
+
+  Rect _imageSourceRectFor(ui.Image image) {
+    final imageRect = Rect.fromLTWH(
+      0,
+      0,
+      image.width.toDouble(),
+      image.height.toDouble(),
+    );
+    final crop = targetAssetCropRect;
+    if (crop == null || crop.isEmpty) {
+      return imageRect;
+    }
+    return Rect.fromLTWH(
+      imageRect.width * crop.left,
+      imageRect.height * crop.top,
+      imageRect.width * crop.width,
+      imageRect.height * crop.height,
+    ).intersect(imageRect);
+  }
+
+  void _paintFallbackGeometryGlow(Canvas canvas, Size size) {
+    if (size.isEmpty) {
+      return;
+    }
+
     final glowRect = Offset.zero & size;
     final glowInset = math.min(
       _guideTargetGlowOutset,
       size.shortestSide * 0.22,
     );
     final shapeRect = glowRect.deflate(glowInset);
-    final outerStrokeWidth = math.max(7.0, shapeRect.shortestSide * 0.115);
-    final innerStrokeWidth = math.max(3.6, shapeRect.shortestSide * 0.055);
-    final coreStrokeWidth = math.max(1.4, shapeRect.shortestSide * 0.020);
-    final outerPaint = Paint()
-      ..color = const Color(0xFFFFE08A).withValues(alpha: 0.42 * pulse)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = outerStrokeWidth
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..blendMode = BlendMode.plus
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7.5);
-    final innerPaint = Paint()
-      ..color = const Color(0xFFFFF2B8).withValues(alpha: 0.70 * pulse)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = innerStrokeWidth
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..blendMode = BlendMode.plus
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.8);
-    final corePaint = Paint()
-      ..color = const Color(0xFFFFFADE).withValues(alpha: 0.42 * pulse)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = coreStrokeWidth
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..blendMode = BlendMode.plus;
+    if (shapeRect.isEmpty) {
+      return;
+    }
+
+    final pulse = 0.84 + progress * 0.16;
+    final outerStrokeWidth = math.max(8.0, shapeRect.shortestSide * 0.14);
+    final innerStrokeWidth = math.max(3.8, shapeRect.shortestSide * 0.058);
+    final coreStrokeWidth = math.max(1.5, shapeRect.shortestSide * 0.022);
+    final center = shapeRect.center;
+    final shaderRadius = math.max(shapeRect.width, shapeRect.height) * 0.72;
+    final sweepRotation = progress * math.pi * 2;
+    final outerPaint = _strokePaint(
+      shader: ui.Gradient.radial(
+        center,
+        shaderRadius,
+        <Color>[
+          const Color(0xFFFFF7C8).withValues(alpha: 0.00),
+          const Color(0xFFFFF1A8).withValues(alpha: 0.44 * pulse),
+          const Color(0xFFFFC95F).withValues(alpha: 0.18 * pulse),
+          const Color(0xFFFFF7C8).withValues(alpha: 0.00),
+        ],
+        const <double>[0.42, 0.66, 0.86, 1.0],
+      ),
+      strokeWidth: outerStrokeWidth,
+    );
+    final innerPaint = _strokePaint(
+      shader: ui.Gradient.sweep(
+        center,
+        <Color>[
+          const Color(0xFFFFF7C8).withValues(alpha: 0.72 * pulse),
+          const Color(0xFFFFD974).withValues(alpha: 0.34 * pulse),
+          const Color(0xFFFFFEED).withValues(alpha: 0.86 * pulse),
+          const Color(0xFFFFD974).withValues(alpha: 0.34 * pulse),
+          const Color(0xFFFFF7C8).withValues(alpha: 0.72 * pulse),
+        ],
+        const <double>[0.0, 0.28, 0.48, 0.68, 1.0],
+        TileMode.clamp,
+        sweepRotation,
+        sweepRotation + math.pi * 2,
+      ),
+      strokeWidth: innerStrokeWidth,
+    );
+    final corePaint = _strokePaint(
+      shader: ui.Gradient.linear(
+        shapeRect.topLeft,
+        shapeRect.bottomRight,
+        <Color>[
+          const Color(0xFFFFFFFF).withValues(alpha: 0.30 * pulse),
+          const Color(0xFFFFF4B8).withValues(alpha: 0.56 * pulse),
+          const Color(0xFFFFFFFF).withValues(alpha: 0.26 * pulse),
+        ],
+        const <double>[0.0, 0.48, 1.0],
+      ),
+      strokeWidth: coreStrokeWidth,
+    );
+    final glintPaint = _strokePaint(
+      shader: ui.Gradient.sweep(
+        center,
+        <Color>[
+          const Color(0xFFFFFFFF).withValues(alpha: 0.00),
+          const Color(0xFFFFFFFF).withValues(alpha: 0.00),
+          const Color(0xFFFFFFFF).withValues(alpha: 0.62 * pulse),
+          const Color(0xFFFFFFFF).withValues(alpha: 0.00),
+          const Color(0xFFFFFFFF).withValues(alpha: 0.00),
+        ],
+        const <double>[0.0, 0.40, 0.48, 0.56, 1.0],
+        TileMode.clamp,
+        sweepRotation - math.pi * 0.20,
+        sweepRotation + math.pi * 1.80,
+      ),
+      strokeWidth: math.max(2.0, innerStrokeWidth * 0.42),
+    );
 
     if (shape == _GuideObjectGlowShape.oval) {
       final ovalRect = shapeRect.inflate(1.5);
       canvas.drawOval(ovalRect, outerPaint);
       canvas.drawOval(ovalRect, innerPaint);
       canvas.drawOval(ovalRect, corePaint);
+      canvas.drawOval(ovalRect, glintPaint);
       return;
     }
 
@@ -631,10 +1051,25 @@ class _GuideObjectGlowPainter extends CustomPainter {
     canvas.drawRRect(targetShape, outerPaint);
     canvas.drawRRect(targetShape, innerPaint);
     canvas.drawRRect(targetShape, corePaint);
+    canvas.drawRRect(targetShape, glintPaint);
+  }
+
+  Paint _strokePaint({required ui.Shader shader, required double strokeWidth}) {
+    return Paint()
+      ..shader = shader
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..blendMode = BlendMode.plus;
   }
 
   @override
   bool shouldRepaint(covariant _GuideObjectGlowPainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.shape != shape;
+    return oldDelegate.progress != progress ||
+        oldDelegate.shape != shape ||
+        oldDelegate.targetImage != targetImage ||
+        oldDelegate.targetAssetCropRect != targetAssetCropRect ||
+        oldDelegate.shaderProgram != shaderProgram;
   }
 }

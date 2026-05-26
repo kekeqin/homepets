@@ -10,8 +10,9 @@ import 'package:flame_riverpod/flame_riverpod.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/ui/sprite_atlas_flame.dart';
-import '../task_panel_sprite_catalog.dart';
 import '../../../models/pet_artwork.dart';
+import '../guide/home_guide_controller.dart';
+import '../task_panel_sprite_catalog.dart';
 
 enum HomeSceneDevice { mobile, tablet }
 
@@ -2824,6 +2825,24 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     return debugPetDetailAvatarAssetPaths()[petId];
   }
 
+  String? guideTargetAssetPath(HomeGuideStep step) {
+    return switch (step) {
+      HomeGuideStep.taskSticker => _taskNoteComponent?.assetPath,
+      HomeGuideStep.familyFrame => _familyPhotoComponent?.assetPath,
+      HomeGuideStep.petArea => _primaryPetComponent()?.activePoseAssetPath,
+      HomeGuideStep.done => null,
+    };
+  }
+
+  Rect? guideTargetAssetCropRect(HomeGuideStep step) {
+    return switch (step) {
+      HomeGuideStep.taskSticker => _taskNoteComponent?.assetCropRect,
+      HomeGuideStep.familyFrame => _familyPhotoComponent?.assetCropRect,
+      HomeGuideStep.petArea => _primaryPetComponent()?.activePoseCropRect,
+      HomeGuideStep.done => null,
+    };
+  }
+
   _PetSpriteComponent? _primaryPetComponent() {
     final petComponents = _animatedComponents.whereType<_PetSpriteComponent>();
     if (petComponents.isEmpty) {
@@ -3940,6 +3959,14 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
   double? _actionCountdown;
   bool _tapLocked = false;
 
+  Rect? get assetCropRect {
+    final clip = cropRect;
+    if (clip == null) {
+      return null;
+    }
+    return Rect.fromLTWH(clip.left, clip.top, clip.width, clip.height);
+  }
+
   @override
   Future<void> onLoad() async {
     await super.onLoad();
@@ -4332,6 +4359,16 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
       return activePose.animationFrames[_animationIndex];
     }
     return activePose.sprite;
+  }
+
+  String get activePoseAssetPath => poseVariants[_activePoseIndex].assetPath;
+
+  Rect? get activePoseCropRect {
+    final crop = poseVariants[_activePoseIndex].cropRect;
+    if (crop == null) {
+      return null;
+    }
+    return Rect.fromLTWH(crop.left, crop.top, crop.width, crop.height);
   }
 
   Future<_LoadedPetPoseVariant> _loadPoseVariant(

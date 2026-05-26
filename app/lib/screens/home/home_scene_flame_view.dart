@@ -3354,6 +3354,8 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                       step: step,
                       anchorRect: anchorRect,
                       screenSize: size,
+                      targetAssetPath: _game.guideTargetAssetPath(step),
+                      targetAssetCropRect: _game.guideTargetAssetCropRect(step),
                       onHotspotTap: () => _handleHomeGuideHotspotTap(step),
                       onSkip: _skipHomeGuide,
                     );
