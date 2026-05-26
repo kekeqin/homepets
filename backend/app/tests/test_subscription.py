@@ -74,10 +74,33 @@ def test_subscription_status_returns_trial_active(client: TestClient, db: Sessio
     assert data["scope"] == "family"
 
 
-def test_expired_trial_blocks_core_api_with_402(client: TestClient, db: Session) -> None:
+def test_expired_trial_allows_read_api_but_blocks_write_with_402(
+    client: TestClient,
+    db: Session,
+) -> None:
     _create_admin(db)
     token = _login(client)
+    headers = _auth_header(token)
     family_id = client.get("/api/auth/me", headers=_auth_header(token)).json()["family_id"]
+    member_response = client.post(
+        f"/api/families/{family_id}/members",
+        json={"nickname": "Ming", "pet_type": "cat", "pet_name": "Mimi"},
+        headers=headers,
+    )
+    assert member_response.status_code == 201
+    task_response = client.post(
+        f"/api/families/{family_id}/tasks",
+        json={"title": "Water plants", "points": 10},
+        headers=headers,
+    )
+    assert task_response.status_code == 201
+    completion_response = client.post(
+        f"/api/tasks/{task_response.json()['id']}/completions",
+        json={"member_id": member_response.json()["id"]},
+        headers=headers,
+    )
+    assert completion_response.status_code == 201
+
     subscription = _subscription(db)
     subscription.trial_started_at = datetime.now(UTC) - timedelta(days=8)
     subscription.trial_ends_at = datetime.now(UTC) - timedelta(days=1)
@@ -85,10 +108,40 @@ def test_expired_trial_blocks_core_api_with_402(client: TestClient, db: Session)
     db.add(subscription)
     db.commit()
 
-    response = client.get(f"/api/families/{family_id}/tasks", headers=_auth_header(token))
+    family_response = client.get(f"/api/families/{family_id}", headers=headers)
+    members_response = client.get(f"/api/families/{family_id}/members", headers=headers)
+    pets_response = client.get(f"/api/families/{family_id}/pets", headers=headers)
+    tasks_response = client.get(f"/api/families/{family_id}/tasks", headers=headers)
+    completions_response = client.get(
+        f"/api/families/{family_id}/completions",
+        headers=headers,
+    )
 
-    assert response.status_code == 402
-    detail = response.json()["detail"]
+    assert family_response.status_code == 200
+    assert members_response.status_code == 200
+    assert pets_response.status_code == 200
+    assert tasks_response.status_code == 200
+    assert completions_response.status_code == 200
+    assert [member["nickname"] for member in family_response.json()["members"]] == [
+        "Admin",
+        "Ming",
+    ]
+    assert any(member["nickname"] == "Ming" for member in members_response.json())
+    assert any(pet["name"] == "Mimi" for pet in pets_response.json())
+    assert any(task["title"] == "Water plants" for task in tasks_response.json())
+    assert any(
+        completion["task_title"] == "Water plants"
+        for completion in completions_response.json()
+    )
+
+    write_response = client.post(
+        f"/api/families/{family_id}/tasks",
+        json={"title": "Read-only blocked task", "points": 10},
+        headers=headers,
+    )
+
+    assert write_response.status_code == 402
+    detail = write_response.json()["detail"]
     assert detail["code"] == "ENTITLEMENT_REQUIRED"
     assert detail["reason"] == "trial_expired"
 
@@ -170,9 +223,7 @@ def test_revenuecat_webhook_updates_and_deduplicates(
             "app_user_id": subscription.revenuecat_app_user_id,
             "type": "INITIAL_PURCHASE",
             "product_id": "homepets_monthly",
-            "expiration_at_ms": int(
-                (datetime.now(UTC) + timedelta(days=30)).timestamp() * 1000
-            ),
+            "expiration_at_ms": int((datetime.now(UTC) + timedelta(days=30)).timestamp() * 1000),
             "will_renew": True,
         }
     }

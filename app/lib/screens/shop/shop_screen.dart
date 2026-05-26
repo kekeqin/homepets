@@ -1,4 +1,4 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/api_error_helper.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/subscription_provider.dart';
 
 class _ShopPalette {
   static const woodDark = Color(0xFF8C643D);
@@ -224,12 +225,30 @@ class _ShopScreenState extends ConsumerState<ShopScreen>
     return false;
   }
 
+  bool get _isReadOnlyAfterTrial {
+    return ref.read(coreMutationBlockedProvider);
+  }
+
+  void _showMembershipRequiredSnackBar() {
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('试用期已结束，开通会员后可继续养成和编辑')));
+  }
+
   Future<void> _buyItem(Map<String, dynamic> item) async {
     final itemId = _toInt(item['id']);
     final name = (item['name'] ?? '未知道具').toString();
     final price = _toInt(item['price']) ?? 0;
 
     if (itemId == null) {
+      return;
+    }
+
+    if (_isReadOnlyAfterTrial) {
+      _showMembershipRequiredSnackBar();
       return;
     }
 

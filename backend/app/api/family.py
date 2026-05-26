@@ -3,7 +3,7 @@ from sqlmodel import Session, select
 
 from app.core.dependencies import (
     get_current_admin_with_active_access,
-    get_current_user_with_active_access,
+    get_current_user,
     get_db,
 )
 from app.models.family import Family
@@ -108,7 +108,7 @@ def create_family(
 def get_family(
     family_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_with_active_access),
+    current_user: User = Depends(get_current_user),
 ) -> FamilyResponse:
     family = db.get(Family, family_id)
     if not family:
@@ -203,7 +203,7 @@ def set_member_pet(
 def list_members(
     family_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_with_active_access),
+    current_user: User = Depends(get_current_user),
 ) -> list[MemberResponse]:
     family = db.get(Family, family_id)
     if not family:

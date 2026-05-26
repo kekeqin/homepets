@@ -5,6 +5,7 @@ import 'package:homepets/core/auth_session_bus.dart';
 import 'package:homepets/models/user.dart';
 import 'package:homepets/providers/auth_provider.dart';
 import 'package:homepets/providers/family_provider.dart' as family_provider;
+import 'package:homepets/providers/subscription_provider.dart';
 import 'package:homepets/services/auth_service.dart';
 import 'package:homepets/services/family_service.dart';
 
@@ -169,9 +170,38 @@ void main() {
       expect(notifier.state.members.single.pet?.name, '米米');
     },
   );
+
+  test('write operations are blocked when trial requires membership', () async {
+    final service = _FakeFamilyService(
+      memberResponse: const <String, dynamic>{
+        'id': 2,
+        'nickname': '小宝',
+        'role': 'child',
+        'points': 0,
+        'pet_id': null,
+        'pet_type': null,
+        'needs_pet_selection': true,
+      },
+      familyResult: _familyResult(
+        members: const <Map<String, dynamic>>[],
+        pets: const <Map<String, dynamic>>[],
+      ),
+    );
+    final notifier = _notifier(service, subscriptionAllowed: false);
+
+    await expectLater(
+      notifier.addMemberWithPet(nickname: '小宝', petType: 'cat', petName: '团团'),
+      throwsA(isA<StateError>()),
+    );
+    expect(service.addMemberCalls, 0);
+    expect(service.assignMemberPetCalls, 0);
+  });
 }
 
-family_provider.FamilyNotifier _notifier(_FakeFamilyService service) {
+family_provider.FamilyNotifier _notifier(
+  _FakeFamilyService service, {
+  bool subscriptionAllowed = true,
+}) {
   final container = ProviderContainer(
     overrides: [
       authProvider.overrideWith(
@@ -190,6 +220,7 @@ family_provider.FamilyNotifier _notifier(_FakeFamilyService service) {
         ),
       ),
       family_provider.familyServiceProvider.overrideWithValue(service),
+      coreMutationBlockedProvider.overrideWithValue(!subscriptionAllowed),
     ],
   );
   addTearDown(container.dispose);

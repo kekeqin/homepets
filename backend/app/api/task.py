@@ -6,6 +6,7 @@ from sqlmodel import Session, select
 
 from app.core.dependencies import (
     get_current_admin_with_active_access,
+    get_current_user,
     get_current_user_with_active_access,
     get_db,
 )
@@ -234,7 +235,7 @@ def create_family_task(
 def list_tasks(
     family_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_with_active_access),
+    current_user: User = Depends(get_current_user),
 ) -> list[dict]:
     return _list_active_tasks(family_id, db, current_user)
 
@@ -342,6 +343,6 @@ def submit_completion(
 def list_completions(
     family_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_with_active_access),
+    current_user: User = Depends(get_current_user),
 ) -> list[dict]:
     return _list_family_completion_payload(family_id, db, current_user, limit=20)

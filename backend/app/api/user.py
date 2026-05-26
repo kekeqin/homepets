@@ -1,7 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
 
-from app.core.dependencies import get_current_user_with_active_access, get_db
+from app.core.dependencies import (
+    get_current_user,
+    get_current_user_with_active_access,
+    get_db,
+)
 from app.models.user import User
 from app.schemas.auth import UserResponse
 from app.schemas.user import UserUpdate
@@ -14,7 +18,7 @@ router = APIRouter(prefix="/api/users", tags=["users"])
 def get_user(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_with_active_access),
+    current_user: User = Depends(get_current_user),
 ) -> User:
     user = db.get(User, user_id)
     if not user:

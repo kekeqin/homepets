@@ -54,8 +54,22 @@ final routerProvider = Provider<GoRouter>((ref) {
         '/support',
         '/account/delete',
       };
+      String blockingPaywallRedirect(String returnRoute) {
+        final reason = Uri.encodeComponent(
+          subscriptionState.status?.reason ??
+              subscriptionState.lastEntitlementReason ??
+              'trial_expired',
+        );
+        return '/paywall?mode=blocking&reason=$reason&return=${Uri.encodeComponent(returnRoute)}';
+      }
 
       if (isLoggedIn && authRoutes.contains(location)) {
+        if (!subscriptionState.isInitialized) {
+          return '/subscription/loading?return=${Uri.encodeComponent('/home')}';
+        }
+        if (subscriptionState.shouldBlockCoreAccess && !authState.viewOnly) {
+          return blockingPaywallRedirect('/home');
+        }
         return '/home';
       }
 
@@ -70,13 +84,8 @@ final routerProvider = Provider<GoRouter>((ref) {
             state.uri.queryParameters['return']?.trim().isNotEmpty == true
             ? state.uri.queryParameters['return']!
             : '/home';
-        if (subscriptionState.shouldBlockCoreAccess) {
-          final reason = Uri.encodeComponent(
-            subscriptionState.status?.reason ??
-                subscriptionState.lastEntitlementReason ??
-                'trial_expired',
-          );
-          return '/paywall?mode=blocking&reason=$reason&return=${Uri.encodeComponent(returnRoute)}';
+        if (subscriptionState.shouldBlockCoreAccess && !authState.viewOnly) {
+          return blockingPaywallRedirect(returnRoute);
         }
         return returnRoute;
       }
@@ -89,15 +98,10 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (isLoggedIn &&
           subscriptionState.shouldBlockCoreAccess &&
+          !authState.viewOnly &&
           !entitlementAllowedRoutes.contains(location) &&
           !authRoutes.contains(location)) {
-        final returnRoute = Uri.encodeComponent(state.uri.toString());
-        final reason = Uri.encodeComponent(
-          subscriptionState.status?.reason ??
-              subscriptionState.lastEntitlementReason ??
-              'trial_expired',
-        );
-        return '/paywall?mode=blocking&reason=$reason&return=$returnRoute';
+        return blockingPaywallRedirect(state.uri.toString());
       }
 
       return null;

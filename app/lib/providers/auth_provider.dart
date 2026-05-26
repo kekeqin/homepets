@@ -116,6 +116,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isInitialized: true,
         user: user,
         error: null,
+        viewOnly: false,
       );
     } catch (_) {
       if (requestVersion != _authRequestVersion) {
@@ -151,6 +152,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isInitialized: true,
         user: user,
         error: null,
+        viewOnly: false,
       );
       return true;
     } catch (error) {
@@ -246,6 +248,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   void toggleViewOnly() {
     state = state.copyWith(viewOnly: !state.viewOnly);
+  }
+
+  void setViewOnly(bool viewOnly) {
+    if (state.viewOnly == viewOnly) {
+      return;
+    }
+    state = state.copyWith(viewOnly: viewOnly);
   }
 
   @override

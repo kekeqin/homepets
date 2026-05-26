@@ -16,6 +16,23 @@ final subscriptionProvider =
       return SubscriptionNotifier(ref.read(subscriptionServiceProvider), ref);
     });
 
+final coreMutationBlockedProvider = Provider<bool>((ref) {
+  final authState = ref.watch(authProvider);
+  if (authState.viewOnly) {
+    return true;
+  }
+  final subscriptionState = ref.watch(subscriptionProvider);
+  if (!subscriptionState.isInitialized) {
+    return true;
+  }
+  return !subscriptionState.accessAllowed ||
+      subscriptionState.shouldBlockCoreAccess;
+});
+
+bool homeGuideBlockedByEntitlement(AuthState authState) {
+  return authState.viewOnly;
+}
+
 class SubscriptionState {
   static const _unset = Object();
 
@@ -119,6 +136,9 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
         status: status,
         error: null,
       );
+      if (status.accessAllowed) {
+        _ref.read(authProvider.notifier).setViewOnly(false);
+      }
     } catch (_) {
       if (!mounted || requestVersion != _requestVersion) {
         return;
@@ -148,6 +168,9 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
         status: status,
         error: null,
       );
+      if (status.accessAllowed) {
+        _ref.read(authProvider.notifier).setViewOnly(false);
+      }
       return status.accessAllowed;
     } catch (_) {
       if (!mounted || requestVersion != _requestVersion) {

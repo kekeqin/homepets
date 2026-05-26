@@ -5,6 +5,7 @@ import '../screens/family/models/family_member_view_data.dart';
 import '../screens/family/models/family_screen_state.dart';
 import '../services/family_service.dart';
 import 'auth_provider.dart';
+import 'subscription_provider.dart';
 
 final familyServiceProvider = Provider<FamilyService>((ref) {
   return FamilyService(ref.read(apiClientProvider));
@@ -62,6 +63,7 @@ class FamilyNotifier extends StateNotifier<FamilyScreenState> {
   }
 
   Future<FamilyMemberViewData> addMember(String nickname) async {
+    _requireWriteAccess();
     final familyId = _requireFamilyId();
     final memberMap = await _familyService.addMember(
       familyId: familyId,
@@ -75,6 +77,7 @@ class FamilyNotifier extends StateNotifier<FamilyScreenState> {
     required String petType,
     required String petName,
   }) async {
+    _requireWriteAccess();
     final familyId = _requireFamilyId();
     final memberMap = await _familyService.addMember(
       familyId: familyId,
@@ -108,6 +111,7 @@ class FamilyNotifier extends StateNotifier<FamilyScreenState> {
     required String petType,
     required String petName,
   }) async {
+    _requireWriteAccess();
     await _familyService.assignMemberPet(
       familyId: _requireFamilyId(),
       memberId: memberId,
@@ -118,6 +122,7 @@ class FamilyNotifier extends StateNotifier<FamilyScreenState> {
   }
 
   Future<void> deleteMember({required int memberId}) async {
+    _requireWriteAccess();
     await _familyService.deleteMember(
       familyId: _requireFamilyId(),
       memberId: memberId,
@@ -129,6 +134,7 @@ class FamilyNotifier extends StateNotifier<FamilyScreenState> {
     required int memberId,
     required String? avatarUrl,
   }) async {
+    _requireWriteAccess();
     await _familyService.updateMemberAvatar(
       memberId: memberId,
       avatarUrl: avatarUrl,
@@ -136,6 +142,7 @@ class FamilyNotifier extends StateNotifier<FamilyScreenState> {
   }
 
   Future<void> updateFamilyName(String familyName) async {
+    _requireWriteAccess();
     final trimmedName = familyName.trim();
     final result = await _familyService.updateFamily(
       familyId: _requireFamilyId(),
@@ -155,5 +162,11 @@ class FamilyNotifier extends StateNotifier<FamilyScreenState> {
       throw StateError('当前用户还未加入家庭');
     }
     return familyId;
+  }
+
+  void _requireWriteAccess() {
+    if (_ref.read(coreMutationBlockedProvider)) {
+      throw StateError('试用期已结束，开通会员后可继续养成和编辑');
+    }
   }
 }

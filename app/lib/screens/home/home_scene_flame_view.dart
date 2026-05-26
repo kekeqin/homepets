@@ -84,6 +84,7 @@ const int _taskPointsMin = 1;
 const int _taskPointsMax = 1000;
 
 const String _taskPanelNoteAsset = 'assets/images/ui/task_note.png';
+const String _membershipRequiredMessage = '试用期已结束，开通会员后可继续养成和编辑';
 const String _taskDeleteTrashAsset = 'assets/images/ui/task_delete/trash.png';
 const String _taskDeleteTitleAsset =
     'assets/images/ui/task_delete/title_text.png';
@@ -206,6 +207,21 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     final user = ref.read(authProvider).user;
 
     return user?.isAdmin == true;
+  }
+
+  bool get _isReadOnlyAfterTrial {
+    return ref.read(coreMutationBlockedProvider);
+  }
+
+  bool get _canCompleteTasks => !_isReadOnlyAfterTrial;
+
+  void _showReadOnlySnackBar() {
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text(_membershipRequiredMessage)));
   }
 
   @override
@@ -546,7 +562,10 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
   bool get _shouldShowHomeGuideOverlay {
     final progress = _homeGuideProgress;
-    return !_homeGuideLoading &&
+    final authState = ref.read(authProvider);
+    return !_isReadOnlyAfterTrial &&
+        !homeGuideBlockedByEntitlement(authState) &&
+        !_homeGuideLoading &&
         progress != null &&
         progress.shouldShow &&
         !_taskPanelVisible &&
@@ -663,6 +682,10 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
       switch (action) {
         case HomeSettingsAction.editProfile:
+          if (_isReadOnlyAfterTrial) {
+            _showTopSnackBar(_membershipRequiredMessage);
+            break;
+          }
           await _showEditProfileDialog();
           break;
         case HomeSettingsAction.about:
@@ -705,8 +728,13 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       return;
     }
 
+    if (_isReadOnlyAfterTrial) {
+      _showTopSnackBar(_membershipRequiredMessage);
+      return;
+    }
+
     final canManageFamilyName =
-        user.isAdmin && !authState.viewOnly && user.familyId != null;
+        user.isAdmin && !_isReadOnlyAfterTrial && user.familyId != null;
 
     if (canManageFamilyName) {
       try {
@@ -1261,6 +1289,11 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     Offset globalPosition,
   ) async {
     if (!mounted) {
+      return;
+    }
+
+    if (_isReadOnlyAfterTrial) {
+      _showReadOnlySnackBar();
       return;
     }
 
@@ -2215,6 +2248,11 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   }
 
   Future<void> _editTaskByLabel(String taskLabel) async {
+    if (_isReadOnlyAfterTrial) {
+      _showReadOnlySnackBar();
+      return;
+    }
+
     if (!_isAdmin) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -2308,6 +2346,11 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   }
 
   Future<void> _deleteTaskByLabel(String taskLabel) async {
+    if (_isReadOnlyAfterTrial) {
+      _showReadOnlySnackBar();
+      return;
+    }
+
     if (!_isAdmin) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -2383,6 +2426,11 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   }
 
   Future<void> _completeTaskByLabel(String taskLabel) async {
+    if (!_canCompleteTasks) {
+      _showReadOnlySnackBar();
+      return;
+    }
+
     var targetTask = _findHomeTaskByLabel(taskLabel);
 
     if (targetTask == null) {
@@ -2635,7 +2683,12 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     final authState = ref.read(authProvider);
     final user = authState.user;
 
-    if (user?.isAdmin != true || authState.viewOnly) {
+    if (_isReadOnlyAfterTrial) {
+      _showReadOnlySnackBar();
+      return;
+    }
+
+    if (user?.isAdmin != true) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -2705,6 +2758,10 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   }
 
   Future<void> _createTaskWithCompatibility(_TaskEditorResult task) async {
+    if (_isReadOnlyAfterTrial) {
+      throw StateError(_membershipRequiredMessage);
+    }
+
     final dio = ref.read(apiClientProvider).dio;
 
     final familyId = ref.read(authProvider).user?.familyId;
@@ -2732,6 +2789,10 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     _TaskEditorResult task, {
     int? familyId,
   }) async {
+    if (_isReadOnlyAfterTrial) {
+      throw StateError(_membershipRequiredMessage);
+    }
+
     try {
       await dio.post('/api/tasks', data: _taskMutationPayload(task));
     } on DioException catch (error) {
@@ -2788,6 +2849,11 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
     int? initialTaskPoints,
   }) {
+    if (_isReadOnlyAfterTrial) {
+      _showReadOnlySnackBar();
+      return Future<_TaskEditorResult?>.value();
+    }
+
     return showAppModalDialog<_TaskEditorResult>(
       context: context,
       barrierLabel: 'task_editor_dialog',
@@ -2807,6 +2873,11 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   }
 
   Future<bool> _confirmDeleteTask(String taskLabel) async {
+    if (_isReadOnlyAfterTrial) {
+      _showReadOnlySnackBar();
+      return false;
+    }
+
     final result = await showAppModalDialog<bool>(
       context: context,
       barrierLabel: 'task_delete_confirm_dialog',
@@ -3199,6 +3270,8 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(coreMutationBlockedProvider);
+
     ref.listen<String>(authProvider.select(_homeGuideAuthScopeSignature), (
       previous,
       next,

@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:homepets/models/pet_artwork.dart';
 import 'package:homepets/models/subscription_status.dart';
 import 'package:homepets/models/user.dart';
+import 'package:homepets/providers/auth_provider.dart';
+import 'package:homepets/providers/subscription_provider.dart';
 
 void main() {
   test('User model parses JSON correctly', () {
@@ -79,6 +81,15 @@ void main() {
 
     expect(status.blocksCoreAccess, true);
     expect(status.reason, 'trial_expired');
+  });
+
+  test('home guide is blocked in entitlement read-only mode', () {
+    expect(homeGuideBlockedByEntitlement(const AuthState()), isFalse);
+
+    expect(
+      homeGuideBlockedByEntitlement(const AuthState(viewOnly: true)),
+      isTrue,
+    );
   });
 
   test('Pet artwork maps levels to growth stage asset paths', () {

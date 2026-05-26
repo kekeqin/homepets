@@ -85,18 +85,29 @@ class PaywallScreen extends ConsumerWidget {
           child: PaywallContent(
             mode: mode,
             reason: reason,
-            onClose: () => _closePaywall(context),
+            onClose: () => _closePaywall(context, ref),
           ),
         ),
       ),
     );
   }
 
-  void _closePaywall(BuildContext context) {
+  void _closePaywall(BuildContext context, WidgetRef ref) {
     if (mode == PaywallMode.blocking) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('试用期已结束，请订阅后继续使用。')));
+      final subscriptionState = ref.read(subscriptionProvider);
+      final target =
+          returnRoute == null ||
+              returnRoute!.isEmpty ||
+              returnRoute == '/paywall'
+          ? '/home'
+          : returnRoute!;
+      if (subscriptionState.accessAllowed) {
+        ref.read(authProvider.notifier).setViewOnly(false);
+        context.go(target);
+      } else {
+        ref.read(authProvider.notifier).setViewOnly(true);
+        context.go('/home');
+      }
       return;
     }
     if (context.canPop()) {
@@ -261,8 +272,7 @@ class _PaywallContentState extends ConsumerState<PaywallContent> {
                       },
                     ),
                     const _PaywallComplianceLinks(),
-                    if (widget.mode == PaywallMode.optional)
-                      _CloseButton(onPressed: widget.onClose),
+                    _CloseButton(onPressed: widget.onClose),
                   ],
                 ),
               ),

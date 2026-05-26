@@ -8,6 +8,7 @@ import '../../core/api_error_helper.dart';
 import '../../models/pet.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/family_provider.dart';
+import '../../providers/subscription_provider.dart';
 import '../../widgets/app_modal_shell.dart';
 import '../member/widgets/member_avatar_picker_sheet.dart';
 import '../pet/pet_detail_screen.dart';
@@ -81,6 +82,7 @@ class FamilyScreen extends ConsumerStatefulWidget {
 class _FamilyScreenState extends ConsumerState<FamilyScreen>
     with SingleTickerProviderStateMixin {
   static const _maxMembers = FamilyMemberGrid.maxDisplayMembers;
+  static const _membershipRequiredMessage = '试用期已结束，开通会员后可继续养成和编辑';
 
   bool _addingMember = false;
   int? _updatingAvatarMemberId;
@@ -140,6 +142,19 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
     return showAddMemberFlowDialog(context);
   }
 
+  bool get _isReadOnlyAfterTrial {
+    return ref.read(coreMutationBlockedProvider);
+  }
+
+  void _showMembershipRequiredSnackBar() {
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text(_membershipRequiredMessage)));
+  }
+
   bool _memberHasPet(FamilyMemberViewData member) {
     return member.pet != null || member.petId != null;
   }
@@ -164,6 +179,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
 
   void _maybePromptCurrentUserPetSelection() {
     if (!mounted ||
+        _isReadOnlyAfterTrial ||
         _didAutoPromptCurrentUserPet ||
         _selectingPetMemberId != null) {
       return;
@@ -220,7 +236,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
     AuthState authState,
     FamilyMemberViewData member,
   ) {
-    if (authState.viewOnly) {
+    if (_isReadOnlyAfterTrial) {
       return false;
     }
 
@@ -238,7 +254,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
 
   bool _canDeleteMember(AuthState authState, FamilyMemberViewData member) {
     final user = authState.user;
-    if (authState.viewOnly || user == null || !user.isAdmin) {
+    if (_isReadOnlyAfterTrial || user == null || !user.isAdmin) {
       return false;
     }
     return user.id != member.id;
@@ -248,7 +264,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
     AuthState authState,
     FamilyMemberViewData member,
   ) {
-    if (authState.viewOnly || _selectingPetMemberId != null) {
+    if (_isReadOnlyAfterTrial || _selectingPetMemberId != null) {
       return false;
     }
 
@@ -265,6 +281,13 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
     FamilyMemberViewData member, {
     bool autoPrompt = false,
   }) async {
+    if (_isReadOnlyAfterTrial) {
+      if (!autoPrompt) {
+        _showMembershipRequiredSnackBar();
+      }
+      return;
+    }
+
     if (!_canAssignPetForMember(authState, member)) {
       if (!autoPrompt) {
         ScaffoldMessenger.of(
@@ -329,6 +352,11 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
     AuthState authState,
     FamilyMemberViewData member,
   ) async {
+    if (_isReadOnlyAfterTrial) {
+      _showMembershipRequiredSnackBar();
+      return;
+    }
+
     if (_updatingAvatarMemberId != null ||
         !_canEditAvatarForMember(authState, member)) {
       return;
@@ -379,6 +407,11 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
     AuthState authState,
     FamilyMemberViewData member,
   ) async {
+    if (_isReadOnlyAfterTrial) {
+      _showMembershipRequiredSnackBar();
+      return;
+    }
+
     if (_deletingMemberId != null || !_canDeleteMember(authState, member)) {
       return;
     }
@@ -426,7 +459,12 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
     }
 
     final user = authState.user;
-    final canManageMembers = user?.isAdmin == true && !authState.viewOnly;
+    if (_isReadOnlyAfterTrial) {
+      _showMembershipRequiredSnackBar();
+      return;
+    }
+
+    final canManageMembers = user?.isAdmin == true;
     if (!canManageMembers || user?.familyId == null) {
       ScaffoldMessenger.of(
         context,
@@ -486,12 +524,17 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final familyState = ref.watch(familyProvider);
+    final readOnlyAfterTrial = ref.watch(coreMutationBlockedProvider);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _maybePromptCurrentUserPetSelection();
     });
 
     if (widget.embedded) {
-      return _buildBody(authState, familyState);
+      return _buildBody(
+        authState,
+        familyState,
+        readOnlyAfterTrial: readOnlyAfterTrial,
+      );
     }
 
     final content = DecoratedBox(
@@ -502,13 +545,24 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
           colors: [_FamilyPalette.pageTop, _FamilyPalette.pageBottom],
         ),
       ),
-      child: SafeArea(bottom: false, child: _buildBody(authState, familyState)),
+      child: SafeArea(
+        bottom: false,
+        child: _buildBody(
+          authState,
+          familyState,
+          readOnlyAfterTrial: readOnlyAfterTrial,
+        ),
+      ),
     );
 
     return Scaffold(backgroundColor: _FamilyPalette.pageBottom, body: content);
   }
 
-  Widget _buildBody(AuthState authState, FamilyScreenState familyState) {
+  Widget _buildBody(
+    AuthState authState,
+    FamilyScreenState familyState, {
+    required bool readOnlyAfterTrial,
+  }) {
     if (!authState.isAuthenticated) {
       return const FamilyHintCard(title: '请先登录', message: '登录后可查看家庭成员。');
     }
@@ -526,8 +580,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
     final members = familyState.members;
     final petCount = _petCount(members);
     final familyTitle = _familyTitle(familyState.familyName);
-    final canManageMembers =
-        authState.user?.isAdmin == true && !authState.viewOnly;
+    final canManageMembers = authState.user?.isAdmin == true;
 
     void onAddMemberTap() {
       _onAddMemberTap(authState, familyState);

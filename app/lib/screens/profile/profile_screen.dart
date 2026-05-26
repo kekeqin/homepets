@@ -6,6 +6,7 @@ import '../../core/api_error_helper.dart';
 import '../../models/pet.dart';
 import '../../models/user.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/subscription_provider.dart';
 import '../../widgets/homepets_button.dart';
 import '../../widgets/homepets_dialog.dart';
 import '../../widgets/homepets_text_field.dart';
@@ -141,7 +142,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     AuthState authState,
   ) {
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
-    final roleLabel = authState.viewOnly
+    final readOnly = ref.watch(coreMutationBlockedProvider);
+    final roleLabel = readOnly
         ? '观看模式'
         : user.isAdmin
         ? '家庭家长'
@@ -272,7 +274,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _editProfile(WidgetRef ref) async {
-    final user = ref.read(authProvider).user;
+    final authState = ref.read(authProvider);
+    if (ref.read(coreMutationBlockedProvider)) {
+      _showProfileSnackBar('试用期已结束，开通会员后可继续养成和编辑');
+      return;
+    }
+
+    final user = authState.user;
     if (user == null) {
       return;
     }
