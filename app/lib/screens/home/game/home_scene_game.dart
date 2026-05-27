@@ -25,6 +25,13 @@ const String _homeShopAsset = 'images/ui/home/home_shop.png';
 const String _homeSetupAsset = 'images/ui/19.png';
 const Size _homeSceneBackgroundSize = Size(840, 1871);
 const Duration _homeGuideAnchorReadyDelay = Duration(milliseconds: 1250);
+const Set<String> _homeSceneDensityAwareAssets = <String>{
+  _homeTaskStickerAsset,
+  _homeFamilyPhotoFrameAsset,
+  _homePaywallAsset,
+  _homeShopAsset,
+  _homeSetupAsset,
+};
 
 const Map<String, String> _homeSceneAssetFallbacks = <String, String>{
   'scenes/4.png': 'scenes/4.jpg',
@@ -33,6 +40,21 @@ const Map<String, String> _homeSceneAssetFallbacks = <String, String>{
   _homePaywallAsset: 'images/ui/pay.png',
   _homeShopAsset: 'images/ui/shop_basket.png',
 };
+
+String? _homeSceneAssetDensityFor(double devicePixelRatio) {
+  if (devicePixelRatio >= 2.625) {
+    return '3.0';
+  }
+  if (devicePixelRatio >= 1.5) {
+    return '2.0';
+  }
+  return null;
+}
+
+double _homeSceneCurrentDevicePixelRatio() {
+  final implicitView = ui.PlatformDispatcher.instance.implicitView;
+  return implicitView?.devicePixelRatio ?? 1;
+}
 
 const List<_PetCandidatePoint> _homePetCandidatePoints = <_PetCandidatePoint>[
   // 1. Sofa left seat, seated on the cushion instead of the rug edge.
@@ -1226,6 +1248,7 @@ bool _homeScenePetSeedsEqual(
 class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   HomeSceneGame({
     required this.device,
+    this.devicePixelRatio,
     this.onTaskTap,
     this.onOpenFamily,
     this.onOpenShop,
@@ -1247,6 +1270,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   }
 
   final HomeSceneDevice device;
+  final double? devicePixelRatio;
   final VoidCallback? onTaskTap;
   final VoidCallback? onOpenFamily;
   final VoidCallback? onOpenShop;
@@ -2675,19 +2699,42 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   }
 
   Future<ui.Image> _loadSceneImage(String assetPath) async {
+    final densityAssetPath = _densityAssetPathFor(assetPath);
     try {
-      return await images.load(assetPath);
+      return await images.load(densityAssetPath);
     } on FlutterError catch (error) {
+      if (densityAssetPath != assetPath) {
+        try {
+          return await images.load(assetPath);
+        } on FlutterError {
+          // Fall through to the legacy fallback map below.
+        }
+      }
       final fallbackAssetPath = _homeSceneAssetFallbacks[assetPath];
       if (fallbackAssetPath == null) {
         rethrow;
       }
       debugPrint(
-        'HomeSceneGame asset $assetPath missing from bundle; '
+        'HomeSceneGame asset $densityAssetPath missing from bundle; '
         'falling back to $fallbackAssetPath. ${error.message}',
       );
       return images.load(fallbackAssetPath);
     }
+  }
+
+  String _densityAssetPathFor(String assetPath) {
+    final density = _homeSceneAssetDensityFor(
+      devicePixelRatio ?? _homeSceneCurrentDevicePixelRatio(),
+    );
+    if (density == null || !_homeSceneDensityAwareAssets.contains(assetPath)) {
+      return assetPath;
+    }
+    final slashIndex = assetPath.lastIndexOf('/');
+    if (slashIndex < 0) {
+      return '${density}x/$assetPath';
+    }
+    return '${assetPath.substring(0, slashIndex)}/${density}x/'
+        '${assetPath.substring(slashIndex + 1)}';
   }
 
   void startExitAnimation() {
