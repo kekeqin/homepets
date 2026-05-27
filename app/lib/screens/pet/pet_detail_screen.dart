@@ -22,7 +22,12 @@ Future<void> showPetDetailDialog(
     pageBuilder: (dialogContext) {
       return AppModalShell(
         layout: AppModalLayouts.petDetail,
-        minimumSafeArea: const EdgeInsets.fromLTRB(12, 16, 12, 16),
+        minimumSafeArea: const EdgeInsets.fromLTRB(
+          HomePetsDialogGutter.large,
+          16,
+          HomePetsDialogGutter.large,
+          16,
+        ),
         boxShadow: [
           BoxShadow(
             color: const Color(0x28604429),

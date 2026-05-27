@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'app_modal_shell.dart';
 
 const AppModalLayout _defaultHomePetsDialogLayout = AppModalLayout(
-  mobileWidthFactor: 0.84,
+  mobileWidthFactor: 1.0,
   mobileMaxWidth: 360,
   mobileHeightFactor: 0.72,
   mobileMaxHeight: 420,
@@ -25,6 +25,7 @@ Future<T?> showHomePetsDialog<T>({
   bool useRootNavigator = true,
   bool barrierDismissible = true,
   AppModalLayout layout = _defaultHomePetsDialogLayout,
+  EdgeInsets minimumSafeArea = HomePetsDialogGutter.mediumInsets,
 }) {
   return showAppModalDialog<T>(
     context: context,
@@ -38,6 +39,7 @@ Future<T?> showHomePetsDialog<T>({
     pageBuilder: (dialogContext) {
       return HomePetsDialog(
         layout: layout,
+        minimumSafeArea: minimumSafeArea,
         title: title,
         actions: actionsBuilder(dialogContext),
         child: contentBuilder(dialogContext),
@@ -54,7 +56,7 @@ class HomePetsDialog extends StatelessWidget {
     required this.actions,
     this.background,
     this.layout = _defaultHomePetsDialogLayout,
-    this.minimumSafeArea = const EdgeInsets.fromLTRB(16, 20, 16, 20),
+    this.minimumSafeArea = HomePetsDialogGutter.mediumInsets,
     this.contentPadding = const EdgeInsets.fromLTRB(24, 24, 24, 22),
   });
 

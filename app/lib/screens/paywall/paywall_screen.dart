@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +9,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/revenue_cat_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../widgets/app_modal_shell.dart';
+import '../../widgets/membership_top_notice.dart';
 import '../family/widgets/family_sprite_slice.dart';
 
 enum PaywallMode { optional, blocking }
@@ -32,7 +32,7 @@ Future<void> showPaywallDialog(
     pageBuilder: (dialogContext) {
       return AppModalShell(
         layout: AppModalLayouts.paywall,
-        minimumSafeArea: const EdgeInsets.fromLTRB(10, 12, 10, 12),
+        minimumSafeArea: HomePetsDialogGutter.largeInsets,
         clipChild: false,
         child: PaywallContent(
           mode: mode,
@@ -71,21 +71,24 @@ class PaywallScreen extends ConsumerWidget {
     });
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F4EE),
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         child: PopScope(
           canPop: mode == PaywallMode.optional,
           onPopInvokedWithResult: (didPop, result) {
             if (!didPop && mode == PaywallMode.blocking) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('试用期已结束，请订阅后继续使用。')));
+              MembershipTopNotice.show(context, message: '试用期已结束，请开通会员后继续使用');
             }
           },
-          child: PaywallContent(
-            mode: mode,
-            reason: reason,
-            onClose: () => _closePaywall(context, ref),
+          child: AppModalShell(
+            layout: AppModalLayouts.paywall,
+            minimumSafeArea: HomePetsDialogGutter.largeInsets,
+            clipChild: false,
+            child: PaywallContent(
+              mode: mode,
+              reason: reason,
+              onClose: () => _closePaywall(context, ref),
+            ),
           ),
         ),
       ),
@@ -748,6 +751,10 @@ class _PaywallComplianceLinks extends ConsumerWidget {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: HomePetsDialogGutter.small,
+            vertical: 24,
+          ),
           title: Text(title),
           content: Text(message),
           actions: [

@@ -45,7 +45,7 @@ class AppModalLayout {
 
 class AppModalLayouts {
   static const petDetail = AppModalLayout(
-    mobileWidthFactor: 0.98,
+    mobileWidthFactor: 1.0,
     mobileMaxWidth: 448,
     mobileHeightFactor: 0.90,
     mobileMaxHeight: 700,
@@ -56,7 +56,7 @@ class AppModalLayouts {
   );
 
   static const family = AppModalLayout(
-    mobileWidthFactor: 0.94,
+    mobileWidthFactor: 1.0,
     mobileMaxWidth: 470,
     mobileHeightFactor: 0.99,
     mobileMaxHeight: 900,
@@ -78,7 +78,7 @@ class AppModalLayouts {
   );
 
   static const paywall = AppModalLayout(
-    mobileWidthFactor: 0.92,
+    mobileWidthFactor: 1.0,
     mobileMaxWidth: 540,
     mobileHeightFactor: 0.88,
     mobileMaxHeight: 780,
@@ -114,6 +114,18 @@ class HomePetsDialogTheme {
   static const shellShadow = [
     BoxShadow(color: shadow, blurRadius: 30, offset: Offset(0, 14)),
   ];
+}
+
+class HomePetsDialogGutter {
+  const HomePetsDialogGutter._();
+
+  static const double large = 12;
+  static const double medium = 16;
+  static const double small = 28;
+
+  static const largeInsets = EdgeInsets.fromLTRB(large, 12, large, 12);
+  static const mediumInsets = EdgeInsets.fromLTRB(medium, 20, medium, 20);
+  static const smallInsets = EdgeInsets.fromLTRB(small, 20, small, 20);
 }
 
 Future<T?> showAppModalDialog<T>({
@@ -204,7 +216,7 @@ class AppModalShell extends StatelessWidget {
     super.key,
     required this.layout,
     required this.child,
-    this.minimumSafeArea = const EdgeInsets.fromLTRB(16, 24, 16, 24),
+    this.minimumSafeArea = HomePetsDialogGutter.mediumInsets,
     this.borderRadius = const BorderRadius.all(Radius.circular(30)),
     this.backgroundColor,
     this.gradient,

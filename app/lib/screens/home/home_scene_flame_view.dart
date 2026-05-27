@@ -34,6 +34,7 @@ import '../family/family_screen.dart';
 import '../family/models/family_member_view_data.dart';
 import '../family/models/family_screen_state.dart';
 import '../family/widgets/family_sprite_slice.dart';
+import '../paywall/paywall_screen.dart';
 import '../pet/pet_detail_screen.dart';
 import 'game/home_scene_game.dart';
 import 'guide/home_guide_controller.dart';
@@ -130,16 +131,18 @@ const Color _completeMemberMenuFillColor = Color(0xFFFFF4E5);
 const Color _completeMemberOptionFillColor = Color(0xFFFBE3BD);
 const Color _completeMemberOptionSelectedColor = Color(0xFFD7E09A);
 const Duration _taskCompletionFeedbackDuration = Duration(milliseconds: 650);
-const double _taskMutationDialogWidthFactor = 0.86;
 const double _taskMutationDialogMaxWidth = 390;
 const double _taskMutationDialogHeightFactor = 0.76;
 const double _taskPanelBoardHeightRatio =
     TaskBoardReferenceAsset.panelHeightRatio;
 const Duration _taskPanelTransitionDuration = Duration(milliseconds: 320);
 
-Size _taskMutationDialogSize(Size screenSize) {
+Size _taskMutationDialogSize(
+  Size screenSize, {
+  double horizontalGutter = HomePetsDialogGutter.medium,
+}) {
   final maxPanelWidth = math.min(
-    screenSize.width * _taskMutationDialogWidthFactor,
+    math.max(0.0, screenSize.width - horizontalGutter * 2),
     _taskMutationDialogMaxWidth,
   );
   final maxPanelHeight = screenSize.height * _taskMutationDialogHeightFactor;
@@ -636,7 +639,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       return;
     }
 
-    context.go('/paywall');
+    showPaywallDialog(context);
   }
 
   Future<void> _openSettings() async {
@@ -770,7 +773,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         barrierLabel: 'edit_profile_dialog',
         title: '\u7f16\u8f91\u8d44\u6599',
         layout: const AppModalLayout(
-          mobileWidthFactor: 0.88,
+          mobileWidthFactor: 1.0,
           mobileMaxWidth: 390,
           mobileHeightFactor: 0.78,
           mobileMaxHeight: 520,
@@ -944,6 +947,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     final result = await showHomePetsDialog<bool>(
       context: context,
       barrierLabel: 'logout_confirm_dialog',
+      minimumSafeArea: HomePetsDialogGutter.smallInsets,
       title: '\u9000\u51fa\u767b\u5f55',
       contentBuilder: (dialogContext) {
         return const Text(
@@ -979,6 +983,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     return showHomePetsDialog<void>(
       context: context,
       barrierLabel: 'about_homepets_dialog',
+      minimumSafeArea: HomePetsDialogGutter.smallInsets,
       title: '关于',
       contentBuilder: (dialogContext) {
         return const Text(
@@ -1030,6 +1035,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     await showHomePetsDialog<void>(
       context: context,
       barrierLabel: 'shop_coming_soon',
+      minimumSafeArea: HomePetsDialogGutter.smallInsets,
       title: '商店完善中',
       contentBuilder: (dialogContext) {
         return const Text(
@@ -3676,12 +3682,20 @@ class _TaskDeleteConfirmDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.sizeOf(context);
-    final panelSize = _taskMutationDialogSize(screenSize);
+    final panelSize = _taskMutationDialogSize(
+      screenSize,
+      horizontalGutter: HomePetsDialogGutter.small,
+    );
 
     return Material(
       color: Colors.transparent,
       child: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+        minimum: const EdgeInsets.fromLTRB(
+          HomePetsDialogGutter.small,
+          24,
+          HomePetsDialogGutter.small,
+          24,
+        ),
         child: Center(
           child: Transform.translate(
             offset: Offset(0, screenSize.height * 0.025),
@@ -3994,7 +4008,7 @@ class _CompletionMemberSelectContentState
     final buttonMaxGroupWidth = _completeMemberDialogDesignSize.width * 0.70;
 
     return SafeArea(
-      minimum: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+      minimum: HomePetsDialogGutter.mediumInsets,
       child: Center(
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,

@@ -7,6 +7,7 @@ import '../../models/pet.dart';
 import '../../models/user.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/subscription_provider.dart';
+import '../../widgets/app_modal_shell.dart';
 import '../../widgets/homepets_button.dart';
 import '../../widgets/homepets_dialog.dart';
 import '../../widgets/homepets_text_field.dart';
@@ -378,6 +379,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return showHomePetsDialog<void>(
       context: context,
       barrierLabel: 'profile_about_dialog',
+      minimumSafeArea: HomePetsDialogGutter.smallInsets,
       title: '关于 HomePets',
       contentBuilder: (dialogContext) {
         return const Column(
@@ -415,6 +417,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final result = await showHomePetsDialog<bool>(
       context: context,
       barrierLabel: 'profile_logout_confirm_dialog',
+      minimumSafeArea: HomePetsDialogGutter.smallInsets,
       title: '退出登录',
       contentBuilder: (dialogContext) {
         return const Text(

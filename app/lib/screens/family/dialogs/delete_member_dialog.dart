@@ -26,7 +26,7 @@ const double _dialogDesignWidth = 619;
 const double _dialogDesignHeight = 605;
 
 const AppModalLayout _deleteMemberDialogLayout = AppModalLayout(
-  mobileWidthFactor: 0.92,
+  mobileWidthFactor: 1.0,
   mobileMaxWidth: 430,
   mobileHeightFactor: 0.76,
   mobileMaxHeight: 420,
@@ -76,7 +76,7 @@ class _DeleteMemberDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppModalShell(
       layout: _deleteMemberDialogLayout,
-      minimumSafeArea: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+      minimumSafeArea: HomePetsDialogGutter.mediumInsets,
       clipChild: false,
       child: LayoutBuilder(
         builder: (context, constraints) {

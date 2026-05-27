@@ -51,7 +51,12 @@ Future<void> showFamilyDialog(
     pageBuilder: (dialogContext) {
       return AppModalShell(
         layout: AppModalLayouts.family,
-        minimumSafeArea: const EdgeInsets.fromLTRB(4, 10, 4, 8),
+        minimumSafeArea: const EdgeInsets.fromLTRB(
+          HomePetsDialogGutter.large,
+          10,
+          HomePetsDialogGutter.large,
+          8,
+        ),
         clipChild: false,
         child: FamilyScreen(
           embedded: true,

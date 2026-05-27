@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../models/pet_artwork.dart';
+import '../../../widgets/app_modal_shell.dart';
 
 const String _closeIconAsset = 'assets/images/ui/close_icon_simple.png';
 
@@ -121,7 +122,10 @@ class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: HomePetsDialogGutter.medium,
+        vertical: 18,
+      ),
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: 390,
@@ -392,7 +396,10 @@ class _SelectPetFlowDialogState extends State<SelectPetFlowDialog> {
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: HomePetsDialogGutter.medium,
+        vertical: 18,
+      ),
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: 390,

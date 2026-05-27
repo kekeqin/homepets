@@ -10,7 +10,7 @@ const double _settingsDialogDesignWidth = 441;
 const double _settingsDialogDesignHeight = 512;
 
 const AppModalLayout _settingsDialogLayout = AppModalLayout(
-  mobileWidthFactor: 0.94,
+  mobileWidthFactor: 1.0,
   mobileMaxWidth: 430,
   mobileHeightFactor: 0.86,
   mobileMaxHeight: 560,
@@ -56,7 +56,7 @@ class _SettingsDialogPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppModalShell(
       layout: _settingsDialogLayout,
-      minimumSafeArea: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+      minimumSafeArea: HomePetsDialogGutter.mediumInsets,
       clipChild: false,
       child: LayoutBuilder(
         builder: (context, constraints) {
