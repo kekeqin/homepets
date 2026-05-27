@@ -31,6 +31,10 @@ void main() {
     expect(_guideBubbleText(tester), '点击这里打开\n任务面板');
     expect(find.byKey(const ValueKey('home_guide_preview')), findsNothing);
     expect(find.byKey(const ValueKey('home_guide_arrow')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('home_guide_background_scrim')),
+      findsOneWidget,
+    );
     expect(find.text('睡前阅读'), findsNothing);
     expect(find.text('+12'), findsNothing);
     expect(find.text('稍后再看'), findsNothing);
@@ -62,12 +66,12 @@ void main() {
     final fingertip = _fingerTipFor(fingerRect);
     expect(fingertip.dx, closeTo(118, 1));
     expect(fingertip.dy, closeTo(150, 1));
-    expect(glowRect.left, closeTo(26, 1));
-    expect(glowRect.top, closeTo(66, 1));
-    expect(glowRect.right, closeTo(134, 1));
-    expect(glowRect.bottom, closeTo(166, 1));
-    expect(glowRect.width, closeTo(hotspotRect.width - 12, 1));
-    expect(glowRect.height, closeTo(hotspotRect.height - 12, 1));
+    expect(glowRect.left, closeTo(8, 1));
+    expect(glowRect.top, closeTo(48, 1));
+    expect(glowRect.right, closeTo(152, 1));
+    expect(glowRect.bottom, closeTo(184, 1));
+    expect(glowRect.width, closeTo(hotspotRect.width + 24, 1));
+    expect(glowRect.height, closeTo(hotspotRect.height + 24, 1));
     _expectBubbleBesideFinger(bubbleRect, fingerRect);
     expect(bubbleRect.width, inInclusiveRange(244, 286));
     expect(

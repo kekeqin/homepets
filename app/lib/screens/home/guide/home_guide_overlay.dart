@@ -8,7 +8,10 @@ import 'home_guide_controller.dart';
 const String _guideFingerAsset = 'assets/images/ui/login/finger1.png';
 const String _guideBubbleAsset = 'assets/images/ui/login/bubble.png';
 const double _guideFingerSize = 76.0;
-const double _guideTargetGlowOutset = 14.0;
+const double _guideTargetGlowOutset = 32.0;
+const double _guideTargetGlowInnerStroke = 4.5;
+const double _guideTargetGlowOuterSpread = 18.0;
+const Color _guideScrimColor = Color(0x2E000000);
 const double _guideBubbleMinWidth = 244.0;
 const double _guideBubbleMaxWidth = 268.0;
 const double _guideBubbleWidthFactor = 0.62;
@@ -328,12 +331,21 @@ class HomeGuideOverlay extends StatelessWidget {
         color: Colors.transparent,
         child: Stack(
           children: [
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  key: const ValueKey('home_guide_background_scrim'),
+                  painter: const _GuideBackgroundScrimPainter(),
+                ),
+              ),
+            ),
             Positioned.fromRect(
               rect: layout.glowRect,
               child: IgnorePointer(
                 child: _GuideObjectGlow(
                   key: const ValueKey('home_guide_target_glow'),
                   step: step,
+                  targetRect: layout.targetRect.shift(-layout.glowRect.topLeft),
                   targetAssetPath: targetAssetPath,
                   targetAssetCropRect: targetAssetCropRect,
                 ),
@@ -537,11 +549,13 @@ class _GuideObjectGlow extends StatefulWidget {
   const _GuideObjectGlow({
     super.key,
     required this.step,
+    required this.targetRect,
     required this.targetAssetPath,
     required this.targetAssetCropRect,
   });
 
   final HomeGuideStep step;
+  final Rect targetRect;
   final String? targetAssetPath;
   final Rect? targetAssetCropRect;
 
@@ -667,6 +681,7 @@ class _GuideObjectGlowState extends State<_GuideObjectGlow>
           painter: _GuideObjectGlowPainter(
             progress: value,
             shape: _GuideObjectGlowShape.forStep(widget.step),
+            targetRect: widget.targetRect,
             targetImage: _targetImage,
             targetAssetCropRect: widget.targetAssetCropRect,
             shaderProgram: _shaderProgram,
@@ -695,6 +710,7 @@ class _GuideObjectGlowPainter extends CustomPainter {
   const _GuideObjectGlowPainter({
     required this.progress,
     required this.shape,
+    required this.targetRect,
     required this.targetImage,
     required this.targetAssetCropRect,
     required this.shaderProgram,
@@ -702,6 +718,7 @@ class _GuideObjectGlowPainter extends CustomPainter {
 
   final double progress;
   final _GuideObjectGlowShape shape;
+  final Rect targetRect;
   final ui.Image? targetImage;
   final Rect? targetAssetCropRect;
   final ui.FragmentProgram? shaderProgram;
@@ -717,26 +734,25 @@ class _GuideObjectGlowPainter extends CustomPainter {
       _paintAssetMaskedGlow(canvas, size, image);
       return;
     }
-
-    _paintFallbackGeometryGlow(canvas, size);
   }
 
   void _paintAssetMaskedGlow(Canvas canvas, Size size, ui.Image image) {
-    final targetRect = _targetRectFor(size);
-    if (targetRect.isEmpty) {
+    final paintTargetRect = _targetRectFor(size);
+    if (paintTargetRect.isEmpty) {
       return;
     }
 
-    if (_paintFragmentShaderGlow(
+    final shaderPainted = _paintFragmentShaderGlow(
       canvas: canvas,
       size: size,
       image: image,
-      targetRect: targetRect,
-    )) {
-      return;
+      targetRect: paintTargetRect,
+    );
+    if (!shaderPainted) {
+      _paintImageFilterGlow(canvas, size, image, paintTargetRect);
     }
 
-    _paintImageFilterGlow(canvas, size, image, targetRect);
+    _paintTargetImage(canvas, image, paintTargetRect);
   }
 
   bool _paintFragmentShaderGlow({
@@ -766,14 +782,12 @@ class _GuideObjectGlowPainter extends CustomPainter {
         ..getUniformFloat('u_source_rect', 1).set(sourceRect.top)
         ..getUniformFloat('u_source_rect', 2).set(sourceRect.width)
         ..getUniformFloat('u_source_rect', 3).set(sourceRect.height)
-        ..getUniformFloat(
-          'u_outline_width',
-          0,
-        ).set(math.max(3.0, size.shortestSide * 0.092))
+        ..getUniformFloat('u_inner_width', 0).set(_innerGlowWidth(targetRect))
+        ..getUniformFloat('u_outer_width', 0).set(_outerGlowWidth(targetRect))
         ..getUniformFloat(
           'u_softness',
           0,
-        ).set(math.max(1.5, size.shortestSide * 0.036))
+        ).set(_scaledGlowMetric(targetRect: targetRect, basePixels: 16.0))
         ..getUniformFloat('u_progress', 0).set(progress)
         ..setImageSampler(0, image, filterQuality: FilterQuality.medium);
 
@@ -781,7 +795,7 @@ class _GuideObjectGlowPainter extends CustomPainter {
         Offset.zero & size,
         Paint()
           ..shader = shader
-          ..blendMode = BlendMode.plus,
+          ..blendMode = BlendMode.srcOver,
       );
       return true;
     } catch (error) {
@@ -799,41 +813,32 @@ class _GuideObjectGlowPainter extends CustomPainter {
     ui.Image image,
     Rect targetRect,
   ) {
-    final pulse = 0.84 + progress * 0.16;
+    final pulse = 0.88 + progress * 0.10;
     final imageSourceRect = _imageSourceRectFor(image);
     final layerRect = Offset.zero & size;
-    final glowSpread = math.max(4.5, size.shortestSide * 0.092);
-    final edgeSpread = math.max(2.0, size.shortestSide * 0.030);
-    final edgeWidth = math.max(2.0, size.shortestSide * 0.026);
-    final sweepRotation = progress * math.pi * 2;
+    final innerWidth = _innerGlowWidth(targetRect);
+    final outerWidth = _outerGlowWidth(targetRect);
 
-    canvas.saveLayer(layerRect, Paint()..blendMode = BlendMode.plus);
+    canvas.saveLayer(layerRect, Paint()..blendMode = BlendMode.srcOver);
     _paintMaskPass(
       canvas: canvas,
       paintBounds: layerRect,
       targetRect: targetRect,
       image: image,
       sourceRect: imageSourceRect,
-      shader: ui.Gradient.radial(
-        targetRect.center,
-        math.max(targetRect.width, targetRect.height) * 0.72,
-        <Color>[
-          const Color(0xFFFFF8CF).withValues(alpha: 0.30 * pulse),
-          const Color(0xFFFFDE70).withValues(alpha: 0.46 * pulse),
-          const Color(0xFFFFC85A).withValues(alpha: 0.16 * pulse),
-          const Color(0xFFFFF8CF).withValues(alpha: 0.00),
-        ],
-        const <double>[0.0, 0.50, 0.78, 1.0],
-      ),
+      color: const Color(0xFFFFD84A).withValues(alpha: 0.30 * pulse),
       imageFilter: ui.ImageFilter.compose(
         outer: ui.ImageFilter.blur(
-          sigmaX: glowSpread,
-          sigmaY: glowSpread,
+          sigmaX: math.max(8.0, outerWidth * 0.56),
+          sigmaY: math.max(8.0, outerWidth * 0.56),
           tileMode: TileMode.decal,
         ),
-        inner: ui.ImageFilter.dilate(radiusX: edgeSpread, radiusY: edgeSpread),
+        inner: ui.ImageFilter.dilate(
+          radiusX: outerWidth * 0.34,
+          radiusY: outerWidth * 0.34,
+        ),
       ),
-      opacity: 0.92,
+      opacity: 1.0,
     );
     _paintMaskPass(
       canvas: canvas,
@@ -841,25 +846,19 @@ class _GuideObjectGlowPainter extends CustomPainter {
       targetRect: targetRect,
       image: image,
       sourceRect: imageSourceRect,
-      shader: ui.Gradient.sweep(
-        targetRect.center,
-        <Color>[
-          const Color(0xFFFFEF95).withValues(alpha: 0.58 * pulse),
-          const Color(0xFFFFFFFF).withValues(alpha: 0.88 * pulse),
-          const Color(0xFFFFD05E).withValues(alpha: 0.34 * pulse),
-          const Color(0xFFFFFEED).withValues(alpha: 0.78 * pulse),
-          const Color(0xFFFFEF95).withValues(alpha: 0.58 * pulse),
-        ],
-        const <double>[0.0, 0.18, 0.42, 0.62, 1.0],
-        TileMode.clamp,
-        sweepRotation,
-        sweepRotation + math.pi * 2,
+      color: const Color(0xFFFFE680).withValues(alpha: 0.32 * pulse),
+      imageFilter: ui.ImageFilter.compose(
+        outer: ui.ImageFilter.blur(
+          sigmaX: math.max(3.0, outerWidth * 0.16),
+          sigmaY: math.max(3.0, outerWidth * 0.16),
+          tileMode: TileMode.decal,
+        ),
+        inner: ui.ImageFilter.dilate(
+          radiusX: math.max(innerWidth + 3.0, outerWidth * 0.34),
+          radiusY: math.max(innerWidth + 3.0, outerWidth * 0.34),
+        ),
       ),
-      imageFilter: ui.ImageFilter.dilate(
-        radiusX: edgeWidth,
-        radiusY: edgeWidth,
-      ),
-      opacity: 0.82,
+      opacity: 1.0,
     );
     _paintMaskPass(
       canvas: canvas,
@@ -867,25 +866,12 @@ class _GuideObjectGlowPainter extends CustomPainter {
       targetRect: targetRect,
       image: image,
       sourceRect: imageSourceRect,
-      shader: ui.Gradient.sweep(
-        targetRect.center,
-        <Color>[
-          const Color(0xFFFFFFFF).withValues(alpha: 0.00),
-          const Color(0xFFFFFFFF).withValues(alpha: 0.00),
-          const Color(0xFFFFFFFF).withValues(alpha: 0.72 * pulse),
-          const Color(0xFFFFFFFF).withValues(alpha: 0.00),
-          const Color(0xFFFFFFFF).withValues(alpha: 0.00),
-        ],
-        const <double>[0.0, 0.40, 0.48, 0.56, 1.0],
-        TileMode.clamp,
-        sweepRotation - math.pi * 0.22,
-        sweepRotation + math.pi * 1.78,
-      ),
+      color: const Color(0xFFFFFDF0).withValues(alpha: 0.84 * pulse),
       imageFilter: ui.ImageFilter.dilate(
-        radiusX: math.max(1.0, edgeWidth * 0.46),
-        radiusY: math.max(1.0, edgeWidth * 0.46),
+        radiusX: innerWidth,
+        radiusY: innerWidth,
       ),
-      opacity: 0.82,
+      opacity: 1.0,
     );
     canvas.restore();
   }
@@ -896,13 +882,13 @@ class _GuideObjectGlowPainter extends CustomPainter {
     required Rect targetRect,
     required ui.Image image,
     required Rect sourceRect,
-    required ui.Shader shader,
+    required Color color,
     required ui.ImageFilter imageFilter,
     required double opacity,
   }) {
     canvas.saveLayer(paintBounds, Paint()..blendMode = BlendMode.srcOver);
     canvas.saveLayer(paintBounds, Paint()..imageFilter = imageFilter);
-    canvas.drawRect(paintBounds, Paint()..shader = shader);
+    canvas.drawRect(paintBounds, Paint()..color = color);
     canvas.drawImageRect(
       image,
       sourceRect,
@@ -924,13 +910,41 @@ class _GuideObjectGlowPainter extends CustomPainter {
     canvas.restore();
   }
 
+  void _paintTargetImage(Canvas canvas, ui.Image image, Rect targetRect) {
+    canvas.drawImageRect(
+      image,
+      _imageSourceRectFor(image),
+      targetRect,
+      Paint()
+        ..blendMode = BlendMode.srcOver
+        ..filterQuality = FilterQuality.medium,
+    );
+  }
+
   Rect _targetRectFor(Size size) {
-    final inset = math.min(_guideTargetGlowOutset, size.shortestSide * 0.22);
-    final rect = (Offset.zero & size).deflate(inset);
-    if (rect.isEmpty) {
-      return Offset.zero & size;
-    }
-    return rect;
+    return targetRect.intersect(Offset.zero & size);
+  }
+
+  double _scaledGlowMetric({
+    required Rect targetRect,
+    required double basePixels,
+  }) {
+    final scale = math.max(0.72, targetRect.shortestSide / 96.0);
+    return basePixels * scale;
+  }
+
+  double _innerGlowWidth(Rect targetRect) {
+    return _scaledGlowMetric(
+      targetRect: targetRect,
+      basePixels: _guideTargetGlowInnerStroke,
+    ).clamp(4.0, 6.0).toDouble();
+  }
+
+  double _outerGlowWidth(Rect targetRect) {
+    return _scaledGlowMetric(
+      targetRect: targetRect,
+      basePixels: _guideTargetGlowOuterSpread,
+    ).clamp(14.0, 20.0).toDouble();
   }
 
   Rect _imageSourceRectFor(ui.Image image) {
@@ -952,124 +966,29 @@ class _GuideObjectGlowPainter extends CustomPainter {
     ).intersect(imageRect);
   }
 
-  void _paintFallbackGeometryGlow(Canvas canvas, Size size) {
-    if (size.isEmpty) {
-      return;
-    }
-
-    final glowRect = Offset.zero & size;
-    final glowInset = math.min(
-      _guideTargetGlowOutset,
-      size.shortestSide * 0.22,
-    );
-    final shapeRect = glowRect.deflate(glowInset);
-    if (shapeRect.isEmpty) {
-      return;
-    }
-
-    final pulse = 0.84 + progress * 0.16;
-    final outerStrokeWidth = math.max(8.0, shapeRect.shortestSide * 0.14);
-    final innerStrokeWidth = math.max(3.8, shapeRect.shortestSide * 0.058);
-    final coreStrokeWidth = math.max(1.5, shapeRect.shortestSide * 0.022);
-    final center = shapeRect.center;
-    final shaderRadius = math.max(shapeRect.width, shapeRect.height) * 0.72;
-    final sweepRotation = progress * math.pi * 2;
-    final outerPaint = _strokePaint(
-      shader: ui.Gradient.radial(
-        center,
-        shaderRadius,
-        <Color>[
-          const Color(0xFFFFF7C8).withValues(alpha: 0.00),
-          const Color(0xFFFFF1A8).withValues(alpha: 0.44 * pulse),
-          const Color(0xFFFFC95F).withValues(alpha: 0.18 * pulse),
-          const Color(0xFFFFF7C8).withValues(alpha: 0.00),
-        ],
-        const <double>[0.42, 0.66, 0.86, 1.0],
-      ),
-      strokeWidth: outerStrokeWidth,
-    );
-    final innerPaint = _strokePaint(
-      shader: ui.Gradient.sweep(
-        center,
-        <Color>[
-          const Color(0xFFFFF7C8).withValues(alpha: 0.72 * pulse),
-          const Color(0xFFFFD974).withValues(alpha: 0.34 * pulse),
-          const Color(0xFFFFFEED).withValues(alpha: 0.86 * pulse),
-          const Color(0xFFFFD974).withValues(alpha: 0.34 * pulse),
-          const Color(0xFFFFF7C8).withValues(alpha: 0.72 * pulse),
-        ],
-        const <double>[0.0, 0.28, 0.48, 0.68, 1.0],
-        TileMode.clamp,
-        sweepRotation,
-        sweepRotation + math.pi * 2,
-      ),
-      strokeWidth: innerStrokeWidth,
-    );
-    final corePaint = _strokePaint(
-      shader: ui.Gradient.linear(
-        shapeRect.topLeft,
-        shapeRect.bottomRight,
-        <Color>[
-          const Color(0xFFFFFFFF).withValues(alpha: 0.30 * pulse),
-          const Color(0xFFFFF4B8).withValues(alpha: 0.56 * pulse),
-          const Color(0xFFFFFFFF).withValues(alpha: 0.26 * pulse),
-        ],
-        const <double>[0.0, 0.48, 1.0],
-      ),
-      strokeWidth: coreStrokeWidth,
-    );
-    final glintPaint = _strokePaint(
-      shader: ui.Gradient.sweep(
-        center,
-        <Color>[
-          const Color(0xFFFFFFFF).withValues(alpha: 0.00),
-          const Color(0xFFFFFFFF).withValues(alpha: 0.00),
-          const Color(0xFFFFFFFF).withValues(alpha: 0.62 * pulse),
-          const Color(0xFFFFFFFF).withValues(alpha: 0.00),
-          const Color(0xFFFFFFFF).withValues(alpha: 0.00),
-        ],
-        const <double>[0.0, 0.40, 0.48, 0.56, 1.0],
-        TileMode.clamp,
-        sweepRotation - math.pi * 0.20,
-        sweepRotation + math.pi * 1.80,
-      ),
-      strokeWidth: math.max(2.0, innerStrokeWidth * 0.42),
-    );
-
-    if (shape == _GuideObjectGlowShape.oval) {
-      final ovalRect = shapeRect.inflate(1.5);
-      canvas.drawOval(ovalRect, outerPaint);
-      canvas.drawOval(ovalRect, innerPaint);
-      canvas.drawOval(ovalRect, corePaint);
-      canvas.drawOval(ovalRect, glintPaint);
-      return;
-    }
-
-    final glowTargetRect = shapeRect.inflate(1.2);
-    final radiusCorner = Radius.circular(shapeRect.shortestSide * 0.18);
-    final targetShape = RRect.fromRectAndRadius(glowTargetRect, radiusCorner);
-    canvas.drawRRect(targetShape, outerPaint);
-    canvas.drawRRect(targetShape, innerPaint);
-    canvas.drawRRect(targetShape, corePaint);
-    canvas.drawRRect(targetShape, glintPaint);
-  }
-
-  Paint _strokePaint({required ui.Shader shader, required double strokeWidth}) {
-    return Paint()
-      ..shader = shader
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..blendMode = BlendMode.plus;
-  }
-
   @override
   bool shouldRepaint(covariant _GuideObjectGlowPainter oldDelegate) {
     return oldDelegate.progress != progress ||
         oldDelegate.shape != shape ||
+        oldDelegate.targetRect != targetRect ||
         oldDelegate.targetImage != targetImage ||
         oldDelegate.targetAssetCropRect != targetAssetCropRect ||
         oldDelegate.shaderProgram != shaderProgram;
   }
+}
+
+class _GuideBackgroundScrimPainter extends CustomPainter {
+  const _GuideBackgroundScrimPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) {
+      return;
+    }
+    canvas.drawRect(Offset.zero & size, Paint()..color = _guideScrimColor);
+  }
+
+  @override
+  bool shouldRepaint(covariant _GuideBackgroundScrimPainter oldDelegate) =>
+      false;
 }
