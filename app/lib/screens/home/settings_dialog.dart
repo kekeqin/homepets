@@ -4,10 +4,45 @@ import 'package:flutter/material.dart';
 
 import '../../widgets/app_modal_shell.dart';
 
-const String _settingsDialogPanelAsset =
-    'assets/images/ui/setup/setup_panel_frame_composite.png';
+const String _settingsFrameAsset = 'assets/images/ui/setup/frame.png';
+const String _settingsCloseButtonAsset =
+    'assets/images/ui/setup/close_button_transparent.png';
+const String _settingsEditProfileInputAsset =
+    'assets/images/ui/setup/7 (1).png';
+const String _settingsEditProfileIconAsset =
+    'assets/images/ui/setup/contact_notebook_pencil_transparent.png';
+const String _settingsInputArrowAsset =
+    'assets/images/ui/setup/5 (2)_transparent.png';
+const String _settingsAboutIconAsset =
+    'assets/images/ui/setup/question_bubble_transparent.png';
+const String _settingsLogoutIconAsset =
+    'assets/images/ui/setup/wooden_door_transparent.png';
 const double _settingsDialogDesignWidth = 441;
 const double _settingsDialogDesignHeight = 512;
+const double _settingsFrameSourceWidth = 1024;
+const double _settingsFrameSourceHeight = 1536;
+const double _settingsFrameCropLeft = 53;
+const double _settingsFrameCropTop = 118;
+const double _settingsFrameCropWidth = 946;
+const double _settingsFrameCropHeight = 1159;
+const double _settingsFrameDrawWidth =
+    _settingsDialogDesignWidth *
+    _settingsFrameSourceWidth /
+    _settingsFrameCropWidth;
+const double _settingsFrameDrawHeight =
+    _settingsDialogDesignHeight *
+    _settingsFrameSourceHeight /
+    _settingsFrameCropHeight;
+const double _settingsFrameDrawLeft =
+    -_settingsFrameCropLeft *
+    _settingsDialogDesignWidth /
+    _settingsFrameCropWidth;
+const double _settingsFrameDrawTop =
+    -_settingsFrameCropTop *
+    _settingsDialogDesignHeight /
+    _settingsFrameCropHeight;
+
+const Color _settingsTextColor = Color(0xFF30251D);
 
 const AppModalLayout _settingsDialogLayout = AppModalLayout(
   mobileWidthFactor: 1.0,
@@ -83,55 +118,59 @@ class _SettingsDialogPanel extends StatelessWidget {
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      const Positioned.fill(
-                        child: Image(
-                          image: AssetImage(_settingsDialogPanelAsset),
-                          fit: BoxFit.fill,
-                          filterQuality: FilterQuality.high,
+                      const Positioned.fill(child: _SettingsPanelFrame()),
+                      const Positioned(
+                        left: 0,
+                        top: 38,
+                        right: 0,
+                        height: 42,
+                        child: Center(
+                          child: Text(
+                            '设置',
+                            style: TextStyle(
+                              color: _settingsTextColor,
+                              fontFamily: 'HomePetsFont',
+                              fontSize: 30,
+                              fontWeight: FontWeight.w900,
+                              height: 1,
+                            ),
+                          ),
                         ),
                       ),
                       Positioned(
-                        left: 347,
-                        top: 10,
-                        width: 74,
-                        height: 74,
-                        child: _SettingsActionButton(
-                          semanticLabel: '\u5173\u95ed\u8bbe\u7f6e',
-                          onPressed: onClose,
+                        left: 326,
+                        top: -8,
+                        width: 132,
+                        height: 132,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: onClose,
+                          child: Image.asset(
+                            _settingsCloseButtonAsset,
+                            fit: BoxFit.contain,
+                            filterQuality: FilterQuality.high,
+                          ),
                         ),
                       ),
-                      Positioned(
-                        left: 22,
-                        top: 93,
-                        width: 397,
-                        height: 100,
-                        child: _SettingsActionButton(
-                          semanticLabel: '\u7f16\u8f91\u8d44\u6599',
-                          onPressed: () =>
-                              onActionSelected(HomeSettingsAction.editProfile),
-                        ),
+                      _SettingsActionTile(
+                        top: 116,
+                        title: '编辑资料',
+                        iconAsset: _settingsEditProfileIconAsset,
+                        onTap: () =>
+                            onActionSelected(HomeSettingsAction.editProfile),
                       ),
-                      Positioned(
-                        left: 22,
-                        top: 202,
-                        width: 397,
-                        height: 100,
-                        child: _SettingsActionButton(
-                          semanticLabel: '\u5173\u4e8e',
-                          onPressed: () =>
-                              onActionSelected(HomeSettingsAction.about),
-                        ),
+                      _SettingsActionTile(
+                        top: 229,
+                        title: '关于',
+                        iconAsset: _settingsAboutIconAsset,
+                        onTap: () => onActionSelected(HomeSettingsAction.about),
                       ),
-                      Positioned(
-                        left: 22,
-                        top: 311,
-                        width: 397,
-                        height: 100,
-                        child: _SettingsActionButton(
-                          semanticLabel: '\u9000\u51fa\u767b\u5f55',
-                          onPressed: () =>
-                              onActionSelected(HomeSettingsAction.logout),
-                        ),
+                      _SettingsActionTile(
+                        top: 344,
+                        title: '退出登录',
+                        iconAsset: _settingsLogoutIconAsset,
+                        onTap: () =>
+                            onActionSelected(HomeSettingsAction.logout),
                       ),
                     ],
                   ),
@@ -145,26 +184,114 @@ class _SettingsDialogPanel extends StatelessWidget {
   }
 }
 
-class _SettingsActionButton extends StatelessWidget {
-  const _SettingsActionButton({
-    required this.semanticLabel,
-    required this.onPressed,
-  });
-
-  final String semanticLabel;
-  final VoidCallback onPressed;
+class _SettingsPanelFrame extends StatelessWidget {
+  const _SettingsPanelFrame();
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: semanticLabel,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onPressed,
-          child: const SizedBox.expand(),
+    return ClipRect(
+      child: Stack(
+        clipBehavior: Clip.hardEdge,
+        children: [
+          Positioned(
+            left: _settingsFrameDrawLeft,
+            top: _settingsFrameDrawTop,
+            width: _settingsFrameDrawWidth,
+            height: _settingsFrameDrawHeight,
+            child: Image.asset(
+              _settingsFrameAsset,
+              fit: BoxFit.fill,
+              filterQuality: FilterQuality.high,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingsActionTile extends StatelessWidget {
+  const _SettingsActionTile({
+    required this.top,
+    required this.title,
+    required this.iconAsset,
+    required this.onTap,
+  });
+
+  final double top;
+  final String title;
+  final String iconAsset;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: 34,
+      top: top,
+      width: 373,
+      height: 100,
+      child: Semantics(
+        button: true,
+        label: title,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.asset(
+                  _settingsEditProfileInputAsset,
+                  fit: BoxFit.fill,
+                  filterQuality: FilterQuality.high,
+                ),
+                Positioned(
+                  left: 0,
+                  top: -1,
+                  width: 102,
+                  height: 102,
+                  child: Image.asset(
+                    iconAsset,
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.high,
+                  ),
+                ),
+                Positioned(
+                  left: 96,
+                  top: 0,
+                  bottom: 0,
+                  right: 68,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _settingsTextColor,
+                        fontFamily: 'HomePetsFont',
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                        height: 1.05,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 23,
+                  top: 24,
+                  width: 24,
+                  height: 52,
+                  child: Image.asset(
+                    _settingsInputArrowAsset,
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.high,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
