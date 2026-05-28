@@ -147,13 +147,21 @@ final routerProvider = Provider<GoRouter>((ref) {
                       subscriptionState.shouldBlockCoreAccess
                   ? PaywallMode.blocking
                   : PaywallMode.optional;
-              return PaywallScreen(
+              final returnRoute = state.uri.queryParameters['return'];
+              final paywall = PaywallScreen(
                 mode: mode,
                 reason:
                     state.uri.queryParameters['reason'] ??
                     subscriptionState.status?.reason,
-                returnRoute: state.uri.queryParameters['return'],
+                returnRoute: returnRoute,
               );
+              if (_shouldShowHomeBehindPaywall(mode, returnRoute)) {
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [const HomeSceneScreen(), paywall],
+                );
+              }
+              return paywall;
             },
           ),
           GoRoute(
@@ -189,6 +197,17 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+bool _shouldShowHomeBehindPaywall(PaywallMode mode, String? returnRoute) {
+  if (mode != PaywallMode.blocking) {
+    return false;
+  }
+  final route = returnRoute?.trim();
+  return route == null ||
+      route.isEmpty ||
+      route == '/home' ||
+      route.startsWith('/home?');
+}
 
 class MainShell extends StatelessWidget {
   const MainShell({super.key, required this.child});

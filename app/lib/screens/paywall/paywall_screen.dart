@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -72,24 +73,29 @@ class PaywallScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: SafeArea(
-        child: PopScope(
-          canPop: mode == PaywallMode.optional,
-          onPopInvokedWithResult: (didPop, result) {
-            if (!didPop && mode == PaywallMode.blocking) {
-              MembershipTopNotice.show(context, message: '试用期已结束，请开通会员后继续使用');
-            }
-          },
-          child: AppModalShell(
-            layout: AppModalLayouts.paywall,
-            minimumSafeArea: HomePetsDialogGutter.largeInsets,
-            clipChild: false,
-            child: PaywallContent(
-              mode: mode,
-              reason: reason,
-              onClose: () => _closePaywall(context, ref),
+      body: PopScope(
+        canPop: mode == PaywallMode.optional,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop && mode == PaywallMode.blocking) {
+            MembershipTopNotice.show(context, message: '试用期已结束，请开通会员后继续使用');
+          }
+        },
+        child: Stack(
+          children: [
+            const Positioned.fill(child: _PaywallRouteBackdrop()),
+            SafeArea(
+              child: AppModalShell(
+                layout: AppModalLayouts.paywall,
+                minimumSafeArea: HomePetsDialogGutter.largeInsets,
+                clipChild: false,
+                child: PaywallContent(
+                  mode: mode,
+                  reason: reason,
+                  onClose: () => _closePaywall(context, ref),
+                ),
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -118,6 +124,23 @@ class PaywallScreen extends ConsumerWidget {
       return;
     }
     context.go('/home');
+  }
+}
+
+class _PaywallRouteBackdrop extends StatelessWidget {
+  const _PaywallRouteBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 7, sigmaY: 7),
+        child: ColoredBox(
+          color: HomePetsDialogTheme.barrierTint,
+          child: const SizedBox.expand(),
+        ),
+      ),
+    );
   }
 }
 
