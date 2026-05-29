@@ -1031,13 +1031,26 @@ List<double> _homeActFrameDurations(
   int frameCount = 25,
 }) => List<double>.filled(frameCount, durationSeconds);
 
-const int _rabbitBabyActFrameCount = 35;
+const int _babyActFrameCount = 35;
 
-final List<int> _rabbitBabyActFrameNumbers = List<int>.generate(
-  _rabbitBabyActFrameCount,
+final List<int> _babyActFrameNumbers = List<int>.generate(
+  _babyActFrameCount,
   (index) => index + 1,
   growable: false,
 );
+
+_PetFrameAnimationSpec _babyActHomeAnimation(String prefix) {
+  return _PetFrameAnimationSpec(
+    frameAssetPaths: _homeActFrameAssetPaths(
+      prefix,
+      frameNumbers: _babyActFrameNumbers,
+    ),
+    frameDurations: _homeActFrameDurations(
+      0.10,
+      frameCount: _babyActFrameCount,
+    ),
+  );
+}
 
 final _PetFrameAnimationSpec _catSitActHomeAnimation = _PetFrameAnimationSpec(
   frameAssetPaths: _homeActFrameAssetPaths('cat_sit_frame'),
@@ -1077,41 +1090,36 @@ final _PetFrameAnimationSpec _rabbitSleepActHomeAnimation =
       frameDurations: _homeActFrameDurations(0.18),
     );
 
+final _PetFrameAnimationSpec _catBabyLyingActHomeAnimation =
+    _babyActHomeAnimation('cat_baby_lying_frame');
+final _PetFrameAnimationSpec _catBabySittingActHomeAnimation =
+    _babyActHomeAnimation('cat_baby_sitting_frame');
+final _PetFrameAnimationSpec _catBabyStageActHomeAnimation =
+    _babyActHomeAnimation('cat_baby_stage_frame');
+final _PetFrameAnimationSpec _dogBabyLyingActHomeAnimation =
+    _babyActHomeAnimation('dog_baby_lying_frame');
+final _PetFrameAnimationSpec _dogBabySittingActHomeAnimation =
+    _babyActHomeAnimation('dog_baby_sitting_frame');
+final _PetFrameAnimationSpec _dogBabySleepingActHomeAnimation =
+    _babyActHomeAnimation('dog_baby_sleeping_frame');
+final _PetFrameAnimationSpec _hamsterBabyLyingActHomeAnimation =
+    _babyActHomeAnimation('hamster_baby_lying_frame');
+final _PetFrameAnimationSpec _hamsterBabySittingActHomeAnimation =
+    _babyActHomeAnimation('hamster_baby_sitting_frame');
+final _PetFrameAnimationSpec _hamsterBabySleepingActHomeAnimation =
+    _babyActHomeAnimation('hamster_baby_sleeping_frame');
 final _PetFrameAnimationSpec _rabbitBabyLyingActHomeAnimation =
-    _PetFrameAnimationSpec(
-      frameAssetPaths: _homeActFrameAssetPaths(
-        'rabbit_baby_lying_frame',
-        frameNumbers: _rabbitBabyActFrameNumbers,
-      ),
-      frameDurations: _homeActFrameDurations(
-        0.10,
-        frameCount: _rabbitBabyActFrameCount,
-      ),
-    );
-
+    _babyActHomeAnimation('rabbit_baby_lying_frame');
 final _PetFrameAnimationSpec _rabbitBabySleepingActHomeAnimation =
-    _PetFrameAnimationSpec(
-      frameAssetPaths: _homeActFrameAssetPaths(
-        'rabbit_baby_sleeping_frame',
-        frameNumbers: _rabbitBabyActFrameNumbers,
-      ),
-      frameDurations: _homeActFrameDurations(
-        0.10,
-        frameCount: _rabbitBabyActFrameCount,
-      ),
-    );
-
+    _babyActHomeAnimation('rabbit_baby_sleeping_frame');
 final _PetFrameAnimationSpec _rabbitBabyStageActHomeAnimation =
-    _PetFrameAnimationSpec(
-      frameAssetPaths: _homeActFrameAssetPaths(
-        'rabbit_baby_stage_frame',
-        frameNumbers: _rabbitBabyActFrameNumbers,
-      ),
-      frameDurations: _homeActFrameDurations(
-        0.10,
-        frameCount: _rabbitBabyActFrameCount,
-      ),
-    );
+    _babyActHomeAnimation('rabbit_baby_stage_frame');
+final _PetFrameAnimationSpec _turtleBabyCrawlingActHomeAnimation =
+    _babyActHomeAnimation('turtle_baby_crawling_frame');
+final _PetFrameAnimationSpec _turtleBabySleepingActHomeAnimation =
+    _babyActHomeAnimation('turtle_baby_sleeping_frame');
+final _PetFrameAnimationSpec _turtleBabyStageActHomeAnimation =
+    _babyActHomeAnimation('turtle_baby_stage_frame');
 
 final List<String> _hamsterStandActFrameAssetPaths = _homeActFrameAssetPaths(
   'hamster_stand_frame',
@@ -1147,10 +1155,23 @@ final _PetFrameAnimationSpec _turtleSitActHomeAnimation =
 
 _PetFrameAnimationSpec? _homePetAnimationForAsset(String assetPath) {
   return switch (assetPath) {
+    'images/pets/grow/cat/baby/lying.png' => _catBabyLyingActHomeAnimation,
+    'images/pets/grow/cat/baby/sitting.png' => _catBabySittingActHomeAnimation,
+    'images/pets/grow/cat/baby/stage.png' => _catBabyStageActHomeAnimation,
     'images/pets/grow/cat/growing/sitting.png' => _catSitActHomeAnimation,
     'images/pets/grow/cat/growing/sleeping.png' => _catSleepActHomeAnimation,
+    'images/pets/grow/dog/baby/lying.png' => _dogBabyLyingActHomeAnimation,
+    'images/pets/grow/dog/baby/sitting.png' => _dogBabySittingActHomeAnimation,
+    'images/pets/grow/dog/baby/sleeping.png' =>
+      _dogBabySleepingActHomeAnimation,
     'images/pets/grow/dog/growing/sitting.png' => _dogSitActHomeAnimation,
     'images/pets/grow/dog/growing/sleeping.png' => _dogSleepActHomeAnimation,
+    'images/pets/grow/hamster/baby/lying.png' =>
+      _hamsterBabyLyingActHomeAnimation,
+    'images/pets/grow/hamster/baby/sitting.png' =>
+      _hamsterBabySittingActHomeAnimation,
+    'images/pets/grow/hamster/baby/sleeping.png' =>
+      _hamsterBabySleepingActHomeAnimation,
     'images/pets/grow/hamster/growing/standing.png' =>
       _hamsterStandActHomeAnimation,
     'images/pets/grow/hamster/growing/sitting.png' =>
@@ -1165,6 +1186,12 @@ _PetFrameAnimationSpec? _homePetAnimationForAsset(String assetPath) {
     'images/pets/grow/rabbit/growing/sitting.png' => _rabbitSitActHomeAnimation,
     'images/pets/grow/rabbit/growing/sleeping.png' =>
       _rabbitSleepActHomeAnimation,
+    'images/pets/grow/turtle/baby/crawling.png' =>
+      _turtleBabyCrawlingActHomeAnimation,
+    'images/pets/grow/turtle/baby/sleeping.png' =>
+      _turtleBabySleepingActHomeAnimation,
+    'images/pets/grow/turtle/baby/stage.png' =>
+      _turtleBabyStageActHomeAnimation,
     'images/pets/grow/turtle/growing/crawling.png' =>
       _turtleLyingActHomeAnimation,
     'images/pets/grow/turtle/growing/sitting.png' => _turtleSitActHomeAnimation,

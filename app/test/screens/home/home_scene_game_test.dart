@@ -694,45 +694,74 @@ void main() {
     });
 
     test('uses act sequence frames for supported homepage pet poses', () {
-      final rabbitBabyLyingFrames =
-          HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-            'images/pets/grow/rabbit/baby/lying.png',
-          );
-      final rabbitBabySleepingFrames =
-          HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-            'images/pets/grow/rabbit/baby/sleeping.png',
-          );
-      final rabbitBabyStageFrames =
-          HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-            'images/pets/grow/rabbit/baby/stage.png',
-          );
+      void expectBabyActFrames(String assetPath, String prefix) {
+        final frames = HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+          assetPath,
+        );
+        expect(frames, hasLength(35), reason: assetPath);
+        expect(frames.first, 'images/pets/act/${prefix}_frame_01.png');
+        expect(frames.last, 'images/pets/act/${prefix}_frame_35.png');
+      }
 
-      expect(rabbitBabyLyingFrames, hasLength(35));
-      expect(
-        rabbitBabyLyingFrames.first,
-        'images/pets/act/rabbit_baby_lying_frame_01.png',
+      expectBabyActFrames(
+        'images/pets/grow/cat/baby/lying.png',
+        'cat_baby_lying',
       );
-      expect(
-        rabbitBabyLyingFrames.last,
-        'images/pets/act/rabbit_baby_lying_frame_35.png',
+      expectBabyActFrames(
+        'images/pets/grow/cat/baby/sitting.png',
+        'cat_baby_sitting',
       );
-      expect(rabbitBabySleepingFrames, hasLength(35));
-      expect(
-        rabbitBabySleepingFrames.first,
-        'images/pets/act/rabbit_baby_sleeping_frame_01.png',
+      expectBabyActFrames(
+        'images/pets/grow/cat/baby/stage.png',
+        'cat_baby_stage',
       );
-      expect(
-        rabbitBabySleepingFrames.last,
-        'images/pets/act/rabbit_baby_sleeping_frame_35.png',
+      expectBabyActFrames(
+        'images/pets/grow/dog/baby/lying.png',
+        'dog_baby_lying',
       );
-      expect(rabbitBabyStageFrames, hasLength(35));
-      expect(
-        rabbitBabyStageFrames.first,
-        'images/pets/act/rabbit_baby_stage_frame_01.png',
+      expectBabyActFrames(
+        'images/pets/grow/dog/baby/sitting.png',
+        'dog_baby_sitting',
       );
-      expect(
-        rabbitBabyStageFrames.last,
-        'images/pets/act/rabbit_baby_stage_frame_35.png',
+      expectBabyActFrames(
+        'images/pets/grow/dog/baby/sleeping.png',
+        'dog_baby_sleeping',
+      );
+      expectBabyActFrames(
+        'images/pets/grow/hamster/baby/lying.png',
+        'hamster_baby_lying',
+      );
+      expectBabyActFrames(
+        'images/pets/grow/hamster/baby/sitting.png',
+        'hamster_baby_sitting',
+      );
+      expectBabyActFrames(
+        'images/pets/grow/hamster/baby/sleeping.png',
+        'hamster_baby_sleeping',
+      );
+      expectBabyActFrames(
+        'images/pets/grow/rabbit/baby/lying.png',
+        'rabbit_baby_lying',
+      );
+      expectBabyActFrames(
+        'images/pets/grow/rabbit/baby/sleeping.png',
+        'rabbit_baby_sleeping',
+      );
+      expectBabyActFrames(
+        'images/pets/grow/rabbit/baby/stage.png',
+        'rabbit_baby_stage',
+      );
+      expectBabyActFrames(
+        'images/pets/grow/turtle/baby/crawling.png',
+        'turtle_baby_crawling',
+      );
+      expectBabyActFrames(
+        'images/pets/grow/turtle/baby/sleeping.png',
+        'turtle_baby_sleeping',
+      );
+      expectBabyActFrames(
+        'images/pets/grow/turtle/baby/stage.png',
+        'turtle_baby_stage',
       );
 
       expect(
@@ -845,24 +874,35 @@ void main() {
     });
 
     test(
-      'keeps baby rabbit action frames isolated after JSON sprite cuts',
+      'keeps baby action frames isolated after JSON sprite cuts',
       () async {
-        final babyRabbitActFrames = <String>[
-          ...HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-            'images/pets/grow/rabbit/baby/lying.png',
-          ),
-          ...HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-            'images/pets/grow/rabbit/baby/sleeping.png',
-          ),
-          ...HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-            'images/pets/grow/rabbit/baby/stage.png',
-          ),
+        const babyPoseAssetPaths = <String>[
+          'images/pets/grow/cat/baby/lying.png',
+          'images/pets/grow/cat/baby/sitting.png',
+          'images/pets/grow/cat/baby/stage.png',
+          'images/pets/grow/dog/baby/lying.png',
+          'images/pets/grow/dog/baby/sitting.png',
+          'images/pets/grow/dog/baby/sleeping.png',
+          'images/pets/grow/hamster/baby/lying.png',
+          'images/pets/grow/hamster/baby/sitting.png',
+          'images/pets/grow/hamster/baby/sleeping.png',
+          'images/pets/grow/rabbit/baby/lying.png',
+          'images/pets/grow/rabbit/baby/sleeping.png',
+          'images/pets/grow/rabbit/baby/stage.png',
+          'images/pets/grow/turtle/baby/crawling.png',
+          'images/pets/grow/turtle/baby/sleeping.png',
+          'images/pets/grow/turtle/baby/stage.png',
         ];
 
-        for (final assetPath in babyRabbitActFrames) {
-          await _expectTransparentImageCorners(assetPath);
-          await _expectSingleVisibleImageComponent(assetPath);
-          await _expectVisiblePixelRatioAtLeast(assetPath, 0.50);
+        for (final poseAssetPath in babyPoseAssetPaths) {
+          final frames = HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+            poseAssetPath,
+          );
+          for (final frameAssetPath in frames) {
+            await _expectTransparentImageCorners(frameAssetPath);
+            await _expectSingleVisibleImageComponent(frameAssetPath);
+            await _expectVisiblePixelRatioAtLeast(frameAssetPath, 0.50);
+          }
         }
       },
     );
