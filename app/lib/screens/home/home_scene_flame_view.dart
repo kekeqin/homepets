@@ -131,7 +131,7 @@ const Color _completeMemberMenuFillColor = Color(0xFFFFF4E5);
 const Color _completeMemberOptionFillColor = Color(0xFFFBE3BD);
 const Color _completeMemberOptionSelectedColor = Color(0xFFD7E09A);
 const Duration _taskCompletionFeedbackDuration = Duration(milliseconds: 650);
-const double _taskMutationDialogMaxWidth = 390;
+const double _taskMutationDialogMaxWidth = 430;
 const double _taskMutationDialogHeightFactor = 0.76;
 const double _taskPanelBoardHeightRatio =
     TaskBoardReferenceAsset.panelHeightRatio;
@@ -141,8 +141,17 @@ Size _taskMutationDialogSize(
   Size screenSize, {
   double horizontalGutter = HomePetsDialogGutter.medium,
 }) {
+  const visibleWidthRatio =
+      (TaskBoardReferenceAsset.dialogPanelWidth -
+          TaskBoardReferenceAsset.dialogPanelVisibleLeftInset -
+          TaskBoardReferenceAsset.dialogPanelVisibleRightInset) /
+      TaskBoardReferenceAsset.dialogPanelWidth;
+  final visibleWidthLimit = math.max(
+    0.0,
+    screenSize.width - horizontalGutter * 2,
+  );
   final maxPanelWidth = math.min(
-    math.max(0.0, screenSize.width - horizontalGutter * 2),
+    visibleWidthLimit / visibleWidthRatio,
     _taskMutationDialogMaxWidth,
   );
   final maxPanelHeight = screenSize.height * _taskMutationDialogHeightFactor;
@@ -150,6 +159,18 @@ Size _taskMutationDialogSize(
   final panelWidth = math.min(maxPanelWidth, maxPanelHeight * panelAspectRatio);
 
   return Size(panelWidth, panelWidth / panelAspectRatio);
+}
+
+double _taskDialogVisibleCenterOffset(double panelWidth) {
+  final scaledLeftInset =
+      panelWidth *
+      TaskBoardReferenceAsset.dialogPanelVisibleLeftInset /
+      TaskBoardReferenceAsset.dialogPanelWidth;
+  final scaledRightInset =
+      panelWidth *
+      TaskBoardReferenceAsset.dialogPanelVisibleRightInset /
+      TaskBoardReferenceAsset.dialogPanelWidth;
+  return (scaledRightInset - scaledLeftInset) / 2;
 }
 
 class HomeSceneFlameView extends ConsumerStatefulWidget {
@@ -1127,12 +1148,32 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   }
 
   Rect _expandedTaskPanelRect(Size size) {
-    final maxWidth = math.min(size.width * 0.88, 452.0);
+    const visibleWidthRatio =
+        (TaskBoardReferenceAsset.panelWidth -
+            TaskBoardReferenceAsset.boardVisibleLeftInset -
+            TaskBoardReferenceAsset.boardVisibleRightInset) /
+        TaskBoardReferenceAsset.panelWidth;
+    final visibleWidthLimit = math.max(
+      0.0,
+      size.width - HomePetsDialogGutter.large * 2,
+    );
+    final maxWidth = math.min(visibleWidthLimit / visibleWidthRatio, 452.0);
     final maxHeight = size.height * 0.80;
     final height = math.min(maxHeight, maxWidth * _taskPanelBoardHeightRatio);
     final width = height / _taskPanelBoardHeightRatio;
+    final scaledLeftInset =
+        width *
+        TaskBoardReferenceAsset.boardVisibleLeftInset /
+        TaskBoardReferenceAsset.panelWidth;
+    final scaledRightInset =
+        width *
+        TaskBoardReferenceAsset.boardVisibleRightInset /
+        TaskBoardReferenceAsset.panelWidth;
     return Rect.fromCenter(
-      center: Offset(size.width * 0.5, size.height * 0.51),
+      center: Offset(
+        size.width * 0.5 + (scaledRightInset - scaledLeftInset) / 2,
+        size.height * 0.51,
+      ),
       width: width,
       height: height,
     );
@@ -3440,7 +3481,7 @@ class _TaskContextSpriteMenu extends StatelessWidget {
 
   static const double _menuHeight = _menuWidth * (169 / 135);
 
-  static const double _screenPadding = 8;
+  static const double _screenPadding = HomePetsDialogGutter.small;
 
   Offset _resolveMenuOffset(Size screenSize) {
     var left = anchorInOverlay.dx + 8;
@@ -3698,7 +3739,10 @@ class _TaskDeleteConfirmDialog extends StatelessWidget {
         ),
         child: Center(
           child: Transform.translate(
-            offset: Offset(0, screenSize.height * 0.025),
+            offset: Offset(
+              _taskDialogVisibleCenterOffset(panelSize.width),
+              screenSize.height * 0.025,
+            ),
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () {},
@@ -4010,160 +4054,168 @@ class _CompletionMemberSelectContentState
     return SafeArea(
       minimum: HomePetsDialogGutter.mediumInsets,
       child: Center(
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () {},
-          child: Material(
-            color: Colors.transparent,
-            child: SizedBox(
-              width: panelSize.width,
-              height: panelSize.height,
-              child: FittedBox(
-                fit: BoxFit.fill,
-                child: FutureBuilder<SpriteAtlas>(
-                  future: _spriteAtlasFuture,
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
+        child: Transform.translate(
+          offset: Offset(_taskDialogVisibleCenterOffset(panelSize.width), 0),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {},
+            child: Material(
+              color: Colors.transparent,
+              child: SizedBox(
+                width: panelSize.width,
+                height: panelSize.height,
+                child: FittedBox(
+                  fit: BoxFit.fill,
+                  child: FutureBuilder<SpriteAtlas>(
+                    future: _spriteAtlasFuture,
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return SizedBox(
+                          width: _completeMemberDialogDesignSize.width,
+                          height: _completeMemberDialogDesignSize.height,
+                        );
+                      }
+
+                      final sprites = TaskEditorSheetSpriteCatalog(
+                        snapshot.requireData,
+                      );
+                      final cancelButtonAspectRatio =
+                          sprites.cancelButtonBg.aspectRatio;
+                      final confirmButtonAspectRatio =
+                          sprites.saveButtonBg.aspectRatio;
+                      final buttonHeight = math.min(
+                        _completeMemberDialogDesignSize.height * 0.112,
+                        (buttonMaxGroupWidth - buttonGap) /
+                            (cancelButtonAspectRatio +
+                                confirmButtonAspectRatio),
+                      );
+                      final cancelButtonWidth =
+                          buttonHeight * cancelButtonAspectRatio;
+                      final confirmButtonWidth =
+                          buttonHeight * confirmButtonAspectRatio;
+                      final buttonGroupWidth =
+                          cancelButtonWidth + buttonGap + confirmButtonWidth;
+                      final buttonGroupLeft =
+                          (_completeMemberDialogDesignSize.width -
+                              buttonGroupWidth) *
+                          0.5;
+
                       return SizedBox(
                         width: _completeMemberDialogDesignSize.width,
                         height: _completeMemberDialogDesignSize.height,
-                      );
-                    }
-
-                    final sprites = TaskEditorSheetSpriteCatalog(
-                      snapshot.requireData,
-                    );
-                    final cancelButtonAspectRatio =
-                        sprites.cancelButtonBg.aspectRatio;
-                    final confirmButtonAspectRatio =
-                        sprites.saveButtonBg.aspectRatio;
-                    final buttonHeight = math.min(
-                      _completeMemberDialogDesignSize.height * 0.112,
-                      (buttonMaxGroupWidth - buttonGap) /
-                          (cancelButtonAspectRatio + confirmButtonAspectRatio),
-                    );
-                    final cancelButtonWidth =
-                        buttonHeight * cancelButtonAspectRatio;
-                    final confirmButtonWidth =
-                        buttonHeight * confirmButtonAspectRatio;
-                    final buttonGroupWidth =
-                        cancelButtonWidth + buttonGap + confirmButtonWidth;
-                    final buttonGroupLeft =
-                        (_completeMemberDialogDesignSize.width -
-                            buttonGroupWidth) *
-                        0.5;
-
-                    return SizedBox(
-                      width: _completeMemberDialogDesignSize.width,
-                      height: _completeMemberDialogDesignSize.height,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          const Positioned.fill(
-                            child: _CompleteMemberAssetImage(
-                              assetPath: _completeMemberDialogPanelAsset,
-                              fit: BoxFit.fill,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            const Positioned.fill(
+                              child: _CompleteMemberAssetImage(
+                                assetPath: _completeMemberDialogPanelAsset,
+                                fit: BoxFit.fill,
+                              ),
                             ),
-                          ),
-                          const Positioned(
-                            left: 42,
-                            top: 52,
-                            width: 352,
-                            height: 47,
-                            child: Align(
-                              alignment: Alignment.center,
-                              child: Text(
-                                '选择完成人员',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Color(0xFF4D3623),
-                                  fontSize: _completeMemberTitleFontSize,
-                                  fontWeight: FontWeight.w900,
-                                  height: 1,
-                                  letterSpacing: 0,
+                            const Positioned(
+                              left: 42,
+                              top: 52,
+                              width: 352,
+                              height: 47,
+                              child: Align(
+                                alignment: Alignment.center,
+                                child: Text(
+                                  '选择完成人员',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Color(0xFF4D3623),
+                                    fontSize: _completeMemberTitleFontSize,
+                                    fontWeight: FontWeight.w900,
+                                    height: 1,
+                                    letterSpacing: 0,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          const Positioned(
-                            left: 74,
-                            top: 126,
-                            width: 132,
-                            height: 30,
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                '完成成员',
-                                maxLines: 1,
-                                style: TextStyle(
-                                  color: Color(0xFF4D3623),
-                                  fontSize: _completeMemberLabelFontSize,
-                                  fontWeight: FontWeight.w900,
-                                  height: 1,
-                                  letterSpacing: 0,
+                            const Positioned(
+                              left: 74,
+                              top: 126,
+                              width: 132,
+                              height: 30,
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  '完成成员',
+                                  maxLines: 1,
+                                  style: TextStyle(
+                                    color: Color(0xFF4D3623),
+                                    fontSize: _completeMemberLabelFontSize,
+                                    fontWeight: FontWeight.w900,
+                                    height: 1,
+                                    letterSpacing: 0,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          Positioned(
-                            left: 74,
-                            top: 158,
-                            width: 288,
-                            height: _completeMemberFieldHeight,
-                            child: _CompleteMemberClosedField(
-                              label: _selectedOption?.label ?? '',
+                            Positioned(
+                              left: 74,
+                              top: 158,
+                              width: 288,
+                              height: _completeMemberFieldHeight,
+                              child: _CompleteMemberClosedField(
+                                label: _selectedOption?.label ?? '',
+                              ),
                             ),
-                          ),
-                          Positioned(
-                            left: 74,
-                            top: 214,
-                            width: 288,
-                            height: 193,
-                            child: _CompleteMemberOptionsList(
-                              options: widget.options,
-                              selectedMemberId: _selectedMemberId,
-                              onSelected: _selectMember,
+                            Positioned(
+                              left: 74,
+                              top: 214,
+                              width: 288,
+                              height: 193,
+                              child: _CompleteMemberOptionsList(
+                                options: widget.options,
+                                selectedMemberId: _selectedMemberId,
+                                onSelected: _selectMember,
+                              ),
                             ),
-                          ),
-                          Positioned(
-                            left: buttonGroupLeft,
-                            bottom:
-                                _completeMemberDialogDesignSize.height * 0.075,
-                            width: cancelButtonWidth,
-                            height: buttonHeight,
-                            child: _TaskEditorSpriteImageButton(
-                              sprites: sprites,
-                              backgroundFrame: sprites.cancelButtonBg,
-                              fallbackText: '取消',
-                              semanticsLabel: '取消',
-                              onTap: () => Navigator.of(context).pop(),
-                            ),
-                          ),
-                          Positioned(
-                            left:
-                                buttonGroupLeft + cancelButtonWidth + buttonGap,
-                            bottom:
-                                _completeMemberDialogDesignSize.height * 0.075,
-                            width: confirmButtonWidth,
-                            height: buttonHeight,
-                            child: Opacity(
-                              opacity: _selectedMemberId == null ? 0.55 : 1,
+                            Positioned(
+                              left: buttonGroupLeft,
+                              bottom:
+                                  _completeMemberDialogDesignSize.height *
+                                  0.075,
+                              width: cancelButtonWidth,
+                              height: buttonHeight,
                               child: _TaskEditorSpriteImageButton(
                                 sprites: sprites,
-                                backgroundFrame: sprites.saveButtonBg,
-                                fallbackText: '确认完成',
-                                semanticsLabel: '确认完成',
-                                onTap: _selectedMemberId == null
-                                    ? () {}
-                                    : _confirm,
+                                backgroundFrame: sprites.cancelButtonBg,
+                                fallbackText: '取消',
+                                semanticsLabel: '取消',
+                                onTap: () => Navigator.of(context).pop(),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                            Positioned(
+                              left:
+                                  buttonGroupLeft +
+                                  cancelButtonWidth +
+                                  buttonGap,
+                              bottom:
+                                  _completeMemberDialogDesignSize.height *
+                                  0.075,
+                              width: confirmButtonWidth,
+                              height: buttonHeight,
+                              child: Opacity(
+                                opacity: _selectedMemberId == null ? 0.55 : 1,
+                                child: _TaskEditorSpriteImageButton(
+                                  sprites: sprites,
+                                  backgroundFrame: sprites.saveButtonBg,
+                                  fallbackText: '确认完成',
+                                  semanticsLabel: '确认完成',
+                                  onTap: _selectedMemberId == null
+                                      ? () {}
+                                      : _confirm,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
@@ -4493,51 +4545,57 @@ class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
           curve: Curves.easeOutCubic,
           padding: EdgeInsets.only(bottom: viewInsets.bottom * 0.72),
           child: Center(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => FocusScope.of(context).unfocus(),
-              child: SizedBox(
-                width: panelSize.width,
-                height: panelSize.height,
-                child: FutureBuilder<SpriteAtlas>(
-                  future: _spriteAtlasFuture,
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const SizedBox.shrink();
-                    }
+            child: Transform.translate(
+              offset: Offset(
+                _taskDialogVisibleCenterOffset(panelSize.width),
+                0,
+              ),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => FocusScope.of(context).unfocus(),
+                child: SizedBox(
+                  width: panelSize.width,
+                  height: panelSize.height,
+                  child: FutureBuilder<SpriteAtlas>(
+                    future: _spriteAtlasFuture,
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const SizedBox.shrink();
+                      }
 
-                    final sprites = TaskEditorSheetSpriteCatalog(
-                      snapshot.requireData,
-                    );
-                    return Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Positioned.fill(
-                          child: _TaskEditorSpriteCard(
-                            sprites: sprites,
-                            isEditing: widget.isEditing,
-                            validationMessage: _validationMessage,
-                            taskNameController: _taskNameController,
-                            taskPointsController: _taskPointsController,
-                            onSave: _save,
-                            onDelete: _requestDelete,
-                            onCancel: () => Navigator.of(context).pop(),
-                            bottomInset: viewInsets.bottom > 0 ? 8 : 0,
+                      final sprites = TaskEditorSheetSpriteCatalog(
+                        snapshot.requireData,
+                      );
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Positioned.fill(
+                            child: _TaskEditorSpriteCard(
+                              sprites: sprites,
+                              isEditing: widget.isEditing,
+                              validationMessage: _validationMessage,
+                              taskNameController: _taskNameController,
+                              taskPointsController: _taskPointsController,
+                              onSave: _save,
+                              onDelete: _requestDelete,
+                              onCancel: () => Navigator.of(context).pop(),
+                              bottomInset: viewInsets.bottom > 0 ? 8 : 0,
+                            ),
                           ),
-                        ),
-                        Positioned(
-                          top: -panelSize.height * 0.036,
-                          right: -panelSize.width * 0.002,
-                          width: panelSize.width * 0.138,
-                          height: panelSize.width * 0.138,
-                          child: _TaskEditorCloseButton(
-                            sprites: sprites,
-                            onPressed: () => Navigator.of(context).pop(),
+                          Positioned(
+                            top: -panelSize.height * 0.036,
+                            right: -panelSize.width * 0.002,
+                            width: panelSize.width * 0.138,
+                            height: panelSize.width * 0.138,
+                            child: _TaskEditorCloseButton(
+                              sprites: sprites,
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
                           ),
-                        ),
-                      ],
-                    );
-                  },
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
             ),

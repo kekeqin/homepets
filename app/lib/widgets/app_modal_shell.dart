@@ -43,6 +43,32 @@ class AppModalLayout {
   }
 }
 
+class AppModalVisibleFrame {
+  const AppModalVisibleFrame({
+    required this.sourceWidth,
+    required this.leftInset,
+    required this.rightInset,
+  });
+
+  final double sourceWidth;
+  final double leftInset;
+  final double rightInset;
+}
+
+class _ResolvedModalHorizontal {
+  const _ResolvedModalHorizontal({
+    required this.panelWidth,
+    required this.safeLeft,
+    required this.safeRight,
+    required this.offsetX,
+  });
+
+  final double panelWidth;
+  final double safeLeft;
+  final double safeRight;
+  final double offsetX;
+}
+
 class AppModalLayouts {
   static const petDetail = AppModalLayout(
     mobileWidthFactor: 1.0,
@@ -119,9 +145,9 @@ class HomePetsDialogTheme {
 class HomePetsDialogGutter {
   const HomePetsDialogGutter._();
 
-  static const double large = 12;
-  static const double medium = 16;
-  static const double small = 28;
+  static const double large = 20;
+  static const double medium = 32;
+  static const double small = 48;
 
   static const largeInsets = EdgeInsets.fromLTRB(large, 12, large, 12);
   static const mediumInsets = EdgeInsets.fromLTRB(medium, 20, medium, 20);
@@ -217,6 +243,7 @@ class AppModalShell extends StatelessWidget {
     required this.layout,
     required this.child,
     this.minimumSafeArea = HomePetsDialogGutter.mediumInsets,
+    this.visibleFrame,
     this.borderRadius = const BorderRadius.all(Radius.circular(30)),
     this.backgroundColor,
     this.gradient,
@@ -228,6 +255,7 @@ class AppModalShell extends StatelessWidget {
   final AppModalLayout layout;
   final Widget child;
   final EdgeInsets minimumSafeArea;
+  final AppModalVisibleFrame? visibleFrame;
   final BorderRadius borderRadius;
   final Color? backgroundColor;
   final Gradient? gradient;
@@ -238,6 +266,7 @@ class AppModalShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
+    final horizontal = _resolveHorizontal(size);
 
     Widget current = child;
     if (clipChild) {
@@ -263,22 +292,71 @@ class AppModalShell extends StatelessWidget {
     current = Material(type: MaterialType.transparency, child: current);
 
     return SafeArea(
-      minimum: minimumSafeArea,
+      minimum: EdgeInsets.fromLTRB(
+        horizontal.safeLeft,
+        minimumSafeArea.top,
+        horizontal.safeRight,
+        minimumSafeArea.bottom,
+      ),
       child: Center(
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () {},
-          child: SizedBox(
-            width: layout.panelWidth(size),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: layout.panelMaxHeight(size),
+          child: Transform.translate(
+            offset: Offset(horizontal.offsetX, 0),
+            child: SizedBox(
+              width: horizontal.panelWidth,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: layout.panelMaxHeight(size),
+                ),
+                child: current,
               ),
-              child: current,
             ),
           ),
         ),
       ),
+    );
+  }
+
+  _ResolvedModalHorizontal _resolveHorizontal(Size size) {
+    final layoutWidth = layout.panelWidth(size);
+    final frame = visibleFrame;
+    if (frame == null || frame.sourceWidth <= 0) {
+      return _ResolvedModalHorizontal(
+        panelWidth: layoutWidth,
+        safeLeft: minimumSafeArea.left,
+        safeRight: minimumSafeArea.right,
+        offsetX: 0,
+      );
+    }
+
+    final visibleSourceWidth =
+        frame.sourceWidth - frame.leftInset - frame.rightInset;
+    if (visibleSourceWidth <= 0) {
+      return _ResolvedModalHorizontal(
+        panelWidth: layoutWidth,
+        safeLeft: minimumSafeArea.left,
+        safeRight: minimumSafeArea.right,
+        offsetX: 0,
+      );
+    }
+
+    final visibleWidthRatio = visibleSourceWidth / frame.sourceWidth;
+    final targetVisibleWidth = math.max(
+      0.0,
+      size.width - minimumSafeArea.left - minimumSafeArea.right,
+    );
+    final widthForVisibleGutters = targetVisibleWidth / visibleWidthRatio;
+    final panelWidth = math.min(layoutWidth, widthForVisibleGutters);
+    final scaledLeftInset = panelWidth * frame.leftInset / frame.sourceWidth;
+    final scaledRightInset = panelWidth * frame.rightInset / frame.sourceWidth;
+
+    return _ResolvedModalHorizontal(
+      panelWidth: panelWidth,
+      safeLeft: math.max(0.0, minimumSafeArea.left - scaledLeftInset),
+      safeRight: math.max(0.0, minimumSafeArea.right - scaledRightInset),
+      offsetX: (scaledRightInset - scaledLeftInset) / 2,
     );
   }
 }

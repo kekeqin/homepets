@@ -34,6 +34,12 @@ class _FamilyPalette {
   static const deepBrown = Color(0xFF3F230D);
 }
 
+const AppModalVisibleFrame _familyDialogVisibleFrame = AppModalVisibleFrame(
+  sourceWidth: 1149,
+  leftInset: 48,
+  rightInset: 51,
+);
+
 Future<void> showFamilyDialog(
   BuildContext context, {
   bool useRootNavigator = true,
@@ -57,6 +63,7 @@ Future<void> showFamilyDialog(
           HomePetsDialogGutter.large,
           8,
         ),
+        visibleFrame: _familyDialogVisibleFrame,
         clipChild: false,
         child: FamilyScreen(
           embedded: true,

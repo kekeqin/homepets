@@ -63,7 +63,7 @@ class _PetDetailViewState extends ConsumerState<PetDetailView> {
   @override
   Widget build(BuildContext context) {
     final pet = widget.pet;
-    final horizontalPadding = widget.embedded ? 8.0 : 20.0;
+    final horizontalPadding = widget.embedded ? 0.0 : 20.0;
     final content = SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
         horizontalPadding,
@@ -73,7 +73,7 @@ class _PetDetailViewState extends ConsumerState<PetDetailView> {
       ),
       child: Center(
         child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: widget.embedded ? 412 : 448),
+          constraints: const BoxConstraints(maxWidth: 448),
           child: DefaultTextStyle.merge(
             style: const TextStyle(
               color: _PetDetailColors.ink,

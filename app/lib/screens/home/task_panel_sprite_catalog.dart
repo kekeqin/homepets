@@ -21,8 +21,12 @@ class TaskBoardReferenceAsset {
   static const String rewardStar = 'assets/images/ui/task/13.png';
   static const double boardWidth = 575;
   static const double boardHeight = 685;
+  static const double boardVisibleLeftInset = 8;
+  static const double boardVisibleRightInset = 6;
   static const double dialogPanelWidth = 1149;
   static const double dialogPanelHeight = 1369;
+  static const double dialogPanelVisibleLeftInset = 48;
+  static const double dialogPanelVisibleRightInset = 51;
   static const double clipWidth = 166;
   static const double clipHeight = 116;
   static const double rowWarmWidth = 493;
