@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "profiles": {
+    "mobile": {
+      "sprites": {
+        "taskSticker": {
+          "centerX": 0.2955,
+          "centerY": 0.177,
+          "width": 0.181,
+          "height": 0.09
+        },
+        "familyPhoto": {
+          "centerX": 0.882,
+          "centerY": 0.3645,
+          "width": 0.124,
+          "height": 0.065
+        },
+        "paywall": {
+          "centerX": 0.567,
+          "centerY": 0.1665,
+          "width": 0.138,
+          "height": 0.089
+        },
+        "shop": {
+          "centerX": 0.815,
+          "centerY": 0.17,
+          "width": 0.162,
+          "height": 0.104
+        },
+        "settings": {
+          "centerX": 0.6795,
+          "centerY": 0.3365,
+          "width": 0.113,
+          "height": 0.043
+        }
+      }
+    },
+    "tablet": {
+      "sprites": {
+        "taskSticker": {
+          "centerX": 0.2955,
+          "centerY": 0.177,
+          "width": 0.181,
+          "height": 0.09
+        },
+        "familyPhoto": {
+          "centerX": 0.882,
+          "centerY": 0.3645,
+          "width": 0.124,
+          "height": 0.065
+        },
+        "paywall": {
+          "centerX": 0.567,
+          "centerY": 0.1665,
+          "width": 0.138,
+          "height": 0.089
+        },
+        "shop": {
+          "centerX": 0.815,
+          "centerY": 0.17,
+          "width": 0.162,
+          "height": 0.104
+        },
+        "settings": {
+          "centerX": 0.6795,
+          "centerY": 0.3365,
+          "width": 0.113,
+          "height": 0.043
+        }
+      }
+    }
+  },
+  "regions": {
+    "rightArmchairFrontOccluder": {
+      "centerX": 0.8075,
+      "centerY": 0.642,
+      "width": 0.145,
+      "height": 0.05
+    },
+    "rightArmchairSideOccluder": {
+      "centerX": 0.886,
+      "centerY": 0.639,
+      "width": 0.072,
+      "height": 0.088
+    }
+  }
+}

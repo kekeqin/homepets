@@ -6,8 +6,8 @@ const List<String> selectablePetTypes = <String>[
   'turtle',
 ];
 
-const String _petAvatarAssetBasePath = 'assets/images/pets/';
-const String _petHomeAssetBasePath = 'images/pets/';
+const String _petAvatarAssetBasePath = 'assets/images/pets/grow/';
+const String _petHomeAssetBasePath = 'images/pets/grow/';
 
 enum PetGrowthStage { baby, growing, companion }
 
@@ -20,57 +20,57 @@ const Map<PetGrowthStage, String> _petGrowthStagePathSegments =
 
 const Map<String, List<String>> _petPoseVariants = <String, List<String>>{
   'cat': <String>[
-    'pets/cat_lying.png',
-    'pets/cat_sit.png',
-    'pets/cat_sleep.png',
+    'cat/growing/lying.png',
+    'cat/growing/sitting.png',
+    'cat/growing/sleeping.png',
   ],
   'dog': <String>[
-    'pets/dog_lying.png',
-    'pets/dog_sit.png',
-    'pets/dog_sleep.png',
+    'dog/growing/lying.png',
+    'dog/growing/sitting.png',
+    'dog/growing/sleeping.png',
   ],
   'hamster': <String>[
-    'pets/hamster_stand.png',
-    'pets/hamster_sit.png',
-    'pets/hamster_sleep.png',
+    'hamster/growing/standing.png',
+    'hamster/growing/sitting.png',
+    'hamster/growing/sleeping.png',
   ],
   'rabbit': <String>[
-    'pets/rabbit_lying.png',
-    'pets/rabbit_sit.png',
-    'pets/rabbit_sleep.png',
+    'rabbit/growing/lying.png',
+    'rabbit/growing/sitting.png',
+    'rabbit/growing/sleeping.png',
   ],
   'turtle': <String>[
-    'pets/turtle_lying.png',
-    'pets/turtle_sit.png',
-    'pets/turtle_sleep.png',
+    'turtle/growing/crawling.png',
+    'turtle/growing/sitting.png',
+    'turtle/growing/sleeping.png',
   ],
 };
 
 const Map<String, List<String>> _petHomePoseVariants = <String, List<String>>{
   'cat': <String>[
-    'pets/cat_lying.png',
-    'pets/cat_sit.png',
-    'pets/cat_sleep.png',
+    'cat/growing/lying.png',
+    'cat/growing/sitting.png',
+    'cat/growing/sleeping.png',
   ],
   'dog': <String>[
-    'pets/dog_lying.png',
-    'pets/dog_sit.png',
-    'pets/dog_sleep.png',
+    'dog/growing/lying.png',
+    'dog/growing/sitting.png',
+    'dog/growing/sleeping.png',
   ],
   'hamster': <String>[
-    'pets/hamster_stand.png',
-    'pets/hamster_sit.png',
-    'pets/hamster_sleep.png',
+    'hamster/growing/standing.png',
+    'hamster/growing/sitting.png',
+    'hamster/growing/sleeping.png',
   ],
   'rabbit': <String>[
-    'pets/rabbit_lying.png',
-    'pets/rabbit_sit.png',
-    'pets/rabbit_sleep.png',
+    'rabbit/growing/lying.png',
+    'rabbit/growing/sitting.png',
+    'rabbit/growing/sleeping.png',
   ],
   'turtle': <String>[
-    'pets/turtle_lying.png',
-    'pets/turtle_sit.png',
-    'pets/turtle_sleep.png',
+    'turtle/growing/crawling.png',
+    'turtle/growing/sitting.png',
+    'turtle/growing/sleeping.png',
   ],
 };
 
@@ -215,10 +215,10 @@ String _petGrowthAssetRelativePath(String petType, int level, int poseIndex) {
   final stageSegment = _petGrowthStagePathSegments[stage]!;
   final variants = petGrowthPoseVariantsForType(normalized, stage);
   if (variants.isEmpty) {
-    return 'grow/dog/growing/lying.png';
+    return 'dog/growing/lying.png';
   }
   final index = poseIndex % variants.length;
-  return 'grow/$normalized/$stageSegment/${variants[index]}';
+  return '$normalized/$stageSegment/${variants[index]}';
 }
 
 int deterministicPetPoseIndex(String petType, int seed) {
@@ -236,7 +236,7 @@ int deterministicHomePetPoseIndex(String petType, int seed) {
 String petAvatarAssetPath(String petType, int poseIndex) {
   final variants = petPoseVariantsForType(petType);
   if (variants.isEmpty) {
-    return '${_petAvatarAssetBasePath}pets/dog_lying.png';
+    return '${_petAvatarAssetBasePath}dog/growing/lying.png';
   }
   final index = poseIndex % variants.length;
   return '$_petAvatarAssetBasePath${variants[index]}';
@@ -249,7 +249,7 @@ String petGrowthAvatarAssetPath(String petType, int level, int poseIndex) {
 String petHomeAssetPath(String petType, int poseIndex) {
   final variants = petHomePoseVariantsForType(petType);
   if (variants.isEmpty) {
-    return '${_petHomeAssetBasePath}pets/dog_lying.png';
+    return '${_petHomeAssetBasePath}dog/growing/lying.png';
   }
   final index = poseIndex % variants.length;
   return '$_petHomeAssetBasePath${variants[index]}';
@@ -268,7 +268,7 @@ String petGrowthHomeAssetPathForPose(
   final stage = petGrowthStageForLevel(level);
   final stageSegment = _petGrowthStagePathSegments[stage]!;
   return '$_petHomeAssetBasePath'
-      'grow/$normalized/$stageSegment/${poseName.trim()}';
+      '$normalized/$stageSegment/${poseName.trim()}';
 }
 
 String petDetailAvatarAssetPathForHomeAssetPath(String assetPath) {

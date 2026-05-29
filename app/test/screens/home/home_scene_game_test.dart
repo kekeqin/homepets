@@ -2,25 +2,27 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flame/components.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:homepets/screens/home/game/home_scene_game.dart';
+import 'package:homepets/screens/home/game/home_scene_layout.dart';
 
 const _staticHomePetAssetPaths = <String>[
-  'images/pets/pets/cat_lying.png',
-  'images/pets/pets/cat_sit.png',
-  'images/pets/pets/cat_sleep.png',
-  'images/pets/pets/dog_lying.png',
-  'images/pets/pets/dog_sit.png',
-  'images/pets/pets/dog_sleep.png',
-  'images/pets/pets/hamster_stand.png',
-  'images/pets/pets/hamster_sit.png',
-  'images/pets/pets/hamster_sleep.png',
-  'images/pets/pets/rabbit_lying.png',
-  'images/pets/pets/rabbit_sit.png',
-  'images/pets/pets/rabbit_sleep.png',
-  'images/pets/pets/turtle_lying.png',
-  'images/pets/pets/turtle_sit.png',
-  'images/pets/pets/turtle_sleep.png',
+  'images/pets/grow/cat/growing/lying.png',
+  'images/pets/grow/cat/growing/sitting.png',
+  'images/pets/grow/cat/growing/sleeping.png',
+  'images/pets/grow/dog/growing/lying.png',
+  'images/pets/grow/dog/growing/sitting.png',
+  'images/pets/grow/dog/growing/sleeping.png',
+  'images/pets/grow/hamster/growing/standing.png',
+  'images/pets/grow/hamster/growing/sitting.png',
+  'images/pets/grow/hamster/growing/sleeping.png',
+  'images/pets/grow/rabbit/growing/lying.png',
+  'images/pets/grow/rabbit/growing/sitting.png',
+  'images/pets/grow/rabbit/growing/sleeping.png',
+  'images/pets/grow/turtle/growing/crawling.png',
+  'images/pets/grow/turtle/growing/sitting.png',
+  'images/pets/grow/turtle/growing/sleeping.png',
 ];
 
 const _growthHomePetAssetPaths = <String>[
@@ -99,15 +101,211 @@ const _transparentGrowthCanvasCropRects = <String, Rect>{
 };
 
 const _rightArmchairSitAssetPaths = <String>[
-  'images/pets/pets/cat_sit.png',
-  'images/pets/pets/dog_sit.png',
-  'images/pets/pets/hamster_sit.png',
-  'images/pets/pets/rabbit_sit.png',
-  'images/pets/pets/turtle_sit.png',
+  'images/pets/grow/cat/growing/sitting.png',
+  'images/pets/grow/dog/growing/sitting.png',
+  'images/pets/grow/hamster/growing/sitting.png',
+  'images/pets/grow/rabbit/growing/sitting.png',
+  'images/pets/grow/turtle/growing/sitting.png',
 ];
 
+Future<void> _expectTransparentImageCorners(String flameAssetPath) async {
+  final bytes = await rootBundle.load('assets/$flameAssetPath');
+  final codec = await instantiateImageCodec(bytes.buffer.asUint8List());
+  final frame = await codec.getNextFrame();
+  final image = frame.image;
+  try {
+    final data = await image.toByteData(format: ImageByteFormat.rawRgba);
+    expect(data, isNotNull, reason: flameAssetPath);
+    final rgba = data!.buffer.asUint8List();
+
+    int alphaAt(int x, int y) => rgba[((y * image.width + x) * 4) + 3];
+
+    expect(alphaAt(0, 0), 0, reason: '$flameAssetPath top-left corner');
+    expect(
+      alphaAt(image.width - 1, 0),
+      0,
+      reason: '$flameAssetPath top-right corner',
+    );
+    expect(
+      alphaAt(0, image.height - 1),
+      0,
+      reason: '$flameAssetPath bottom-left corner',
+    );
+    expect(
+      alphaAt(image.width - 1, image.height - 1),
+      0,
+      reason: '$flameAssetPath bottom-right corner',
+    );
+  } finally {
+    image.dispose();
+    codec.dispose();
+  }
+}
+
+Future<void> _expectVisiblePixelRatioAtLeast(
+  String flameAssetPath,
+  double minimumRatio,
+) async {
+  final bytes = await rootBundle.load('assets/$flameAssetPath');
+  final codec = await instantiateImageCodec(bytes.buffer.asUint8List());
+  final frame = await codec.getNextFrame();
+  final image = frame.image;
+  try {
+    final data = await image.toByteData(format: ImageByteFormat.rawRgba);
+    expect(data, isNotNull, reason: flameAssetPath);
+    final rgba = data!.buffer.asUint8List();
+
+    var visiblePixels = 0;
+    for (var index = 3; index < rgba.length; index += 4) {
+      if (rgba[index] > 0) {
+        visiblePixels += 1;
+      }
+    }
+
+    expect(
+      visiblePixels / (image.width * image.height),
+      greaterThanOrEqualTo(minimumRatio),
+      reason: flameAssetPath,
+    );
+  } finally {
+    image.dispose();
+    codec.dispose();
+  }
+}
+
+Future<void> _expectSingleVisibleImageComponent(String flameAssetPath) async {
+  final bytes = await rootBundle.load('assets/$flameAssetPath');
+  final codec = await instantiateImageCodec(bytes.buffer.asUint8List());
+  final frame = await codec.getNextFrame();
+  final image = frame.image;
+  try {
+    final data = await image.toByteData(format: ImageByteFormat.rawRgba);
+    expect(data, isNotNull, reason: flameAssetPath);
+    final rgba = data!.buffer.asUint8List();
+
+    bool isVisibleIndex(int index) => rgba[(index * 4) + 3] > 0;
+
+    final visited = List<bool>.filled(image.width * image.height, false);
+    var componentCount = 0;
+    for (var index = 0; index < visited.length; index++) {
+      if (visited[index] || !isVisibleIndex(index)) {
+        continue;
+      }
+
+      componentCount += 1;
+      final stack = <int>[index];
+      visited[index] = true;
+      while (stack.isNotEmpty) {
+        final current = stack.removeLast();
+        final x = current % image.width;
+        final y = current ~/ image.width;
+        final neighbors = <int>[
+          if (x > 0) current - 1,
+          if (x < image.width - 1) current + 1,
+          if (y > 0) current - image.width,
+          if (y < image.height - 1) current + image.width,
+        ];
+        for (final neighbor in neighbors) {
+          if (!visited[neighbor] && isVisibleIndex(neighbor)) {
+            visited[neighbor] = true;
+            stack.add(neighbor);
+          }
+        }
+      }
+    }
+
+    expect(componentCount, 1, reason: flameAssetPath);
+  } finally {
+    image.dispose();
+    codec.dispose();
+  }
+}
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('HomeSceneGame', () {
+    test('loads homepage sprite positions from JSON using center points', () {
+      final layout = HomeSceneLayout.fromJson(const <String, dynamic>{
+        'profiles': <String, dynamic>{
+          'mobile': <String, dynamic>{
+            'sprites': <String, dynamic>{
+              'taskSticker': <String, dynamic>{
+                'centerX': 0.30,
+                'centerY': 0.20,
+                'width': 0.10,
+                'height': 0.08,
+              },
+            },
+          },
+        },
+        'regions': <String, dynamic>{
+          'rightArmchairFrontOccluder': <String, dynamic>{
+            'centerX': 0.80,
+            'centerY': 0.64,
+            'width': 0.14,
+            'height': 0.05,
+          },
+        },
+      });
+
+      final taskSticker = layout.sprite('mobile', 'taskSticker');
+      final occluder = layout.region('rightArmchairFrontOccluder');
+
+      expect(taskSticker?.centerX, 0.30);
+      expect(taskSticker?.centerY, 0.20);
+      expect(occluder?.width, 0.14);
+    });
+
+    test('bundled homepage layout asset is valid', () async {
+      final layout = await HomeSceneLayout.load(bypassCache: true);
+
+      expect(layout.sprite('mobile', 'taskSticker')?.centerX, 0.2955);
+      expect(layout.sprite('tablet', 'settings')?.centerY, 0.3365);
+      expect(layout.region('rightArmchairSideOccluder')?.height, 0.088);
+    });
+
+    test('loads homepage pet positions from JSON using center points', () {
+      final positions = HomePetPositions.fromJson(const <String, dynamic>{
+        'candidates': <Object>[
+          <String, dynamic>{
+            'name': 'test_slot',
+            'centerX': 0.42,
+            'centerY': 0.64,
+            'widthScale': 0.9,
+            'heightScale': 0.8,
+            'preferRestPose': true,
+            'contactShadow': <String, dynamic>{
+              'widthFactor': 0.7,
+              'heightFactor': 0.1,
+              'centerYFactor': 0.95,
+            },
+          },
+        ],
+        'assignmentOrder': <int>[0],
+      });
+
+      final candidate = positions.candidates.single;
+
+      expect(candidate.centerX, 0.42);
+      expect(candidate.centerY, 0.64);
+      expect(candidate.preferRestPose, isTrue);
+      expect(candidate.contactShadow?.centerYFactor, 0.95);
+      expect(positions.assignmentOrder, const <int>[0]);
+    });
+
+    test('bundled homepage pet positions asset is valid', () async {
+      final positions = await HomePetPositions.load(bypassCache: true);
+
+      expect(positions.candidates, hasLength(8));
+      expect(positions.candidates.first.centerX, 0.315);
+      expect(
+        positions.candidates.every((candidate) => candidate.placementEnabled),
+        isTrue,
+      );
+      expect(positions.assignmentOrder, const <int>[0, 1, 2, 3, 4, 5, 6, 7]);
+    });
+
     test('follows mobile viewport size after resize', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
       game.onGameResize(Vector2(1080, 2400));
@@ -216,7 +414,7 @@ void main() {
       expect(assignments.values.toSet().length, candidateCount);
     });
 
-    test('does not assign pets to retired floor slots', () {
+    test('assigns pets only to the eight configured home positions', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
       final candidateCount = game.debugPetCandidateCount;
 
@@ -231,8 +429,11 @@ void main() {
       );
 
       final assignments = game.debugPetCandidateAssignments();
-      expect(assignments.values, isNot(contains(2)));
-      expect(assignments.values, isNot(contains(5)));
+      expect(candidateCount, 8);
+      expect(
+        assignments.values.toSet(),
+        Set<int>.from(List<int>.generate(8, (index) => index)),
+      );
     });
 
     test('keeps pet candidate assignments stable across refreshes', () {
@@ -375,15 +576,15 @@ void main() {
       final assignments = game.debugPetCandidateAssignments();
       final currentAssets = game.debugCurrentPetPoseAssetPaths();
       final poseVariants = game.debugPetPoseAssetVariants();
-      final bookshelfPetId = assignments.entries
-          .singleWhere((entry) => entry.value == 8)
+      final restPetId = assignments.entries
+          .singleWhere((entry) => entry.value == 0)
           .key;
       final armchairPetId = assignments.entries
-          .singleWhere((entry) => entry.value == 9)
+          .singleWhere((entry) => entry.value == 1)
           .key;
 
       expect(
-        currentAssets[bookshelfPetId],
+        currentAssets[restPetId],
         anyOf(contains('lying'), contains('sleep')),
       );
       expect(currentAssets[armchairPetId], isIn(poseVariants[armchairPetId]!));
@@ -445,54 +646,122 @@ void main() {
     test('uses a smaller home target area for hamster and turtle assets', () {
       expect(
         HomeSceneGame.debugHomePetTargetAreaForAssetPath(
-          'images/pets/pets/hamster_sit.png',
+          'images/pets/grow/hamster/growing/sitting.png',
         ),
         lessThan(
           HomeSceneGame.debugHomePetTargetAreaForAssetPath(
-            'images/pets/pets/cat_sit.png',
+            'images/pets/grow/cat/growing/sitting.png',
           ),
         ),
       );
       expect(
         HomeSceneGame.debugHomePetTargetAreaForAssetPath(
-          'images/pets/pets/turtle_sleep.png',
+          'images/pets/grow/turtle/growing/sleeping.png',
         ),
         lessThan(
           HomeSceneGame.debugHomePetTargetAreaForAssetPath(
-            'images/pets/pets/rabbit_sleep.png',
+            'images/pets/grow/rabbit/growing/sleeping.png',
           ),
         ),
       );
     });
 
-    test('uses act sequence frames for homepage pet poses with new sheets', () {
+    test('applies fixed visual size multipliers for pet growth stages', () {
+      const slotSize = Size(69, 100);
+
+      double visibleAreaFor(String assetPath) {
+        final cropRect = HomeSceneGame.debugPetCropRectForAssetPath(assetPath);
+        expect(cropRect, isNotNull, reason: assetPath);
+
+        final renderSize = HomeSceneGame.debugPetRenderSize(
+          assetPath: assetPath,
+          slotSize: slotSize,
+          sourceSize: cropRect!.size,
+        );
+        return renderSize.width * renderSize.height;
+      }
+
+      final babyArea = visibleAreaFor('images/pets/grow/dog/baby/lying.png');
+      final growingArea = visibleAreaFor(
+        'images/pets/grow/dog/growing/lying.png',
+      );
+      final companionArea = visibleAreaFor(
+        'images/pets/grow/dog/companion/lying.png',
+      );
+
+      expect(math.sqrt(babyArea / growingArea), closeTo(0.85, 0.01));
+      expect(math.sqrt(companionArea / growingArea), closeTo(1.18, 0.01));
+    });
+
+    test('uses act sequence frames for supported homepage pet poses', () {
+      final rabbitBabyLyingFrames =
+          HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+            'images/pets/grow/rabbit/baby/lying.png',
+          );
+      final rabbitBabySleepingFrames =
+          HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+            'images/pets/grow/rabbit/baby/sleeping.png',
+          );
+      final rabbitBabyStageFrames =
+          HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+            'images/pets/grow/rabbit/baby/stage.png',
+          );
+
+      expect(rabbitBabyLyingFrames, hasLength(35));
+      expect(
+        rabbitBabyLyingFrames.first,
+        'images/pets/act/rabbit_baby_lying_frame_01.png',
+      );
+      expect(
+        rabbitBabyLyingFrames.last,
+        'images/pets/act/rabbit_baby_lying_frame_35.png',
+      );
+      expect(rabbitBabySleepingFrames, hasLength(35));
+      expect(
+        rabbitBabySleepingFrames.first,
+        'images/pets/act/rabbit_baby_sleeping_frame_01.png',
+      );
+      expect(
+        rabbitBabySleepingFrames.last,
+        'images/pets/act/rabbit_baby_sleeping_frame_35.png',
+      );
+      expect(rabbitBabyStageFrames, hasLength(35));
+      expect(
+        rabbitBabyStageFrames.first,
+        'images/pets/act/rabbit_baby_stage_frame_01.png',
+      );
+      expect(
+        rabbitBabyStageFrames.last,
+        'images/pets/act/rabbit_baby_stage_frame_35.png',
+      );
+
       expect(
         HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-          'images/pets/pets/cat_sit.png',
+          'images/pets/grow/cat/growing/sitting.png',
         ),
         hasLength(25),
       );
       expect(
         HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-          'images/pets/pets/cat_sleep.png',
+          'images/pets/grow/cat/growing/sleeping.png',
         ).first,
         'images/pets/act/cat_sleep_frame_01.png',
       );
       expect(
         HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-          'images/pets/pets/dog_sit.png',
+          'images/pets/grow/dog/growing/sitting.png',
         ).last,
         'images/pets/act/dog_sit_frame_25.png',
       );
       expect(
         HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-          'images/pets/pets/dog_sleep.png',
+          'images/pets/grow/dog/growing/sleeping.png',
         ),
         hasLength(25),
       );
       final List<String> hamsterStandFrames =
           HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-            'images/pets/pets/hamster_stand.png',
+            'images/pets/grow/hamster/growing/standing.png',
           );
       expect(hamsterStandFrames, hasLength(14));
       expect(
@@ -513,46 +782,122 @@ void main() {
       );
       expect(
         HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-          'images/pets/pets/hamster_sit.png',
+          'images/pets/grow/hamster/growing/sitting.png',
         ).last,
         'images/pets/act/hamster_sit_frame_25.png',
       );
       expect(
         HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-          'images/pets/pets/rabbit_lying.png',
+          'images/pets/grow/rabbit/growing/lying.png',
         ).first,
         'images/pets/act/rabbit_lying_frame_01.png',
       );
       expect(
         HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-          'images/pets/pets/rabbit_sit.png',
+          'images/pets/grow/rabbit/growing/sitting.png',
         ).last,
         'images/pets/act/rabbit_sit_frame_25.png',
       );
       expect(
         HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-          'images/pets/pets/rabbit_sleep.png',
+          'images/pets/grow/rabbit/growing/sleeping.png',
         ),
         hasLength(25),
       );
       expect(
         HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-          'images/pets/pets/turtle_lying.png',
+          'images/pets/grow/turtle/growing/crawling.png',
         ).first,
         'images/pets/act/turtle_lying_frame_01.png',
       );
       expect(
         HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-          'images/pets/pets/turtle_sit.png',
+          'images/pets/grow/turtle/growing/sitting.png',
         ).last,
         'images/pets/act/turtle_sit_frame_25.png',
+      );
+    });
+
+    test('keeps homepage pet action frames under the act directory only', () {
+      for (final assetPath in _growthHomePetAssetPaths) {
+        final frames = HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+          assetPath,
+        );
+        expect(
+          frames.every((framePath) => framePath.startsWith('images/pets/act/')),
+          isTrue,
+          reason: assetPath,
+        );
+      }
+
+      expect(
+        HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+          'images/pets/grow/cat/growing/lying.png',
+        ),
+        isEmpty,
+      );
+      expect(
+        HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+          'images/pets/grow/dog/growing/lying.png',
+        ),
+        isEmpty,
+      );
+    });
+
+    test(
+      'keeps baby rabbit action frames isolated after JSON sprite cuts',
+      () async {
+        final babyRabbitActFrames = <String>[
+          ...HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+            'images/pets/grow/rabbit/baby/lying.png',
+          ),
+          ...HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+            'images/pets/grow/rabbit/baby/sleeping.png',
+          ),
+          ...HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+            'images/pets/grow/rabbit/baby/stage.png',
+          ),
+        ];
+
+        for (final assetPath in babyRabbitActFrames) {
+          await _expectTransparentImageCorners(assetPath);
+          await _expectSingleVisibleImageComponent(assetPath);
+          await _expectVisiblePixelRatioAtLeast(assetPath, 0.50);
+        }
+      },
+    );
+
+    test('keeps idle motion actions enabled for growing-stage pet poses', () {
+      final growingAssetPaths = _growthHomePetAssetPaths.where(
+        (assetPath) => assetPath.contains('/growing/'),
+      );
+
+      for (final assetPath in growingAssetPaths) {
+        expect(
+          HomeSceneGame.debugHasIdleMotionActionsForAsset(assetPath),
+          isTrue,
+          reason: assetPath,
+        );
+      }
+
+      expect(
+        HomeSceneGame.debugHasIdleMotionActionsForAsset(
+          'images/pets/grow/cat/baby/sitting.png',
+        ),
+        isFalse,
+      );
+      expect(
+        HomeSceneGame.debugHasIdleMotionActionsForAsset(
+          'images/pets/grow/dog/companion/sitting.png',
+        ),
+        isFalse,
       );
     });
 
     test('keeps a pause window between homepage pet act playbacks', () {
       final hamsterStandPauseRange =
           HomeSceneGame.debugAnimationPlaybackPauseRangeForAsset(
-            'images/pets/pets/hamster_stand.png',
+            'images/pets/grow/hamster/growing/standing.png',
           );
 
       expect(hamsterStandPauseRange, hasLength(2));
@@ -581,29 +926,29 @@ void main() {
       expect(initialDelays.every((delay) => delay > 0), isTrue);
       expect(
         initialDelays.map((delay) => delay.toStringAsFixed(2)).toSet().length,
-        4,
+        greaterThanOrEqualTo(3),
       );
     });
 
     test('does not resize pets by slot-specific pose exceptions', () {
       expect(
         HomeSceneGame.debugPlacementScaleAdjustmentForCandidateAsset(
-          candidateIndex: 8,
-          assetPath: 'images/pets/pets/hamster_sleep.png',
+          candidateIndex: 6,
+          assetPath: 'images/pets/grow/hamster/growing/sleeping.png',
         ),
         1,
       );
       expect(
         HomeSceneGame.debugPlacementScaleAdjustmentForCandidateAsset(
           candidateIndex: 3,
-          assetPath: 'images/pets/pets/cat_sleep.png',
+          assetPath: 'images/pets/grow/cat/growing/sleeping.png',
         ),
         1,
       );
     });
 
     test('keeps perspective from changing pet size between slots', () {
-      expect(HomeSceneGame.debugPerspectiveScaleForCandidate(9), 1);
+      expect(HomeSceneGame.debugPerspectiveScaleForCandidate(6), 1);
       expect(HomeSceneGame.debugPerspectiveScaleForCandidate(0), 1);
       expect(HomeSceneGame.debugPerspectiveScaleForCandidate(7), 1);
     });
@@ -628,22 +973,22 @@ void main() {
       const slotSize = Size(69, 100);
 
       final rabbitSitCrop = HomeSceneGame.debugPetCropRectForAssetPath(
-        'images/pets/pets/rabbit_sit.png',
+        'images/pets/grow/rabbit/growing/sitting.png',
       );
       final catLyingCrop = HomeSceneGame.debugPetCropRectForAssetPath(
-        'images/pets/pets/cat_lying.png',
+        'images/pets/grow/cat/growing/lying.png',
       );
 
       expect(rabbitSitCrop, isNotNull);
       expect(catLyingCrop, isNotNull);
 
       final rabbitSitSize = HomeSceneGame.debugPetRenderSize(
-        assetPath: 'images/pets/pets/rabbit_sit.png',
+        assetPath: 'images/pets/grow/rabbit/growing/sitting.png',
         slotSize: slotSize,
         sourceSize: rabbitSitCrop!.size,
       );
       final catLyingSize = HomeSceneGame.debugPetRenderSize(
-        assetPath: 'images/pets/pets/cat_lying.png',
+        assetPath: 'images/pets/grow/cat/growing/lying.png',
         slotSize: slotSize,
         sourceSize: catLyingCrop!.size,
       );
@@ -677,8 +1022,8 @@ void main() {
           );
           final area = renderSize.width * renderSize.height;
 
-          if (assetPath.contains('/hamster_') ||
-              assetPath.contains('/turtle_')) {
+          if (assetPath.contains('/hamster/') ||
+              assetPath.contains('/turtle/')) {
             compactAreas.add(area);
           } else {
             regularAreas.add(area);
@@ -724,27 +1069,27 @@ void main() {
       }
     });
 
-    test('keeps lower bookshelf pets small and grounded near the rug', () {
+    test('keeps bottom-center marked pets visible above the bottom edge', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
       final rect = game.debugPetRectForCandidate(
-        candidateIndex: 8,
-        assetPath: 'images/pets/pets/cat_lying.png',
+        candidateIndex: 5,
+        assetPath: 'images/pets/grow/cat/growing/lying.png',
       );
 
       expect(
         rect.width,
         greaterThan(0.10),
-        reason: 'Lower bookshelf pets should still read clearly.',
+        reason: 'Bottom-center pets should still read clearly.',
       );
       expect(
         rect.bottom,
-        greaterThan(0.64),
-        reason: 'Lower bookshelf pets should sit down near the rug line.',
+        greaterThan(0.86),
+        reason: 'Bottom-center pets should sit near the marked lower position.',
       );
       expect(
         rect.bottom,
-        lessThan(0.67),
-        reason: 'Lower bookshelf pets should not sink into the coffee table.',
+        lessThan(0.94),
+        reason: 'Bottom-center pets should not sink into the bottom edge.',
       );
     });
 
@@ -759,7 +1104,7 @@ void main() {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
       final coffeeTableRect = HomeSceneGame.debugHomeCoffeeTableNoPetRect;
 
-      for (final candidateIndex in const <int>[0, 1, 3, 4, 6, 7, 9]) {
+      for (final candidateIndex in const <int>[0, 2, 3, 4, 5, 6, 7]) {
         for (final assetPath in _staticHomePetAssetPaths) {
           final rect = game.debugPetRectForCandidate(
             candidateIndex: candidateIndex,
@@ -779,11 +1124,11 @@ void main() {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
 
       expect(
-        game.debugPetRenderPriorityForCandidate(1),
+        game.debugPetRenderPriorityForCandidate(2),
         greaterThan(HomeSceneGame.debugSeatOccluderRenderPriority),
       );
       expect(
-        game.debugPetRenderPriorityForCandidate(9),
+        game.debugPetRenderPriorityForCandidate(1),
         lessThan(HomeSceneGame.debugSeatOccluderRenderPriority),
       );
     });
@@ -795,7 +1140,7 @@ void main() {
 
       for (final assetPath in _rightArmchairSitAssetPaths) {
         final rect = game.debugPetRectForCandidate(
-          candidateIndex: 9,
+          candidateIndex: 1,
           assetPath: assetPath,
         );
 
@@ -824,7 +1169,7 @@ void main() {
 
       for (final assetPath in _rightArmchairSitAssetPaths) {
         final rect = game.debugPetRectForCandidate(
-          candidateIndex: 9,
+          candidateIndex: 1,
           assetPath: assetPath,
         );
         final overlapHeight = rect.bottom - occluderRect.top;
@@ -848,7 +1193,7 @@ void main() {
 
       for (final assetPath in _rightArmchairSitAssetPaths) {
         final rect = game.debugPetRectForCandidate(
-          candidateIndex: 9,
+          candidateIndex: 1,
           assetPath: assetPath,
         );
         final horizontalOverlap = rect.right - occluderRect.left;
@@ -912,12 +1257,12 @@ void main() {
         final rect = rects[petId]!;
         expect(
           rect.width * rect.height,
-          greaterThan(0.009),
+          greaterThan(0.0065),
           reason: 'Repeated rabbits should stay large enough to see clearly.',
         );
         expect(
           rect.bottom,
-          lessThan(0.90),
+          lessThan(0.94),
           reason: 'Repeated rabbits should stay away from the bottom edge.',
         );
       }

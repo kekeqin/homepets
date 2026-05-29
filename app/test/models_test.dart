@@ -111,5 +111,13 @@ void main() {
       petGrowthAvatarAssetPath('dog', 5, 0),
       'assets/images/pets/grow/dog/companion/lying.png',
     );
+    expect(
+      petAvatarAssetPath('rabbit', 0),
+      'assets/images/pets/grow/rabbit/growing/lying.png',
+    );
+    expect(
+      petHomeAssetPath('turtle', 0),
+      'images/pets/grow/turtle/growing/crawling.png',
+    );
   });
 }

@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "candidates": [
+    {
+      "name": "sofa_left_seat",
+      "centerX": 0.315,
+      "centerY": 0.557,
+      "widthScale": 0.98,
+      "heightScale": 0.92,
+      "preferRestPose": true
+    },
+    {
+      "name": "right_armchair_seat",
+      "centerX": 0.795,
+      "centerY": 0.58,
+      "widthScale": 0.86,
+      "heightScale": 0.86,
+      "preferSitPose": true,
+      "renderPriority": 4,
+      "contactShadow": {
+        "widthFactor": 0.72,
+        "heightFactor": 0.08,
+        "centerYFactor": 0.95,
+        "opacity": 0.18,
+        "blurSigmaFactor": 0.045
+      }
+    },
+    {
+      "name": "right_armchair_front_floor",
+      "centerX": 0.775,
+      "centerY": 0.655,
+      "renderPriority": 9
+    },
+    {
+      "name": "left_rug_sleeping",
+      "centerX": 0.23,
+      "centerY": 0.79
+    },
+    {
+      "name": "lower_left_floor",
+      "centerX": 0.145,
+      "centerY": 0.86
+    },
+    {
+      "name": "bottom_center_cushion",
+      "centerX": 0.53,
+      "centerY": 0.86
+    },
+    {
+      "name": "plant_side_floor",
+      "centerX": 0.665,
+      "centerY": 0.855
+    },
+    {
+      "name": "lower_right_floor",
+      "centerX": 0.845,
+      "centerY": 0.865
+    }
+  ],
+  "assignmentOrder": [0, 1, 2, 3, 4, 5, 6, 7]
+}

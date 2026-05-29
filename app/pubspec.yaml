@@ -75,8 +75,6 @@ flutter:
     - shaders/guide_alpha_glow.frag
   assets:
     - assets/scenes/
-    - assets/images/pets/
-    - assets/images/pets/pets/
     - assets/images/pets/grow/cat/baby/
     - assets/images/pets/grow/cat/growing/
     - assets/images/pets/grow/cat/companion/
@@ -93,13 +91,6 @@ flutter:
     - assets/images/pets/grow/turtle/growing/
     - assets/images/pets/grow/turtle/companion/
     - assets/images/pets/act/
-    - assets/images/pets/cat/
-    - "assets/images/pets/cat/open eyes/"
-    - "assets/images/pets/cat/wagging tail/"
-    - assets/images/pets/dog/
-    - "assets/images/pets/dog/moving noise/"
-    - "assets/images/pets/dog/turning the face and smiling/"
-    - "assets/images/pets/dog/wagging tail/"
     - assets/images/ui/
     - assets/images/ui/setup/
     - assets/images/ui/home/
