@@ -96,12 +96,14 @@ class FamilyScreen extends ConsumerStatefulWidget {
 class _FamilyScreenState extends ConsumerState<FamilyScreen>
     with SingleTickerProviderStateMixin {
   static const _maxMembers = FamilyMemberGrid.maxDisplayMembers;
+  static const _topNoticeDuration = Duration(milliseconds: 1800);
   bool _addingMember = false;
   int? _updatingAvatarMemberId;
   int? _deletingMemberId;
   int? _selectingPetMemberId;
   bool _didAutoPromptCurrentUserPet = false;
   bool _paywallDialogVisible = false;
+  OverlayEntry? _topNoticeEntry;
 
   late final AnimationController _entryController;
   late final Animation<double> _contentOpacity;
@@ -128,8 +130,48 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
 
   @override
   void dispose() {
+    _topNoticeEntry?.remove();
+    _topNoticeEntry = null;
     _entryController.dispose();
     super.dispose();
+  }
+
+  void _showTopNotice(String message) {
+    _topNoticeEntry?.remove();
+    _topNoticeEntry = null;
+
+    final overlay = Overlay.maybeOf(context, rootOverlay: true);
+    if (overlay == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+      );
+      return;
+    }
+
+    final topPadding = MediaQuery.paddingOf(context).top;
+    final noticeEntry = OverlayEntry(
+      builder: (context) {
+        return Positioned(
+          top: topPadding + 14,
+          left: 16,
+          right: 16,
+          child: SafeArea(
+            bottom: false,
+            child: _FamilyTopNoticeCard(message: message),
+          ),
+        );
+      },
+    );
+
+    _topNoticeEntry = noticeEntry;
+    overlay.insert(noticeEntry);
+    Future<void>.delayed(_topNoticeDuration, () {
+      if (_topNoticeEntry != noticeEntry) {
+        return;
+      }
+      noticeEntry.remove();
+      _topNoticeEntry = null;
+    });
   }
 
   Future<void> _loadFamily() async {
@@ -322,9 +364,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
 
     if (!_canAssignPetForMember(authState, member)) {
       if (!autoPrompt) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('请家长为成员选择宠物')));
+        _showTopNotice('请家长为成员选择宠物');
       }
       return;
     }
@@ -357,9 +397,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${member.nickname} 已领养 ${draft.petName}')),
-      );
+      _showTopNotice('${member.nickname} 已领养 ${draft.petName}');
     } catch (error) {
       if (!mounted) {
         return;
@@ -416,9 +454,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('头像已更新')));
+      _showTopNotice('头像已更新');
     } catch (error) {
       if (!mounted) {
         return;
@@ -463,9 +499,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('已删除${member.nickname}')));
+      _showTopNotice('已删除${member.nickname}');
     } catch (error) {
       if (!mounted) {
         return;
@@ -498,16 +532,12 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
 
     final canManageMembers = user?.isAdmin == true;
     if (!canManageMembers || user?.familyId == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('只有家长可以添加成员')));
+      _showTopNotice('只有家长可以添加成员');
       return;
     }
 
     if (familyState.members.length >= _maxMembers) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('当前家庭最多支持 8 位成员')));
+      _showTopNotice('当前家庭最多支持 8 位成员');
       return;
     }
 
@@ -529,9 +559,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已添加${member.nickname}，并领养了${draft.petName}')),
-      );
+      _showTopNotice('已添加${member.nickname}，并领养了${draft.petName}');
     } catch (error) {
       if (!mounted) {
         return;
@@ -702,6 +730,54 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
   }
 }
 
+class _FamilyTopNoticeCard extends StatelessWidget {
+  const _FamilyTopNoticeCard({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: Material(
+          color: Colors.transparent,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: _FamilyPalette.deepBrown.withValues(alpha: 0.94),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: const Color(0xFFFFE4B5).withValues(alpha: 0.52),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              child: Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  height: 1.25,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _FamilyStageCard extends StatelessWidget {
   const _FamilyStageCard({
     required this.embedded,
@@ -757,7 +833,6 @@ class _FamilyStageCard extends StatelessWidget {
               final height = constraints.maxHeight;
               final titleWidth = (width * 0.42).clamp(176.0, 288.0).toDouble();
               final titleHeight = titleWidth / 3.03;
-              final notebookSize = (width * 0.078).clamp(34.0, 52.0).toDouble();
 
               return Stack(
                 clipBehavior: Clip.none,
@@ -778,44 +853,8 @@ class _FamilyStageCard extends StatelessWidget {
                     left: (width - titleWidth) / 2,
                     width: titleWidth,
                     height: titleHeight,
-                    child: Image.asset(
-                      FamilyPopupAssets.title,
-                      fit: BoxFit.contain,
-                      filterQuality: FilterQuality.medium,
-                      isAntiAlias: true,
-                    ),
+                    child: _FamilyTitleText(title: title),
                   ),
-                  Positioned(
-                    top: height * 0.052,
-                    left: width * 0.705,
-                    width: notebookSize,
-                    height: notebookSize,
-                    child: Transform.rotate(
-                      angle: 0.20,
-                      child: const _HeaderNotebookIcon(),
-                    ),
-                  ),
-                  if (title.trim() != '家庭小屋')
-                    Positioned(
-                      top: height * 0.120,
-                      left: width * 0.30,
-                      right: width * 0.30,
-                      child: Center(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            title,
-                            maxLines: 1,
-                            style: const TextStyle(
-                              color: _FamilyPalette.muted,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
-                              height: 1,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
                   Positioned(
                     left: width * 0.055,
                     right: width * 0.055,
@@ -842,26 +881,79 @@ class _FamilyStageCard extends StatelessWidget {
   }
 }
 
-class _HeaderNotebookIcon extends StatelessWidget {
-  const _HeaderNotebookIcon();
+class _FamilyTitleText extends StatelessWidget {
+  const _FamilyTitleText({required this.title});
+
+  final String title;
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFB642),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _FamilyPalette.deepBrown, width: 2),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x24361D0D),
-            blurRadius: 4,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: const Center(
-        child: Icon(Icons.favorite_rounded, color: Colors.white, size: 23),
+    final displayTitle = title.trim().isEmpty ? '家庭小屋' : title.trim();
+
+    return Center(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Text(
+              displayTitle,
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: 52,
+                fontWeight: FontWeight.w900,
+                height: 1,
+                letterSpacing: 1.5,
+                foreground: Paint()
+                  ..style = PaintingStyle.stroke
+                  ..strokeWidth = 9
+                  ..strokeJoin = StrokeJoin.round
+                  ..color = _FamilyPalette.deepBrown,
+                shadows: const [
+                  Shadow(
+                    color: Color(0x993F230D),
+                    blurRadius: 1.5,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              displayTitle,
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: 52,
+                fontWeight: FontWeight.w900,
+                height: 1,
+                letterSpacing: 1.5,
+                foreground: Paint()
+                  ..style = PaintingStyle.stroke
+                  ..strokeWidth = 4
+                  ..strokeJoin = StrokeJoin.round
+                  ..color = const Color(0xFFFFF7E5),
+              ),
+            ),
+            const SizedBox.shrink(),
+            Text(
+              displayTitle,
+              maxLines: 1,
+              style: const TextStyle(
+                color: Color(0xFFFFFBF1),
+                fontSize: 52,
+                fontWeight: FontWeight.w900,
+                height: 1,
+                letterSpacing: 1.5,
+                shadows: [
+                  Shadow(
+                    color: Color(0x55F3CF8B),
+                    blurRadius: 0,
+                    offset: Offset(1, 1),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

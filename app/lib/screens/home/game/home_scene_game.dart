@@ -2908,13 +2908,26 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       fit: _profile.backgroundFit,
     );
     await world.add(_background);
-    await _preloadSceneUiAssets();
 
-    if (_sceneSize.x > 0 && _sceneSize.y > 0) {
+    _ready = true;
+    unawaited(_finishInitialSceneUiLoad());
+  }
+
+  Future<void> _finishInitialSceneUiLoad() async {
+    try {
+      await _preloadSceneUiAssets();
+    } catch (error, stackTrace) {
+      debugPrint('HomeSceneGame failed to preload scene UI assets: $error');
+      debugPrint('$stackTrace');
+    }
+
+    if (!_exitTriggered && _sceneSize.x > 0 && _sceneSize.y > 0) {
       await _rebuildUiFromProfile();
     }
 
-    _ready = true;
+    if (_exitTriggered) {
+      return;
+    }
     if (_openTaskPanelWhenReady) {
       _openTaskPanelWhenReady = false;
       _showTaskPanel();

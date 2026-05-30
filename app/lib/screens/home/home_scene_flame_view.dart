@@ -4,8 +4,6 @@ import 'dart:math' as math;
 
 import 'dart:ui' as ui;
 
-import 'package:dio/dio.dart';
-
 import 'package:flame_riverpod/flame_riverpod.dart';
 
 import 'package:flutter/material.dart';
@@ -31,6 +29,7 @@ import '../../widgets/app_modal_shell.dart';
 import '../../widgets/homepets_button.dart';
 import '../../widgets/homepets_dialog.dart';
 import '../../widgets/homepets_select_field.dart';
+import '../../widgets/membership_top_notice.dart';
 
 import '../family/family_screen.dart';
 import '../family/models/family_member_view_data.dart';
@@ -87,7 +86,7 @@ const int _taskPointsMin = 1;
 const int _taskPointsMax = 1000;
 
 const String _taskPanelNoteAsset = 'assets/images/ui/task_note.png';
-const String _membershipRequiredMessage = '试用期已结束，开通会员后可继续养成和编辑';
+const String _membershipRequiredMessage = membershipRequiredMessage;
 const String _taskDeleteTrashAsset = 'assets/images/ui/task_delete/trash.png';
 const String _taskDeleteTitleAsset =
     'assets/images/ui/task_delete/title_text.png';
@@ -223,6 +222,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   HomeGuideController? _homeGuideController;
   HomeGuideProgress? _homeGuideProgress;
   bool _homeGuideLoading = true;
+  bool _advanceHomeGuideAfterTaskPanelClose = false;
   OverlayEntry? _topSnackBarEntry;
   bool _paywallDialogVisible = false;
 
@@ -334,6 +334,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       if (!mounted) {
         return;
       }
+      unawaited(_game.reloadSceneLayoutForHotReload());
       _syncGameTasksFromServer();
       _syncGamePetsFromServer();
     });
@@ -626,8 +627,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   Future<void> _handleHomeGuideHotspotTap(HomeGuideStep step) async {
     switch (step) {
       case HomeGuideStep.taskSticker:
-        await _handleTaskStickerTap();
-        await _advanceHomeGuide(step);
+        await _handleTaskStickerTap(advanceHomeGuideAfterClose: true);
         break;
       case HomeGuideStep.familyFrame:
         await _showFamilyPanel(clearRouteAfterClose: false);
@@ -889,6 +889,8 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         return;
       }
 
+      var shouldReloadFamilyAfterNicknameChange = false;
+
       if (nicknameChanged) {
         final dio = ref.read(apiClientProvider).dio;
         await dio.put(
@@ -896,12 +898,18 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
           data: {'nickname': nextNickname},
         );
         await ref.read(authProvider.notifier).refreshUser();
+        shouldReloadFamilyAfterNicknameChange = user.familyId != null;
       }
 
       if (familyNameChanged) {
         await ref
             .read(familyProvider.notifier)
             .updateFamilyName(nextFamilyName);
+        shouldReloadFamilyAfterNicknameChange = false;
+      }
+
+      if (shouldReloadFamilyAfterNicknameChange) {
+        await ref.read(familyProvider.notifier).loadFamily();
       }
 
       if (mounted) {
@@ -1194,6 +1202,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
   Future<void> _handleTaskStickerTap({
     bool clearRouteAfterClose = false,
+    bool advanceHomeGuideAfterClose = false,
   }) async {
     if (!mounted || _taskPanelVisible) {
       return;
@@ -1214,6 +1223,10 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       _game.taskPanelOriginRect() ?? _defaultTaskPanelOriginRect(gameSize),
       gameSize,
     );
+
+    if (advanceHomeGuideAfterClose) {
+      _advanceHomeGuideAfterTaskPanelClose = true;
+    }
 
     setState(() {
       _taskPanelOriginRect = originRect;
@@ -1243,6 +1256,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     }
 
     final shouldClearRoute = _clearTaskRouteAfterClose;
+    final shouldAdvanceHomeGuide = _advanceHomeGuideAfterTaskPanelClose;
     setState(() {
       _taskPanelClosing = true;
       _taskPanelExpanded = false;
@@ -1261,9 +1275,17 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       _taskPanelClosing = false;
       _taskPanelBackdropInteractive = false;
       _clearTaskRouteAfterClose = false;
+      _advanceHomeGuideAfterTaskPanelClose = false;
       _taskPanelOriginRect = null;
       _taskPanelPressedInteractionKey = null;
     });
+
+    if (shouldAdvanceHomeGuide) {
+      await _advanceHomeGuide(HomeGuideStep.taskSticker);
+      if (!mounted) {
+        return;
+      }
+    }
 
     if (!shouldClearRoute) {
       return;
@@ -1847,7 +1869,11 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                     scale: isBodyPressed ? 0.992 : 1,
                     child: Opacity(
                       opacity: rowOpacity,
-                      child: Image.asset(rowAsset, fit: BoxFit.fill),
+                      child: Image.asset(
+                        rowAsset,
+                        fit: BoxFit.fill,
+                        filterQuality: FilterQuality.high,
+                      ),
                     ),
                   ),
                 ),
@@ -1876,6 +1902,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                             Image.asset(
                               TaskBoardReferenceAsset.checkboxEmpty,
                               fit: BoxFit.contain,
+                              filterQuality: FilterQuality.high,
                             ),
                             if (completed)
                               Icon(
@@ -1922,6 +1949,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                     child: Image.asset(
                       TaskBoardReferenceAsset.rewardStar,
                       fit: BoxFit.contain,
+                      filterQuality: FilterQuality.high,
                     ),
                   ),
                 ),
@@ -1955,6 +1983,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                       child: Image.asset(
                         TaskBoardReferenceAsset.rewardStar,
                         fit: BoxFit.contain,
+                        filterQuality: FilterQuality.high,
                       ),
                     ),
                   ),
@@ -2042,6 +2071,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
           child: Image.asset(
             TaskBoardReferenceAsset.rowGreen,
             fit: BoxFit.fill,
+            filterQuality: FilterQuality.high,
           ),
         ),
         const Center(
@@ -2236,6 +2266,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                                 child: Image.asset(
                                   _taskPanelNoteAsset,
                                   fit: BoxFit.fill,
+                                  filterQuality: FilterQuality.high,
                                 ),
                               ),
                               Transform.translate(
@@ -2786,7 +2817,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     }
 
     try {
-      await _createTaskWithCompatibility(newTask);
+      await _createTask(newTask);
     } catch (error) {
       if (mounted) {
         showFriendlyApiErrorSnackBar(
@@ -2817,89 +2848,26 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     }
   }
 
-  Future<void> _createTaskWithCompatibility(_TaskEditorResult task) async {
+  Future<void> _createTask(_TaskEditorResult task) async {
     if (_isReadOnlyAfterTrial) {
       throw StateError(_membershipRequiredMessage);
     }
 
     final dio = ref.read(apiClientProvider).dio;
-
     final familyId = ref.read(authProvider).user?.familyId;
 
-    if (familyId != null) {
-      try {
-        await dio.post(
-          '/api/families/$familyId/tasks',
-          data: _taskMutationPayload(task),
-        );
-        return;
-      } on DioException catch (error) {
-        final statusCode = error.response?.statusCode;
-        if (statusCode != 404 && statusCode != 405) {
-          rethrow;
-        }
-      }
+    if (familyId == null) {
+      throw StateError('请先创建家庭后再添加任务');
     }
 
-    await _createTaskWithLegacyEndpoint(dio, task, familyId: familyId);
+    await dio.post(
+      '/api/families/$familyId/tasks',
+      data: _taskMutationPayload(task),
+    );
   }
 
-  Future<void> _createTaskWithLegacyEndpoint(
-    Dio dio,
-    _TaskEditorResult task, {
-    int? familyId,
-  }) async {
-    if (_isReadOnlyAfterTrial) {
-      throw StateError(_membershipRequiredMessage);
-    }
-
-    try {
-      await dio.post('/api/tasks', data: _taskMutationPayload(task));
-    } on DioException catch (error) {
-      final statusCode = error.response?.statusCode;
-
-      if (statusCode != 400 && statusCode != 422) {
-        rethrow;
-      }
-
-      await dio.post(
-        '/api/tasks',
-
-        data: _taskMutationPayload(
-          task,
-
-          includeCompatibilityFields: true,
-
-          familyId: familyId,
-        ),
-      );
-    }
-  }
-
-  Map<String, dynamic> _taskMutationPayload(
-    _TaskEditorResult task, {
-
-    bool includeCompatibilityFields = false,
-
-    int? familyId,
-  }) {
-    final payload = <String, dynamic>{
-      'title': task.taskLabel,
-
-      'points': task.points,
-    };
-
-    if (includeCompatibilityFields) {
-      payload['task_type'] = 'daily';
-
-      payload['is_active'] = true;
-
-      if (familyId != null) {
-        payload['family_id'] = familyId;
-      }
-    }
-
-    return payload;
+  Map<String, dynamic> _taskMutationPayload(_TaskEditorResult task) {
+    return <String, dynamic>{'title': task.taskLabel, 'points': task.points};
   }
 
   Future<_TaskEditorResult?> _showTaskEditorDialog({
@@ -3246,7 +3214,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     }
   }
 
-  void _showTopSnackBar(String message) {
+  void _showTopSnackBar(String message, {VoidCallback? onTap}) {
     _topSnackBarEntry?.remove();
 
     final overlay = Overlay.maybeOf(context, rootOverlay: true);
@@ -3266,42 +3234,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
           right: 16,
           child: SafeArea(
             bottom: false,
-            child: Material(
-              color: Colors.transparent,
-              child: IgnorePointer(
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF3A2B22).withValues(alpha: 0.94),
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.18),
-                          blurRadius: 18,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 12,
-                      ),
-                      child: Text(
-                        message,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            child: _HomeTopNoticeCard(message: message, onTap: onTap),
           ),
         );
       },
@@ -3436,6 +3369,16 @@ class _TrialStatusBanner extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final subscriptionState = ref.watch(subscriptionProvider);
     final status = subscriptionState.status;
+    final showExpired = ref.watch(coreMutationBlockedProvider);
+    if (showExpired) {
+      return Positioned(
+        left: 16,
+        right: 16,
+        top: MediaQuery.paddingOf(context).top + 12,
+        child: MembershipStatusBanner(onTap: () => showPaywallDialog(context)),
+      );
+    }
+
     if (status == null || !status.isTrialActive) {
       return const SizedBox.shrink();
     }
@@ -3479,6 +3422,63 @@ class _TrialStatusBanner extends ConsumerWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeTopNoticeCard extends StatelessWidget {
+  const _HomeTopNoticeCard({required this.message, this.onTap});
+
+  final String message;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (message == _membershipRequiredMessage) {
+      return MembershipStatusBanner(onTap: onTap);
+    }
+
+    final content = DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF3A2B22).withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        child: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+
+    return Material(
+      color: Colors.transparent,
+      child: IgnorePointer(
+        ignoring: onTap == null,
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: onTap == null
+              ? content
+              : InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: onTap,
+                  child: content,
+                ),
         ),
       ),
     );
@@ -3552,8 +3552,8 @@ class _TaskContextSpriteMenu extends StatelessWidget {
                   Positioned.fill(
                     child: Image.asset(
                       _taskContextMenuBoardAsset,
-
                       fit: BoxFit.fill,
+                      filterQuality: FilterQuality.high,
                     ),
                   ),
 
@@ -3681,7 +3681,11 @@ class _TaskContextSpriteButtonState extends State<_TaskContextSpriteButton> {
 
             children: [
               if (widget.useSpriteBackground)
-                Image.asset(widget.assetPath, fit: BoxFit.fill)
+                Image.asset(
+                  widget.assetPath,
+                  fit: BoxFit.fill,
+                  filterQuality: FilterQuality.high,
+                )
               else
                 DecoratedBox(
                   decoration: BoxDecoration(

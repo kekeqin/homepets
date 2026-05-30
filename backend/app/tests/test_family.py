@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session
 
 from app.core.security import hash_password
+from app.models.family import Family
 from app.models.user import User
 
 
@@ -46,17 +47,6 @@ def test_login_auto_creates_family(client: TestClient, db: Session) -> None:
     assert me["family_id"] is not None
 
 
-def test_create_family_already_exists(client: TestClient, db: Session) -> None:
-    _create_admin(db)
-    token = _login(client)
-    response = client.post(
-        "/api/families",
-        json={"name": "Another Family"},
-        headers=_auth_header(token),
-    )
-    assert response.status_code == 409
-
-
 def test_get_family_success(client: TestClient, db: Session) -> None:
     _create_admin(db)
     token = _login(client)
@@ -64,6 +54,23 @@ def test_get_family_success(client: TestClient, db: Session) -> None:
     response = client.get(f"/api/families/{family_id}", headers=_auth_header(token))
     assert response.status_code == 200
     assert "Admin" in [member["nickname"] for member in response.json()["members"]]
+
+
+def test_get_family_normalizes_legacy_default_family_name(client: TestClient, db: Session) -> None:
+    admin = _create_admin(db)
+    family = Family(name="Admin的家庭", owner_id=admin.id)
+    db.add(family)
+    db.commit()
+    db.refresh(family)
+    admin.family_id = family.id
+    db.add(admin)
+    db.commit()
+
+    token = _login(client)
+    response = client.get(f"/api/families/{family.id}", headers=_auth_header(token))
+
+    assert response.status_code == 200
+    assert response.json()["name"] == "Admin的家"
 
 
 def test_add_member_success_requires_pet_selection(client: TestClient, db: Session) -> None:

@@ -6,11 +6,11 @@ from app.core.dependencies import (
     get_current_user,
     get_db,
 )
+from app.core.family_names import default_family_name, default_family_names_for
 from app.models.family import Family
 from app.models.pet import Pet
 from app.models.user import User
 from app.schemas.family import (
-    FamilyCreate,
     FamilyResponse,
     FamilyUpdate,
     MemberCreate,
@@ -18,7 +18,6 @@ from app.schemas.family import (
     MemberResponse,
 )
 from app.services.pet_service import VALID_SELECTABLE_PET_TYPES, create_member_pet
-from app.services.subscription_service import ensure_subscription_for_user
 
 router = APIRouter(prefix="/api/families", tags=["families"])
 
@@ -55,6 +54,23 @@ def _build_family_response(family: Family, db: Session) -> FamilyResponse:
     )
 
 
+def _normalize_default_family_name(family: Family, db: Session) -> None:
+    owner = db.get(User, family.owner_id)
+    if owner is None:
+        return
+    if family.name not in default_family_names_for(owner.nickname):
+        return
+
+    next_name = default_family_name(owner.nickname)
+    if family.name == next_name:
+        return
+
+    family.name = next_name
+    db.add(family)
+    db.commit()
+    db.refresh(family)
+
+
 def _validate_member_pet_selection(body: MemberCreate) -> tuple[str, str] | None:
     pet_type = body.pet_type.strip().lower() if body.pet_type is not None else None
     pet_name = (body.pet_name or body.name or "").strip()
@@ -80,29 +96,6 @@ def _validate_member_pet_selection(body: MemberCreate) -> tuple[str, str] | None
     return pet_type, pet_name
 
 
-# 创建家庭；通常注册或登录管理员时会自动创建家庭，此接口仅保留兜底能力。
-@router.post("", response_model=FamilyResponse, status_code=status.HTTP_201_CREATED)
-def create_family(
-    body: FamilyCreate,
-    db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin_with_active_access),
-) -> FamilyResponse:
-    existing = db.exec(select(Family).where(Family.owner_id == admin.id)).first()
-    if existing:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="您已经有家庭")
-
-    family = Family(name=body.name, owner_id=admin.id)
-    db.add(family)
-    db.commit()
-    db.refresh(family)
-
-    admin.family_id = family.id
-    db.add(admin)
-    db.commit()
-    ensure_subscription_for_user(db, admin)
-    return _build_family_response(family, db)
-
-
 # 获取家庭资料和成员概览。
 @router.get("/{family_id}", response_model=FamilyResponse)
 def get_family(
@@ -115,6 +108,7 @@ def get_family(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="家庭不存在")
     if current_user.family_id != family_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权查看此家庭")
+    _normalize_default_family_name(family, db)
     return _build_family_response(family, db)
 
 

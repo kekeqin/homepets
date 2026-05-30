@@ -97,7 +97,7 @@ void main() {
       expect(progress.skipped, isTrue);
     });
 
-    test('advances through steps and marks completed after pet area', () async {
+    test('advances through steps without requiring a created task', () async {
       final preferences = await SharedPreferences.getInstance();
       final controller = HomeGuideController(
         preferences: preferences,
@@ -118,7 +118,7 @@ void main() {
         HomeGuideStep.taskSticker,
         const HomeGuideSnapshot(
           hasFamilyMembers: true,
-          hasActiveTasks: true,
+          hasActiveTasks: false,
           hasCurrentUserPet: true,
           hasMembersMissingPets: false,
         ),
@@ -127,7 +127,7 @@ void main() {
         HomeGuideStep.petArea,
         const HomeGuideSnapshot(
           hasFamilyMembers: true,
-          hasActiveTasks: true,
+          hasActiveTasks: false,
           hasCurrentUserPet: true,
           hasMembersMissingPets: false,
         ),
@@ -141,7 +141,7 @@ void main() {
             .readProgress(
               const HomeGuideSnapshot(
                 hasFamilyMembers: true,
-                hasActiveTasks: true,
+                hasActiveTasks: false,
                 hasCurrentUserPet: true,
                 hasMembersMissingPets: false,
               ),
@@ -229,6 +229,33 @@ void main() {
 
         expect(progress.shouldShow, isTrue);
         expect(progress.currentStep, HomeGuideStep.taskSticker);
+      },
+    );
+
+    test(
+      'keeps pet area progress after task panel was opened without tasks',
+      () async {
+        final preferences = await SharedPreferences.getInstance();
+        await preferences.setString(
+          'home_guide_v1_user_1_family_99_current_step',
+          HomeGuideStep.petArea.storageValue,
+        );
+        final controller = HomeGuideController(
+          preferences: preferences,
+          scopeId: 'user_1_family_99',
+        );
+
+        final progress = controller.readProgress(
+          const HomeGuideSnapshot(
+            hasFamilyMembers: true,
+            hasActiveTasks: false,
+            hasCurrentUserPet: true,
+            hasMembersMissingPets: false,
+          ),
+        );
+
+        expect(progress.shouldShow, isTrue);
+        expect(progress.currentStep, HomeGuideStep.petArea);
       },
     );
 

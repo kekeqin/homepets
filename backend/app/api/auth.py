@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
 from app.core.dependencies import get_current_user, get_db
+from app.core.family_names import default_family_name, default_family_names_for
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models.family import Family
 from app.models.user import User
@@ -11,19 +12,41 @@ from app.services.subscription_service import ensure_subscription_for_user
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
+def _normalize_default_family_name(db: Session, user: User, family: Family) -> None:
+    if family.owner_id != user.id:
+        return
+    if family.name not in default_family_names_for(user.nickname):
+        return
+
+    next_name = default_family_name(user.nickname)
+    if family.name == next_name:
+        return
+
+    family.name = next_name
+    db.add(family)
+    db.commit()
+
+
 def _ensure_admin_family(db: Session, user: User) -> None:
     """管理员登录或注册后必须拥有一个家庭。"""
-    if user.role != "admin" or user.family_id is not None:
+    if user.role != "admin":
+        return
+
+    if user.family_id is not None:
+        family = db.get(Family, user.family_id)
+        if family is not None:
+            _normalize_default_family_name(db, user, family)
         return
 
     existing = db.exec(select(Family).where(Family.owner_id == user.id)).first()
     if existing is not None:
+        _normalize_default_family_name(db, user, existing)
         user.family_id = existing.id
         db.add(user)
         db.commit()
         return
 
-    family = Family(name=f"{user.nickname}的家庭", owner_id=user.id)
+    family = Family(name=default_family_name(user.nickname), owner_id=user.id)
     db.add(family)
     db.commit()
     db.refresh(family)

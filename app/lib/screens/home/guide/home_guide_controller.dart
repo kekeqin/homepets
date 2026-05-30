@@ -116,7 +116,8 @@ class HomeGuideController {
     HomeGuideStep completedStep,
     HomeGuideSnapshot snapshot,
   ) async {
-    final nextStep = _firstAvailableStep(
+    final nextStep = _firstAvailableStepAfterCompletion(
+      completedStep,
       _nextStepAfter(completedStep),
       snapshot,
     );
@@ -130,6 +131,32 @@ class HomeGuideController {
 
     await _preferences.setString(_currentStepKey, nextStep.storageValue);
     return HomeGuideProgress(currentStep: nextStep);
+  }
+
+  HomeGuideStep _firstAvailableStepAfterCompletion(
+    HomeGuideStep completedStep,
+    HomeGuideStep preferred,
+    HomeGuideSnapshot snapshot,
+  ) {
+    if (completedStep == HomeGuideStep.familyFrame) {
+      if (snapshot.hasFamilySetupGap) {
+        return HomeGuideStep.familyFrame;
+      }
+      if (!snapshot.hasActiveTasks) {
+        return HomeGuideStep.taskSticker;
+      }
+      return _firstAvailableStep(preferred, snapshot);
+    }
+
+    if (snapshot.hasFamilySetupGap) {
+      return HomeGuideStep.familyFrame;
+    }
+
+    var step = preferred;
+    while (step != HomeGuideStep.done && _shouldSkipStep(step, snapshot)) {
+      step = _nextStepAfter(step);
+    }
+    return step;
   }
 
   Future<HomeGuideProgress> skip() async {
@@ -166,7 +193,9 @@ class HomeGuideController {
       return HomeGuideStep.familyFrame;
     }
 
-    if (!snapshot.hasActiveTasks) {
+    if (!snapshot.hasActiveTasks &&
+        (preferred == HomeGuideStep.taskSticker ||
+            preferred == HomeGuideStep.familyFrame)) {
       return HomeGuideStep.taskSticker;
     }
 

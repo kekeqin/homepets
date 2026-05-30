@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session
 
 from app.core.security import hash_password
+from app.models.family import Family
 from app.models.user import User
 
 
@@ -22,7 +23,7 @@ def _create_admin(db: Session, phone: str = "13800000001") -> User:
 # ── Register Tests ──────────────────────────────────────────────
 
 
-def test_register_success(client: TestClient) -> None:
+def test_register_success(client: TestClient, db: Session) -> None:
     response = client.post(
         "/api/auth/register",
         json={"phone": "13800000001", "password": "password123", "nickname": "爸爸"},
@@ -33,6 +34,9 @@ def test_register_success(client: TestClient) -> None:
     assert data["nickname"] == "爸爸"
     assert data["role"] == "admin"
     assert "id" in data
+    family = db.get(Family, data["family_id"])
+    assert family is not None
+    assert family.name == "爸爸的家"
 
 
 def test_register_duplicate_phone(client: TestClient, db: Session) -> None:
