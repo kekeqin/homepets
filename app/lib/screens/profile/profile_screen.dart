@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +14,7 @@ import '../../widgets/homepets_button.dart';
 import '../../widgets/homepets_dialog.dart';
 import '../../widgets/homepets_text_field.dart';
 import '../member/member_home_screen.dart';
+import '../paywall/paywall_screen.dart';
 
 class _ProfilePalette {
   static const backgroundTop = Color(0xFFFFF5D9);
@@ -45,6 +48,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String _avatarEmoji = '';
   int _petExperience = 0;
   bool _loadingPetSummary = false;
+  bool _paywallDialogVisible = false;
 
   @override
   void initState() {
@@ -274,10 +278,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     context.go('/home');
   }
 
+  void _showMembershipRequiredPaywall() {
+    if (!mounted || _paywallDialogVisible) {
+      return;
+    }
+    unawaited(_openPaywallDialog());
+  }
+
+  Future<void> _openPaywallDialog() async {
+    _paywallDialogVisible = true;
+    try {
+      await showPaywallDialog(context);
+    } finally {
+      _paywallDialogVisible = false;
+    }
+  }
+
   Future<void> _editProfile(WidgetRef ref) async {
     final authState = ref.read(authProvider);
     if (ref.read(coreMutationBlockedProvider)) {
-      _showProfileSnackBar('试用期已结束，开通会员后可继续养成和编辑');
+      _showMembershipRequiredPaywall();
       return;
     }
 

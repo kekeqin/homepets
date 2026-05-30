@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import '../../providers/family_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../widgets/app_modal_shell.dart';
 import '../member/widgets/member_avatar_picker_sheet.dart';
+import '../paywall/paywall_screen.dart';
 import '../pet/pet_detail_screen.dart';
 import 'dialogs/add_member_flow_dialog.dart';
 import 'dialogs/delete_member_dialog.dart';
@@ -94,13 +96,12 @@ class FamilyScreen extends ConsumerStatefulWidget {
 class _FamilyScreenState extends ConsumerState<FamilyScreen>
     with SingleTickerProviderStateMixin {
   static const _maxMembers = FamilyMemberGrid.maxDisplayMembers;
-  static const _membershipRequiredMessage = '试用期已结束，开通会员后可继续养成和编辑';
-
   bool _addingMember = false;
   int? _updatingAvatarMemberId;
   int? _deletingMemberId;
   int? _selectingPetMemberId;
   bool _didAutoPromptCurrentUserPet = false;
+  bool _paywallDialogVisible = false;
 
   late final AnimationController _entryController;
   late final Animation<double> _contentOpacity;
@@ -158,13 +159,20 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
     return ref.read(coreMutationBlockedProvider);
   }
 
-  void _showMembershipRequiredSnackBar() {
-    if (!mounted) {
+  void _showMembershipRequiredPaywall() {
+    if (!mounted || _paywallDialogVisible) {
       return;
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text(_membershipRequiredMessage)));
+    unawaited(_openPaywallDialog());
+  }
+
+  Future<void> _openPaywallDialog() async {
+    _paywallDialogVisible = true;
+    try {
+      await showPaywallDialog(context);
+    } finally {
+      _paywallDialogVisible = false;
+    }
   }
 
   bool _memberHasPet(FamilyMemberViewData member) {
@@ -246,9 +254,10 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
 
   bool _canEditAvatarForMember(
     AuthState authState,
-    FamilyMemberViewData member,
-  ) {
-    if (_isReadOnlyAfterTrial) {
+    FamilyMemberViewData member, {
+    bool ignoreTrialBlock = false,
+  }) {
+    if (!ignoreTrialBlock && _isReadOnlyAfterTrial) {
       return false;
     }
 
@@ -267,6 +276,17 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
   bool _canDeleteMember(AuthState authState, FamilyMemberViewData member) {
     final user = authState.user;
     if (_isReadOnlyAfterTrial || user == null || !user.isAdmin) {
+      return false;
+    }
+    return user.id != member.id;
+  }
+
+  bool _canDeleteMemberIgnoringTrial(
+    AuthState authState,
+    FamilyMemberViewData member,
+  ) {
+    final user = authState.user;
+    if (user == null || !user.isAdmin) {
       return false;
     }
     return user.id != member.id;
@@ -295,7 +315,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
   }) async {
     if (_isReadOnlyAfterTrial) {
       if (!autoPrompt) {
-        _showMembershipRequiredSnackBar();
+        _showMembershipRequiredPaywall();
       }
       return;
     }
@@ -365,7 +385,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
     FamilyMemberViewData member,
   ) async {
     if (_isReadOnlyAfterTrial) {
-      _showMembershipRequiredSnackBar();
+      _showMembershipRequiredPaywall();
       return;
     }
 
@@ -420,7 +440,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
     FamilyMemberViewData member,
   ) async {
     if (_isReadOnlyAfterTrial) {
-      _showMembershipRequiredSnackBar();
+      _showMembershipRequiredPaywall();
       return;
     }
 
@@ -472,7 +492,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
 
     final user = authState.user;
     if (_isReadOnlyAfterTrial) {
-      _showMembershipRequiredSnackBar();
+      _showMembershipRequiredPaywall();
       return;
     }
 
@@ -645,13 +665,17 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
                     onPetTap: _openPetDetail,
                     onMissingPetTap: (member) =>
                         _onMissingPetTap(authState, member),
-                    canEditAvatar: (member) =>
-                        _canEditAvatarForMember(authState, member),
+                    canEditAvatar: (member) => _canEditAvatarForMember(
+                      authState,
+                      member,
+                      ignoreTrialBlock: readOnlyAfterTrial,
+                    ),
                     onAvatarEditTap: (member) =>
                         _onAvatarEditTap(authState, member),
                     updatingAvatarMemberId: _updatingAvatarMemberId,
-                    canDeleteMember: (member) =>
-                        _canDeleteMember(authState, member),
+                    canDeleteMember: (member) => readOnlyAfterTrial
+                        ? _canDeleteMemberIgnoringTrial(authState, member)
+                        : _canDeleteMember(authState, member),
                     onMemberLongPress: (member) =>
                         _onMemberLongPress(authState, member),
                   ),

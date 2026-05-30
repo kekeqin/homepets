@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:math' as math;
 
 import 'dart:ui' as ui;
@@ -222,6 +224,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   HomeGuideProgress? _homeGuideProgress;
   bool _homeGuideLoading = true;
   OverlayEntry? _topSnackBarEntry;
+  bool _paywallDialogVisible = false;
 
   static const int _taskPanelPageSize = 4;
 
@@ -239,13 +242,11 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
   bool get _canCompleteTasks => !_isReadOnlyAfterTrial;
 
-  void _showReadOnlySnackBar() {
+  void _showReadOnlyPaywall() {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text(_membershipRequiredMessage)));
+    _openPaywall();
   }
 
   @override
@@ -656,11 +657,22 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   }
 
   void _openPaywall() {
-    if (!mounted) {
+    if (!mounted || _paywallDialogVisible) {
       return;
     }
 
-    showPaywallDialog(context);
+    _topSnackBarEntry?.remove();
+    _topSnackBarEntry = null;
+    unawaited(_openPaywallDialog());
+  }
+
+  Future<void> _openPaywallDialog() async {
+    _paywallDialogVisible = true;
+    try {
+      await showPaywallDialog(context);
+    } finally {
+      _paywallDialogVisible = false;
+    }
   }
 
   Future<void> _openSettings() async {
@@ -707,8 +719,9 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       switch (action) {
         case HomeSettingsAction.editProfile:
           if (_isReadOnlyAfterTrial) {
-            _showTopSnackBar(_membershipRequiredMessage);
-            break;
+            keepSettingsOpen = false;
+            _showReadOnlyPaywall();
+            return;
           }
           await _showEditProfileDialog();
           break;
@@ -753,7 +766,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     }
 
     if (_isReadOnlyAfterTrial) {
-      _showTopSnackBar(_membershipRequiredMessage);
+      _showReadOnlyPaywall();
       return;
     }
 
@@ -1340,7 +1353,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     }
 
     if (_isReadOnlyAfterTrial) {
-      _showReadOnlySnackBar();
+      _showReadOnlyPaywall();
       return;
     }
 
@@ -2296,7 +2309,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
   Future<void> _editTaskByLabel(String taskLabel) async {
     if (_isReadOnlyAfterTrial) {
-      _showReadOnlySnackBar();
+      _showReadOnlyPaywall();
       return;
     }
 
@@ -2394,7 +2407,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
   Future<void> _deleteTaskByLabel(String taskLabel) async {
     if (_isReadOnlyAfterTrial) {
-      _showReadOnlySnackBar();
+      _showReadOnlyPaywall();
       return;
     }
 
@@ -2474,7 +2487,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
   Future<void> _completeTaskByLabel(String taskLabel) async {
     if (!_canCompleteTasks) {
-      _showReadOnlySnackBar();
+      _showReadOnlyPaywall();
       return;
     }
 
@@ -2731,7 +2744,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     final user = authState.user;
 
     if (_isReadOnlyAfterTrial) {
-      _showReadOnlySnackBar();
+      _showReadOnlyPaywall();
       return;
     }
 
@@ -2897,7 +2910,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     int? initialTaskPoints,
   }) {
     if (_isReadOnlyAfterTrial) {
-      _showReadOnlySnackBar();
+      _showReadOnlyPaywall();
       return Future<_TaskEditorResult?>.value();
     }
 
@@ -2921,7 +2934,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
   Future<bool> _confirmDeleteTask(String taskLabel) async {
     if (_isReadOnlyAfterTrial) {
-      _showReadOnlySnackBar();
+      _showReadOnlyPaywall();
       return false;
     }
 
