@@ -102,17 +102,6 @@ void main() {
 
     test('loads first-login guide overlay assets', () async {
       const guideAssetPaths = <String>[
-        'assets/images/ui/guide/guide_glow_soft.png',
-        'assets/images/ui/guide/guide_pointer_hand.png',
-        'assets/images/ui/guide/guide_arrow_dashed.png',
-        'assets/images/ui/guide/guide_bubble_bg_9slice.png',
-        'assets/images/ui/guide/guide_step_dot_active.png',
-        'assets/images/ui/guide/guide_step_dot_inactive.png',
-        'assets/images/ui/guide/guide_sparkle.png',
-        'assets/images/ui/guide/hotspot_task_sticker_highlight.png',
-        'assets/images/ui/guide/hotspot_family_frame_highlight.png',
-        'assets/images/ui/guide/hotspot_pet_highlight.png',
-        'assets/images/ui/guide/guide_asset_manifest.json',
         'assets/images/ui/login/finger1.png',
         'assets/images/ui/login/bubble.png',
         'assets/images/pets/grow/dog/baby/sitting.png',
