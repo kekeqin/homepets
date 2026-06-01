@@ -164,11 +164,23 @@ const _RectFactor _rightArmchairFrontOccluderRect = _RectFactor(
   0.050,
 );
 const _RectFactor _rightArmchairSideOccluderRect = _RectFactor(
-  0.850,
-  0.595,
-  0.072,
-  0.088,
+  0.772,
+  0.540,
+  0.173,
+  0.142,
 );
+const _SceneSpriteClipPath _rightArmchairSideOccluderClip =
+    _SceneSpriteClipPath(<Offset>[
+      Offset(0.56, 0.08),
+      Offset(0.88, 0.04),
+      Offset(0.98, 0.17),
+      Offset(1.00, 0.76),
+      Offset(0.82, 0.96),
+      Offset(0.40, 0.92),
+      Offset(0.38, 0.58),
+      Offset(0.44, 0.42),
+      Offset(0.50, 0.24),
+    ]);
 
 _RectFactor _rectFactorFromLayout(HomeSceneLayoutRect rect) {
   return _RectFactor.fromCenter(
@@ -1603,6 +1615,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
             _homeLayoutRightArmchairSideOccluder,
             _rightArmchairSideOccluderRect,
           ),
+          clipPath: _rightArmchairSideOccluderClip,
           renderPriority: _homeSeatOccluderRenderPriority,
           entryDelay: 0.12,
           entryOffset: 0,
@@ -1735,6 +1748,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
             _homeLayoutRightArmchairSideOccluder,
             _rightArmchairSideOccluderRect,
           ),
+          clipPath: _rightArmchairSideOccluderClip,
           renderPriority: _homeSeatOccluderRenderPriority,
           entryDelay: 0.12,
           entryOffset: 0,
@@ -2012,6 +2026,9 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     _rightArmchairSideOccluderRect.width,
     _rightArmchairSideOccluderRect.height,
   );
+
+  static List<Offset> get debugRightArmchairSideOccluderClipPoints =>
+      List<Offset>.unmodifiable(_rightArmchairSideOccluderClip.points);
 
   static List<String> debugAnimationFrameAssetPathsForAsset(String assetPath) {
     return List<String>.unmodifiable(
@@ -2677,15 +2694,20 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           name.contains('stage') ||
           name.contains('waving'),
     );
+    if (preferredSit.isNotEmpty) {
+      return List<String>.unmodifiable(
+        preferredSit.map(
+          (assetName) =>
+              petGrowthHomeAssetPathForPose(petType, level, assetName),
+        ),
+      );
+    }
+
     final preferredLie = variantNames.where(
       (name) =>
           _assetNameContainsAny(name, const <String>['crawl', 'lie', 'lying']),
     );
-    final preferred = <String>[
-      ...preferredSit,
-      ...preferredLie.where((name) => !preferredSit.contains(name)),
-    ];
-    final variants = preferred.isNotEmpty ? preferred : variantNames;
+    final variants = preferredLie.isNotEmpty ? preferredLie : variantNames;
     return List<String>.unmodifiable(
       variants.map(
         (assetName) => petGrowthHomeAssetPathForPose(petType, level, assetName),
@@ -3217,6 +3239,27 @@ class _RectFactor {
   }
 }
 
+class _SceneSpriteClipPath {
+  const _SceneSpriteClipPath(this.points);
+
+  final List<Offset> points;
+
+  Path resolve(Size size) {
+    final path = Path();
+    if (points.isEmpty) {
+      return path;
+    }
+
+    final firstPoint = points.first;
+    path.moveTo(firstPoint.dx * size.width, firstPoint.dy * size.height);
+    for (final point in points.skip(1)) {
+      path.lineTo(point.dx * size.width, point.dy * size.height);
+    }
+    path.close();
+    return path;
+  }
+}
+
 const Map<String, _RectFactor> _homePetCropRects = <String, _RectFactor>{
   'images/pets/grow/cat/baby/lying.png': _RectFactor(
     0.2008,
@@ -3586,6 +3629,7 @@ class _SceneSpriteSpec extends _UiSpec {
     required this.behavior,
     required this.ambientPhase,
     this.cropRect,
+    this.clipPath,
     this.renderPriority = _homeSceneUiRenderPriority,
     this.onTap,
     super.referenceSpace,
@@ -3597,6 +3641,7 @@ class _SceneSpriteSpec extends _UiSpec {
   final _SceneSpriteBehavior behavior;
   final double ambientPhase;
   final _RectFactor? cropRect;
+  final _SceneSpriteClipPath? clipPath;
   final int renderPriority;
   final VoidCallback? onTap;
 
@@ -3612,6 +3657,7 @@ class _SceneSpriteSpec extends _UiSpec {
       behavior: behavior,
       ambientPhase: ambientPhase,
       cropRect: cropRect,
+      clipPath: clipPath,
       renderPriority: renderPriority,
       onTap: onTap,
       entryDelay: entryDelay,
@@ -4193,6 +4239,7 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
     required this.behavior,
     required this.ambientPhase,
     this.cropRect,
+    this.clipPath,
     this.renderPriority = _homeSceneUiRenderPriority,
     required super.entryDelay,
     required super.entryOffset,
@@ -4213,6 +4260,7 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
   final _SceneSpriteBehavior behavior;
   final double ambientPhase;
   final _RectFactor? cropRect;
+  final _SceneSpriteClipPath? clipPath;
   final int renderPriority;
 
   Sprite? _sprite;
@@ -4289,7 +4337,16 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
     _spritePaint.color = const Color(
       0xFFFFFFFF,
     ).withValues(alpha: opacity.clamp(0, 1).toDouble());
+    final clip = clipPath;
+    if (clip == null) {
+      sprite.render(canvas, size: size, overridePaint: _spritePaint);
+      return;
+    }
+
+    canvas.save();
+    canvas.clipPath(clip.resolve(Size(size.x, size.y)), doAntiAlias: true);
     sprite.render(canvas, size: size, overridePaint: _spritePaint);
+    canvas.restore();
   }
 
   @override

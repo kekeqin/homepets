@@ -262,7 +262,8 @@ void main() {
 
       expect(layout.sprite('mobile', 'taskSticker')?.centerX, 0.2955);
       expect(layout.sprite('tablet', 'settings')?.centerY, 0.3365);
-      expect(layout.region('rightArmchairSideOccluder')?.height, 0.088);
+      expect(layout.region('rightArmchairSideOccluder')?.centerX, 0.8585);
+      expect(layout.region('rightArmchairSideOccluder')?.height, 0.142);
     });
 
     test('loads homepage pet positions from JSON using center points', () {
@@ -589,8 +590,14 @@ void main() {
       );
       expect(currentAssets[armchairPetId], isIn(poseVariants[armchairPetId]!));
       expect(
-        poseVariants[armchairPetId],
-        contains(anyOf(contains('sit'), contains('stand'), contains('stage'))),
+        poseVariants[armchairPetId]!.every(
+          (assetPath) =>
+              assetPath.contains('sit') ||
+              assetPath.contains('stand') ||
+              assetPath.contains('stage') ||
+              assetPath.contains('waving'),
+        ),
+        isTrue,
       );
     });
 
@@ -873,39 +880,36 @@ void main() {
       );
     });
 
-    test(
-      'keeps baby action frames isolated after JSON sprite cuts',
-      () async {
-        const babyPoseAssetPaths = <String>[
-          'images/pets/grow/cat/baby/lying.png',
-          'images/pets/grow/cat/baby/sitting.png',
-          'images/pets/grow/cat/baby/stage.png',
-          'images/pets/grow/dog/baby/lying.png',
-          'images/pets/grow/dog/baby/sitting.png',
-          'images/pets/grow/dog/baby/sleeping.png',
-          'images/pets/grow/hamster/baby/lying.png',
-          'images/pets/grow/hamster/baby/sitting.png',
-          'images/pets/grow/hamster/baby/sleeping.png',
-          'images/pets/grow/rabbit/baby/lying.png',
-          'images/pets/grow/rabbit/baby/sleeping.png',
-          'images/pets/grow/rabbit/baby/stage.png',
-          'images/pets/grow/turtle/baby/crawling.png',
-          'images/pets/grow/turtle/baby/sleeping.png',
-          'images/pets/grow/turtle/baby/stage.png',
-        ];
+    test('keeps baby action frames isolated after JSON sprite cuts', () async {
+      const babyPoseAssetPaths = <String>[
+        'images/pets/grow/cat/baby/lying.png',
+        'images/pets/grow/cat/baby/sitting.png',
+        'images/pets/grow/cat/baby/stage.png',
+        'images/pets/grow/dog/baby/lying.png',
+        'images/pets/grow/dog/baby/sitting.png',
+        'images/pets/grow/dog/baby/sleeping.png',
+        'images/pets/grow/hamster/baby/lying.png',
+        'images/pets/grow/hamster/baby/sitting.png',
+        'images/pets/grow/hamster/baby/sleeping.png',
+        'images/pets/grow/rabbit/baby/lying.png',
+        'images/pets/grow/rabbit/baby/sleeping.png',
+        'images/pets/grow/rabbit/baby/stage.png',
+        'images/pets/grow/turtle/baby/crawling.png',
+        'images/pets/grow/turtle/baby/sleeping.png',
+        'images/pets/grow/turtle/baby/stage.png',
+      ];
 
-        for (final poseAssetPath in babyPoseAssetPaths) {
-          final frames = HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-            poseAssetPath,
-          );
-          for (final frameAssetPath in frames) {
-            await _expectTransparentImageCorners(frameAssetPath);
-            await _expectSingleVisibleImageComponent(frameAssetPath);
-            await _expectVisiblePixelRatioAtLeast(frameAssetPath, 0.50);
-          }
+      for (final poseAssetPath in babyPoseAssetPaths) {
+        final frames = HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
+          poseAssetPath,
+        );
+        for (final frameAssetPath in frames) {
+          await _expectTransparentImageCorners(frameAssetPath);
+          await _expectSingleVisibleImageComponent(frameAssetPath);
+          await _expectVisiblePixelRatioAtLeast(frameAssetPath, 0.50);
         }
-      },
-    );
+      }
+    });
 
     test('keeps idle motion actions enabled for growing-stage pet poses', () {
       final growingAssetPaths = _growthHomePetAssetPaths.where(
@@ -1173,6 +1177,23 @@ void main() {
       );
     });
 
+    test('clips the right armchair side cover to the armrest shape', () {
+      final clipPoints = HomeSceneGame.debugRightArmchairSideOccluderClipPoints;
+
+      expect(clipPoints, hasLength(9));
+      expect(
+        clipPoints.map((point) => point.dx),
+        everyElement(inInclusiveRange(0, 1)),
+      );
+      expect(
+        clipPoints.map((point) => point.dy),
+        everyElement(inInclusiveRange(0, 1)),
+      );
+      expect(clipPoints.first.dx, closeTo(0.56, 0.001));
+      expect(clipPoints.first.dy, closeTo(0.08, 0.001));
+      expect(clipPoints.any((point) => point.dx == 1), isTrue);
+    });
+
     test('keeps right armchair sit pets centered on the cushion band', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
       final cushionRect = HomeSceneGame.debugRightArmchairSeatCushionRect;
@@ -1227,24 +1248,35 @@ void main() {
       }
     });
 
-    test('keeps right armchair corner from clipping seated pets', () {
+    test('keeps red armchair side cover on the rear half of seated pets', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
       final occluderRect = HomeSceneGame.debugRightArmchairSideOccluderRect;
+      final clipPoints = HomeSceneGame.debugRightArmchairSideOccluderClipPoints;
+      final lowerArmrestLeft =
+          occluderRect.left + (occluderRect.width * clipPoints[6].dx);
+      final lowerArmrestTop =
+          occluderRect.top + (occluderRect.height * clipPoints[6].dy);
 
       for (final assetPath in _rightArmchairSitAssetPaths) {
         final rect = game.debugPetRectForCandidate(
           candidateIndex: 1,
           assetPath: assetPath,
         );
-        final horizontalOverlap = rect.right - occluderRect.left;
+        final horizontalOverlap = rect.right - lowerArmrestLeft;
 
         expect(
           horizontalOverlap,
-          lessThan(rect.width * 0.12),
-          reason: '$assetPath should not be clipped by the armchair corner.',
+          lessThan(rect.width * 0.18),
+          reason:
+              '$assetPath visible body should not be hidden by the armchair side.',
         );
         expect(
-          occluderRect.top,
+          lowerArmrestLeft,
+          greaterThan(rect.left + (rect.width * 0.60)),
+          reason: '$assetPath front paws should stay in front of the armchair.',
+        );
+        expect(
+          lowerArmrestTop,
           greaterThan(rect.top + (rect.height * 0.2)),
           reason: '$assetPath corner cover should start below the head.',
         );

@@ -78,10 +78,10 @@
       "height": 0.05
     },
     "rightArmchairSideOccluder": {
-      "centerX": 0.886,
-      "centerY": 0.639,
-      "width": 0.072,
-      "height": 0.088
+      "centerX": 0.8585,
+      "centerY": 0.611,
+      "width": 0.173,
+      "height": 0.142
     }
   }
 }

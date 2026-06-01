@@ -11,8 +11,8 @@
     },
     {
       "name": "right_armchair_seat",
-      "centerX": 0.795,
-      "centerY": 0.58,
+      "centerX": 0.778,
+      "centerY": 0.55,
       "widthScale": 0.86,
       "heightScale": 0.86,
       "preferSitPose": true,
@@ -27,14 +27,14 @@
     },
     {
       "name": "right_armchair_front_floor",
-      "centerX": 0.775,
+      "centerX": 0.75,
       "centerY": 0.655,
       "renderPriority": 9
     },
     {
       "name": "left_rug_sleeping",
-      "centerX": 0.23,
-      "centerY": 0.79
+      "centerX": 0.26,
+      "centerY": 0.749
     },
     {
       "name": "lower_left_floor",
@@ -43,18 +43,18 @@
     },
     {
       "name": "bottom_center_cushion",
-      "centerX": 0.53,
-      "centerY": 0.86
+      "centerX": 0.43,
+      "centerY": 0.91
     },
     {
       "name": "plant_side_floor",
       "centerX": 0.665,
-      "centerY": 0.855
+      "centerY": 0.87
     },
     {
       "name": "lower_right_floor",
-      "centerX": 0.845,
-      "centerY": 0.865
+      "centerX": 0.855,
+      "centerY": 0.91
     }
   ],
   "assignmentOrder": [0, 1, 2, 3, 4, 5, 6, 7]
