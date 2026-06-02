@@ -14,18 +14,18 @@ const List<_AvatarOption> _avatarOptions = <_AvatarOption>[
   ),
   _AvatarOption(key: 'dad', label: '爸爸', avatarValue: userDadAvatarAssetPath),
   _AvatarOption(key: 'mom', label: '妈妈', avatarValue: userMomAvatarAssetPath),
-  _AvatarOption(key: 'boy', label: '男孩', avatarValue: userBoyAvatarAssetPath),
-  _AvatarOption(key: 'girl', label: '女孩', avatarValue: userGirlAvatarAssetPath),
   _AvatarOption(
     key: 'mom_yellow',
     label: '妈妈',
     avatarValue: userMomYellowAvatarAssetPath,
   ),
+  _AvatarOption(key: 'boy', label: '男孩', avatarValue: userBoyAvatarAssetPath),
   _AvatarOption(
     key: 'boy_green',
     label: '男孩',
     avatarValue: userBoyGreenAvatarAssetPath,
   ),
+  _AvatarOption(key: 'girl', label: '女孩', avatarValue: userGirlAvatarAssetPath),
   _AvatarOption(
     key: 'girl_bob',
     label: '女孩',
@@ -50,6 +50,8 @@ Future<String?> showMemberAvatarPickerSheet(
   final pickedAvatar = await showModalBottomSheet<String>(
     context: context,
     isScrollControlled: true,
+    isDismissible: true,
+    enableDrag: true,
     backgroundColor: Colors.transparent,
     barrierColor: const Color(0x24000000),
     builder: (sheetContext) {
@@ -62,28 +64,24 @@ Future<String?> showMemberAvatarPickerSheet(
 
           return SafeArea(
             top: false,
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: SizedBox(
-                width: double.infinity,
-                height: _sheetHeightFor(MediaQuery.sizeOf(context).height),
-                child: _AvatarPickerPanel(
-                  nickname: nickname,
-                  previewAvatarValue: previewAvatarValue,
-                  selectedOptionKey: selectedOptionKey,
-                  onCancel: () => Navigator.of(sheetContext).pop(),
-                  onSave: () {
-                    Navigator.of(sheetContext).pop(
-                      _avatarValueForSave(
-                        selectedOptionKey: selectedOptionKey,
-                        initialAvatarValue: initialAvatarValue,
-                      ),
-                    );
-                  },
-                  onSelectOption: (option) {
-                    setModalState(() => selectedOptionKey = option.key);
-                  },
-                ),
+            child: SizedBox(
+              width: double.infinity,
+              child: _AvatarPickerPanel(
+                nickname: nickname,
+                previewAvatarValue: previewAvatarValue,
+                selectedOptionKey: selectedOptionKey,
+                onCancel: () => Navigator.of(sheetContext).pop(),
+                onSave: () {
+                  Navigator.of(sheetContext).pop(
+                    _avatarValueForSave(
+                      selectedOptionKey: selectedOptionKey,
+                      initialAvatarValue: initialAvatarValue,
+                    ),
+                  );
+                },
+                onSelectOption: (option) {
+                  setModalState(() => selectedOptionKey = option.key);
+                },
               ),
             ),
           );
@@ -93,15 +91,6 @@ Future<String?> showMemberAvatarPickerSheet(
   );
 
   return pickedAvatar ?? initialAvatarValue;
-}
-
-double _sheetHeightFor(double screenHeight) {
-  final factor = screenHeight < 700
-      ? 0.86
-      : screenHeight < 860
-      ? 0.76
-      : 0.70;
-  return math.min(screenHeight * factor, 760.0);
 }
 
 String _avatarValueForSave({
@@ -211,6 +200,7 @@ class _AvatarPickerPanel extends StatelessWidget {
       child: ClipRRect(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(34)),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
               padding: EdgeInsets.fromLTRB(
@@ -315,43 +305,42 @@ class _AvatarPickerPanel extends StatelessWidget {
               ),
             ),
             SizedBox(height: compact ? 14 : 20),
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final maxGridWidth = math.min(constraints.maxWidth, 560.0);
-                  return Center(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: maxGridWidth),
-                      child: GridView.builder(
-                        padding: EdgeInsets.fromLTRB(
-                          horizontalPadding,
-                          0,
-                          horizontalPadding,
-                          compact ? 16 : 22,
-                        ),
-                        physics: const ClampingScrollPhysics(),
-                        itemCount: _avatarOptions.length,
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 4,
-                              mainAxisSpacing: 12,
-                              crossAxisSpacing: 12,
-                              childAspectRatio: 1,
-                            ),
-                        itemBuilder: (context, index) {
-                          final option = _avatarOptions[index];
-                          final selected = option.key == selectedOptionKey;
-                          return _AvatarOptionCard(
-                            option: option,
-                            selected: selected,
-                            onTap: () => onSelectOption(option),
-                          );
-                        },
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final maxGridWidth = math.min(constraints.maxWidth, 560.0);
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: maxGridWidth),
+                    child: GridView.builder(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.fromLTRB(
+                        horizontalPadding,
+                        0,
+                        horizontalPadding,
+                        compact ? 16 : 22,
                       ),
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _avatarOptions.length,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 4,
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                            childAspectRatio: 1,
+                          ),
+                      itemBuilder: (context, index) {
+                        final option = _avatarOptions[index];
+                        final selected = option.key == selectedOptionKey;
+                        return _AvatarOptionCard(
+                          option: option,
+                          selected: selected,
+                          onTap: () => onSelectOption(option),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
           ],
         ),
