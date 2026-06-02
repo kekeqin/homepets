@@ -71,6 +71,18 @@
     }
   },
   "regions": {
+    "sofaFrontOccluder": {
+      "centerX": 0.2855,
+      "centerY": 0.663,
+      "width": 0.515,
+      "height": 0.118
+    },
+    "rightArmchairNearArmOccluder": {
+      "centerX": 0.74,
+      "centerY": 0.61,
+      "width": 0.2,
+      "height": 0.13
+    },
     "rightArmchairFrontOccluder": {
       "centerX": 0.8075,
       "centerY": 0.642,
@@ -78,9 +90,9 @@
       "height": 0.05
     },
     "rightArmchairSideOccluder": {
-      "centerX": 0.8585,
+      "centerX": 0.8275,
       "centerY": 0.611,
-      "width": 0.173,
+      "width": 0.235,
       "height": 0.142
     }
   }

@@ -4,15 +4,15 @@
     {
       "name": "sofa_left_seat",
       "centerX": 0.315,
-      "centerY": 0.557,
+      "centerY": 0.542,
       "widthScale": 0.98,
       "heightScale": 0.92,
-      "preferRestPose": true
+      "preferSitPose": true
     },
     {
       "name": "right_armchair_seat",
-      "centerX": 0.778,
-      "centerY": 0.55,
+      "centerX": 0.795,
+      "centerY": 0.549,
       "widthScale": 0.86,
       "heightScale": 0.86,
       "preferSitPose": true,

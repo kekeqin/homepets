@@ -33,6 +33,9 @@ const String _homeLayoutFamilyPhoto = 'familyPhoto';
 const String _homeLayoutPaywall = 'paywall';
 const String _homeLayoutShop = 'shop';
 const String _homeLayoutSettings = 'settings';
+const String _homeLayoutSofaFrontOccluder = 'sofaFrontOccluder';
+const String _homeLayoutRightArmchairNearArmOccluder =
+    'rightArmchairNearArmOccluder';
 const String _homeLayoutRightArmchairFrontOccluder =
     'rightArmchairFrontOccluder';
 const String _homeLayoutRightArmchairSideOccluder = 'rightArmchairSideOccluder';
@@ -72,15 +75,15 @@ _defaultHomePetCandidatePoints = <_PetCandidatePoint>[
   // 1. Sofa left seat, seated on the cushion instead of the rug edge.
   _PetCandidatePoint(
     centerX: 0.315,
-    centerY: 0.557,
+    centerY: 0.585,
     widthScale: 0.98,
     heightScale: 0.92,
-    preferRestPose: true,
+    preferSitPose: true,
   ),
   // 2. Right armchair seat, high enough that the front edge only covers paws.
   _PetCandidatePoint(
     centerX: 0.795,
-    centerY: 0.580,
+    centerY: 0.582,
     widthScale: 0.86,
     heightScale: 0.86,
     preferSitPose: true,
@@ -112,11 +115,12 @@ _defaultHomePetCandidatePoints = <_PetCandidatePoint>[
 
 const double _homeSceneBackgroundAspectRatio = 840 / 1871;
 const double _homePetSceneInsetFactor = 0.012;
-const double _homePetPerspectiveFarCenterY = 0.40;
-const double _homePetPerspectiveNearCenterY = 0.89;
-const double _homePetPerspectiveFarScale = 1.0;
-const double _homePetPerspectiveNearScale = 1.0;
+const double _homePetPerspectiveFarCenterY = 0.54;
+const double _homePetPerspectiveNearCenterY = 0.91;
+const double _homePetPerspectiveFarScale = 0.94;
+const double _homePetPerspectiveNearScale = 1.12;
 const int _homePetRenderPriority = 4;
+const int _homeSeatBackfillRenderPriority = _homePetRenderPriority - 1;
 const int _homeSeatOccluderRenderPriority = 8;
 const int _homeSceneUiRenderPriority = 12;
 const Set<String> _homePetDynamicPoseTypes = <String>{};
@@ -129,6 +133,8 @@ const double _homePetCompactTargetArea = 0.0084;
 const double _homePetBabyStageScale = 0.85;
 const double _homePetGrowingStageScale = 1.0;
 const double _homePetCompanionStageScale = 1.18;
+const double _sofaSeatPetScaleAdjustment = 0.94;
+const double _rightArmchairSeatPetScaleAdjustment = 0.94;
 const List<int> _defaultHomePetCandidateAssignmentOrder = <int>[
   0,
   1,
@@ -151,11 +157,29 @@ const _RectFactor _homeCoffeeTableNoPetRect = _RectFactor(
   0.315,
   0.125,
 );
+const _RectFactor _sofaSeatCushionRect = _RectFactor(
+  0.185,
+  0.560,
+  0.275,
+  0.095,
+);
+const _RectFactor _sofaFrontOccluderRect = _RectFactor(
+  0.028,
+  0.604,
+  0.515,
+  0.118,
+);
 const _RectFactor _rightArmchairSeatCushionRect = _RectFactor(
   0.735,
   0.545,
   0.120,
   0.105,
+);
+const _RectFactor _rightArmchairNearArmOccluderRect = _RectFactor(
+  0.640,
+  0.545,
+  0.200,
+  0.130,
 );
 const _RectFactor _rightArmchairFrontOccluderRect = _RectFactor(
   0.735,
@@ -164,22 +188,46 @@ const _RectFactor _rightArmchairFrontOccluderRect = _RectFactor(
   0.050,
 );
 const _RectFactor _rightArmchairSideOccluderRect = _RectFactor(
-  0.772,
+  0.710,
   0.540,
-  0.173,
+  0.235,
   0.142,
 );
+const _SceneSpriteClipPath _rightArmchairNearArmOccluderClip =
+    _SceneSpriteClipPath(<Offset>[
+      Offset(0.00, 0.45),
+      Offset(0.26, 0.25),
+      Offset(0.50, 0.22),
+      Offset(0.58, 0.42),
+      Offset(0.46, 0.72),
+      Offset(0.12, 0.88),
+      Offset(0.00, 0.68),
+    ]);
+const _SceneSpriteClipPath _sofaFrontOccluderClip =
+    _SceneSpriteClipPath(<Offset>[
+      Offset(0.01, 0.34),
+      Offset(0.12, 0.26),
+      Offset(0.31, 0.20),
+      Offset(0.50, 0.18),
+      Offset(0.69, 0.20),
+      Offset(0.91, 0.27),
+      Offset(0.99, 0.42),
+      Offset(0.97, 0.84),
+      Offset(0.82, 0.96),
+      Offset(0.19, 0.98),
+      Offset(0.03, 0.84),
+    ]);
 const _SceneSpriteClipPath _rightArmchairSideOccluderClip =
     _SceneSpriteClipPath(<Offset>[
-      Offset(0.56, 0.08),
-      Offset(0.88, 0.04),
-      Offset(0.98, 0.17),
-      Offset(1.00, 0.76),
+      Offset(0.34, 0.28),
+      Offset(0.32, 0.50),
+      Offset(0.34, 0.72),
+      Offset(0.36, 0.92),
       Offset(0.82, 0.96),
-      Offset(0.40, 0.92),
-      Offset(0.38, 0.58),
-      Offset(0.44, 0.42),
-      Offset(0.50, 0.24),
+      Offset(1.00, 0.76),
+      Offset(0.98, 0.17),
+      Offset(0.88, 0.04),
+      Offset(0.56, 0.08),
     ]);
 
 _RectFactor _rectFactorFromLayout(HomeSceneLayoutRect rect) {
@@ -264,7 +312,41 @@ double _homePetPlacementScaleAdjustment({
   required _PetCandidatePoint candidate,
   required String assetPath,
 }) {
+  if (_isSofaSeatCandidate(candidate) &&
+      _assetNameContainsAny(assetPath.toLowerCase(), const <String>[
+        'sitting',
+        'standing',
+        'stage',
+        'waving',
+      ])) {
+    return _sofaSeatPetScaleAdjustment;
+  }
+  if (_isRightArmchairSeatCandidate(candidate) &&
+      _assetNameContainsAny(assetPath.toLowerCase(), const <String>[
+        'sitting',
+        'standing',
+        'stage',
+        'waving',
+      ])) {
+    return _rightArmchairSeatPetScaleAdjustment;
+  }
   return 1;
+}
+
+bool _isSofaSeatCandidate(_PetCandidatePoint candidate) {
+  return candidate.preferSitPose &&
+      candidate.centerX >= 0.18 &&
+      candidate.centerX <= 0.42 &&
+      candidate.centerY >= 0.54 &&
+      candidate.centerY <= 0.63;
+}
+
+bool _isRightArmchairSeatCandidate(_PetCandidatePoint candidate) {
+  return candidate.preferSitPose &&
+      candidate.centerX >= 0.70 &&
+      candidate.centerX <= 0.86 &&
+      candidate.centerY >= 0.50 &&
+      candidate.centerY <= 0.62;
 }
 
 double _homePetTargetAreaForAssetPath(String assetPath) {
@@ -1584,6 +1666,46 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
         _SceneSpriteSpec(
           rect: _homeLayoutRegionRect(
             layout,
+            _homeLayoutSofaFrontOccluder,
+            _sofaFrontOccluderRect,
+          ),
+          referenceSpace: _UiReferenceSpace.background,
+          assetPath: _homeSceneBackgroundAsset,
+          behavior: _SceneSpriteBehavior.staticOverlay,
+          ambientPhase: 0,
+          cropRect: _homeLayoutRegionRect(
+            layout,
+            _homeLayoutSofaFrontOccluder,
+            _sofaFrontOccluderRect,
+          ),
+          clipPath: _sofaFrontOccluderClip,
+          renderPriority: _homeSeatBackfillRenderPriority,
+          entryDelay: 0.12,
+          entryOffset: 0,
+        ),
+        _SceneSpriteSpec(
+          rect: _homeLayoutRegionRect(
+            layout,
+            _homeLayoutRightArmchairNearArmOccluder,
+            _rightArmchairNearArmOccluderRect,
+          ),
+          referenceSpace: _UiReferenceSpace.background,
+          assetPath: _homeSceneBackgroundAsset,
+          behavior: _SceneSpriteBehavior.staticOverlay,
+          ambientPhase: 0,
+          cropRect: _homeLayoutRegionRect(
+            layout,
+            _homeLayoutRightArmchairNearArmOccluder,
+            _rightArmchairNearArmOccluderRect,
+          ),
+          clipPath: _rightArmchairNearArmOccluderClip,
+          renderPriority: _homeSeatBackfillRenderPriority,
+          entryDelay: 0.12,
+          entryOffset: 0,
+        ),
+        _SceneSpriteSpec(
+          rect: _homeLayoutRegionRect(
+            layout,
             _homeLayoutRightArmchairFrontOccluder,
             _rightArmchairFrontOccluderRect,
           ),
@@ -1596,7 +1718,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
             _homeLayoutRightArmchairFrontOccluder,
             _rightArmchairFrontOccluderRect,
           ),
-          renderPriority: _homeSeatOccluderRenderPriority,
+          renderPriority: _homeSeatBackfillRenderPriority,
           entryDelay: 0.12,
           entryOffset: 0,
         ),
@@ -1616,7 +1738,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
             _rightArmchairSideOccluderRect,
           ),
           clipPath: _rightArmchairSideOccluderClip,
-          renderPriority: _homeSeatOccluderRenderPriority,
+          renderPriority: _homeSeatBackfillRenderPriority,
           entryDelay: 0.12,
           entryOffset: 0,
         ),
@@ -1713,6 +1835,46 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
           entryDelay: 0.26,
           entryOffset: 46,
           onTap: onOpenSettings,
+        ),
+        _SceneSpriteSpec(
+          rect: _homeLayoutRegionRect(
+            layout,
+            _homeLayoutSofaFrontOccluder,
+            _sofaFrontOccluderRect,
+          ),
+          referenceSpace: _UiReferenceSpace.background,
+          assetPath: _homeSceneBackgroundAsset,
+          behavior: _SceneSpriteBehavior.staticOverlay,
+          ambientPhase: 0,
+          cropRect: _homeLayoutRegionRect(
+            layout,
+            _homeLayoutSofaFrontOccluder,
+            _sofaFrontOccluderRect,
+          ),
+          clipPath: _sofaFrontOccluderClip,
+          renderPriority: _homeSeatBackfillRenderPriority,
+          entryDelay: 0.12,
+          entryOffset: 0,
+        ),
+        _SceneSpriteSpec(
+          rect: _homeLayoutRegionRect(
+            layout,
+            _homeLayoutRightArmchairNearArmOccluder,
+            _rightArmchairNearArmOccluderRect,
+          ),
+          referenceSpace: _UiReferenceSpace.background,
+          assetPath: _homeSceneBackgroundAsset,
+          behavior: _SceneSpriteBehavior.staticOverlay,
+          ambientPhase: 0,
+          cropRect: _homeLayoutRegionRect(
+            layout,
+            _homeLayoutRightArmchairNearArmOccluder,
+            _rightArmchairNearArmOccluderRect,
+          ),
+          clipPath: _rightArmchairNearArmOccluderClip,
+          renderPriority: _homeSeatBackfillRenderPriority,
+          entryDelay: 0.12,
+          entryOffset: 0,
         ),
         _SceneSpriteSpec(
           rect: _homeLayoutRegionRect(
@@ -1992,6 +2154,9 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   static int get debugSeatOccluderRenderPriority =>
       _homeSeatOccluderRenderPriority;
 
+  static int get debugSeatBackfillRenderPriority =>
+      _homeSeatBackfillRenderPriority;
+
   static Rect get debugHomeSettingsGearRect => Rect.fromLTWH(
     _homeSettingsGearRect.left,
     _homeSettingsGearRect.top,
@@ -2006,11 +2171,32 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     _homeCoffeeTableNoPetRect.height,
   );
 
+  static Rect get debugSofaSeatCushionRect => Rect.fromLTWH(
+    _sofaSeatCushionRect.left,
+    _sofaSeatCushionRect.top,
+    _sofaSeatCushionRect.width,
+    _sofaSeatCushionRect.height,
+  );
+
+  static Rect get debugSofaFrontOccluderRect => Rect.fromLTWH(
+    _sofaFrontOccluderRect.left,
+    _sofaFrontOccluderRect.top,
+    _sofaFrontOccluderRect.width,
+    _sofaFrontOccluderRect.height,
+  );
+
   static Rect get debugRightArmchairSeatCushionRect => Rect.fromLTWH(
     _rightArmchairSeatCushionRect.left,
     _rightArmchairSeatCushionRect.top,
     _rightArmchairSeatCushionRect.width,
     _rightArmchairSeatCushionRect.height,
+  );
+
+  static Rect get debugRightArmchairNearArmOccluderRect => Rect.fromLTWH(
+    _rightArmchairNearArmOccluderRect.left,
+    _rightArmchairNearArmOccluderRect.top,
+    _rightArmchairNearArmOccluderRect.width,
+    _rightArmchairNearArmOccluderRect.height,
   );
 
   static Rect get debugRightArmchairFrontOccluderRect => Rect.fromLTWH(
@@ -2026,6 +2212,12 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     _rightArmchairSideOccluderRect.width,
     _rightArmchairSideOccluderRect.height,
   );
+
+  static List<Offset> get debugRightArmchairNearArmOccluderClipPoints =>
+      List<Offset>.unmodifiable(_rightArmchairNearArmOccluderClip.points);
+
+  static List<Offset> get debugSofaFrontOccluderClipPoints =>
+      List<Offset>.unmodifiable(_sofaFrontOccluderClip.points);
 
   static List<Offset> get debugRightArmchairSideOccluderClipPoints =>
       List<Offset>.unmodifiable(_rightArmchairSideOccluderClip.points);
