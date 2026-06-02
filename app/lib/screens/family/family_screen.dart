@@ -893,66 +893,27 @@ class _FamilyTitleText extends StatelessWidget {
     return Center(
       child: FittedBox(
         fit: BoxFit.scaleDown,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Text(
-              displayTitle,
-              maxLines: 1,
-              style: TextStyle(
-                fontSize: 52,
-                fontWeight: FontWeight.w900,
-                height: 1,
-                letterSpacing: 1.5,
-                foreground: Paint()
-                  ..style = PaintingStyle.stroke
-                  ..strokeWidth = 9
-                  ..strokeJoin = StrokeJoin.round
-                  ..color = _FamilyPalette.deepBrown,
-                shadows: const [
-                  Shadow(
-                    color: Color(0x993F230D),
-                    blurRadius: 1.5,
-                    offset: Offset(0, 2),
-                  ),
-                ],
+        child: Text(
+          displayTitle,
+          maxLines: 1,
+          style: const TextStyle(
+            color: _FamilyPalette.deepBrown,
+            fontSize: 40,
+            fontWeight: FontWeight.w900,
+            height: 1,
+            shadows: [
+              Shadow(
+                color: Color(0x66FFFFFF),
+                offset: Offset(0, 1.5),
+                blurRadius: 0.2,
               ),
-            ),
-            Text(
-              displayTitle,
-              maxLines: 1,
-              style: TextStyle(
-                fontSize: 52,
-                fontWeight: FontWeight.w900,
-                height: 1,
-                letterSpacing: 1.5,
-                foreground: Paint()
-                  ..style = PaintingStyle.stroke
-                  ..strokeWidth = 4
-                  ..strokeJoin = StrokeJoin.round
-                  ..color = const Color(0xFFFFF7E5),
+              Shadow(
+                color: Color(0x33A86C35),
+                offset: Offset(0, 2.5),
+                blurRadius: 0.4,
               ),
-            ),
-            const SizedBox.shrink(),
-            Text(
-              displayTitle,
-              maxLines: 1,
-              style: const TextStyle(
-                color: Color(0xFFFFFBF1),
-                fontSize: 52,
-                fontWeight: FontWeight.w900,
-                height: 1,
-                letterSpacing: 1.5,
-                shadows: [
-                  Shadow(
-                    color: Color(0x55F3CF8B),
-                    blurRadius: 0,
-                    offset: Offset(1, 1),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

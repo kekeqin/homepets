@@ -309,6 +309,7 @@ class _PageArrowButton extends StatelessWidget {
   final bool enabled;
   final VoidCallback onTap;
   final bool flipped;
+  static const double _visualScale = 1.45;
 
   @override
   Widget build(BuildContext context) {
@@ -321,12 +322,15 @@ class _PageArrowButton extends StatelessWidget {
           duration: const Duration(milliseconds: 160),
           opacity: enabled ? 1 : 0.34,
           child: Transform.scale(
-            scaleX: flipped ? -1 : 1,
-            child: Image.asset(
-              FamilyPopupAssets.pageArrow,
-              fit: BoxFit.contain,
-              filterQuality: FilterQuality.medium,
-              isAntiAlias: true,
+            scale: _visualScale,
+            child: Transform.scale(
+              scaleX: flipped ? -1 : 1,
+              child: Image.asset(
+                FamilyPopupAssets.pageArrow,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.medium,
+                isAntiAlias: true,
+              ),
             ),
           ),
         ),
@@ -348,7 +352,7 @@ class _PageText extends StatelessWidget {
         '$currentPage / $pageCount 页',
         style: const TextStyle(
           color: Color(0xFF3F230D),
-          fontSize: 28,
+          fontSize: 18,
           height: 1,
           fontWeight: FontWeight.w900,
           shadows: [
