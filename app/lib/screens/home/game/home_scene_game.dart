@@ -82,8 +82,8 @@ _defaultHomePetCandidatePoints = <_PetCandidatePoint>[
   ),
   // 2. Right armchair seat, high enough that the front edge only covers paws.
   _PetCandidatePoint(
-    centerX: 0.795,
-    centerY: 0.582,
+    centerX: 0.760,
+    centerY: 0.549,
     widthScale: 0.86,
     heightScale: 0.86,
     preferSitPose: true,
@@ -170,7 +170,7 @@ const _RectFactor _sofaFrontOccluderRect = _RectFactor(
   0.118,
 );
 const _RectFactor _rightArmchairSeatCushionRect = _RectFactor(
-  0.735,
+  0.700,
   0.545,
   0.120,
   0.105,
@@ -219,15 +219,15 @@ const _SceneSpriteClipPath _sofaFrontOccluderClip =
     ]);
 const _SceneSpriteClipPath _rightArmchairSideOccluderClip =
     _SceneSpriteClipPath(<Offset>[
-      Offset(0.34, 0.28),
-      Offset(0.32, 0.50),
-      Offset(0.34, 0.72),
-      Offset(0.36, 0.92),
-      Offset(0.82, 0.96),
+      Offset(0.68, 0.28),
+      Offset(0.78, 0.50),
+      Offset(1.00, 0.72),
+      Offset(1.00, 0.92),
+      Offset(1.00, 0.96),
       Offset(1.00, 0.76),
-      Offset(0.98, 0.17),
-      Offset(0.88, 0.04),
-      Offset(0.56, 0.08),
+      Offset(1.00, 0.17),
+      Offset(1.00, 0.04),
+      Offset(1.00, 0.08),
     ]);
 
 _RectFactor _rectFactorFromLayout(HomeSceneLayoutRect rect) {
@@ -1738,7 +1738,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
             _rightArmchairSideOccluderRect,
           ),
           clipPath: _rightArmchairSideOccluderClip,
-          renderPriority: _homeSeatBackfillRenderPriority,
+          renderPriority: _homeSeatOccluderRenderPriority,
           entryDelay: 0.12,
           entryOffset: 0,
         ),
@@ -1891,7 +1891,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
             _homeLayoutRightArmchairFrontOccluder,
             _rightArmchairFrontOccluderRect,
           ),
-          renderPriority: _homeSeatOccluderRenderPriority,
+          renderPriority: _homeSeatBackfillRenderPriority,
           entryDelay: 0.12,
           entryOffset: 0,
         ),
@@ -2156,6 +2156,38 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
 
   static int get debugSeatBackfillRenderPriority =>
       _homeSeatBackfillRenderPriority;
+
+  static int debugRightArmchairFrontOccluderRenderPriority(
+    HomeSceneDevice device,
+  ) {
+    return _debugRegionSpriteRenderPriority(
+      device: device,
+      cropRect: _rightArmchairFrontOccluderRect,
+    );
+  }
+
+  static int debugRightArmchairSideOccluderRenderPriority(
+    HomeSceneDevice device,
+  ) {
+    return _debugRegionSpriteRenderPriority(
+      device: device,
+      cropRect: _rightArmchairSideOccluderRect,
+    );
+  }
+
+  static int _debugRegionSpriteRenderPriority({
+    required HomeSceneDevice device,
+    required _RectFactor cropRect,
+  }) {
+    final profile = switch (device) {
+      HomeSceneDevice.mobile => _mobileProfile(onTaskTap: () {}),
+      HomeSceneDevice.tablet => _tabletProfile(onTaskTap: () {}),
+    };
+    final spec = profile.specs.whereType<_SceneSpriteSpec>().singleWhere(
+      (spec) => identical(spec.cropRect, cropRect),
+    );
+    return spec.renderPriority;
+  }
 
   static Rect get debugHomeSettingsGearRect => Rect.fromLTWH(
     _homeSettingsGearRect.left,
@@ -2846,17 +2878,48 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     int petId,
     _AssignedPetPlacement placement,
   ) {
+    List<String> filteredForPlacement(List<String> assetPaths) {
+      return _filterHomePoseAssetPathsForPlacement(assetPaths, placement);
+    }
+
     if (_placementUsesSitPosePreference(placement)) {
-      return _preferredSittingHomePoseAssetPaths(petType, level);
+      return filteredForPlacement(
+        _preferredSittingHomePoseAssetPaths(petType, level),
+      );
     }
     if (_placementUsesRestPosePreference(placement)) {
-      return _preferredRestingHomePoseAssetPaths(petType, level);
+      return filteredForPlacement(
+        _preferredRestingHomePoseAssetPaths(petType, level),
+      );
     }
-    return List<String>.unmodifiable(
-      petGrowthHomePoseVariantsForType(petType, level).map(
-        (assetName) => petGrowthHomeAssetPathForPose(petType, level, assetName),
+    return filteredForPlacement(
+      List<String>.unmodifiable(
+        petGrowthHomePoseVariantsForType(petType, level).map(
+          (assetName) =>
+              petGrowthHomeAssetPathForPose(petType, level, assetName),
+        ),
       ),
     );
+  }
+
+  List<String> _filterHomePoseAssetPathsForPlacement(
+    List<String> assetPaths,
+    _AssignedPetPlacement placement,
+  ) {
+    final candidate = _petCandidatePoints[placement.candidateIndex];
+    if (!_isRightArmchairSeatCandidate(candidate)) {
+      return assetPaths;
+    }
+
+    final filtered = assetPaths
+        .where((assetPath) => !_isCatDogCompanionStageAssetPath(assetPath))
+        .toList(growable: false);
+    return filtered.isEmpty ? assetPaths : List<String>.unmodifiable(filtered);
+  }
+
+  bool _isCatDogCompanionStageAssetPath(String assetPath) {
+    return assetPath.endsWith('/companion/stage.png') &&
+        (assetPath.contains('/cat/') || assetPath.contains('/dog/'));
   }
 
   List<String> _preferredRestingHomePoseAssetPaths(String petType, int level) {

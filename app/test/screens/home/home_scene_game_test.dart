@@ -320,7 +320,7 @@ void main() {
       expect(positions.candidates.first.centerX, 0.315);
       expect(positions.candidates.first.centerY, 0.542);
       expect(positions.candidates.first.preferSitPose, isTrue);
-      expect(positions.candidates[1].centerX, 0.795);
+      expect(positions.candidates[1].centerX, 0.76);
       expect(positions.candidates[1].centerY, 0.549);
       expect(positions.candidates[1].renderPriority, 4);
       expect(
@@ -621,6 +621,48 @@ void main() {
               assetPath.contains('waving'),
         ),
         isTrue,
+      );
+    });
+
+    test('keeps cat and dog companion stage poses off the red armchair', () {
+      final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+      game.replacePetEntries(
+        List<HomeScenePetSeed>.generate(
+          game.debugPetCandidateCount,
+          (index) => HomeScenePetSeed(
+            petId: index + 201,
+            petType: index.isEven ? 'cat' : 'dog',
+            level: 4,
+          ),
+        ),
+      );
+
+      final assignments = game.debugPetCandidateAssignments();
+      final armchairPetId = assignments.entries
+          .singleWhere((entry) => entry.value == 1)
+          .key;
+      final armchairPoseVariants = game
+          .debugPetPoseAssetVariants()[armchairPetId]!;
+
+      expect(
+        armchairPoseVariants,
+        isNot(
+          contains(
+            anyOf(
+              'images/pets/grow/cat/companion/stage.png',
+              'images/pets/grow/dog/companion/stage.png',
+            ),
+          ),
+        ),
+      );
+      expect(
+        armchairPoseVariants,
+        contains(
+          anyOf(
+            'images/pets/grow/cat/companion/sitting.png',
+            'images/pets/grow/dog/companion/sitting.png',
+          ),
+        ),
       );
     });
 
@@ -1230,6 +1272,21 @@ void main() {
       );
     });
 
+    test('keeps right armchair front behind pets and side arm in front', () {
+      for (final device in HomeSceneDevice.values) {
+        expect(
+          HomeSceneGame.debugRightArmchairFrontOccluderRenderPriority(device),
+          HomeSceneGame.debugSeatBackfillRenderPriority,
+          reason: '$device front edge should not cover seated pets.',
+        );
+        expect(
+          HomeSceneGame.debugRightArmchairSideOccluderRenderPriority(device),
+          HomeSceneGame.debugSeatOccluderRenderPriority,
+          reason: '$device right armrest should cover the pet tail edge.',
+        );
+      }
+    });
+
     test('clips the sofa front backfill to the cushion apron shape', () {
       final clipPoints = HomeSceneGame.debugSofaFrontOccluderClipPoints;
 
@@ -1260,8 +1317,9 @@ void main() {
         clipPoints.map((point) => point.dy),
         everyElement(inInclusiveRange(0, 1)),
       );
-      expect(clipPoints.first.dx, closeTo(0.34, 0.001));
+      expect(clipPoints.first.dx, closeTo(0.68, 0.001));
       expect(clipPoints.first.dy, closeTo(0.28, 0.001));
+      expect(clipPoints[1].dx, closeTo(0.78, 0.001));
       expect(clipPoints.any((point) => point.dx == 1), isTrue);
     });
 
@@ -1320,7 +1378,6 @@ void main() {
     test('keeps right armchair seat pets centered on the cushion band', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
       final cushionRect = HomeSceneGame.debugRightArmchairSeatCushionRect;
-      final occluderRect = HomeSceneGame.debugRightArmchairFrontOccluderRect;
 
       for (final assetPath in _rightArmchairSeatAssetPaths) {
         final rect = game.debugPetRectForCandidate(
@@ -1336,39 +1393,30 @@ void main() {
         );
         expect(
           rect.bottom,
-          greaterThan(occluderRect.top),
-          reason: '$assetPath should touch the armchair cushion.',
+          greaterThan(cushionRect.top + (cushionRect.height * 0.35)),
+          reason: '$assetPath should sit down into the armchair cushion.',
         );
         expect(
           rect.bottom,
-          lessThan(occluderRect.bottom),
-          reason: '$assetPath should not sink through the armchair front.',
+          lessThan(cushionRect.bottom),
+          reason: '$assetPath should not sink below the armchair cushion.',
         );
       }
     });
 
     test('draws right armchair pets above the seat front backfill', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
-      final occluderRect = HomeSceneGame.debugRightArmchairFrontOccluderRect;
 
       expect(
         game.debugPetRenderPriorityForCandidate(1),
         greaterThan(HomeSceneGame.debugSeatBackfillRenderPriority),
       );
-
-      for (final assetPath in _rightArmchairSeatAssetPaths) {
-        final rect = game.debugPetRectForCandidate(
-          candidateIndex: 1,
-          assetPath: assetPath,
-        );
-
-        expect(
-          rect.bottom,
-          greaterThan(occluderRect.top),
-          reason:
-              '$assetPath may overlap the armchair front but should render fully above it.',
-        );
-      }
+      expect(
+        HomeSceneGame.debugRightArmchairFrontOccluderRenderPriority(
+          HomeSceneDevice.mobile,
+        ),
+        HomeSceneGame.debugSeatBackfillRenderPriority,
+      );
     });
 
     test('lets only the right armrest draw over seated armchair pets', () {
@@ -1394,9 +1442,13 @@ void main() {
         );
         expect(
           innerArmrestLeft,
-          greaterThan(rect.left + (rect.width * 0.30)),
-          reason:
-              '$assetPath should overlap the side arm naturally without being clipped.',
+          greaterThan(rect.left + (rect.width * 0.62)),
+          reason: '$assetPath should only be covered near the tail/right edge.',
+        );
+        expect(
+          innerArmrestLeft,
+          lessThan(occluderRect.right),
+          reason: '$assetPath should keep the armrest cover inside the chair.',
         );
         expect(
           innerArmrestTop,
@@ -1433,7 +1485,7 @@ void main() {
       expect(armTopLeft.dy, greaterThan(rect.top + (rect.height * 0.14)));
       expect(armInnerRight.dx, greaterThan(rect.left + (rect.width * 0.15)));
       expect(armInnerRight.dx, lessThan(rect.center.dx));
-      expect(armInnerRight.dy, lessThan(rect.bottom));
+      expect(armInnerRight.dy, greaterThan(rect.top + (rect.height * 0.45)));
     });
 
     test('keeps edge pets fully inside the home scene bounds', () {
