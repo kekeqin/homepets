@@ -13,6 +13,7 @@ class AppModalLayout {
     required this.tabletMaxWidth,
     required this.tabletHeightFactor,
     required this.tabletMaxHeight,
+    this.contentAspectRatio,
     this.tabletBreakpoint = 900,
   });
 
@@ -24,6 +25,7 @@ class AppModalLayout {
   final double tabletMaxWidth;
   final double tabletHeightFactor;
   final double tabletMaxHeight;
+  final double? contentAspectRatio;
   final double tabletBreakpoint;
 
   bool isTablet(Size size) => size.width >= tabletBreakpoint;
@@ -40,6 +42,21 @@ class AppModalLayout {
       return math.min(size.height * tabletHeightFactor, tabletMaxHeight);
     }
     return math.min(size.height * mobileHeightFactor, mobileMaxHeight);
+  }
+
+  double effectivePanelWidth(Size size, EdgeInsets minimumSafeArea) {
+    final maxWidth = panelWidth(size);
+    final aspectRatio = contentAspectRatio;
+    if (aspectRatio == null || aspectRatio <= 0) {
+      return maxWidth;
+    }
+
+    final availableHeight = math.max(
+      0.0,
+      size.height - minimumSafeArea.top - minimumSafeArea.bottom,
+    );
+    final maxHeight = math.min(panelMaxHeight(size), availableHeight);
+    return math.min(maxWidth, maxHeight * aspectRatio);
   }
 }
 
@@ -79,6 +96,7 @@ class AppModalLayouts {
     tabletMaxWidth: 448,
     tabletHeightFactor: 0.90,
     tabletMaxHeight: 760,
+    contentAspectRatio: 499 / 793,
   );
 
   static const family = AppModalLayout(
@@ -90,6 +108,7 @@ class AppModalLayouts {
     tabletMaxWidth: 620,
     tabletHeightFactor: 0.96,
     tabletMaxHeight: 940,
+    contentAspectRatio: 0.64,
   );
 
   static const taskPanel = AppModalLayout(
@@ -112,6 +131,7 @@ class AppModalLayouts {
     tabletMaxWidth: 560,
     tabletHeightFactor: 0.86,
     tabletMaxHeight: 820,
+    contentAspectRatio: 760 / 1320,
   );
 }
 
@@ -320,7 +340,7 @@ class AppModalShell extends StatelessWidget {
   }
 
   _ResolvedModalHorizontal _resolveHorizontal(Size size) {
-    final layoutWidth = layout.panelWidth(size);
+    final layoutWidth = layout.effectivePanelWidth(size, minimumSafeArea);
     final frame = visibleFrame;
     if (frame == null || frame.sourceWidth <= 0) {
       return _ResolvedModalHorizontal(
@@ -354,8 +374,8 @@ class AppModalShell extends StatelessWidget {
 
     return _ResolvedModalHorizontal(
       panelWidth: panelWidth,
-      safeLeft: math.max(0.0, minimumSafeArea.left - scaledLeftInset),
-      safeRight: math.max(0.0, minimumSafeArea.right - scaledRightInset),
+      safeLeft: 0,
+      safeRight: 0,
       offsetX: (scaledRightInset - scaledLeftInset) / 2,
     );
   }

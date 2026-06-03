@@ -1709,22 +1709,23 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                 height: rowHeight,
                 child: _buildTaskPanelEmptyRow(),
               ),
-            Positioned(
-              left:
-                  panelSize.width * 0.5 -
-                  pageControlGap * 0.5 -
-                  pageControlHitSize,
-              top: pageControlsCenterY - (pageControlHitSize * 0.5),
-              width: pageControlHitSize,
-              height: pageControlHitSize,
-              child: _buildTaskPanelPageControl(
-                active: _taskPanelCurrentPageIndex == 0,
-                enabled: _canGoToPreviousTaskPage,
-                visualSize: pageControlVisualSize,
-                semanticsLabel: '上一页',
-                onTap: _goToPreviousTaskPage,
+            if (_taskPanelPageCount > 1)
+              Positioned(
+                left:
+                    panelSize.width * 0.5 -
+                    pageControlGap * 0.5 -
+                    pageControlHitSize,
+                top: pageControlsCenterY - (pageControlHitSize * 0.5),
+                width: pageControlHitSize,
+                height: pageControlHitSize,
+                child: _buildTaskPanelPageControl(
+                  active: _taskPanelCurrentPageIndex == 0,
+                  enabled: _canGoToPreviousTaskPage,
+                  visualSize: pageControlVisualSize,
+                  semanticsLabel: '上一页',
+                  onTap: _goToPreviousTaskPage,
+                ),
               ),
-            ),
             if (_taskPanelPageCount > 1)
               Positioned(
                 left: panelSize.width * 0.5 - (pageIndicatorWidth * 0.5),
@@ -1744,19 +1745,20 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                   ),
                 ),
               ),
-            Positioned(
-              left: panelSize.width * 0.5 + pageControlGap * 0.5,
-              top: pageControlsCenterY - (pageControlHitSize * 0.5),
-              width: pageControlHitSize,
-              height: pageControlHitSize,
-              child: _buildTaskPanelPageControl(
-                active: _taskPanelCurrentPageIndex == _taskPanelPageCount - 1,
-                enabled: _canGoToNextTaskPage,
-                visualSize: pageControlVisualSize,
-                semanticsLabel: '下一页',
-                onTap: _goToNextTaskPage,
+            if (_taskPanelPageCount > 1)
+              Positioned(
+                left: panelSize.width * 0.5 + pageControlGap * 0.5,
+                top: pageControlsCenterY - (pageControlHitSize * 0.5),
+                width: pageControlHitSize,
+                height: pageControlHitSize,
+                child: _buildTaskPanelPageControl(
+                  active: _taskPanelCurrentPageIndex == _taskPanelPageCount - 1,
+                  enabled: _canGoToNextTaskPage,
+                  visualSize: pageControlVisualSize,
+                  semanticsLabel: '下一页',
+                  onTap: _goToNextTaskPage,
+                ),
               ),
-            ),
             Positioned(
               bottom: addButtonBottom,
               left: (panelSize.width - addButtonWidth) * 0.5,
