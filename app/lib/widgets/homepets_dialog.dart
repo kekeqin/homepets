@@ -16,6 +16,12 @@ const AppModalLayout _defaultHomePetsDialogLayout = AppModalLayout(
 typedef HomePetsDialogActionsBuilder =
     List<Widget> Function(BuildContext dialogContext);
 
+const Color _homePetsDialogOuterBorder = Color(0xFF8F623F);
+const Color _homePetsDialogInnerBorder = Color(0xFFFFF8E8);
+const BorderRadius _homePetsDialogInnerBorderRadius = BorderRadius.all(
+  Radius.circular(23),
+);
+
 Future<T?> showHomePetsDialog<T>({
   required BuildContext context,
   required String barrierLabel,
@@ -77,13 +83,30 @@ class HomePetsDialog extends StatelessWidget {
       backgroundColor: background == null ? null : Colors.transparent,
       gradient: background == null ? HomePetsDialogTheme.shellGradient : null,
       border: background == null
-          ? Border.all(color: HomePetsDialogTheme.panelBorder, width: 2)
+          ? Border.all(color: _homePetsDialogOuterBorder, width: 2.4)
           : null,
       boxShadow: HomePetsDialogTheme.shellShadow,
       child: Stack(
         fit: StackFit.passthrough,
         children: [
           if (background != null) Positioned.fill(child: background!),
+          if (background == null)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Padding(
+                  padding: const EdgeInsets.all(5),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: _homePetsDialogInnerBorderRadius,
+                      border: Border.all(
+                        color: _homePetsDialogInnerBorder,
+                        width: 1.2,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           Padding(
             padding: contentPadding,
             child: Column(
