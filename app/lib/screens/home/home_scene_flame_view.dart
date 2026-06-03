@@ -225,6 +225,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   bool _advanceHomeGuideAfterTaskPanelClose = false;
   OverlayEntry? _topSnackBarEntry;
   bool _paywallDialogVisible = false;
+  final math.Random _taskCompletionMessageRandom = math.Random();
 
   static const int _taskPanelPageSize = 4;
 
@@ -1129,27 +1130,12 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       .clamp(0, math.max(0, _taskPanelPageCount - 1))
       .toInt();
 
-  int get _taskPanelCurrentPageNumber => _taskPanelCurrentPageIndex + 1;
-
   bool get _canGoToPreviousTaskPage =>
       _taskPanelPageCount > 1 && _taskPanelCurrentPageIndex > 0;
 
   bool get _canGoToNextTaskPage =>
       _taskPanelPageCount > 1 &&
       _taskPanelCurrentPageIndex < _taskPanelPageCount - 1;
-
-  String get _taskPanelPageIndicatorLabel =>
-      '$_taskPanelCurrentPageNumber/$_taskPanelPageCount';
-
-  List<Map<String, dynamic>> get _visibleTaskPanelTasks {
-    final tasks = _activeHomeTasks;
-    final start = _taskPanelCurrentPageIndex * _taskPanelPageSize;
-    if (start >= tasks.length) {
-      return const <Map<String, dynamic>>[];
-    }
-    final end = math.min(start + _taskPanelPageSize, tasks.length);
-    return tasks.sublist(start, end);
-  }
 
   Rect _defaultTaskPanelOriginRect(Size size) {
     final width = math.min(size.width * 0.18, 118.0);
@@ -1620,6 +1606,25 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         final addButtonHeight =
             addButtonWidth / TaskBoardReferenceAsset.addTaskButtonAspectRatio;
         final addButtonBottom = panelSize.height * 0.060;
+        final activeTasks = _activeHomeTasks;
+        final pageCount = math.max(
+          1,
+          (activeTasks.length + _taskPanelPageSize - 1) ~/ _taskPanelPageSize,
+        );
+        final currentPageIndex = _taskPanelPageIndex
+            .clamp(0, math.max(0, pageCount - 1))
+            .toInt();
+        final visibleStart = currentPageIndex * _taskPanelPageSize;
+        final visibleTasks = visibleStart >= activeTasks.length
+            ? const <Map<String, dynamic>>[]
+            : activeTasks.sublist(
+                visibleStart,
+                math.min(visibleStart + _taskPanelPageSize, activeTasks.length),
+              );
+        final canGoToPreviousPage = pageCount > 1 && currentPageIndex > 0;
+        final canGoToNextPage =
+            pageCount > 1 && currentPageIndex < pageCount - 1;
+        final pageIndicatorLabel = '${currentPageIndex + 1}/$pageCount';
 
         return Stack(
           clipBehavior: Clip.none,
@@ -1690,18 +1695,18 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                 onTap: _hideTaskPanel,
               ),
             ),
-            for (var index = 0; index < _visibleTaskPanelTasks.length; index++)
+            for (var index = 0; index < visibleTasks.length; index++)
               Positioned(
                 left: rowLeft,
                 top: rowsTop + (index * (rowHeight + rowGap)),
                 width: rowWidth,
                 height: rowHeight,
                 child: _buildTaskPanelTaskRow(
-                  task: _visibleTaskPanelTasks[index],
+                  task: visibleTasks[index],
                   index: index,
                 ),
               ),
-            if (_visibleTaskPanelTasks.isEmpty)
+            if (visibleTasks.isEmpty)
               Positioned(
                 left: rowLeft,
                 top: rowsTop + rowHeight + rowGap,
@@ -1709,7 +1714,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                 height: rowHeight,
                 child: _buildTaskPanelEmptyRow(),
               ),
-            if (_taskPanelPageCount > 1)
+            if (pageCount > 1)
               Positioned(
                 left:
                     panelSize.width * 0.5 -
@@ -1719,14 +1724,14 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                 width: pageControlHitSize,
                 height: pageControlHitSize,
                 child: _buildTaskPanelPageControl(
-                  active: _taskPanelCurrentPageIndex == 0,
-                  enabled: _canGoToPreviousTaskPage,
+                  active: currentPageIndex == 0,
+                  enabled: canGoToPreviousPage,
                   visualSize: pageControlVisualSize,
                   semanticsLabel: '上一页',
                   onTap: _goToPreviousTaskPage,
                 ),
               ),
-            if (_taskPanelPageCount > 1)
+            if (pageCount > 1)
               Positioned(
                 left: panelSize.width * 0.5 - (pageIndicatorWidth * 0.5),
                 top: pageControlsCenterY - (pageIndicatorHeight * 0.5),
@@ -1734,7 +1739,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                 height: pageIndicatorHeight,
                 child: Center(
                   child: Text(
-                    _taskPanelPageIndicatorLabel,
+                    pageIndicatorLabel,
                     style: TextStyle(
                       color: const Color(0xFF5A4228),
                       fontSize: panelSize.width * 0.033,
@@ -1745,15 +1750,15 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                   ),
                 ),
               ),
-            if (_taskPanelPageCount > 1)
+            if (pageCount > 1)
               Positioned(
                 left: panelSize.width * 0.5 + pageControlGap * 0.5,
                 top: pageControlsCenterY - (pageControlHitSize * 0.5),
                 width: pageControlHitSize,
                 height: pageControlHitSize,
                 child: _buildTaskPanelPageControl(
-                  active: _taskPanelCurrentPageIndex == _taskPanelPageCount - 1,
-                  enabled: _canGoToNextTaskPage,
+                  active: currentPageIndex == pageCount - 1,
+                  enabled: canGoToNextPage,
                   visualSize: pageControlVisualSize,
                   semanticsLabel: '下一页',
                   onTap: _goToNextTaskPage,
@@ -2653,7 +2658,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         ? const <String>['我长大一点啦', '今天又进步啦', '能量满满！', '谢谢你陪我成长', '我变强一点啦']
         : const <String>['谢谢你！', '好开心呀', '收到奖励啦', '任务完成啦', '今天也很棒', '我会继续加油'];
 
-    return messages[math.Random().nextInt(messages.length)];
+    return messages[_taskCompletionMessageRandom.nextInt(messages.length)];
   }
 
   Future<int?> _pickCompletionMemberId() async {

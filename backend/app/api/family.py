@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.core.dependencies import (
     get_current_admin_with_active_access,
@@ -28,8 +28,21 @@ def _get_member_pet(db: Session, member_id: int) -> Pet | None:
     ).first()
 
 
-def _build_member_response(member: User, db: Session) -> MemberResponse:
-    pet = _get_member_pet(db, member.id or 0)
+def _get_latest_member_pets(db: Session, members: list[User]) -> dict[int, Pet]:
+    member_ids = [member.id for member in members if member.id is not None]
+    if not member_ids:
+        return {}
+
+    pets = db.exec(
+        select(Pet).where(col(Pet.owner_id).in_(member_ids)).order_by(Pet.created_at.desc())
+    ).all()
+    latest_pets: dict[int, Pet] = {}
+    for pet in pets:
+        latest_pets.setdefault(pet.owner_id, pet)
+    return latest_pets
+
+
+def _build_member_response(member: User, pet: Pet | None) -> MemberResponse:
     return MemberResponse(
         id=member.id or 0,
         nickname=member.nickname,
@@ -42,15 +55,22 @@ def _build_member_response(member: User, db: Session) -> MemberResponse:
     )
 
 
+def _build_single_member_response(member: User, db: Session) -> MemberResponse:
+    return _build_member_response(member, _get_member_pet(db, member.id or 0))
+
+
 def _build_family_response(family: Family, db: Session) -> FamilyResponse:
     members = db.exec(select(User).where(User.family_id == family.id)).all()
+    latest_pets = _get_latest_member_pets(db, members)
     return FamilyResponse(
         id=family.id,
         name=family.name,
         pet_title=family.pet_title,
         owner_id=family.owner_id,
         created_at=family.created_at,
-        members=[_build_member_response(member, db) for member in members],
+        members=[
+            _build_member_response(member, latest_pets.get(member.id or 0)) for member in members
+        ],
     )
 
 
@@ -147,7 +167,7 @@ def add_member(
 
     db.commit()
     db.refresh(member)
-    return _build_member_response(member, db)
+    return _build_single_member_response(member, db)
 
 
 # 为家庭成员选择宠物；宠物创建后只能通过完成任务成长。
@@ -189,7 +209,7 @@ def set_member_pet(
     pet = Pet(**create_member_pet(family_id, member_id, pet_type, pet_name))
     db.add(pet)
     db.commit()
-    return _build_member_response(member, db)
+    return _build_single_member_response(member, db)
 
 
 # 列出家庭成员和每个成员的选宠状态。
@@ -205,7 +225,8 @@ def list_members(
     if current_user.family_id != family_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权查看此家庭")
     members = db.exec(select(User).where(User.family_id == family_id)).all()
-    return [_build_member_response(member, db) for member in members]
+    latest_pets = _get_latest_member_pets(db, members)
+    return [_build_member_response(member, latest_pets.get(member.id or 0)) for member in members]
 
 
 # 管理员删除家庭成员，同时删除该成员名下宠物。

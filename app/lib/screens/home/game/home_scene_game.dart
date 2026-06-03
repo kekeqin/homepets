@@ -70,6 +70,16 @@ double _homeSceneCurrentDevicePixelRatio() {
   return implicitView?.devicePixelRatio ?? 1;
 }
 
+void _removeMatchingChildEffects(
+  PositionComponent component,
+  bool Function(Component child) matches,
+) {
+  final effects = component.children.where(matches).toList();
+  for (final effect in effects) {
+    effect.removeFromParent();
+  }
+}
+
 const List<_PetCandidatePoint>
 _defaultHomePetCandidatePoints = <_PetCandidatePoint>[
   // 1. Sofa left seat, seated on the cushion instead of the rug edge.
@@ -4147,12 +4157,8 @@ abstract class _AnimatedSceneComponent extends PositionComponent
   }
 
   void makeEntryVisibleImmediately() {
-    for (final effect in children.whereType<MoveEffect>().toList()) {
-      effect.removeFromParent();
-    }
-    for (final effect in children.whereType<OpacityEffect>().toList()) {
-      effect.removeFromParent();
-    }
+    _removeMatchingChildEffects(this, (child) => child is MoveEffect);
+    _removeMatchingChildEffects(this, (child) => child is OpacityEffect);
     position = _restPosition.clone();
     opacity = 1;
   }
@@ -6107,19 +6113,14 @@ class _TaskPanelOverlay extends PositionComponent
   }
 
   void _clearTransformEffects(PositionComponent component) {
-    final effects = component.children
-        .where((child) => child is MoveEffect || child is ScaleEffect)
-        .toList();
-    for (final effect in effects) {
-      effect.removeFromParent();
-    }
+    _removeMatchingChildEffects(
+      component,
+      (child) => child is MoveEffect || child is ScaleEffect,
+    );
   }
 
   void _clearOpacityEffects(PositionComponent component) {
-    final effects = component.children.whereType<OpacityEffect>().toList();
-    for (final effect in effects) {
-      effect.removeFromParent();
-    }
+    _removeMatchingChildEffects(component, (child) => child is OpacityEffect);
   }
 
   @override
@@ -6330,10 +6331,7 @@ class _TaskPanelOverlay extends PositionComponent
   }
 
   void _clearMoveEffects(PositionComponent component) {
-    final effects = component.children.whereType<MoveEffect>().toList();
-    for (final effect in effects) {
-      effect.removeFromParent();
-    }
+    _removeMatchingChildEffects(component, (child) => child is MoveEffect);
   }
 
   void _rebuildVisibleTaskItems({required bool animated}) {

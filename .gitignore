@@ -67,7 +67,12 @@ run/
 # Local debug artifacts
 checkbox_debug.png
 .codex/
+.reasonix/
 .android/
 .android_home/
+tmp/
+app/.flutter
+app/.flutter_tool_state
+generated/*.wav
 homepets_*.png
 homepets_*_preview.wav

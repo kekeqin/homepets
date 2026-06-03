@@ -54,7 +54,6 @@ def _ensure_admin_family(db: Session, user: User) -> None:
     user.family_id = family.id
     db.add(user)
     db.commit()
-    ensure_subscription_for_user(db, user)
 
 
 # 注册家长账号，并自动创建默认家庭。
