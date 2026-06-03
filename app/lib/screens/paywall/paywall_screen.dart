@@ -532,11 +532,11 @@ class _PaywallBenefitRow extends StatelessWidget {
           ),
           SizedBox(width: 14),
           Expanded(
-            child: _BenefitItem(icon: Icons.task_alt, label: '任务管理'),
+            child: _BenefitItem(icon: Icons.task_alt, label: '亲子任务'),
           ),
           SizedBox(width: 14),
           Expanded(
-            child: _BenefitItem(icon: Icons.auto_graph, label: '成长记录'),
+            child: _BenefitItem(icon: Icons.auto_graph, label: '宠物成长'),
           ),
         ],
       ),
@@ -559,12 +559,12 @@ class _BenefitItem extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE9CDA3), width: 2),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: const Color(0xFF8D6A3E), size: 42),
-            const SizedBox(height: 10),
+            Icon(icon, color: const Color(0xFF8D6A3E), size: 68),
+            const SizedBox(height: 12),
             Text(
               label,
               maxLines: 1,
@@ -572,7 +572,7 @@ class _BenefitItem extends StatelessWidget {
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Color(0xFF5F4126),
-                fontSize: 18,
+                fontSize: 26,
                 fontWeight: FontWeight.w900,
                 height: 1,
               ),
@@ -677,7 +677,7 @@ class _PaywallUnlockHitTarget extends StatelessWidget {
       child: Semantics(
         button: true,
         enabled: enabled,
-        label: '继续使用 HomePets',
+        label: canStartPurchase ? '订阅' : '请家长订阅后继续使用',
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: enabled ? onPressed : null,
@@ -708,7 +708,7 @@ class _PaywallUnlockHitTarget extends StatelessWidget {
                         ),
                       )
                     : Text(
-                        canStartPurchase ? '继续使用 HomePets' : '请家长订阅后继续使用',
+                        canStartPurchase ? '订阅' : '请家长订阅后继续使用',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
