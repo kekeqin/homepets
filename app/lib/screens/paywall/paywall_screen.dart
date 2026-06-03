@@ -174,7 +174,7 @@ class _PaywallContentState extends ConsumerState<PaywallContent> {
         : _slotForSelectedPackage(slotPackages, state.selectedPackage) ??
               _selectedSlot;
     final subscriptionState = ref.watch(subscriptionProvider);
-    final statusMessage = _statusMessageFor(state, subscriptionState);
+    final statusMessage = _inlineStatusMessageFor(state, subscriptionState);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -218,6 +218,8 @@ class _PaywallContentState extends ConsumerState<PaywallContent> {
                     _PaywallPlanCard(
                       target: _PaywallSprite.monthlyCardTarget,
                       fallbackTitle: '月度订阅',
+                      fallbackPrice: '¥9.99',
+                      fallbackPeriod: '每月 · 自动续订',
                       accentColor: const Color(0xFFD15F52),
                       selected: selectedSlot == 0,
                       package: slotPackages[0],
@@ -226,6 +228,8 @@ class _PaywallContentState extends ConsumerState<PaywallContent> {
                     _PaywallPlanCard(
                       target: _PaywallSprite.annualCardTarget,
                       fallbackTitle: '年度订阅',
+                      fallbackPrice: '¥79.98',
+                      fallbackPeriod: '每年 · 自动续订',
                       accentColor: const Color(0xFF6F9A4A),
                       selected: selectedSlot == 1,
                       package: slotPackages[1],
@@ -233,7 +237,9 @@ class _PaywallContentState extends ConsumerState<PaywallContent> {
                     ),
                     _PaywallPlanCard(
                       target: _PaywallSprite.lifetimeCardTarget,
-                      fallbackTitle: '家庭会员',
+                      fallbackTitle: '永久会员',
+                      fallbackPrice: '¥99.99',
+                      fallbackPeriod: '一次购买',
                       accentColor: const Color(0xFFE09A28),
                       selected: selectedSlot == 2,
                       package: slotPackages[2],
@@ -324,6 +330,8 @@ class _PaywallPlanCard extends StatelessWidget {
   const _PaywallPlanCard({
     required this.target,
     required this.fallbackTitle,
+    required this.fallbackPrice,
+    required this.fallbackPeriod,
     required this.accentColor,
     required this.selected,
     required this.package,
@@ -332,6 +340,8 @@ class _PaywallPlanCard extends StatelessWidget {
 
   final Rect target;
   final String fallbackTitle;
+  final String fallbackPrice;
+  final String fallbackPeriod;
   final Color accentColor;
   final bool selected;
   final Package? package;
@@ -341,9 +351,12 @@ class _PaywallPlanCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final package = this.package;
     final title = package == null ? fallbackTitle : _packageTitle(package);
-    final price = package?.storeProduct.priceString ?? '加载中';
+    final price = _rmbPriceLabel(
+      package?.storeProduct.priceString,
+      fallbackPrice,
+    );
     final period = package == null
-        ? '等待商店返回真实价格'
+        ? fallbackPeriod
         : _packagePeriodLabel(package);
     final borderColor = selected ? const Color(0xFFD15F52) : accentColor;
     return Positioned.fromRect(
@@ -351,9 +364,7 @@ class _PaywallPlanCard extends StatelessWidget {
       child: Semantics(
         button: true,
         selected: selected,
-        label: package == null
-            ? '$fallbackTitle，正在加载'
-            : _packageAccessibilityLabel(package),
+        label: '$title，$price，$period',
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: package == null ? null : onTap,
@@ -1144,6 +1155,18 @@ bool _hasError(RevenueCatState state) {
       state.restoreError != null;
 }
 
+String? _inlineStatusMessageFor(
+  RevenueCatState state,
+  SubscriptionState subscriptionState,
+) {
+  if (_hasError(state) ||
+      (state.isLoadingOfferings && !state.hasPackages) ||
+      (!state.hasPackages && state.isInitialized)) {
+    return null;
+  }
+  return _statusMessageFor(state, subscriptionState);
+}
+
 String? _statusMessageFor(
   RevenueCatState state,
   SubscriptionState subscriptionState,
@@ -1173,37 +1196,101 @@ String? _statusMessageFor(
   if (state.isRestoring) {
     return '正在恢复购买...';
   }
-  if (_hasError(state)) {
-    return '商店暂时不可用，请稍后再试';
-  }
-  if (state.isLoadingOfferings && !state.hasPackages) {
-    return '正在读取会员套餐...';
-  }
-  if (!state.hasPackages && state.isInitialized) {
-    return '暂无可购买套餐';
-  }
   return null;
 }
 
-String _packageAccessibilityLabel(Package package) {
-  return '${_packageTitle(package)}，${package.storeProduct.priceString}，${_packagePeriodLabel(package)}';
+String _rmbPriceLabel(String? storePrice, String fallbackPrice) {
+  final price = storePrice?.trim();
+  if (price == null || price.isEmpty) {
+    return fallbackPrice;
+  }
+  return price.replaceFirst(RegExp(r'^(?:US\$\s*|USD\s*|\$\s*)'), '¥');
 }
 
 String _packageTitle(Package package) {
+  final packageTypeTitle = _packageTypeTitle(package.packageType);
+  if (packageTypeTitle != null) {
+    return packageTypeTitle;
+  }
+
+  final inferredTitle = _packageSignatureTitle(
+    '${package.identifier} ${package.storeProduct.identifier} ${package.storeProduct.title}',
+  );
+  if (inferredTitle != null) {
+    return inferredTitle;
+  }
+
   final storeTitle = package.storeProduct.title.trim();
   if (storeTitle.isNotEmpty) {
     return storeTitle;
   }
-  return switch (package.packageType) {
-    PackageType.weekly => '周卡',
-    PackageType.monthly => '月卡',
-    PackageType.twoMonth => '双月卡',
-    PackageType.threeMonth => '季卡',
-    PackageType.sixMonth => '半年卡',
-    PackageType.annual => '年卡',
+  return '会员套餐';
+}
+
+String? _packageTypeTitle(PackageType packageType) {
+  return switch (packageType) {
+    PackageType.weekly => '周度',
+    PackageType.monthly => '月度',
+    PackageType.twoMonth => '双月',
+    PackageType.threeMonth => '季度',
+    PackageType.sixMonth => '半年',
+    PackageType.annual => '年度',
     PackageType.lifetime => '永久会员',
-    PackageType.custom || PackageType.unknown => '会员套餐',
+    PackageType.custom || PackageType.unknown => null,
   };
+}
+
+String? _packageSignatureTitle(String value) {
+  final normalized = value.toLowerCase();
+  if (normalized.contains('lifetime') ||
+      normalized.contains('forever') ||
+      normalized.contains('permanent') ||
+      normalized.contains('永久')) {
+    return '永久会员';
+  }
+  if (normalized.contains('annual') ||
+      normalized.contains('yearly') ||
+      normalized.contains('year') ||
+      normalized.contains('年度') ||
+      normalized.contains('年卡')) {
+    return '年度';
+  }
+  if (normalized.contains('six_month') ||
+      normalized.contains('six-month') ||
+      normalized.contains('6month') ||
+      normalized.contains('6_month') ||
+      normalized.contains('half') ||
+      normalized.contains('半年')) {
+    return '半年';
+  }
+  if (normalized.contains('three_month') ||
+      normalized.contains('three-month') ||
+      normalized.contains('3month') ||
+      normalized.contains('3_month') ||
+      normalized.contains('quarter') ||
+      normalized.contains('季度')) {
+    return '季度';
+  }
+  if (normalized.contains('two_month') ||
+      normalized.contains('two-month') ||
+      normalized.contains('2month') ||
+      normalized.contains('2_month') ||
+      normalized.contains('双月')) {
+    return '双月';
+  }
+  if (normalized.contains('monthly') ||
+      normalized.contains('month') ||
+      normalized.contains('月度') ||
+      normalized.contains('月卡')) {
+    return '月度';
+  }
+  if (normalized.contains('weekly') ||
+      normalized.contains('week') ||
+      normalized.contains('周度') ||
+      normalized.contains('周卡')) {
+    return '周度';
+  }
+  return null;
 }
 
 String _packagePeriodLabel(Package package) {
