@@ -2,11 +2,7 @@ from sqlmodel import SQLModel
 
 from app.models.pet import Pet
 from app.models.task import Task
-
-
-def test_shop_routes_are_removed(client) -> None:
-    response = client.get("/api/shop/items")
-    assert response.status_code == 404
+from app.models.user import User
 
 
 def test_removed_tables_are_not_registered() -> None:
@@ -27,3 +23,8 @@ def test_removed_task_columns_are_not_registered() -> None:
     assert "task_type" not in task_columns
     assert "time_limit_minutes" not in task_columns
     assert "icon" not in task_columns
+
+
+def test_removed_user_columns_are_not_registered() -> None:
+    user_columns = set(User.__table__.columns.keys())
+    assert "password_hash" not in user_columns

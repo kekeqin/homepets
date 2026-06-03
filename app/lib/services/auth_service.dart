@@ -6,25 +6,14 @@ class AuthService {
 
   AuthService(this._apiClient);
 
-  Future<Map<String, dynamic>> register({
-    required String phone,
-    required String password,
-    required String nickname,
-  }) async {
-    final response = await _apiClient.dio.post(
-      '/api/auth/register',
-      data: {'phone': phone, 'password': password, 'nickname': nickname},
-    );
-    return response.data as Map<String, dynamic>;
+  Future<void> sendSmsCode({required String phone}) async {
+    await _apiClient.dio.post('/api/auth/sms-code', data: {'phone': phone});
   }
 
-  Future<String> login({
-    required String phone,
-    required String password,
-  }) async {
+  Future<String> login({required String phone, required String code}) async {
     final response = await _apiClient.dio.post(
       '/api/auth/login',
-      data: {'phone': phone, 'password': password},
+      data: {'phone': phone, 'code': code},
     );
     final token = response.data['access_token'] as String;
     await _apiClient.saveToken(token);

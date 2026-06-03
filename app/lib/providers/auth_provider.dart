@@ -134,12 +134,39 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> login(String phone, String password) async {
+  Future<bool> sendSmsCode(String phone) async {
+    state = state.copyWith(error: null);
+
+    try {
+      await _authService.sendSmsCode(phone: phone);
+      return true;
+    } catch (error) {
+      state = state.copyWith(
+        isInitialized: true,
+        error: friendlyApiErrorMessage(
+          error,
+          fallbackMessage:
+              '\u9a8c\u8bc1\u7801\u53d1\u9001\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5',
+          networkMessage:
+              '\u65e0\u6cd5\u8fde\u63a5\u670d\u52a1\u5668\uff0c\u8bf7\u5148\u542f\u52a8\u540e\u7aef',
+          statusMessages: const {
+            429:
+                '\u83b7\u53d6\u592a\u9891\u7e41\uff0c\u8bf7\u7a0d\u540e\u518d\u8bd5',
+            422: '\u8bf7\u8f93\u5165\u6709\u6548\u624b\u673a\u53f7',
+            503: '\u77ed\u4fe1\u670d\u52a1\u5c1a\u672a\u914d\u7f6e',
+          },
+        ),
+      );
+      return false;
+    }
+  }
+
+  Future<bool> login(String phone, String code) async {
     final requestVersion = ++_authRequestVersion;
     state = state.copyWith(isLoading: true, isInitialized: true, error: null);
 
     try {
-      await _authService.login(phone: phone, password: password);
+      await _authService.login(phone: phone, code: code);
       final user = await _authService.getMe();
 
       if (requestVersion != _authRequestVersion) {
@@ -171,42 +198,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
           fallbackMessage:
               '\u767b\u5f55\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5',
           unauthorizedMessage:
-              '\u624b\u673a\u53f7\u6216\u5bc6\u7801\u9519\u8bef',
-          networkMessage:
-              '\u65e0\u6cd5\u8fde\u63a5\u670d\u52a1\u5668\uff0c\u8bf7\u5148\u542f\u52a8\u540e\u7aef',
-        ),
-      );
-      return false;
-    }
-  }
-
-  Future<bool> register(String phone, String password, String nickname) async {
-    state = state.copyWith(isLoading: true, isInitialized: true, error: null);
-
-    try {
-      await _authService.register(
-        phone: phone,
-        password: password,
-        nickname: nickname,
-      );
-      return await login(phone, password);
-    } catch (error) {
-      await _authService.logout();
-      state = state.copyWith(
-        isAuthenticated: false,
-        isLoading: false,
-        isInitialized: true,
-        user: null,
-        error: friendlyApiErrorMessage(
-          error,
-          fallbackMessage:
-              '\u6ce8\u518c\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5',
+              '\u9a8c\u8bc1\u7801\u9519\u8bef\u6216\u5df2\u8fc7\u671f',
           networkMessage:
               '\u65e0\u6cd5\u8fde\u63a5\u670d\u52a1\u5668\uff0c\u8bf7\u5148\u542f\u52a8\u540e\u7aef',
           statusMessages: const {
-            409: '\u8be5\u624b\u673a\u53f7\u5df2\u6ce8\u518c',
-            422:
-                '\u8bf7\u68c0\u67e5\u624b\u673a\u53f7\u3001\u5bc6\u7801\u548c\u6635\u79f0\u662f\u5426\u5408\u6cd5',
+            429:
+                '\u5c1d\u8bd5\u6b21\u6570\u8fc7\u591a\uff0c\u8bf7\u7a0d\u540e\u518d\u8bd5',
+            422: '\u8bf7\u68c0\u67e5\u624b\u673a\u53f7\u548c\u9a8c\u8bc1\u7801',
+            503: '\u77ed\u4fe1\u670d\u52a1\u5c1a\u672a\u914d\u7f6e',
           },
         ),
       );

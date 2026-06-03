@@ -1,15 +1,17 @@
 from pydantic import BaseModel, Field
 
 
-class RegisterRequest(BaseModel):
-    phone: str = Field(min_length=11, max_length=15, pattern=r"^\d+$")
-    password: str = Field(min_length=6, max_length=50)
-    nickname: str = Field(min_length=1, max_length=50)
+class SmsCodeRequest(BaseModel):
+    phone: str = Field(min_length=11, max_length=11, pattern=r"^1\d{10}$")
+
+
+class SmsCodeResponse(BaseModel):
+    cooldown_seconds: int
 
 
 class LoginRequest(BaseModel):
-    phone: str
-    password: str
+    phone: str = Field(min_length=11, max_length=11, pattern=r"^1\d{10}$")
+    code: str = Field(min_length=4, max_length=8, pattern=r"^\d+$")
 
 
 class TokenResponse(BaseModel):

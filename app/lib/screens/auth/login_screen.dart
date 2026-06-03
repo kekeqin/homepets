@@ -1,9 +1,9 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../widgets/app_modal_shell.dart';
@@ -14,8 +14,7 @@ class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   static const submitButtonKey = Key('login_submit_button');
-  static const registerButtonKey = Key('login_register_button');
-  static const forgotPasswordButtonKey = Key('login_forgot_password_button');
+  static const sendCodeButtonKey = Key('login_send_code_button');
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -23,26 +22,32 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   static const String _backgroundAsset = 'assets/images/ui/login/login-bg.png';
+  static const int _countdownSeconds = 60;
 
   final _phoneController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _codeController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  Timer? _resendTimer;
   String? _localError;
   bool _hideAuthErrorAfterEdit = false;
+  bool _isSendingCode = false;
+  bool _hasSentCode = false;
+  int _resendSeconds = 0;
 
   @override
   void initState() {
     super.initState();
     _phoneController.addListener(_handleInputChanged);
-    _passwordController.addListener(_handleInputChanged);
+    _codeController.addListener(_handleInputChanged);
   }
 
   @override
   void dispose() {
+    _resendTimer?.cancel();
     _phoneController.removeListener(_handleInputChanged);
-    _passwordController.removeListener(_handleInputChanged);
+    _codeController.removeListener(_handleInputChanged);
     _phoneController.dispose();
-    _passwordController.dispose();
+    _codeController.dispose();
     super.dispose();
   }
 
@@ -57,14 +62,59 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
   }
 
-  String? _inputErrorMessage() {
-    if (_phoneController.text.trim().length < 11) {
+  String? _phoneErrorMessage() {
+    if (_phoneController.text.trim().length != 11) {
       return '\u8bf7\u8f93\u5165\u6709\u6548\u624b\u673a\u53f7';
     }
-    if (_passwordController.text.length < 6) {
-      return '\u5bc6\u7801\u81f3\u5c11 6 \u4f4d';
+    return null;
+  }
+
+  String? _inputErrorMessage() {
+    final phoneError = _phoneErrorMessage();
+    if (phoneError != null) {
+      return phoneError;
+    }
+    if (_codeController.text.trim().isEmpty) {
+      return '\u8bf7\u8f93\u5165\u77ed\u4fe1\u9a8c\u8bc1\u7801';
+    }
+    if (_codeController.text.trim().length < 4) {
+      return '\u9a8c\u8bc1\u7801\u81f3\u5c11 4 \u4f4d';
     }
     return null;
+  }
+
+  Future<void> _sendCode() async {
+    final phoneError = _phoneErrorMessage();
+    if (phoneError != null) {
+      setState(() {
+        _localError = phoneError;
+        _hideAuthErrorAfterEdit = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _localError = null;
+      _hideAuthErrorAfterEdit = false;
+      _isSendingCode = true;
+    });
+    FocusScope.of(context).unfocus();
+
+    final success = await ref
+        .read(authProvider.notifier)
+        .sendSmsCode(_phoneController.text.trim());
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isSendingCode = false;
+      _hideAuthErrorAfterEdit = !success;
+    });
+
+    if (success) {
+      _startCountdown();
+    }
   }
 
   Future<void> _login() async {
@@ -74,7 +124,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       setState(() {
         _localError =
             inputError ??
-            '\u8bf7\u68c0\u67e5\u624b\u673a\u53f7\u548c\u5bc6\u7801';
+            '\u8bf7\u68c0\u67e5\u624b\u673a\u53f7\u548c\u9a8c\u8bc1\u7801';
         _hideAuthErrorAfterEdit = false;
       });
       return;
@@ -87,17 +137,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     FocusScope.of(context).unfocus();
     await ref
         .read(authProvider.notifier)
-        .login(_phoneController.text.trim(), _passwordController.text);
+        .login(_phoneController.text.trim(), _codeController.text.trim());
   }
 
-  void _showForgotPasswordMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          '\u8bf7\u8054\u7cfb\u5bb6\u5ead\u7ba1\u7406\u5458\u91cd\u7f6e\u5bc6\u7801',
-        ),
-      ),
-    );
+  void _startCountdown() {
+    _resendTimer?.cancel();
+    setState(() {
+      _hasSentCode = true;
+      _resendSeconds = _countdownSeconds;
+    });
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_resendSeconds <= 1) {
+        timer.cancel();
+        setState(() => _resendSeconds = 0);
+        return;
+      }
+      setState(() => _resendSeconds--);
+    });
   }
 
   @override
@@ -153,12 +213,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: _LoginPanel(
                         formKey: _formKey,
                         phoneController: _phoneController,
-                        passwordController: _passwordController,
+                        codeController: _codeController,
                         authState: authState,
                         visibleError: visibleError,
                         onLogin: _login,
-                        onRegister: () => context.go('/register'),
-                        onForgotPassword: _showForgotPasswordMessage,
+                        onSendCode: _sendCode,
+                        sendCodeLabel: _sendCodeLabel,
+                        canSendCode:
+                            !_isSendingCode &&
+                            _resendSeconds == 0 &&
+                            !authState.isLoading,
                       ),
                     ),
                   ),
@@ -170,28 +234,42 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
     );
   }
+
+  String get _sendCodeLabel {
+    if (_isSendingCode) {
+      return '\u53d1\u9001\u4e2d';
+    }
+    if (_resendSeconds > 0) {
+      return '${_resendSeconds}s';
+    }
+    return _hasSentCode
+        ? '\u91cd\u65b0\u53d1\u9001'
+        : '\u83b7\u53d6\u9a8c\u8bc1\u7801';
+  }
 }
 
 class _LoginPanel extends StatelessWidget {
   const _LoginPanel({
     required this.formKey,
     required this.phoneController,
-    required this.passwordController,
+    required this.codeController,
     required this.authState,
     required this.visibleError,
     required this.onLogin,
-    required this.onRegister,
-    required this.onForgotPassword,
+    required this.onSendCode,
+    required this.sendCodeLabel,
+    required this.canSendCode,
   });
 
   final GlobalKey<FormState> formKey;
   final TextEditingController phoneController;
-  final TextEditingController passwordController;
+  final TextEditingController codeController;
   final AuthState authState;
   final String? visibleError;
   final Future<void> Function() onLogin;
-  final VoidCallback onRegister;
-  final VoidCallback onForgotPassword;
+  final Future<void> Function() onSendCode;
+  final String sendCodeLabel;
+  final bool canSendCode;
 
   @override
   Widget build(BuildContext context) {
@@ -225,38 +303,62 @@ class _LoginPanel extends StatelessWidget {
                   const SizedBox(height: 26),
                   HomePetsTextField(
                     controller: phoneController,
-                    hintText: '\u624b\u673a\u53f7 / \u8d26\u53f7',
+                    hintText: '\u624b\u673a\u53f7',
                     icon: Icons.phone_android_rounded,
                     keyboardType: TextInputType.phone,
                     textInputAction: TextInputAction.next,
-                    autofillHints: const [AutofillHints.username],
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    autofillHints: const [AutofillHints.telephoneNumber],
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(11),
+                    ],
                     validator: (value) {
-                      if (value == null || value.trim().length < 11) {
+                      if (value == null || value.trim().length != 11) {
                         return '\u8bf7\u8f93\u5165\u6709\u6548\u624b\u673a\u53f7';
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 14),
-                  HomePetsTextField(
-                    controller: passwordController,
-                    hintText: '\u5bc6\u7801',
-                    icon: Icons.lock_outline_rounded,
-                    obscureText: true,
-                    textInputAction: TextInputAction.done,
-                    autofillHints: const [AutofillHints.password],
-                    onFieldSubmitted: (_) {
-                      if (!authState.isLoading) {
-                        onLogin();
-                      }
-                    },
-                    validator: (value) {
-                      if (value == null || value.length < 6) {
-                        return '\u5bc6\u7801\u81f3\u5c11 6 \u4f4d';
-                      }
-                      return null;
-                    },
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: HomePetsTextField(
+                          controller: codeController,
+                          hintText: '\u9a8c\u8bc1\u7801',
+                          icon: Icons.sms_outlined,
+                          keyboardType: TextInputType.number,
+                          textInputAction: TextInputAction.done,
+                          autofillHints: const [AutofillHints.oneTimeCode],
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(8),
+                          ],
+                          onFieldSubmitted: (_) {
+                            if (!authState.isLoading) {
+                              onLogin();
+                            }
+                          },
+                          validator: (value) {
+                            final code = value?.trim() ?? '';
+                            if (code.isEmpty) {
+                              return '\u8bf7\u8f93\u5165\u77ed\u4fe1\u9a8c\u8bc1\u7801';
+                            }
+                            if (code.length < 4) {
+                              return '\u9a8c\u8bc1\u7801\u81f3\u5c11 4 \u4f4d';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      _SendCodeButton(
+                        key: LoginScreen.sendCodeButtonKey,
+                        label: sendCodeLabel,
+                        onPressed: canSendCode ? onSendCode : null,
+                      ),
+                    ],
                   ),
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 160),
@@ -281,24 +383,8 @@ class _LoginPanel extends StatelessWidget {
                     key: LoginScreen.submitButtonKey,
                     label: authState.isLoading
                         ? '\u767b\u5f55\u4e2d'
-                        : '\u767b\u5f55',
+                        : '\u9a8c\u8bc1\u767b\u5f55',
                     onPressed: authState.isLoading ? null : onLogin,
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      _LoginTextAction(
-                        key: LoginScreen.registerButtonKey,
-                        label: '\u6ce8\u518c\u8d26\u53f7',
-                        onPressed: onRegister,
-                      ),
-                      const Spacer(),
-                      _LoginTextAction(
-                        key: LoginScreen.forgotPasswordButtonKey,
-                        label: '\u5fd8\u8bb0\u5bc6\u7801\uff1f',
-                        onPressed: onForgotPassword,
-                      ),
-                    ],
                   ),
                 ],
               ),
@@ -318,7 +404,7 @@ class _LoginPanelHeader extends StatelessWidget {
     return const Column(
       children: [
         Text(
-          '\u6b22\u8fce\u56de\u5bb6',
+          '\u624b\u673a\u767b\u5f55',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Color(0xFF3E2A1F),
@@ -345,34 +431,95 @@ class _LoginPanelHeader extends StatelessWidget {
   }
 }
 
-class _LoginTextAction extends StatelessWidget {
-  const _LoginTextAction({
+class _SendCodeButton extends StatefulWidget {
+  const _SendCodeButton({
     super.key,
     required this.label,
     required this.onPressed,
   });
 
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
+
+  @override
+  State<_SendCodeButton> createState() => _SendCodeButtonState();
+}
+
+class _SendCodeButtonState extends State<_SendCodeButton> {
+  bool _pressed = false;
+
+  bool get _enabled => widget.onPressed != null;
+
+  void _setPressed(bool pressed) {
+    if (!_enabled || _pressed == pressed) {
+      return;
+    }
+    setState(() => _pressed = pressed);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
-      onPressed: onPressed,
-      style: TextButton.styleFrom(
-        foregroundColor: const Color(0xFF4D3623),
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-        minimumSize: const Size(80, 40),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 17,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0,
+    Widget button = AnimatedOpacity(
+      duration: const Duration(milliseconds: 120),
+      opacity: _enabled ? 1 : 0.54,
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 90),
+        curve: Curves.easeOutCubic,
+        scale: _pressed ? 0.97 : 1,
+        child: SizedBox(
+          width: 116,
+          height: 64,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF4DC),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: const Color(0xFF4A2C1B), width: 2.3),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x185E3A20),
+                  blurRadius: 7,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    widget.label,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      color: Color(0xFF4D3623),
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
+    );
+
+    button = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: widget.onPressed,
+      onTapDown: (_) => _setPressed(true),
+      onTapCancel: () => _setPressed(false),
+      onTapUp: (_) => _setPressed(false),
+      child: button,
+    );
+
+    return Semantics(
+      button: true,
+      enabled: _enabled,
+      label: widget.label,
+      child: button,
     );
   }
 }

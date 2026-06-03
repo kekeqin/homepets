@@ -1,15 +1,38 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlmodel import Session, select
 
+from app.core.config import settings
 from app.core.dependencies import get_current_user, get_db
 from app.core.family_names import default_family_name, default_family_names_for
-from app.core.security import create_access_token, hash_password, verify_password
+from app.core.security import create_access_token
 from app.models.family import Family
 from app.models.user import User
-from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserResponse
+from app.schemas.auth import (
+    LoginRequest,
+    SmsCodeRequest,
+    SmsCodeResponse,
+    TokenResponse,
+    UserResponse,
+)
+from app.services.sms_rate_limiter import SmsRateLimiter
+from app.services.sms_verification import (
+    SmsVerificationClient,
+    SmsVerificationConfigurationError,
+    SmsVerificationError,
+    get_sms_verification_client,
+)
 from app.services.subscription_service import ensure_subscription_for_user
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+sms_rate_limiter = SmsRateLimiter(
+    send_cooldown_seconds=settings.ALIYUN_SMS_RESEND_INTERVAL_SECONDS,
+    phone_send_limit_per_hour=settings.SMS_SEND_RATE_LIMIT_PER_PHONE_PER_HOUR,
+    ip_send_limit_per_hour=settings.SMS_SEND_RATE_LIMIT_PER_IP_PER_HOUR,
+    phone_verify_failure_limit=settings.SMS_VERIFY_FAILURE_LIMIT_PER_PHONE,
+    ip_verify_failure_limit=settings.SMS_VERIFY_FAILURE_LIMIT_PER_IP,
+    verify_failure_window_seconds=settings.SMS_VERIFY_FAILURE_WINDOW_SECONDS,
+)
 
 
 def _normalize_default_family_name(db: Session, user: User, family: Family) -> None:
@@ -28,7 +51,7 @@ def _normalize_default_family_name(db: Session, user: User, family: Family) -> N
 
 
 def _ensure_admin_family(db: Session, user: User) -> None:
-    """管理员登录或注册后必须拥有一个家庭。"""
+    """Ensure each admin user owns or belongs to a family after login."""
     if user.role != "admin":
         return
 
@@ -56,35 +79,81 @@ def _ensure_admin_family(db: Session, user: User) -> None:
     db.commit()
 
 
-# 注册家长账号，并自动创建默认家庭。
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def register(body: RegisterRequest, db: Session = Depends(get_db)) -> User:
-    existing = db.exec(select(User).where(User.phone == body.phone)).first()
-    if existing:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="该手机号已注册")
+@router.post("/sms-code", response_model=SmsCodeResponse)
+def send_sms_code(
+    body: SmsCodeRequest,
+    request: Request,
+    sms_client: SmsVerificationClient = Depends(get_sms_verification_client),
+) -> SmsCodeResponse:
+    ip_address = _client_host(request)
+    retry_after = sms_rate_limiter.retry_after_send(body.phone, ip_address)
+    if retry_after > 0:
+        raise _rate_limited(
+            code="SMS_SEND_RATE_LIMITED",
+            message="验证码发送太频繁，请稍后再试",
+            retry_after_seconds=retry_after,
+        )
 
-    user = User(
-        phone=body.phone,
-        password_hash=hash_password(body.password),
-        nickname=body.nickname,
-        role="admin",
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+    try:
+        sms_client.send_code(body.phone)
+    except SmsVerificationConfigurationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="短信服务尚未配置",
+        ) from exc
+    except SmsVerificationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="验证码发送失败，请稍后再试",
+        ) from exc
 
-    _ensure_admin_family(db, user)
-    ensure_subscription_for_user(db, user)
-    db.refresh(user)
-    return user
+    sms_rate_limiter.record_send(body.phone, ip_address)
+    return SmsCodeResponse(cooldown_seconds=settings.ALIYUN_SMS_RESEND_INTERVAL_SECONDS)
 
 
-# 使用手机号和密码登录，返回 Bearer token。
 @router.post("/login", response_model=TokenResponse)
-def login(body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
+def login(
+    body: LoginRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    sms_client: SmsVerificationClient = Depends(get_sms_verification_client),
+) -> TokenResponse:
+    ip_address = _client_host(request)
+    retry_after = sms_rate_limiter.retry_after_verify(body.phone, ip_address)
+    if retry_after > 0:
+        raise _rate_limited(
+            code="SMS_VERIFY_RATE_LIMITED",
+            message="验证码尝试过多，请稍后再试",
+            retry_after_seconds=retry_after,
+        )
+
+    try:
+        verified = sms_client.check_code(body.phone, body.code)
+    except SmsVerificationConfigurationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="短信服务尚未配置",
+        ) from exc
+    except SmsVerificationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="验证码校验失败，请稍后再试",
+        ) from exc
+
+    if not verified:
+        sms_rate_limiter.record_verify_failure(body.phone, ip_address)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="验证码错误或已过期",
+        )
+
+    sms_rate_limiter.clear_verify_failures(body.phone, ip_address)
     user = db.exec(select(User).where(User.phone == body.phone)).first()
-    if not user or not user.password_hash or not verify_password(body.password, user.password_hash):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="手机号或密码错误")
+    if user is None:
+        user = User(phone=body.phone, nickname="家长", role="admin")
+        db.add(user)
+        db.commit()
+        db.refresh(user)
 
     _ensure_admin_family(db, user)
     ensure_subscription_for_user(db, user)
@@ -92,7 +161,22 @@ def login(body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
     return TokenResponse(access_token=token)
 
 
-# 获取当前登录用户资料。
 @router.get("/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)) -> User:
     return current_user
+
+
+def _client_host(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
+def _rate_limited(code: str, message: str, retry_after_seconds: int) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        detail={
+            "code": code,
+            "message": message,
+            "retry_after_seconds": retry_after_seconds,
+        },
+        headers={"Retry-After": str(retry_after_seconds)},
+    )

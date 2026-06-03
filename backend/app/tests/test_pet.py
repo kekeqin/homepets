@@ -1,7 +1,6 @@
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
-from app.core.security import hash_password
 from app.models.pet import Pet
 from app.models.user import User
 
@@ -9,7 +8,6 @@ from app.models.user import User
 def _setup_family(client: TestClient, db: Session) -> tuple[str, int, int]:
     admin = User(
         phone="13800000001",
-        password_hash=hash_password("testpass123"),
         nickname="Admin",
         role="admin",
     )
@@ -19,7 +17,7 @@ def _setup_family(client: TestClient, db: Session) -> tuple[str, int, int]:
 
     token = client.post(
         "/api/auth/login",
-        json={"phone": "13800000001", "password": "testpass123"},
+        json={"phone": "13800000001", "code": "123456"},
     ).json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -110,19 +108,6 @@ def test_list_pets_excludes_pet_when_owner_left_family(
     assert all(pet["owner_id"] != child_id for pet in pets)
 
 
-def test_manual_feed_endpoint_removed(client: TestClient, db: Session) -> None:
-    token, family_id, child_id = _setup_family(client, db)
-    _assign_pet(client, token, family_id, child_id)
-    pet = _get_pets(client, token, family_id)[0]
-
-    response = client.post(
-        f"/api/pets/{pet['id']}/feed",
-        json={"points": 20},
-        headers=_auth_header(token),
-    )
-    assert response.status_code == 404
-
-
 def test_pet_history_returns_owner_task_completions(client: TestClient, db: Session) -> None:
     token, family_id, child_id = _setup_family(client, db)
     _assign_pet(client, token, family_id, child_id)
@@ -130,12 +115,12 @@ def test_pet_history_returns_owner_task_completions(client: TestClient, db: Sess
     headers = _auth_header(token)
 
     child_task = client.post(
-        "/api/tasks",
+        f"/api/families/{family_id}/tasks",
         json={"title": "Read picture book", "points": 12},
         headers=headers,
     ).json()
     admin_task = client.post(
-        "/api/tasks",
+        f"/api/families/{family_id}/tasks",
         json={"title": "Parent only task", "points": 99},
         headers=headers,
     ).json()

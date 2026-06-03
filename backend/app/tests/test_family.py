@@ -1,7 +1,6 @@
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
-from app.core.security import hash_password
 from app.models.family import Family
 from app.models.user import User
 
@@ -9,7 +8,6 @@ from app.models.user import User
 def _create_admin(db: Session, phone: str = "13800000001") -> User:
     user = User(
         phone=phone,
-        password_hash=hash_password("testpass123"),
         nickname="Admin",
         role="admin",
     )
@@ -22,7 +20,7 @@ def _create_admin(db: Session, phone: str = "13800000001") -> User:
 def _login(client: TestClient, phone: str = "13800000001") -> str:
     response = client.post(
         "/api/auth/login",
-        json={"phone": phone, "password": "testpass123"},
+        json={"phone": phone, "code": "123456"},
     )
     return str(response.json()["access_token"])
 

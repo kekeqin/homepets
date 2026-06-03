@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
 import '../providers/subscription_provider.dart';
 import '../screens/auth/login_screen.dart';
-import '../screens/auth/register_screen.dart';
 import '../screens/home/home_scene_screen.dart';
 import '../screens/paywall/paywall_screen.dart';
 import '../screens/profile/legal_info_screen.dart';
@@ -44,7 +43,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = authState.isAuthenticated;
       final location = state.matchedLocation;
       final subscriptionState = ref.read(subscriptionProvider);
-      const authRoutes = {'/login', '/register'};
+      const authRoutes = {'/login'};
       const entitlementAllowedRoutes = {
         '/paywall',
         '/subscription/loading',
@@ -108,10 +107,6 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-      GoRoute(
-        path: '/register',
-        builder: (context, state) => const RegisterScreen(),
-      ),
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),
         routes: [

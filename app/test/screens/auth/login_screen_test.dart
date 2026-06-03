@@ -12,9 +12,7 @@ import 'package:homepets/screens/auth/login_screen.dart';
 import 'package:homepets/services/auth_service.dart';
 
 void main() {
-  testWidgets('login button hit area submits valid credentials', (
-    tester,
-  ) async {
+  testWidgets('login button submits phone and sms code', (tester) async {
     final authService = _FakeAuthService();
 
     _setPhoneViewport(tester);
@@ -28,13 +26,38 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextFormField).at(0), '13800000001');
-    await tester.enterText(find.byType(TextFormField).at(1), 'testpass123');
+    await tester.enterText(find.byType(TextFormField).at(1), '123456');
     await tester.tap(find.byKey(LoginScreen.submitButtonKey));
     await tester.pumpAndSettle();
 
     expect(authService.loginCalls, 1);
     expect(authService.lastPhone, '13800000001');
-    expect(authService.lastPassword, 'testpass123');
+    expect(authService.lastCode, '123456');
+  });
+
+  testWidgets('send code button starts 60 second countdown', (tester) async {
+    final authService = _FakeAuthService();
+
+    _setPhoneViewport(tester);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [authServiceProvider.overrideWithValue(authService)],
+        child: const MaterialApp(home: LoginScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextFormField).first, '13800000001');
+    await tester.tap(find.byKey(LoginScreen.sendCodeButtonKey));
+    await tester.pump();
+
+    expect(authService.sendCodeCalls, 1);
+    expect(find.text('60s'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 60));
+
+    expect(find.text('\u91cd\u65b0\u53d1\u9001'), findsOneWidget);
   });
 
   testWidgets(
@@ -80,9 +103,10 @@ void _setPhoneViewport(WidgetTester tester) {
 class _FakeAuthService extends AuthService {
   _FakeAuthService() : super(_FakeApiClient());
 
+  int sendCodeCalls = 0;
   int loginCalls = 0;
   String? lastPhone;
-  String? lastPassword;
+  String? lastCode;
 
   @override
   Future<String?> getSavedToken() async {
@@ -90,13 +114,16 @@ class _FakeAuthService extends AuthService {
   }
 
   @override
-  Future<String> login({
-    required String phone,
-    required String password,
-  }) async {
+  Future<void> sendSmsCode({required String phone}) async {
+    sendCodeCalls++;
+    lastPhone = phone;
+  }
+
+  @override
+  Future<String> login({required String phone, required String code}) async {
     loginCalls++;
     lastPhone = phone;
-    lastPassword = password;
+    lastCode = code;
     return 'token';
   }
 

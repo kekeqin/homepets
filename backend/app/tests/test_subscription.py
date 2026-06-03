@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 from sqlalchemy import desc
 from sqlmodel import Session, select
 
-from app.core.security import hash_password
 from app.models.subscription import Subscription
 from app.models.user import User
 from app.services.subscription_service import as_utc
@@ -13,7 +12,6 @@ from app.services.subscription_service import as_utc
 def _create_admin(db: Session, phone: str = "13800000001") -> User:
     user = User(
         phone=phone,
-        password_hash=hash_password("testpass123"),
         nickname="Admin",
         role="admin",
     )
@@ -26,7 +24,7 @@ def _create_admin(db: Session, phone: str = "13800000001") -> User:
 def _login(client: TestClient, phone: str = "13800000001") -> str:
     response = client.post(
         "/api/auth/login",
-        json={"phone": phone, "password": "testpass123"},
+        json={"phone": phone, "code": "123456"},
     )
     return str(response.json()["access_token"])
 
@@ -42,17 +40,19 @@ def _subscription(db: Session) -> Subscription:
     return subscription
 
 
-def test_register_creates_family_trial(client: TestClient, db: Session) -> None:
+def test_sms_login_auto_register_creates_family_trial(client: TestClient, db: Session) -> None:
     before = datetime.now(UTC)
     response = client.post(
-        "/api/auth/register",
-        json={"phone": "13800000001", "password": "password123", "nickname": "爸爸"},
+        "/api/auth/login",
+        json={"phone": "13800000001", "code": "123456"},
     )
     after = datetime.now(UTC)
 
-    assert response.status_code == 201
+    assert response.status_code == 200
+    headers = _auth_header(response.json()["access_token"])
+    me = client.get("/api/auth/me", headers=headers).json()
     subscription = _subscription(db)
-    assert subscription.family_id == response.json()["family_id"]
+    assert subscription.family_id == me["family_id"]
     assert subscription.revenuecat_app_user_id == f"family_{subscription.family_id}"
     trial_started_at = as_utc(subscription.trial_started_at)
     assert before <= trial_started_at <= after
@@ -130,8 +130,7 @@ def test_expired_trial_allows_read_api_but_blocks_write_with_402(
     assert any(pet["name"] == "Mimi" for pet in pets_response.json())
     assert any(task["title"] == "Water plants" for task in tasks_response.json())
     assert any(
-        completion["task_title"] == "Water plants"
-        for completion in completions_response.json()
+        completion["task_title"] == "Water plants" for completion in completions_response.json()
     )
 
     write_response = client.post(

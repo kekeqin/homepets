@@ -23,8 +23,98 @@ def migrate_sqlite_legacy_tables(db_engine: Engine) -> None:
     if db_engine.url.get_backend_name() != "sqlite":
         return
 
+    _migrate_sqlite_legacy_user_table(db_engine)
     _migrate_sqlite_legacy_task_table(db_engine)
     _migrate_sqlite_legacy_pet_table(db_engine)
+
+
+def _migrate_sqlite_legacy_user_table(db_engine: Engine) -> None:
+    expected_columns = set(SQLModel.metadata.tables["users"].columns.keys())
+    with db_engine.connect() as connection:
+        rows = connection.execute(text("PRAGMA table_info(users)")).mappings().all()
+        if not rows:
+            return
+
+        actual_columns = {str(row["name"]) for row in rows}
+        if actual_columns == expected_columns:
+            return
+
+        removed_columns = actual_columns - expected_columns
+        missing_columns = expected_columns - actual_columns
+        legacy_columns = {"password_hash"}
+        if not (removed_columns & legacy_columns or missing_columns):
+            return
+
+        connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
+        connection.commit()
+
+        with connection.begin():
+            connection.exec_driver_sql("DROP TABLE IF EXISTS users_schema_migration_new")
+            connection.exec_driver_sql(
+                """
+                CREATE TABLE users_schema_migration_new (
+                    id INTEGER NOT NULL,
+                    phone VARCHAR,
+                    nickname VARCHAR(50) NOT NULL,
+                    role VARCHAR NOT NULL,
+                    avatar_url VARCHAR,
+                    points INTEGER NOT NULL,
+                    family_id INTEGER,
+                    created_at DATETIME NOT NULL,
+                    PRIMARY KEY (id),
+                    FOREIGN KEY(family_id) REFERENCES families (id)
+                )
+                """
+            )
+
+            id_expr = "id" if "id" in actual_columns else "NULL"
+            phone_expr = "phone" if "phone" in actual_columns else "NULL"
+            nickname_expr = _sqlite_column_or_default(actual_columns, "nickname", "'家长'")
+            role_expr = _sqlite_column_or_default(actual_columns, "role", "'admin'")
+            avatar_url_expr = "avatar_url" if "avatar_url" in actual_columns else "NULL"
+            points_expr = _sqlite_column_or_default(actual_columns, "points", "0")
+            family_id_expr = "family_id" if "family_id" in actual_columns else "NULL"
+            created_at_expr = _sqlite_column_or_default(
+                actual_columns,
+                "created_at",
+                "CURRENT_TIMESTAMP",
+            )
+
+            connection.exec_driver_sql(
+                f"""
+                INSERT INTO users_schema_migration_new (
+                    id,
+                    phone,
+                    nickname,
+                    role,
+                    avatar_url,
+                    points,
+                    family_id,
+                    created_at
+                )
+                SELECT
+                    {id_expr},
+                    {phone_expr},
+                    {nickname_expr},
+                    {role_expr},
+                    {avatar_url_expr},
+                    {points_expr},
+                    {family_id_expr},
+                    {created_at_expr}
+                FROM users
+                """
+            )
+            connection.exec_driver_sql("DROP TABLE users")
+            connection.exec_driver_sql("ALTER TABLE users_schema_migration_new RENAME TO users")
+            connection.exec_driver_sql(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_phone ON users (phone)"
+            )
+            connection.exec_driver_sql(
+                "CREATE INDEX IF NOT EXISTS ix_users_family_id ON users (family_id)"
+            )
+
+        connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+        connection.commit()
 
 
 def _migrate_sqlite_legacy_task_table(db_engine: Engine) -> None:
