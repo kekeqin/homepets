@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlmodel import Session, select
 
@@ -31,6 +33,7 @@ from app.services.sms_verification import (
 from app.services.subscription_service import ensure_subscription_for_user
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+logger = logging.getLogger(__name__)
 
 sms_rate_limiter = SmsRateLimiter(
     send_cooldown_seconds=settings.ALIYUN_SMS_RESEND_INTERVAL_SECONDS,
@@ -155,6 +158,11 @@ def send_sms_code(
             detail="短信服务尚未配置",
         ) from exc
     except SmsVerificationError as exc:
+        logger.warning(
+            "Aliyun SMS code send failed for phone_suffix=%s: %s",
+            body.phone[-4:],
+            exc,
+        )
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="验证码发送失败，请稍后再试",

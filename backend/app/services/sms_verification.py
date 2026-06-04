@@ -138,8 +138,8 @@ class AliyunSmsVerificationClient:
             {
                 "PhoneNumber": phone,
                 "SignName": self._sign_name,
-                "SmsTemplateCode": self._template_code,
-                "SmsTemplateParam": self._template_param(),
+                "TemplateCode": self._template_code,
+                "TemplateParam": self._template_param(),
                 "SchemeName": self._scheme_name,
             },
         )
@@ -162,7 +162,15 @@ class AliyunSmsVerificationClient:
 
     def _template_param(self) -> str:
         valid_minutes = max(1, self._valid_seconds // 60)
-        return json.dumps({"code": "##code##", "minute": str(valid_minutes)}, ensure_ascii=False)
+        valid_minutes_text = str(valid_minutes)
+        return json.dumps(
+            {
+                "code": "##code##",
+                "min": valid_minutes_text,
+                "minute": valid_minutes_text,
+            },
+            ensure_ascii=False,
+        )
 
     def _request(self, action: str, business_params: dict[str, str]) -> dict[str, Any]:
         params = {
@@ -188,7 +196,11 @@ class AliyunSmsVerificationClient:
         try:
             raw = urlopen(request, timeout=self._timeout_seconds).read()
         except HTTPError as exc:
-            raise SmsVerificationError(f"Aliyun SMS request failed: HTTP {exc.code}") from exc
+            error_body = exc.read().decode("utf-8", errors="replace")
+            message = self._error_message(error_body)
+            raise SmsVerificationError(
+                f"Aliyun SMS request failed: HTTP {exc.code}: {message}"
+            ) from exc
         except URLError as exc:
             raise SmsVerificationError(f"Aliyun SMS request failed: {exc.reason}") from exc
 
@@ -196,6 +208,26 @@ class AliyunSmsVerificationClient:
         if not isinstance(payload, dict):
             raise SmsVerificationError("Aliyun SMS returned an invalid payload")
         return dict(payload)
+
+    def _error_message(self, raw_body: str) -> str:
+        if not raw_body:
+            return "empty response body"
+        try:
+            payload = json.loads(raw_body)
+        except json.JSONDecodeError:
+            return raw_body
+        if not isinstance(payload, dict):
+            return raw_body
+
+        code = payload.get("Code")
+        message = payload.get("Message")
+        request_id = payload.get("RequestId")
+        parts = [
+            str(value)
+            for value in (code, message, request_id)
+            if isinstance(value, str) and value
+        ]
+        return " | ".join(parts) if parts else raw_body
 
     def _signature(self, method: str, params: dict[str, str]) -> str:
         canonicalized_query = self._encode_query(dict(sorted(params.items())))
