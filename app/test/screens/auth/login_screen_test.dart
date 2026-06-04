@@ -9,6 +9,7 @@ import 'package:homepets/core/auth_session_bus.dart';
 import 'package:homepets/models/user.dart';
 import 'package:homepets/providers/auth_provider.dart';
 import 'package:homepets/screens/auth/login_screen.dart';
+import 'package:homepets/services/apple_sign_in_service.dart';
 import 'package:homepets/services/auth_service.dart';
 
 void main() {
@@ -91,6 +92,34 @@ void main() {
       expect(authService.loginCalls, 0);
     },
   );
+
+  testWidgets('apple login button submits apple credential', (tester) async {
+    final authService = _FakeAuthService();
+    final appleSignInService = _FakeAppleSignInService();
+
+    _setPhoneViewport(tester);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authServiceProvider.overrideWithValue(authService),
+          appleSignInServiceProvider.overrideWithValue(appleSignInService),
+        ],
+        child: const MaterialApp(home: LoginScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(LoginScreen.appleButtonKey));
+    await tester.pumpAndSettle();
+
+    expect(appleSignInService.signInCalls, 1);
+    expect(authService.appleLoginCalls, 1);
+    expect(authService.lastIdentityToken, 'identity-token');
+    expect(authService.lastAuthorizationCode, 'authorization-code');
+    expect(authService.lastNonce, 'nonce-value');
+    expect(authService.lastFullName, 'Apple Parent');
+  });
 }
 
 void _setPhoneViewport(WidgetTester tester) {
@@ -105,8 +134,13 @@ class _FakeAuthService extends AuthService {
 
   int sendCodeCalls = 0;
   int loginCalls = 0;
+  int appleLoginCalls = 0;
   String? lastPhone;
   String? lastCode;
+  String? lastIdentityToken;
+  String? lastAuthorizationCode;
+  String? lastNonce;
+  String? lastFullName;
 
   @override
   Future<String?> getSavedToken() async {
@@ -128,6 +162,21 @@ class _FakeAuthService extends AuthService {
   }
 
   @override
+  Future<String> loginWithApple({
+    required String identityToken,
+    required String authorizationCode,
+    String? nonce,
+    String? fullName,
+  }) async {
+    appleLoginCalls++;
+    lastIdentityToken = identityToken;
+    lastAuthorizationCode = authorizationCode;
+    lastNonce = nonce;
+    lastFullName = fullName;
+    return 'token';
+  }
+
+  @override
   Future<User> getMe() async {
     return User(
       id: 1,
@@ -140,6 +189,26 @@ class _FakeAuthService extends AuthService {
 
   @override
   Future<void> logout() async {}
+}
+
+class _FakeAppleSignInService extends AppleSignInService {
+  int signInCalls = 0;
+
+  @override
+  Future<bool> isAvailable() async {
+    return true;
+  }
+
+  @override
+  Future<AppleSignInCredential> signIn() async {
+    signInCalls++;
+    return const AppleSignInCredential(
+      identityToken: 'identity-token',
+      authorizationCode: 'authorization-code',
+      nonce: 'nonce-value',
+      fullName: 'Apple Parent',
+    );
+  }
 }
 
 class _FakeApiClient extends ApiClient {

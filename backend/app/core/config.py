@@ -34,12 +34,25 @@ class Settings(BaseSettings):
     SMS_VERIFY_FAILURE_LIMIT_PER_IP: int = 30
     SMS_VERIFY_FAILURE_WINDOW_SECONDS: int = 600
 
+    APPLE_SIGN_IN_CLIENT_IDS: str = ""
+    APPLE_SIGN_IN_KEYS_URL: str = "https://appleid.apple.com/auth/keys"
+    APPLE_SIGN_IN_TIMEOUT_SECONDS: float = 5.0
+    APPLE_SIGN_IN_KEYS_CACHE_SECONDS: int = 3600
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
     @property
     def database_url(self) -> str:
         """Use a local SQLite database by default for zero-config development."""
         return self.DATABASE_URL or "sqlite:///./homepets.db"
+
+    @property
+    def apple_sign_in_client_ids(self) -> list[str]:
+        return [
+            client_id.strip()
+            for client_id in self.APPLE_SIGN_IN_CLIENT_IDS.split(",")
+            if client_id.strip()
+        ]
 
 
 settings = Settings()

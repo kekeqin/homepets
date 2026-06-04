@@ -1,11 +1,25 @@
+from collections.abc import Generator
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from app.api import auth as auth_api
+from app.main import app
 from app.models.family import Family
 from app.models.user import User
+from app.services.apple_identity import (
+    AppleIdentity,
+    AppleIdentityVerificationError,
+    get_apple_identity_verifier,
+)
+
+
+@pytest.fixture(autouse=True)
+def clear_apple_verifier_override() -> Generator[None, None, None]:
+    yield
+    app.dependency_overrides.pop(get_apple_identity_verifier, None)
 
 
 def _create_admin(db: Session, phone: str = "13800000001") -> User:
@@ -77,6 +91,71 @@ def test_login_with_sms_code_auto_registers_new_phone(
     family = db.get(Family, created.family_id)
     assert family is not None
     assert family.owner_id == created.id
+
+
+def test_login_with_apple_auto_registers_new_user(
+    client: TestClient,
+    db: Session,
+) -> None:
+    app.dependency_overrides[get_apple_identity_verifier] = lambda: _FakeAppleVerifier(
+        AppleIdentity(subject="apple-sub-1", email="parent@example.com")
+    )
+
+    response = client.post(
+        "/api/auth/apple",
+        json={
+            "identity_token": "valid-token",
+            "authorization_code": "auth-code",
+            "nonce": "nonce-123",
+            "full_name": "Apple Parent",
+        },
+    )
+
+    assert response.status_code == 200
+    token = response.json()["access_token"]
+    me = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"}).json()
+    created = db.exec(select(User).where(User.apple_sub == "apple-sub-1")).first()
+    assert created is not None
+    assert me["id"] == created.id
+    assert created.email == "parent@example.com"
+    assert created.nickname == "Apple Parent"
+    assert created.role == "admin"
+    family = db.get(Family, created.family_id)
+    assert family is not None
+    assert family.owner_id == created.id
+
+
+def test_login_with_apple_reuses_existing_user(client: TestClient, db: Session) -> None:
+    user = User(apple_sub="apple-sub-1", email="old@example.com", nickname="Apple", role="admin")
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    app.dependency_overrides[get_apple_identity_verifier] = lambda: _FakeAppleVerifier(
+        AppleIdentity(subject="apple-sub-1", email="new@example.com")
+    )
+
+    response = client.post(
+        "/api/auth/apple",
+        json={"identity_token": "valid-token", "authorization_code": "auth-code"},
+    )
+
+    assert response.status_code == 200
+    token = response.json()["access_token"]
+    me = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"}).json()
+    db.refresh(user)
+    assert me["id"] == user.id
+    assert user.email == "new@example.com"
+
+
+def test_login_with_apple_rejects_invalid_identity(client: TestClient) -> None:
+    app.dependency_overrides[get_apple_identity_verifier] = lambda: _RejectingAppleVerifier()
+
+    response = client.post(
+        "/api/auth/apple",
+        json={"identity_token": "bad-token", "authorization_code": "auth-code"},
+    )
+
+    assert response.status_code == 401
 
 
 def test_login_rejects_wrong_sms_code(client: TestClient, db: Session) -> None:
@@ -160,3 +239,16 @@ def test_me_invalid_token(client: TestClient) -> None:
 def test_sms_rate_limiter_can_be_reset_for_test_isolation() -> None:
     auth_api.sms_rate_limiter.reset()
     assert auth_api.sms_rate_limiter.retry_after_send("13800000001", "testclient") == 0
+
+
+class _FakeAppleVerifier:
+    def __init__(self, identity: AppleIdentity) -> None:
+        self._identity = identity
+
+    def verify(self, identity_token: str, nonce: str | None = None) -> AppleIdentity:
+        return self._identity
+
+
+class _RejectingAppleVerifier:
+    def verify(self, identity_token: str, nonce: str | None = None) -> AppleIdentity:
+        raise AppleIdentityVerificationError("invalid identity token")

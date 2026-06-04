@@ -8,6 +8,8 @@ class User(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     phone: str | None = Field(default=None, unique=True, index=True)
+    apple_sub: str | None = Field(default=None, unique=True, index=True)
+    email: str | None = Field(default=None, index=True)
     nickname: str = Field(min_length=1, max_length=50)
     role: str = Field(default="child")  # admin=家长，child=儿童
     avatar_url: str | None = Field(default=None)

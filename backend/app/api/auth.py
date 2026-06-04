@@ -8,11 +8,18 @@ from app.core.security import create_access_token
 from app.models.family import Family
 from app.models.user import User
 from app.schemas.auth import (
+    AppleLoginRequest,
     LoginRequest,
     SmsCodeRequest,
     SmsCodeResponse,
     TokenResponse,
     UserResponse,
+)
+from app.services.apple_identity import (
+    AppleIdentityConfigurationError,
+    AppleIdentityVerificationError,
+    AppleIdentityVerifierProtocol,
+    get_apple_identity_verifier,
 )
 from app.services.sms_rate_limiter import SmsRateLimiter
 from app.services.sms_verification import (
@@ -77,6 +84,52 @@ def _ensure_admin_family(db: Session, user: User) -> None:
     user.family_id = family.id
     db.add(user)
     db.commit()
+
+
+def _create_session_token(db: Session, user: User) -> TokenResponse:
+    _ensure_admin_family(db, user)
+    ensure_subscription_for_user(db, user)
+    token = create_access_token(data={"sub": str(user.id)})
+    return TokenResponse(access_token=token)
+
+
+@router.post("/apple", response_model=TokenResponse)
+def login_with_apple(
+    body: AppleLoginRequest,
+    db: Session = Depends(get_db),
+    apple_verifier: AppleIdentityVerifierProtocol = Depends(get_apple_identity_verifier),
+) -> TokenResponse:
+    try:
+        identity = apple_verifier.verify(body.identity_token, body.nonce)
+    except AppleIdentityConfigurationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="\u82f9\u679c\u767b\u5f55\u670d\u52a1\u5c1a\u672a\u914d\u7f6e",
+        ) from exc
+    except AppleIdentityVerificationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="\u82f9\u679c\u767b\u5f55\u51ed\u8bc1\u65e0\u6548",
+        ) from exc
+
+    user = db.exec(select(User).where(User.apple_sub == identity.subject)).first()
+    if user is None:
+        user = User(
+            apple_sub=identity.subject,
+            email=identity.email,
+            nickname=_apple_display_name(body.full_name),
+            role="admin",
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    elif identity.email and user.email != identity.email:
+        user.email = identity.email
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    return _create_session_token(db, user)
 
 
 @router.post("/sms-code", response_model=SmsCodeResponse)
@@ -168,6 +221,17 @@ def get_me(current_user: User = Depends(get_current_user)) -> User:
 
 def _client_host(request: Request) -> str:
     return request.client.host if request.client else "unknown"
+
+
+def _apple_display_name(full_name: str | None) -> str:
+    if full_name is None:
+        return "\u5bb6\u957f"
+
+    display_name = " ".join(full_name.split())
+    if not display_name:
+        return "\u5bb6\u957f"
+
+    return display_name[:50]
 
 
 def _rate_limited(code: str, message: str, retry_after_seconds: int) -> HTTPException:

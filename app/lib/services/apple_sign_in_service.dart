@@ -1,0 +1,84 @@
+import 'package:flutter/foundation.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+
+class AppleSignInCredential {
+  const AppleSignInCredential({
+    required this.identityToken,
+    required this.authorizationCode,
+    required this.nonce,
+    this.fullName,
+  });
+
+  final String identityToken;
+  final String authorizationCode;
+  final String nonce;
+  final String? fullName;
+}
+
+class AppleSignInCanceledException implements Exception {}
+
+class AppleSignInFailure implements Exception {
+  const AppleSignInFailure(this.message);
+
+  final String message;
+}
+
+class AppleSignInService {
+  Future<bool> isAvailable() async {
+    if (!_supportsNativeAppleSignIn) {
+      return false;
+    }
+    return SignInWithApple.isAvailable();
+  }
+
+  Future<AppleSignInCredential> signIn() async {
+    final nonce = generateNonce();
+    try {
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: nonce,
+      );
+
+      final identityToken = credential.identityToken;
+      if (identityToken == null || identityToken.isEmpty) {
+        throw const AppleSignInFailure('Missing Apple identity token');
+      }
+
+      return AppleSignInCredential(
+        identityToken: identityToken,
+        authorizationCode: credential.authorizationCode,
+        nonce: nonce,
+        fullName: _fullName(credential),
+      );
+    } on SignInWithAppleAuthorizationException catch (error) {
+      if (error.code == AuthorizationErrorCode.canceled) {
+        throw AppleSignInCanceledException();
+      }
+      throw AppleSignInFailure(error.message);
+    } on SignInWithAppleException catch (error) {
+      throw AppleSignInFailure(error.toString());
+    }
+  }
+
+  bool get _supportsNativeAppleSignIn {
+    if (kIsWeb) {
+      return false;
+    }
+    return defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.macOS;
+  }
+
+  String? _fullName(AuthorizationCredentialAppleID credential) {
+    final parts = [
+      credential.givenName?.trim(),
+      credential.familyName?.trim(),
+    ].where((part) => part != null && part.isNotEmpty).cast<String>().toList();
+    if (parts.isEmpty) {
+      return null;
+    }
+    return parts.join(' ');
+  }
+}

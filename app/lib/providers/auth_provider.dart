@@ -7,6 +7,7 @@ import '../core/api_error_helper.dart';
 import '../core/auth_session_bus.dart';
 import '../core/subscription_access_bus.dart';
 import '../models/user.dart';
+import '../services/apple_sign_in_service.dart';
 import '../services/auth_service.dart';
 
 final authSessionBusProvider = Provider<AuthSessionBus>((ref) {
@@ -30,6 +31,10 @@ final subscriptionAccessBusProvider = Provider<SubscriptionAccessBus>((ref) {
 
 final authServiceProvider = Provider<AuthService>((ref) {
   return AuthService(ref.read(apiClientProvider));
+});
+
+final appleSignInServiceProvider = Provider<AppleSignInService>((ref) {
+  return AppleSignInService();
 });
 
 class AuthState {
@@ -71,8 +76,11 @@ class AuthState {
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier(this._authService, this._authSessionBus)
-    : super(const AuthState()) {
+  AuthNotifier(
+    this._authService,
+    this._appleSignInService,
+    this._authSessionBus,
+  ) : super(const AuthState()) {
     _authSessionSubscription = _authSessionBus.stream.listen((_) {
       handleUnauthorized();
     });
@@ -80,6 +88,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   final AuthService _authService;
+  final AppleSignInService _appleSignInService;
   final AuthSessionBus _authSessionBus;
   late final StreamSubscription<void> _authSessionSubscription;
   int _authRequestVersion = 0;
@@ -213,6 +222,73 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<bool> loginWithApple() async {
+    final requestVersion = ++_authRequestVersion;
+    state = state.copyWith(isLoading: true, isInitialized: true, error: null);
+
+    try {
+      final credential = await _appleSignInService.signIn();
+      await _authService.loginWithApple(
+        identityToken: credential.identityToken,
+        authorizationCode: credential.authorizationCode,
+        nonce: credential.nonce,
+        fullName: credential.fullName,
+      );
+      final user = await _authService.getMe();
+
+      if (requestVersion != _authRequestVersion) {
+        return false;
+      }
+
+      state = state.copyWith(
+        isAuthenticated: true,
+        isLoading: false,
+        isInitialized: true,
+        user: user,
+        error: null,
+        viewOnly: false,
+      );
+      return true;
+    } on AppleSignInCanceledException {
+      if (requestVersion != _authRequestVersion) {
+        return false;
+      }
+      state = state.copyWith(
+        isLoading: false,
+        isInitialized: true,
+        error: null,
+      );
+      return false;
+    } catch (error) {
+      if (requestVersion != _authRequestVersion) {
+        return false;
+      }
+
+      await _authService.logout();
+      state = state.copyWith(
+        isAuthenticated: false,
+        isLoading: false,
+        isInitialized: true,
+        user: null,
+        error: friendlyApiErrorMessage(
+          error,
+          fallbackMessage:
+              '\u82f9\u679c\u767b\u5f55\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5',
+          unauthorizedMessage:
+              '\u82f9\u679c\u767b\u5f55\u51ed\u8bc1\u65e0\u6548\uff0c\u8bf7\u91cd\u65b0\u6388\u6743',
+          networkMessage:
+              '\u65e0\u6cd5\u8fde\u63a5\u670d\u52a1\u5668\uff0c\u8bf7\u5148\u542f\u52a8\u540e\u7aef',
+          statusMessages: const {
+            422:
+                '\u82f9\u679c\u767b\u5f55\u8fd4\u56de\u7684\u4fe1\u606f\u4e0d\u5b8c\u6574',
+            503: '\u82f9\u679c\u767b\u5f55\u670d\u52a1\u5c1a\u672a\u914d\u7f6e',
+          },
+        ),
+      );
+      return false;
+    }
+  }
+
   Future<void> logout() async {
     _authRequestVersion++;
     await _authService.logout();
@@ -266,6 +342,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier(
     ref.read(authServiceProvider),
+    ref.read(appleSignInServiceProvider),
     ref.read(authSessionBusProvider),
   );
 });

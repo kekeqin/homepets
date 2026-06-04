@@ -14,6 +14,13 @@ class LoginRequest(BaseModel):
     code: str = Field(min_length=4, max_length=8, pattern=r"^\d+$")
 
 
+class AppleLoginRequest(BaseModel):
+    identity_token: str = Field(min_length=1)
+    authorization_code: str | None = Field(default=None, min_length=1)
+    nonce: str | None = Field(default=None, min_length=1, max_length=256)
+    full_name: str | None = Field(default=None, min_length=1, max_length=100)
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"

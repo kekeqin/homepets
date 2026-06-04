@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../widgets/app_modal_shell.dart';
@@ -15,6 +16,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 
   static const submitButtonKey = Key('login_submit_button');
   static const sendCodeButtonKey = Key('login_send_code_button');
+  static const appleButtonKey = Key('login_apple_button');
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -32,6 +34,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _hideAuthErrorAfterEdit = false;
   bool _isSendingCode = false;
   bool _hasSentCode = false;
+  bool _appleSignInAvailable = false;
   int _resendSeconds = 0;
 
   @override
@@ -39,6 +42,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.initState();
     _phoneController.addListener(_handleInputChanged);
     _codeController.addListener(_handleInputChanged);
+    _loadAppleSignInAvailability();
   }
 
   @override
@@ -140,6 +144,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         .login(_phoneController.text.trim(), _codeController.text.trim());
   }
 
+  Future<void> _loginWithApple() async {
+    setState(() {
+      _localError = null;
+      _hideAuthErrorAfterEdit = false;
+    });
+    FocusScope.of(context).unfocus();
+    await ref.read(authProvider.notifier).loginWithApple();
+  }
+
+  Future<void> _loadAppleSignInAvailability() async {
+    final available = await ref.read(appleSignInServiceProvider).isAvailable();
+    if (!mounted) {
+      return;
+    }
+    setState(() => _appleSignInAvailable = available);
+  }
+
   void _startCountdown() {
     _resendTimer?.cancel();
     setState(() {
@@ -217,8 +238,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         authState: authState,
                         visibleError: visibleError,
                         onLogin: _login,
+                        onAppleLogin: _loginWithApple,
                         onSendCode: _sendCode,
                         sendCodeLabel: _sendCodeLabel,
+                        showAppleLogin: _appleSignInAvailable,
                         canSendCode:
                             !_isSendingCode &&
                             _resendSeconds == 0 &&
@@ -256,8 +279,10 @@ class _LoginPanel extends StatelessWidget {
     required this.authState,
     required this.visibleError,
     required this.onLogin,
+    required this.onAppleLogin,
     required this.onSendCode,
     required this.sendCodeLabel,
+    required this.showAppleLogin,
     required this.canSendCode,
   });
 
@@ -267,8 +292,10 @@ class _LoginPanel extends StatelessWidget {
   final AuthState authState;
   final String? visibleError;
   final Future<void> Function() onLogin;
+  final Future<void> Function() onAppleLogin;
   final Future<void> Function() onSendCode;
   final String sendCodeLabel;
+  final bool showAppleLogin;
   final bool canSendCode;
 
   @override
@@ -386,6 +413,16 @@ class _LoginPanel extends StatelessWidget {
                         : '\u9a8c\u8bc1\u767b\u5f55',
                     onPressed: authState.isLoading ? null : onLogin,
                   ),
+                  if (showAppleLogin) ...[
+                    const SizedBox(height: 12),
+                    SignInWithAppleButton(
+                      key: LoginScreen.appleButtonKey,
+                      text: '\u4f7f\u7528 Apple \u767b\u5f55',
+                      height: 50,
+                      borderRadius: BorderRadius.circular(16),
+                      onPressed: authState.isLoading ? null : onAppleLogin,
+                    ),
+                  ],
                 ],
               ),
             ),

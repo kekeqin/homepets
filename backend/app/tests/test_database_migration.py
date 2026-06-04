@@ -264,6 +264,8 @@ def test_migrate_sqlite_legacy_tables_drops_removed_user_password_hash(tmp_path)
         assert columns == {
             "id",
             "phone",
+            "apple_sub",
+            "email",
             "nickname",
             "role",
             "avatar_url",
@@ -273,6 +275,8 @@ def test_migrate_sqlite_legacy_tables_drops_removed_user_password_hash(tmp_path)
         }
         row = connection.execute(text("SELECT * FROM users WHERE id = 1")).mappings().one()
         assert row["phone"] == "13800000001"
+        assert row["apple_sub"] is None
+        assert row["email"] is None
         assert row["nickname"] == "Admin"
         assert row["role"] == "admin"
         assert row["points"] == 8

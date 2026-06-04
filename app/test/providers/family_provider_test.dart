@@ -6,6 +6,7 @@ import 'package:homepets/models/user.dart';
 import 'package:homepets/providers/auth_provider.dart';
 import 'package:homepets/providers/family_provider.dart' as family_provider;
 import 'package:homepets/providers/subscription_provider.dart';
+import 'package:homepets/services/apple_sign_in_service.dart';
 import 'package:homepets/services/auth_service.dart';
 import 'package:homepets/services/family_service.dart';
 
@@ -284,10 +285,12 @@ class _FakeFamilyService extends FamilyService {
 
 class _FakeAuthNotifier extends AuthNotifier {
   _FakeAuthNotifier(AuthState initialState)
-    : super(_FakeAuthService(), AuthSessionBus()) {
+    : super(_FakeAuthService(), _FakeAppleSignInService(), AuthSessionBus()) {
     state = initialState;
   }
 }
+
+class _FakeAppleSignInService extends AppleSignInService {}
 
 class _FakeAuthService extends AuthService {
   _FakeAuthService() : super(_FakeApiClient());

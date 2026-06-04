@@ -55,6 +55,8 @@ def _migrate_sqlite_legacy_user_table(db_engine: Engine) -> None:
                 CREATE TABLE users_schema_migration_new (
                     id INTEGER NOT NULL,
                     phone VARCHAR,
+                    apple_sub VARCHAR,
+                    email VARCHAR,
                     nickname VARCHAR(50) NOT NULL,
                     role VARCHAR NOT NULL,
                     avatar_url VARCHAR,
@@ -69,6 +71,8 @@ def _migrate_sqlite_legacy_user_table(db_engine: Engine) -> None:
 
             id_expr = "id" if "id" in actual_columns else "NULL"
             phone_expr = "phone" if "phone" in actual_columns else "NULL"
+            apple_sub_expr = "apple_sub" if "apple_sub" in actual_columns else "NULL"
+            email_expr = "email" if "email" in actual_columns else "NULL"
             nickname_expr = _sqlite_column_or_default(actual_columns, "nickname", "'家长'")
             role_expr = _sqlite_column_or_default(actual_columns, "role", "'admin'")
             avatar_url_expr = "avatar_url" if "avatar_url" in actual_columns else "NULL"
@@ -85,6 +89,8 @@ def _migrate_sqlite_legacy_user_table(db_engine: Engine) -> None:
                 INSERT INTO users_schema_migration_new (
                     id,
                     phone,
+                    apple_sub,
+                    email,
                     nickname,
                     role,
                     avatar_url,
@@ -95,6 +101,8 @@ def _migrate_sqlite_legacy_user_table(db_engine: Engine) -> None:
                 SELECT
                     {id_expr},
                     {phone_expr},
+                    {apple_sub_expr},
+                    {email_expr},
                     {nickname_expr},
                     {role_expr},
                     {avatar_url_expr},
@@ -108,6 +116,12 @@ def _migrate_sqlite_legacy_user_table(db_engine: Engine) -> None:
             connection.exec_driver_sql("ALTER TABLE users_schema_migration_new RENAME TO users")
             connection.exec_driver_sql(
                 "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_phone ON users (phone)"
+            )
+            connection.exec_driver_sql(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_apple_sub ON users (apple_sub)"
+            )
+            connection.exec_driver_sql(
+                "CREATE INDEX IF NOT EXISTS ix_users_email ON users (email)"
             )
             connection.exec_driver_sql(
                 "CREATE INDEX IF NOT EXISTS ix_users_family_id ON users (family_id)"
