@@ -87,6 +87,10 @@ class HomeGuideController {
   String get _completedKey => '${_prefix}_completed';
   String get _skippedKey => '${_prefix}_skipped';
   String get _currentStepKey => '${_prefix}_current_step';
+  String get _completionPaywallPendingKey =>
+      '${_prefix}_completion_paywall_pending';
+  String get _completionPaywallShownKey =>
+      '${_prefix}_completion_paywall_shown';
 
   HomeGuideProgress readProgress(HomeGuideSnapshot snapshot) {
     final completed = _preferences.getBool(_completedKey) ?? false;
@@ -161,6 +165,7 @@ class HomeGuideController {
 
   Future<HomeGuideProgress> skip() async {
     await _preferences.setBool(_skippedKey, true);
+    await _preferences.setBool(_completionPaywallPendingKey, false);
     await _preferences.setString(
       _currentStepKey,
       HomeGuideStep.done.storageValue,
@@ -173,16 +178,30 @@ class HomeGuideController {
 
   Future<void> markCompleted() async {
     await _preferences.setBool(_completedKey, true);
+    await _preferences.setBool(_completionPaywallPendingKey, true);
     await _preferences.setString(
       _currentStepKey,
       HomeGuideStep.done.storageValue,
     );
   }
 
+  bool shouldShowCompletionPaywall() {
+    final pending = _preferences.getBool(_completionPaywallPendingKey) ?? false;
+    final shown = _preferences.getBool(_completionPaywallShownKey) ?? false;
+    return pending && !shown;
+  }
+
+  Future<void> markCompletionPaywallShown() async {
+    await _preferences.setBool(_completionPaywallShownKey, true);
+    await _preferences.setBool(_completionPaywallPendingKey, false);
+  }
+
   Future<void> reset() async {
     await _preferences.remove(_completedKey);
     await _preferences.remove(_skippedKey);
     await _preferences.remove(_currentStepKey);
+    await _preferences.remove(_completionPaywallPendingKey);
+    await _preferences.remove(_completionPaywallShownKey);
   }
 
   HomeGuideStep _firstAvailableStep(

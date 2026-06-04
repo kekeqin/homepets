@@ -223,6 +223,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   HomeGuideProgress? _homeGuideProgress;
   bool _homeGuideLoading = true;
   bool _advanceHomeGuideAfterTaskPanelClose = false;
+  bool _homeGuideCompletionPaywallQueued = false;
   OverlayEntry? _topSnackBarEntry;
   bool _paywallDialogVisible = false;
   final math.Random _taskCompletionMessageRandom = math.Random();
@@ -540,6 +541,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       _homeGuideProgress = controller.readProgress(_homeGuideSnapshot);
       _homeGuideLoading = false;
     });
+    _maybeShowHomeGuideCompletionPaywall();
   }
 
   Future<void> _loadFamilyForHomeGuide() async {
@@ -568,6 +570,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     } else {
       _homeGuideProgress = nextProgress;
     }
+    _maybeShowHomeGuideCompletionPaywall();
   }
 
   Rect? _homeGuideAnchorRect(Size size) {
@@ -611,6 +614,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       return;
     }
     setState(() => _homeGuideProgress = nextProgress);
+    _maybeShowHomeGuideCompletionPaywall();
   }
 
   Future<void> _advanceHomeGuide(HomeGuideStep step) async {
@@ -623,6 +627,39 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       return;
     }
     setState(() => _homeGuideProgress = nextProgress);
+    _maybeShowHomeGuideCompletionPaywall();
+  }
+
+  void _maybeShowHomeGuideCompletionPaywall() {
+    final controller = _homeGuideController;
+    if (controller == null ||
+        _homeGuideCompletionPaywallQueued ||
+        !controller.shouldShowCompletionPaywall()) {
+      return;
+    }
+
+    _homeGuideCompletionPaywallQueued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _homeGuideCompletionPaywallQueued = false;
+      if (!mounted) {
+        return;
+      }
+
+      final latestController = _homeGuideController;
+      if (latestController == null ||
+          !latestController.shouldShowCompletionPaywall() ||
+          _paywallDialogVisible ||
+          _isReadOnlyAfterTrial ||
+          ref.read(authProvider).viewOnly) {
+        return;
+      }
+
+      await latestController.markCompletionPaywallShown();
+      if (!mounted) {
+        return;
+      }
+      _openPaywall();
+    });
   }
 
   Future<void> _handleHomeGuideHotspotTap(HomeGuideStep step) async {
@@ -3284,10 +3321,12 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         setState(() {
           _homeGuideLoading = true;
           _homeGuideProgress = null;
+          _homeGuideCompletionPaywallQueued = false;
         });
       } else {
         _homeGuideLoading = true;
         _homeGuideProgress = null;
+        _homeGuideCompletionPaywallQueued = false;
       }
       _initHomeGuide();
       _loadFamilyForHomeGuide();
@@ -3306,6 +3345,15 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       _loadFamilyForHomeGuide();
       _loadFamilyPets();
       _refreshHomeGuideProgress();
+    });
+
+    ref.listen<SubscriptionState>(subscriptionProvider, (previous, next) {
+      if (previous?.isInitialized == next.isInitialized &&
+          previous?.accessAllowed == next.accessAllowed &&
+          previous?.paywallRequired == next.paywallRequired) {
+        return;
+      }
+      _maybeShowHomeGuideCompletionPaywall();
     });
 
     return LayoutBuilder(

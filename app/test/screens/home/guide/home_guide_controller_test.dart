@@ -285,5 +285,65 @@ void main() {
         expect(progress.currentStep, HomeGuideStep.taskSticker);
       },
     );
+
+    test('marks completion paywall due only after guide completion', () async {
+      final preferences = await SharedPreferences.getInstance();
+      final controller = HomeGuideController(
+        preferences: preferences,
+        scopeId: 'user_1_family_99',
+      );
+
+      final done = await controller.advance(
+        HomeGuideStep.petArea,
+        const HomeGuideSnapshot(
+          hasFamilyMembers: true,
+          hasActiveTasks: true,
+          hasCurrentUserPet: true,
+          hasMembersMissingPets: false,
+        ),
+      );
+
+      expect(done.completed, isTrue);
+      expect(controller.shouldShowCompletionPaywall(), isTrue);
+
+      await controller.markCompletionPaywallShown();
+
+      expect(controller.shouldShowCompletionPaywall(), isFalse);
+    });
+
+    test(
+      'does not mark completion paywall for existing complete homes',
+      () async {
+        final preferences = await SharedPreferences.getInstance();
+        final controller = HomeGuideController(
+          preferences: preferences,
+          scopeId: 'user_1_family_99',
+        );
+
+        final progress = controller.readProgress(
+          const HomeGuideSnapshot(
+            hasFamilyMembers: true,
+            hasActiveTasks: true,
+            hasCurrentUserPet: true,
+            hasMembersMissingPets: false,
+          ),
+        );
+
+        expect(progress.completed, isTrue);
+        expect(controller.shouldShowCompletionPaywall(), isFalse);
+      },
+    );
+
+    test('does not mark completion paywall when guide is skipped', () async {
+      final preferences = await SharedPreferences.getInstance();
+      final controller = HomeGuideController(
+        preferences: preferences,
+        scopeId: 'user_1_family_99',
+      );
+
+      await controller.skip();
+
+      expect(controller.shouldShowCompletionPaywall(), isFalse);
+    });
   });
 }
