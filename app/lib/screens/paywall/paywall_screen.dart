@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
+import '../../core/constants.dart';
 import '../../core/ui/sprite_atlas.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/revenue_cat_provider.dart';
@@ -214,7 +215,10 @@ class _PaywallContentState extends ConsumerState<PaywallContent> {
                       subscriptionState: subscriptionState,
                     ),
                     const _PaywallBenefitRow(),
-                    _PaywallTrialChip(subscriptionState: subscriptionState),
+                    _PaywallTrialChip(
+                      revenueCatState: state,
+                      subscriptionState: subscriptionState,
+                    ),
                     _PaywallPlanCard(
                       target: _PaywallSprite.monthlyCardTarget,
                       fallbackTitle: '月度订阅',
@@ -585,18 +589,28 @@ class _BenefitItem extends StatelessWidget {
 }
 
 class _PaywallTrialChip extends StatelessWidget {
-  const _PaywallTrialChip({required this.subscriptionState});
+  const _PaywallTrialChip({
+    required this.revenueCatState,
+    required this.subscriptionState,
+  });
 
+  final RevenueCatState revenueCatState;
   final SubscriptionState subscriptionState;
 
   @override
   Widget build(BuildContext context) {
+    final entitlement = revenueCatState
+        .customerInfo
+        ?.entitlements
+        .active[RevenueCatConstants.entitlementId];
     final status = subscriptionState.status;
-    final text = status == null
-        ? '正在确认试用状态'
-        : status.isTrialActive
-        ? '7 天免费体验已开启，还剩 ${status.trialDaysRemaining} 天'
-        : _statusChipText(status.status);
+    final text =
+        _activeMembershipChipText(entitlement) ??
+        (status == null
+            ? '正在确认试用状态'
+            : status.isTrialActive
+            ? '7 天免费体验已开启，还剩 ${status.trialDaysRemaining} 天'
+            : _statusChipText(status.status));
     return Positioned.fromRect(
       rect: _PaywallSprite.trialChipTarget,
       child: Align(
@@ -1311,6 +1325,31 @@ String _readableSubscriptionPeriod(String period) {
     'P1Y' => '每年',
     _ => '订阅周期 $period',
   };
+}
+
+String? _activeMembershipChipText(EntitlementInfo? entitlement) {
+  if (entitlement == null || !entitlement.isActive) {
+    return null;
+  }
+
+  final expirationDate = _dateFromRevenueCat(entitlement.expirationDate);
+  if (expirationDate == null) {
+    return '永久会员已开通';
+  }
+
+  return '会员有效期至：${_formatChineseDate(expirationDate)}';
+}
+
+DateTime? _dateFromRevenueCat(String? value) {
+  final text = value?.trim();
+  if (text == null || text.isEmpty) {
+    return null;
+  }
+  return DateTime.tryParse(text)?.toLocal();
+}
+
+String _formatChineseDate(DateTime date) {
+  return '${date.year}年${date.month}月${date.day}日';
 }
 
 String _statusChipText(String status) {
