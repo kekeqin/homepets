@@ -212,6 +212,7 @@ class _PaywallContentState extends ConsumerState<PaywallContent> {
                     _sprite(_PaywallSprite.star, _PaywallSprite.starTarget),
                     _PaywallHeaderCopy(
                       mode: widget.mode,
+                      revenueCatState: state,
                       subscriptionState: subscriptionState,
                     ),
                     const _PaywallBenefitRow(),
@@ -457,18 +458,26 @@ class _PaywallPlanCard extends StatelessWidget {
 class _PaywallHeaderCopy extends StatelessWidget {
   const _PaywallHeaderCopy({
     required this.mode,
+    required this.revenueCatState,
     required this.subscriptionState,
   });
 
   final PaywallMode mode;
+  final RevenueCatState revenueCatState;
   final SubscriptionState subscriptionState;
 
   @override
   Widget build(BuildContext context) {
     final isBlocking = mode == PaywallMode.blocking;
+    final entitlement = revenueCatState
+        .customerInfo
+        ?.entitlements
+        .active[RevenueCatConstants.entitlementId];
     final status = subscriptionState.status;
     final title = isBlocking ? '试用期已结束' : 'HomePets 家庭会员';
-    final subtitle = status?.status == 'trial_expiring'
+    final subtitle = entitlement?.isActive == true
+        ? '会员权益已生效，可继续体验全部家庭功能。'
+        : status?.status == 'trial_expiring'
         ? '试用期即将结束。订阅后可继续管理家庭任务和宠物成长。'
         : isBlocking
         ? '订阅 HomePets 后，可以继续使用家庭任务、宠物成长和成长记录功能。'
@@ -685,19 +694,25 @@ class _PaywallUnlockHitTarget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final busy = state.isPurchasing || state.isRestoring;
-    final enabled = state.canPurchase && canStartPurchase;
+    final isActive = state.isPremiumActive;
+    final enabled = !isActive && state.canPurchase && canStartPurchase;
+    final label = isActive
+        ? '家庭会员已开通'
+        : canStartPurchase
+        ? '订阅'
+        : '请家长订阅后继续使用';
     return Positioned.fromRect(
       rect: _PaywallSprite.unlockButtonTarget,
       child: Semantics(
         button: true,
         enabled: enabled,
-        label: canStartPurchase ? '订阅' : '请家长订阅后继续使用',
+        label: label,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: enabled ? onPressed : null,
           child: AnimatedOpacity(
             duration: const Duration(milliseconds: 120),
-            opacity: enabled ? 1 : 0.52,
+            opacity: enabled || isActive ? 1 : 0.52,
             child: DecoratedBox(
               decoration: BoxDecoration(
                 color: const Color(0xFFFFB65A),
@@ -722,7 +737,7 @@ class _PaywallUnlockHitTarget extends StatelessWidget {
                         ),
                       )
                     : Text(
-                        canStartPurchase ? '订阅' : '请家长订阅后继续使用',
+                        label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -1173,6 +1188,9 @@ String? _inlineStatusMessageFor(
   RevenueCatState state,
   SubscriptionState subscriptionState,
 ) {
+  if (state.isPremiumActive) {
+    return null;
+  }
   if (_hasError(state) ||
       (state.isLoadingOfferings && !state.hasPackages) ||
       (!state.hasPackages && state.isInitialized)) {
