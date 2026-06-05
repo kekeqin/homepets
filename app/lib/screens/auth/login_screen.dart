@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
+import '../../core/ui/adaptive_design_layout.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/app_modal_shell.dart';
 import '../../widgets/homepets_primary_button.dart';
@@ -17,6 +18,11 @@ class LoginScreen extends ConsumerStatefulWidget {
   static const submitButtonKey = Key('login_submit_button');
   static const sendCodeButtonKey = Key('login_send_code_button');
   static const appleButtonKey = Key('login_apple_button');
+  static const panelKey = Key('login_panel');
+  static const designSize = Size(430, 932);
+  static const minimumInsets = EdgeInsets.fromLTRB(16, 18, 16, 24);
+  static const loginPanelRect = Rect.fromLTWH(30, 455, 370, 382);
+  static const loginPanelWithAppleRect = Rect.fromLTWH(30, 405, 370, 444);
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -113,7 +119,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     setState(() {
       _isSendingCode = false;
-      _hideAuthErrorAfterEdit = !success;
+      _hideAuthErrorAfterEdit = false;
     });
 
     if (success) {
@@ -189,15 +195,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6E2BC),
-      resizeToAvoidBottomInset: true,
+      resizeToAvoidBottomInset: false,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset(
-            _backgroundAsset,
-            fit: BoxFit.cover,
-            alignment: Alignment.topCenter,
-            filterQuality: FilterQuality.high,
+          AdaptiveDesignLayout(
+            designSize: LoginScreen.designSize,
+            fit: AdaptiveDesignFit.cover,
+            useViewPadding: false,
+            builder: (context, geometry) {
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned.fromRect(
+                    rect: geometry.designRect,
+                    child: Image.asset(
+                      _backgroundAsset,
+                      fit: BoxFit.fill,
+                      filterQuality: FilterQuality.high,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           DecoratedBox(
             decoration: BoxDecoration(
@@ -213,45 +233,56 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ),
           ),
-          SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  keyboardDismissBehavior:
-                      ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: EdgeInsets.fromLTRB(
-                    22,
-                    math.max(18, constraints.maxHeight * 0.27),
-                    22,
-                    24,
-                  ),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: math.max(0, constraints.maxHeight * 0.54),
-                    ),
-                    child: Align(
-                      alignment: Alignment.bottomCenter,
-                      child: _LoginPanel(
-                        formKey: _formKey,
-                        phoneController: _phoneController,
-                        codeController: _codeController,
-                        authState: authState,
-                        visibleError: visibleError,
-                        onLogin: _login,
-                        onAppleLogin: _loginWithApple,
-                        onSendCode: _sendCode,
-                        sendCodeLabel: _sendCodeLabel,
-                        showAppleLogin: _appleSignInAvailable,
-                        canSendCode:
-                            !_isSendingCode &&
-                            _resendSeconds == 0 &&
-                            !authState.isLoading,
+          AdaptiveDesignLayout(
+            designSize: LoginScreen.designSize,
+            minimumInsets: LoginScreen.minimumInsets,
+            builder: (context, geometry) {
+              final panelRect = _appleSignInAvailable
+                  ? LoginScreen.loginPanelWithAppleRect
+                  : LoginScreen.loginPanelRect;
+              final panelScreenRect = geometry.toScreenRect(panelRect);
+              final keyboardShift = _keyboardPanelShift(
+                context: context,
+                geometry: geometry,
+                panelScreenRect: panelScreenRect,
+              );
+              final shiftedPanelRect = panelScreenRect.shift(
+                Offset(0, keyboardShift),
+              );
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned.fromRect(
+                    rect: shiftedPanelRect,
+                    child: FittedBox(
+                      fit: BoxFit.fill,
+                      child: SizedBox(
+                        width: panelRect.width,
+                        height: panelRect.height,
+                        child: _LoginPanel(
+                          key: LoginScreen.panelKey,
+                          panelWidth: panelRect.width,
+                          formKey: _formKey,
+                          phoneController: _phoneController,
+                          codeController: _codeController,
+                          authState: authState,
+                          visibleError: visibleError,
+                          onLogin: _login,
+                          onAppleLogin: _loginWithApple,
+                          onSendCode: _sendCode,
+                          sendCodeLabel: _sendCodeLabel,
+                          showAppleLogin: _appleSignInAvailable,
+                          canSendCode:
+                              !_isSendingCode &&
+                              _resendSeconds == 0 &&
+                              !authState.isLoading,
+                        ),
                       ),
                     ),
                   ),
-                );
-              },
-            ),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -269,10 +300,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ? '\u91cd\u65b0\u53d1\u9001'
         : '\u83b7\u53d6\u9a8c\u8bc1\u7801';
   }
+
+  double _keyboardPanelShift({
+    required BuildContext context,
+    required AdaptiveDesignLayoutGeometry geometry,
+    required Rect panelScreenRect,
+  }) {
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    if (keyboardInset <= 0) {
+      return 0;
+    }
+
+    final keyboardTop = MediaQuery.sizeOf(context).height - keyboardInset;
+    final desiredShift = keyboardTop - 16 - panelScreenRect.bottom;
+    if (desiredShift >= 0) {
+      return 0;
+    }
+
+    final topLimitShift = geometry.safeBounds.top + 12 - panelScreenRect.top;
+    return math.max(desiredShift, topLimitShift);
+  }
 }
 
 class _LoginPanel extends StatelessWidget {
   const _LoginPanel({
+    super.key,
+    required this.panelWidth,
     required this.formKey,
     required this.phoneController,
     required this.codeController,
@@ -286,6 +339,7 @@ class _LoginPanel extends StatelessWidget {
     required this.canSendCode,
   });
 
+  final double panelWidth;
   final GlobalKey<FormState> formKey;
   final TextEditingController phoneController;
   final TextEditingController codeController;
@@ -300,8 +354,6 @@ class _LoginPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final panelWidth = math.min(MediaQuery.sizeOf(context).width * 0.86, 430.0);
-
     return SizedBox(
       width: panelWidth,
       child: DecoratedBox(
