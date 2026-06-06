@@ -224,7 +224,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   bool _homeGuideLoading = true;
   bool _advanceHomeGuideAfterTaskPanelClose = false;
   bool _homeGuideCompletionPaywallQueued = false;
-  bool _didAutoOpenCurrentUserPetSelection = false;
   OverlayEntry? _topSnackBarEntry;
   bool _paywallDialogVisible = false;
   final math.Random _taskCompletionMessageRandom = math.Random();
@@ -543,7 +542,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       _homeGuideLoading = false;
     });
     _maybeShowHomeGuideCompletionPaywall();
-    _maybeAutoOpenCurrentUserPetSelection();
   }
 
   Future<void> _loadFamilyForHomeGuide() async {
@@ -565,7 +563,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     if (currentProgress?.currentStep == nextProgress.currentStep &&
         currentProgress?.completed == nextProgress.completed &&
         currentProgress?.skipped == nextProgress.skipped) {
-      _maybeAutoOpenCurrentUserPetSelection();
       return;
     }
     if (mounted) {
@@ -574,45 +571,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       _homeGuideProgress = nextProgress;
     }
     _maybeShowHomeGuideCompletionPaywall();
-    _maybeAutoOpenCurrentUserPetSelection();
-  }
-
-  void _maybeAutoOpenCurrentUserPetSelection() {
-    if (_didAutoOpenCurrentUserPetSelection ||
-        _homeGuideLoading ||
-        _isReadOnlyAfterTrial ||
-        _familyPanelVisible ||
-        _taskPanelVisible ||
-        _shopPanelVisible ||
-        _settingsPanelVisible ||
-        _paywallDialogVisible) {
-      return;
-    }
-
-    final authState = ref.read(authProvider);
-    if (homeGuideBlockedByEntitlement(authState)) {
-      return;
-    }
-
-    final snapshot = _homeGuideSnapshot;
-    if (!snapshot.hasFamilyMembers || snapshot.hasCurrentUserPet) {
-      return;
-    }
-
-    _didAutoOpenCurrentUserPetSelection = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted ||
-          _familyPanelVisible ||
-          _taskPanelVisible ||
-          _shopPanelVisible ||
-          _settingsPanelVisible ||
-          _paywallDialogVisible ||
-          _isReadOnlyAfterTrial ||
-          homeGuideBlockedByEntitlement(ref.read(authProvider))) {
-        return;
-      }
-      unawaited(_showFamilyPanel(clearRouteAfterClose: false));
-    });
   }
 
   Rect? _homeGuideAnchorRect(Size size) {
@@ -3388,13 +3346,11 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
           _homeGuideLoading = true;
           _homeGuideProgress = null;
           _homeGuideCompletionPaywallQueued = false;
-          _didAutoOpenCurrentUserPetSelection = false;
         });
       } else {
         _homeGuideLoading = true;
         _homeGuideProgress = null;
         _homeGuideCompletionPaywallQueued = false;
-        _didAutoOpenCurrentUserPetSelection = false;
       }
       _initHomeGuide();
       _loadFamilyForHomeGuide();

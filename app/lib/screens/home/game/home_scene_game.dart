@@ -39,6 +39,30 @@ const String _homeLayoutRightArmchairNearArmOccluder =
 const String _homeLayoutRightArmchairFrontOccluder =
     'rightArmchairFrontOccluder';
 const String _homeLayoutRightArmchairSideOccluder = 'rightArmchairSideOccluder';
+const ui.ColorFilter _homeGuideTargetLiftFilter = ui.ColorFilter.matrix(
+  <double>[
+    1.15,
+    0,
+    0,
+    0,
+    10,
+    0,
+    1.15,
+    0,
+    0,
+    10,
+    0,
+    0,
+    1.15,
+    0,
+    10,
+    0,
+    0,
+    0,
+    1,
+    0,
+  ],
+);
 const Set<String> _homeSceneDensityAwareAssets = <String>{
   _homeTaskStickerAsset,
   _homeFamilyPhotoFrameAsset,
@@ -4631,7 +4655,8 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
       return;
     }
 
-    final guidePulseScale = _guidePulseScale();
+    final guideTarget = _isHomeGuideTarget();
+    final guidePulseScale = _guidePulseScale(guideTarget: guideTarget);
     if (guidePulseScale != 1) {
       canvas.save();
       canvas.translate(size.x * 0.5, size.y * 0.5);
@@ -4642,6 +4667,7 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
     _spritePaint.color = const Color(
       0xFFFFFFFF,
     ).withValues(alpha: opacity.clamp(0, 1).toDouble());
+    _spritePaint.colorFilter = guideTarget ? _homeGuideTargetLiftFilter : null;
     final clip = clipPath;
     if (clip == null) {
       sprite.render(canvas, size: size, overridePaint: _spritePaint);
@@ -4743,14 +4769,16 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
     };
   }
 
-  double _guidePulseScale() {
+  bool _isHomeGuideTarget() {
     final step = game._homeGuideStep;
-    final isGuideTarget =
-        (step == HomeGuideStep.taskSticker &&
+    return (step == HomeGuideStep.taskSticker &&
             behavior == _SceneSpriteBehavior.taskNote) ||
         (step == HomeGuideStep.familyFrame &&
             behavior == _SceneSpriteBehavior.familyPhoto);
-    if (!isGuideTarget) {
+  }
+
+  double _guidePulseScale({required bool guideTarget}) {
+    if (!guideTarget) {
       return 1;
     }
     return 1 + (math.sin(_ambientTime * math.pi * 2.0) * 0.035);
@@ -4949,6 +4977,7 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
     }
 
     final guideFrozen = game.isHomeGuidePetFrozen(petId);
+    final guideTarget = guideFrozen && game.isHomeGuidePetPulseTarget(petId);
     if (!guideFrozen) {
       _renderContactShadow(canvas);
       _renderCompletionSpotlight(canvas);
@@ -4956,7 +4985,7 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
 
     final floatOffset = guideFrozen ? 0.0 : _currentFloatOffset();
     final breathScale = guideFrozen ? 1.0 : _currentBreathScale();
-    final guidePulseScale = guideFrozen && game.isHomeGuidePetPulseTarget(petId)
+    final guidePulseScale = guideTarget
         ? 1 + (math.sin(_guidePulseElapsed * math.pi * 2.0) * 0.035)
         : 1.0;
     final actionTransform = guideFrozen
@@ -5001,6 +5030,7 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
     _spritePaint.color = const Color(
       0xFFFFFFFF,
     ).withValues(alpha: opacity.clamp(0, 1).toDouble());
+    _spritePaint.colorFilter = guideTarget ? _homeGuideTargetLiftFilter : null;
     sprite.render(canvas, size: size, overridePaint: _spritePaint);
 
     if (floatOffset != 0 ||
