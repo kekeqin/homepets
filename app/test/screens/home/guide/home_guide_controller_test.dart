@@ -53,7 +53,7 @@ void main() {
       () async {
         final preferences = await SharedPreferences.getInstance();
         await preferences.setString(
-          'home_guide_v1_user_1_family_99_current_step',
+          'home_guide_v3_user_1_family_99_current_step',
           HomeGuideStep.petArea.storageValue,
         );
         final controller = HomeGuideController(
@@ -114,7 +114,7 @@ void main() {
         HomeGuideStep.familyFrame,
         snapshot,
       );
-      final pet = await controller.advance(
+      final task = await controller.advance(
         HomeGuideStep.taskSticker,
         const HomeGuideSnapshot(
           hasFamilyMembers: true,
@@ -134,7 +134,7 @@ void main() {
       );
 
       expect(family.currentStep, HomeGuideStep.taskSticker);
-      expect(pet.currentStep, HomeGuideStep.petArea);
+      expect(task.currentStep, HomeGuideStep.petArea);
       expect(done.completed, isTrue);
       expect(
         controller
@@ -188,7 +188,7 @@ void main() {
     test('member without pet sends user back to family frame', () async {
       final preferences = await SharedPreferences.getInstance();
       await preferences.setString(
-        'home_guide_v1_user_1_family_99_current_step',
+        'home_guide_v3_user_1_family_99_current_step',
         HomeGuideStep.taskSticker.storageValue,
       );
       final controller = HomeGuideController(
@@ -209,35 +209,32 @@ void main() {
       expect(progress.currentStep, HomeGuideStep.familyFrame);
     });
 
-    test(
-      'starts from task sticker only after family and pet are ready',
-      () async {
-        final preferences = await SharedPreferences.getInstance();
-        final controller = HomeGuideController(
-          preferences: preferences,
-          scopeId: 'user_1_family_99',
-        );
+    test('starts from family frame before task and pet steps', () async {
+      final preferences = await SharedPreferences.getInstance();
+      final controller = HomeGuideController(
+        preferences: preferences,
+        scopeId: 'user_1_family_99',
+      );
 
-        final progress = controller.readProgress(
-          const HomeGuideSnapshot(
-            hasFamilyMembers: true,
-            hasActiveTasks: false,
-            hasCurrentUserPet: true,
-            hasMembersMissingPets: false,
-          ),
-        );
+      final progress = controller.readProgress(
+        const HomeGuideSnapshot(
+          hasFamilyMembers: true,
+          hasActiveTasks: false,
+          hasCurrentUserPet: true,
+          hasMembersMissingPets: false,
+        ),
+      );
 
-        expect(progress.shouldShow, isTrue);
-        expect(progress.currentStep, HomeGuideStep.taskSticker);
-      },
-    );
+      expect(progress.shouldShow, isTrue);
+      expect(progress.currentStep, HomeGuideStep.familyFrame);
+    });
 
     test(
       'keeps pet area progress after task panel was opened without tasks',
       () async {
         final preferences = await SharedPreferences.getInstance();
         await preferences.setString(
-          'home_guide_v1_user_1_family_99_current_step',
+          'home_guide_v3_user_1_family_99_current_step',
           HomeGuideStep.petArea.storageValue,
         );
         final controller = HomeGuideController(
@@ -259,32 +256,29 @@ void main() {
       },
     );
 
-    test(
-      'returns to task sticker after family setup is fixed but tasks are empty',
-      () async {
-        final preferences = await SharedPreferences.getInstance();
-        await preferences.setString(
-          'home_guide_v1_user_1_family_99_current_step',
-          HomeGuideStep.familyFrame.storageValue,
-        );
-        final controller = HomeGuideController(
-          preferences: preferences,
-          scopeId: 'user_1_family_99',
-        );
+    test('keeps stored family frame after family setup is fixed', () async {
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setString(
+        'home_guide_v3_user_1_family_99_current_step',
+        HomeGuideStep.familyFrame.storageValue,
+      );
+      final controller = HomeGuideController(
+        preferences: preferences,
+        scopeId: 'user_1_family_99',
+      );
 
-        final progress = controller.readProgress(
-          const HomeGuideSnapshot(
-            hasFamilyMembers: true,
-            hasActiveTasks: false,
-            hasCurrentUserPet: true,
-            hasMembersMissingPets: false,
-          ),
-        );
+      final progress = controller.readProgress(
+        const HomeGuideSnapshot(
+          hasFamilyMembers: true,
+          hasActiveTasks: false,
+          hasCurrentUserPet: true,
+          hasMembersMissingPets: false,
+        ),
+      );
 
-        expect(progress.shouldShow, isTrue);
-        expect(progress.currentStep, HomeGuideStep.taskSticker);
-      },
-    );
+      expect(progress.shouldShow, isTrue);
+      expect(progress.currentStep, HomeGuideStep.familyFrame);
+    });
 
     test('marks completion paywall due only after guide completion', () async {
       final preferences = await SharedPreferences.getInstance();

@@ -8,29 +8,17 @@ import 'home_guide_controller.dart';
 const String _guideFingerAsset = 'assets/images/ui/login/finger1.png';
 const String _guideBubbleAsset = 'assets/images/ui/login/bubble.png';
 const double _guideFingerSize = 76.0;
-const double _guideTargetGlowOutset = 32.0;
-const double _guideTargetGlowInnerStroke = 4.5;
-const double _guideTargetGlowOuterSpread = 18.0;
 const Color _guideScrimColor = Color(0x2E000000);
-const double _guideBubbleMinWidth = 244.0;
-const double _guideBubbleMaxWidth = 268.0;
-const double _guideBubbleWidthFactor = 0.62;
+const double _guideBubbleMinWidth = 184.0;
+const double _guideBubbleMaxWidth = 224.0;
+const double _guideBubbleWidthFactor = 0.54;
 const double _guideBubbleAspectRatio = 1024 / 1536;
 const double _guideBubbleTailYFraction = 0.70;
-const double _guideBubbleFingerGap = 20.0;
-const String _guideAlphaGlowShaderAsset = 'shaders/guide_alpha_glow.frag';
+const double _guideBubbleFingerGap = 12.0;
 // finger1.png is 176x169; the visible fingertip is near pixel (41, 33).
 const Offset _guideFingerTipFraction = Offset(0.235, 0.207);
 
 typedef _GuideFingerTargetResolver = Offset Function(Rect targetRect);
-
-String? _guideFlutterAssetPath(String? assetPath) {
-  if (assetPath == null || assetPath.trim().isEmpty) {
-    return null;
-  }
-  final trimmed = assetPath.trim();
-  return trimmed.startsWith('assets/') ? trimmed : 'assets/$trimmed';
-}
 
 class _GuideTextSegment {
   const _GuideTextSegment(this.text, {this.highlight = false});
@@ -126,7 +114,6 @@ class _HomeGuideLayout {
   const _HomeGuideLayout({
     required this.spec,
     required this.targetRect,
-    required this.glowRect,
     required this.hotspotRect,
     required this.bubbleRect,
     required this.bubbleTailOnRight,
@@ -135,7 +122,6 @@ class _HomeGuideLayout {
 
   final _HomeGuideSpec spec;
   final Rect targetRect;
-  final Rect glowRect;
   final Rect hotspotRect;
   final Rect bubbleRect;
   final bool bubbleTailOnRight;
@@ -172,10 +158,6 @@ class _HomeGuideLayoutResolver {
     return _HomeGuideLayout(
       spec: spec,
       targetRect: targetRect,
-      glowRect: _clampLooseRect(
-        targetRect.inflate(_guideTargetGlowOutset),
-        screenSize,
-      ),
       hotspotRect: targetRect.inflate(spec.hotspotInflate),
       bubbleRect: bubble.rect,
       bubbleTailOnRight: bubble.tailOnRight,
@@ -196,20 +178,6 @@ class _HomeGuideLayoutResolver {
         .clamp(0.0, math.max(0.0, size.height - height))
         .toDouble();
     return Rect.fromLTWH(left, top, width, height);
-  }
-
-  static Rect _clampLooseRect(Rect rect, Size size) {
-    if (size.isEmpty) {
-      return rect;
-    }
-    final left = math.max(0.0, rect.left);
-    final top = math.max(0.0, rect.top);
-    final right = math.min(size.width, rect.right);
-    final bottom = math.min(size.height, rect.bottom);
-    if (right <= left || bottom <= top) {
-      return rect;
-    }
-    return Rect.fromLTRB(left, top, right, bottom);
   }
 
   static _GuideBubblePlacement _bubblePlacementFor({
@@ -333,21 +301,11 @@ class HomeGuideOverlay extends StatelessWidget {
           children: [
             Positioned.fill(
               child: IgnorePointer(
-                child: CustomPaint(
+                child: KeyedSubtree(
                   key: const ValueKey('home_guide_background_scrim'),
-                  painter: const _GuideBackgroundScrimPainter(),
-                ),
-              ),
-            ),
-            Positioned.fromRect(
-              rect: layout.glowRect,
-              child: IgnorePointer(
-                child: _GuideObjectGlow(
-                  key: const ValueKey('home_guide_target_glow'),
-                  step: step,
-                  targetRect: layout.targetRect.shift(-layout.glowRect.topLeft),
-                  targetAssetPath: targetAssetPath,
-                  targetAssetCropRect: targetAssetCropRect,
+                  child: const _GuideObjectGlow(
+                    key: ValueKey('home_guide_target_glow'),
+                  ),
                 ),
               ),
             ),
@@ -410,29 +368,54 @@ class _GuideBubble extends StatelessWidget {
         ),
         LayoutBuilder(
           builder: (context, constraints) {
-            final messageFontSize = (constraints.maxWidth * 0.083)
-                .clamp(21.0, 23.0)
+            final maxMessageFontSize = (constraints.maxWidth * 0.104)
+                .clamp(17.0, 22.0)
                 .toDouble();
+            final leftPadding =
+                constraints.maxWidth * (tailOnRight ? 0.22 : 0.24);
+            final topPadding = constraints.maxHeight * 0.22;
+            final rightPadding =
+                constraints.maxWidth * (tailOnRight ? 0.28 : 0.22);
+            final bottomPadding = constraints.maxHeight * 0.26;
+            final baseStyle = TextStyle(
+              color: const Color(0xFF6B4C36),
+              fontSize: maxMessageFontSize,
+              fontWeight: FontWeight.w900,
+              height: 1.12,
+            );
+            final messageFontSize = _fitGuideBubbleFontSize(
+              copy: copy,
+              baseStyle: baseStyle,
+              textDirection:
+                  Directionality.maybeOf(context) ?? TextDirection.ltr,
+              maxWidth: math.max(
+                1.0,
+                constraints.maxWidth - leftPadding - rightPadding,
+              ),
+              maxHeight: math.max(
+                1.0,
+                constraints.maxHeight - topPadding - bottomPadding,
+              ),
+              minFontSize: 13.0,
+            );
             return Padding(
               padding: EdgeInsets.fromLTRB(
-                constraints.maxWidth * (tailOnRight ? 0.16 : 0.20),
-                constraints.maxHeight * 0.20,
-                constraints.maxWidth * (tailOnRight ? 0.20 : 0.16),
-                constraints.maxHeight * 0.24,
+                leftPadding,
+                topPadding,
+                rightPadding,
+                bottomPadding,
               ),
               child: Center(
                 child: RichText(
                   key: const ValueKey('home_guide_bubble_message'),
                   maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                  overflow: TextOverflow.visible,
+                  softWrap: false,
                   textAlign: TextAlign.center,
+                  textWidthBasis: TextWidthBasis.longestLine,
+                  textScaler: TextScaler.noScaling,
                   text: copy.toTextSpan(
-                    TextStyle(
-                      color: const Color(0xFF6B4C36),
-                      fontSize: messageFontSize,
-                      fontWeight: FontWeight.w900,
-                      height: 1.12,
-                    ),
+                    baseStyle.copyWith(fontSize: messageFontSize),
                   ),
                 ),
               ),
@@ -442,6 +425,34 @@ class _GuideBubble extends StatelessWidget {
       ],
     );
   }
+}
+
+double _fitGuideBubbleFontSize({
+  required _GuideBubbleCopy copy,
+  required TextStyle baseStyle,
+  required TextDirection textDirection,
+  required double maxWidth,
+  required double maxHeight,
+  required double minFontSize,
+}) {
+  final maxFontSize = baseStyle.fontSize ?? 18.0;
+  var fontSize = maxFontSize;
+  while (fontSize > minFontSize) {
+    final painter = TextPainter(
+      text: copy.toTextSpan(baseStyle.copyWith(fontSize: fontSize)),
+      textDirection: textDirection,
+      textAlign: TextAlign.center,
+      maxLines: 2,
+      textScaler: TextScaler.noScaling,
+    )..layout(maxWidth: double.infinity);
+    final fits = painter.width <= maxWidth && painter.height <= maxHeight;
+    painter.dispose();
+    if (fits) {
+      return fontSize;
+    }
+    fontSize -= 0.5;
+  }
+  return minFontSize;
 }
 
 class _GuideFinger extends StatefulWidget {
@@ -545,183 +556,17 @@ class _GuideFingerTapPainter extends CustomPainter {
   }
 }
 
-class _GuideObjectGlow extends StatefulWidget {
-  const _GuideObjectGlow({
-    super.key,
-    required this.step,
-    required this.targetRect,
-    required this.targetAssetPath,
-    required this.targetAssetCropRect,
-  });
-
-  final HomeGuideStep step;
-  final Rect targetRect;
-  final String? targetAssetPath;
-  final Rect? targetAssetCropRect;
-
-  @override
-  State<_GuideObjectGlow> createState() => _GuideObjectGlowState();
-}
-
-class _GuideObjectGlowState extends State<_GuideObjectGlow>
-    with SingleTickerProviderStateMixin {
-  static bool _shaderLoadStarted = false;
-  static ui.FragmentProgram? _shaderProgram;
-
-  ImageStream? _targetImageStream;
-  ImageStreamListener? _targetImageListener;
-  ui.Image? _targetImage;
-  Object? _targetImageKey;
-
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1550),
-  )..repeat(reverse: true);
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _ensureShaderProgram();
-    _resolveTargetImage();
-  }
-
-  @override
-  void didUpdateWidget(covariant _GuideObjectGlow oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.targetAssetPath != widget.targetAssetPath) {
-      _resolveTargetImage();
-    }
-  }
-
-  @override
-  void dispose() {
-    final listener = _targetImageListener;
-    if (listener != null) {
-      _targetImageStream?.removeListener(listener);
-    }
-    _targetImage?.dispose();
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _resolveTargetImage() {
-    final assetPath = _guideFlutterAssetPath(widget.targetAssetPath);
-    final nextKey = assetPath;
-    if (_targetImageKey == nextKey) {
-      return;
-    }
-
-    if (_targetImageStream != null && _targetImageListener != null) {
-      _targetImageStream!.removeListener(_targetImageListener!);
-    }
-    _targetImageStream = null;
-    _targetImageListener = null;
-    _targetImage?.dispose();
-    _targetImage = null;
-    _targetImageKey = nextKey;
-
-    if (assetPath == null) {
-      if (mounted) {
-        setState(() {});
-      }
-      return;
-    }
-
-    final provider = AssetImage(assetPath);
-    final stream = provider.resolve(createLocalImageConfiguration(context));
-    late final ImageStreamListener listener;
-    listener = ImageStreamListener(
-      (imageInfo, synchronousCall) {
-        final image = imageInfo.image.clone();
-        imageInfo.dispose();
-        if (!mounted) {
-          image.dispose();
-          return;
-        }
-        setState(() {
-          _targetImage?.dispose();
-          _targetImage = image;
-        });
-      },
-      onError: (Object error, StackTrace? stackTrace) {
-        debugPrint('Home guide target image failed to load: $assetPath');
-        debugPrint('$error');
-      },
-    );
-    _targetImageStream = stream;
-    _targetImageListener = listener;
-    stream.addListener(listener);
-  }
-
-  void _ensureShaderProgram() {
-    if (_shaderLoadStarted || _shaderProgram != null) {
-      return;
-    }
-    _shaderLoadStarted = true;
-    ui.FragmentProgram.fromAsset(_guideAlphaGlowShaderAsset)
-        .then((program) {
-          _shaderProgram = program;
-          if (mounted) {
-            setState(() {});
-          }
-        })
-        .catchError((Object error, StackTrace stackTrace) {
-          debugPrint('Home guide alpha glow shader failed to load.');
-          debugPrint('$error');
-        });
-  }
+class _GuideObjectGlow extends StatelessWidget {
+  const _GuideObjectGlow({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final value = Curves.easeInOut.transform(_controller.value);
-        return CustomPaint(
-          painter: _GuideObjectGlowPainter(
-            progress: value,
-            shape: _GuideObjectGlowShape.forStep(widget.step),
-            targetRect: widget.targetRect,
-            targetImage: _targetImage,
-            targetAssetCropRect: widget.targetAssetCropRect,
-            shaderProgram: _shaderProgram,
-          ),
-        );
-      },
-    );
-  }
-}
-
-enum _GuideObjectGlowShape {
-  roundedRect,
-  oval;
-
-  static _GuideObjectGlowShape forStep(HomeGuideStep step) {
-    return switch (step) {
-      HomeGuideStep.taskSticker => _GuideObjectGlowShape.roundedRect,
-      HomeGuideStep.familyFrame => _GuideObjectGlowShape.roundedRect,
-      HomeGuideStep.petArea => _GuideObjectGlowShape.oval,
-      HomeGuideStep.done => _GuideObjectGlowShape.oval,
-    };
+    return const CustomPaint(painter: _GuideObjectGlowPainter());
   }
 }
 
 class _GuideObjectGlowPainter extends CustomPainter {
-  const _GuideObjectGlowPainter({
-    required this.progress,
-    required this.shape,
-    required this.targetRect,
-    required this.targetImage,
-    required this.targetAssetCropRect,
-    required this.shaderProgram,
-  });
-
-  final double progress;
-  final _GuideObjectGlowShape shape;
-  final Rect targetRect;
-  final ui.Image? targetImage;
-  final Rect? targetAssetCropRect;
-  final ui.FragmentProgram? shaderProgram;
+  const _GuideObjectGlowPainter();
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -729,266 +574,9 @@ class _GuideObjectGlowPainter extends CustomPainter {
       return;
     }
 
-    final image = targetImage;
-    if (image != null) {
-      _paintAssetMaskedGlow(canvas, size, image);
-      return;
-    }
-  }
-
-  void _paintAssetMaskedGlow(Canvas canvas, Size size, ui.Image image) {
-    final paintTargetRect = _targetRectFor(size);
-    if (paintTargetRect.isEmpty) {
-      return;
-    }
-
-    final shaderPainted = _paintFragmentShaderGlow(
-      canvas: canvas,
-      size: size,
-      image: image,
-      targetRect: paintTargetRect,
-    );
-    if (!shaderPainted) {
-      _paintImageFilterGlow(canvas, size, image, paintTargetRect);
-    }
-
-    _paintTargetImage(canvas, image, paintTargetRect);
-  }
-
-  bool _paintFragmentShaderGlow({
-    required Canvas canvas,
-    required Size size,
-    required ui.Image image,
-    required Rect targetRect,
-  }) {
-    final program = shaderProgram;
-    if (program == null) {
-      return false;
-    }
-
-    final shader = program.fragmentShader();
-    try {
-      final sourceRect = _imageSourceRectFor(image);
-      shader
-        ..getUniformFloat('u_size', 0).set(size.width)
-        ..getUniformFloat('u_size', 1).set(size.height)
-        ..getUniformFloat('u_target_origin', 0).set(targetRect.left)
-        ..getUniformFloat('u_target_origin', 1).set(targetRect.top)
-        ..getUniformFloat('u_target_size', 0).set(targetRect.width)
-        ..getUniformFloat('u_target_size', 1).set(targetRect.height)
-        ..getUniformFloat('u_image_size', 0).set(image.width.toDouble())
-        ..getUniformFloat('u_image_size', 1).set(image.height.toDouble())
-        ..getUniformFloat('u_source_rect', 0).set(sourceRect.left)
-        ..getUniformFloat('u_source_rect', 1).set(sourceRect.top)
-        ..getUniformFloat('u_source_rect', 2).set(sourceRect.width)
-        ..getUniformFloat('u_source_rect', 3).set(sourceRect.height)
-        ..getUniformFloat('u_inner_width', 0).set(_innerGlowWidth(targetRect))
-        ..getUniformFloat('u_outer_width', 0).set(_outerGlowWidth(targetRect))
-        ..getUniformFloat(
-          'u_softness',
-          0,
-        ).set(_scaledGlowMetric(targetRect: targetRect, basePixels: 16.0))
-        ..getUniformFloat('u_progress', 0).set(progress)
-        ..setImageSampler(0, image, filterQuality: FilterQuality.medium);
-
-      canvas.drawRect(
-        Offset.zero & size,
-        Paint()
-          ..shader = shader
-          ..blendMode = BlendMode.srcOver,
-      );
-      return true;
-    } catch (error) {
-      debugPrint('Home guide alpha glow shader paint failed.');
-      debugPrint('$error');
-      return false;
-    } finally {
-      shader.dispose();
-    }
-  }
-
-  void _paintImageFilterGlow(
-    Canvas canvas,
-    Size size,
-    ui.Image image,
-    Rect targetRect,
-  ) {
-    final pulse = 0.88 + progress * 0.10;
-    final imageSourceRect = _imageSourceRectFor(image);
-    final layerRect = Offset.zero & size;
-    final innerWidth = _innerGlowWidth(targetRect);
-    final outerWidth = _outerGlowWidth(targetRect);
-
-    canvas.saveLayer(layerRect, Paint()..blendMode = BlendMode.srcOver);
-    _paintMaskPass(
-      canvas: canvas,
-      paintBounds: layerRect,
-      targetRect: targetRect,
-      image: image,
-      sourceRect: imageSourceRect,
-      color: const Color(0xFFFFD84A).withValues(alpha: 0.30 * pulse),
-      imageFilter: ui.ImageFilter.compose(
-        outer: ui.ImageFilter.blur(
-          sigmaX: math.max(8.0, outerWidth * 0.56),
-          sigmaY: math.max(8.0, outerWidth * 0.56),
-          tileMode: TileMode.decal,
-        ),
-        inner: ui.ImageFilter.dilate(
-          radiusX: outerWidth * 0.34,
-          radiusY: outerWidth * 0.34,
-        ),
-      ),
-      opacity: 1.0,
-    );
-    _paintMaskPass(
-      canvas: canvas,
-      paintBounds: layerRect,
-      targetRect: targetRect,
-      image: image,
-      sourceRect: imageSourceRect,
-      color: const Color(0xFFFFE680).withValues(alpha: 0.32 * pulse),
-      imageFilter: ui.ImageFilter.compose(
-        outer: ui.ImageFilter.blur(
-          sigmaX: math.max(3.0, outerWidth * 0.16),
-          sigmaY: math.max(3.0, outerWidth * 0.16),
-          tileMode: TileMode.decal,
-        ),
-        inner: ui.ImageFilter.dilate(
-          radiusX: math.max(innerWidth + 3.0, outerWidth * 0.34),
-          radiusY: math.max(innerWidth + 3.0, outerWidth * 0.34),
-        ),
-      ),
-      opacity: 1.0,
-    );
-    _paintMaskPass(
-      canvas: canvas,
-      paintBounds: layerRect,
-      targetRect: targetRect,
-      image: image,
-      sourceRect: imageSourceRect,
-      color: const Color(0xFFFFFDF0).withValues(alpha: 0.84 * pulse),
-      imageFilter: ui.ImageFilter.dilate(
-        radiusX: innerWidth,
-        radiusY: innerWidth,
-      ),
-      opacity: 1.0,
-    );
-    canvas.restore();
-  }
-
-  void _paintMaskPass({
-    required Canvas canvas,
-    required Rect paintBounds,
-    required Rect targetRect,
-    required ui.Image image,
-    required Rect sourceRect,
-    required Color color,
-    required ui.ImageFilter imageFilter,
-    required double opacity,
-  }) {
-    canvas.saveLayer(paintBounds, Paint()..blendMode = BlendMode.srcOver);
-    canvas.saveLayer(paintBounds, Paint()..imageFilter = imageFilter);
-    canvas.drawRect(paintBounds, Paint()..color = color);
-    canvas.drawImageRect(
-      image,
-      sourceRect,
-      targetRect,
-      Paint()
-        ..blendMode = BlendMode.dstIn
-        ..filterQuality = FilterQuality.medium
-        ..color = const Color(0xFFFFFFFF).withValues(alpha: opacity),
-    );
-    canvas.restore();
-    canvas.drawImageRect(
-      image,
-      sourceRect,
-      targetRect,
-      Paint()
-        ..blendMode = BlendMode.dstOut
-        ..filterQuality = FilterQuality.medium,
-    );
-    canvas.restore();
-  }
-
-  void _paintTargetImage(Canvas canvas, ui.Image image, Rect targetRect) {
-    canvas.drawImageRect(
-      image,
-      _imageSourceRectFor(image),
-      targetRect,
-      Paint()
-        ..blendMode = BlendMode.srcOver
-        ..filterQuality = FilterQuality.medium,
-    );
-  }
-
-  Rect _targetRectFor(Size size) {
-    return targetRect.intersect(Offset.zero & size);
-  }
-
-  double _scaledGlowMetric({
-    required Rect targetRect,
-    required double basePixels,
-  }) {
-    final scale = math.max(0.72, targetRect.shortestSide / 96.0);
-    return basePixels * scale;
-  }
-
-  double _innerGlowWidth(Rect targetRect) {
-    return _scaledGlowMetric(
-      targetRect: targetRect,
-      basePixels: _guideTargetGlowInnerStroke,
-    ).clamp(4.0, 6.0).toDouble();
-  }
-
-  double _outerGlowWidth(Rect targetRect) {
-    return _scaledGlowMetric(
-      targetRect: targetRect,
-      basePixels: _guideTargetGlowOuterSpread,
-    ).clamp(14.0, 20.0).toDouble();
-  }
-
-  Rect _imageSourceRectFor(ui.Image image) {
-    final imageRect = Rect.fromLTWH(
-      0,
-      0,
-      image.width.toDouble(),
-      image.height.toDouble(),
-    );
-    final crop = targetAssetCropRect;
-    if (crop == null || crop.isEmpty) {
-      return imageRect;
-    }
-    return Rect.fromLTWH(
-      imageRect.width * crop.left,
-      imageRect.height * crop.top,
-      imageRect.width * crop.width,
-      imageRect.height * crop.height,
-    ).intersect(imageRect);
-  }
-
-  @override
-  bool shouldRepaint(covariant _GuideObjectGlowPainter oldDelegate) {
-    return oldDelegate.progress != progress ||
-        oldDelegate.shape != shape ||
-        oldDelegate.targetRect != targetRect ||
-        oldDelegate.targetImage != targetImage ||
-        oldDelegate.targetAssetCropRect != targetAssetCropRect ||
-        oldDelegate.shaderProgram != shaderProgram;
-  }
-}
-
-class _GuideBackgroundScrimPainter extends CustomPainter {
-  const _GuideBackgroundScrimPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (size.isEmpty) {
-      return;
-    }
     canvas.drawRect(Offset.zero & size, Paint()..color = _guideScrimColor);
   }
 
   @override
-  bool shouldRepaint(covariant _GuideBackgroundScrimPainter oldDelegate) =>
-      false;
+  bool shouldRepaint(covariant _GuideObjectGlowPainter oldDelegate) => false;
 }

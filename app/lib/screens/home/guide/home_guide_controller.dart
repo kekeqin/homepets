@@ -66,7 +66,7 @@ class HomeGuideController {
   HomeGuideController({
     required SharedPreferences preferences,
     required String scopeId,
-    this.guideVersion = 1,
+    this.guideVersion = 3,
   }) : _preferences = preferences,
        _scopeId = scopeId;
 
@@ -111,7 +111,9 @@ class HomeGuideController {
       );
     }
 
-    final storedStep = HomeGuideStep.fromStorageValue(storedStepValue);
+    final storedStep = storedStepValue == null
+        ? HomeGuideStep.familyFrame
+        : HomeGuideStep.fromStorageValue(storedStepValue);
     final currentStep = _firstAvailableStep(storedStep, snapshot);
     return HomeGuideProgress(currentStep: currentStep);
   }
@@ -145,9 +147,6 @@ class HomeGuideController {
     if (completedStep == HomeGuideStep.familyFrame) {
       if (snapshot.hasFamilySetupGap) {
         return HomeGuideStep.familyFrame;
-      }
-      if (!snapshot.hasActiveTasks) {
-        return HomeGuideStep.taskSticker;
       }
       return _firstAvailableStep(preferred, snapshot);
     }
@@ -212,9 +211,7 @@ class HomeGuideController {
       return HomeGuideStep.familyFrame;
     }
 
-    if (!snapshot.hasActiveTasks &&
-        (preferred == HomeGuideStep.taskSticker ||
-            preferred == HomeGuideStep.familyFrame)) {
+    if (!snapshot.hasActiveTasks && preferred == HomeGuideStep.taskSticker) {
       return HomeGuideStep.taskSticker;
     }
 
@@ -228,7 +225,7 @@ class HomeGuideController {
   bool _shouldSkipStep(HomeGuideStep step, HomeGuideSnapshot snapshot) {
     return switch (step) {
       HomeGuideStep.taskSticker => snapshot.hasActiveTasks,
-      HomeGuideStep.familyFrame => !snapshot.hasFamilySetupGap,
+      HomeGuideStep.familyFrame => false,
       HomeGuideStep.petArea => false,
       HomeGuideStep.done => true,
     };
@@ -236,8 +233,8 @@ class HomeGuideController {
 
   HomeGuideStep _nextStepAfter(HomeGuideStep step) {
     return switch (step) {
-      HomeGuideStep.taskSticker => HomeGuideStep.familyFrame,
-      HomeGuideStep.familyFrame => HomeGuideStep.petArea,
+      HomeGuideStep.familyFrame => HomeGuideStep.taskSticker,
+      HomeGuideStep.taskSticker => HomeGuideStep.petArea,
       HomeGuideStep.petArea => HomeGuideStep.done,
       HomeGuideStep.done => HomeGuideStep.done,
     };

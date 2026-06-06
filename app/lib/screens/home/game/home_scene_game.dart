@@ -1458,6 +1458,9 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   _SceneSpriteComponent? _taskNoteComponent;
   _SceneSpriteComponent? _familyPhotoComponent;
   _TaskPanelOverlay? _taskPanelOverlay;
+  HomeGuideStep? _homeGuideStep;
+  bool _homeGuidePetFrozen = false;
+  bool _homeGuidePetsHidden = false;
   final List<_TaskPanelEntry> _taskEntries = <_TaskPanelEntry>[];
   final List<HomeScenePetSeed> _petEntries = <HomeScenePetSeed>[];
   final Map<int, _AssignedPetPlacement> _petPlacements =
@@ -1929,11 +1932,17 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     );
   }
 
-  void replacePetEntries(List<HomeScenePetSeed> pets) {
+  void replacePetEntries(
+    List<HomeScenePetSeed> pets, {
+    bool forceRebuild = false,
+  }) {
     final nextPetEntries = pets
         .where((item) => item.petId > 0)
         .toList(growable: false);
     if (_homeScenePetSeedsEqual(_petEntries, nextPetEntries)) {
+      if (forceRebuild && _ready) {
+        unawaited(_rebuildUiFromProfile());
+      }
       return;
     }
 
@@ -2476,7 +2485,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   }
 
   List<_PetSpriteSpec> _buildPetSpecs() {
-    if (_petEntries.isEmpty) {
+    if (_petEntries.isEmpty || _homeGuidePetsHidden) {
       return const <_PetSpriteSpec>[];
     }
 
@@ -3396,6 +3405,33 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       return null;
     }
     return pet.guideSceneRect;
+  }
+
+  void setHomeGuidePetFrozen(bool frozen) {
+    _homeGuidePetFrozen = frozen;
+  }
+
+  void setHomeGuideStep(HomeGuideStep? step) {
+    _homeGuideStep = step;
+  }
+
+  void setHomeGuidePetsHidden(bool hidden) {
+    if (_homeGuidePetsHidden == hidden) {
+      return;
+    }
+    _homeGuidePetsHidden = hidden;
+    if (_ready) {
+      unawaited(_rebuildUiFromProfile());
+    }
+  }
+
+  bool isHomeGuidePetFrozen(int _) {
+    return _homeGuidePetFrozen;
+  }
+
+  bool isHomeGuidePetPulseTarget(int petId) {
+    return _homeGuideStep == HomeGuideStep.petArea &&
+        _primaryPetComponent()?.petId == petId;
   }
 
   int? primaryPetId() {
@@ -4595,12 +4631,23 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
       return;
     }
 
+    final guidePulseScale = _guidePulseScale();
+    if (guidePulseScale != 1) {
+      canvas.save();
+      canvas.translate(size.x * 0.5, size.y * 0.5);
+      canvas.scale(guidePulseScale, guidePulseScale);
+      canvas.translate(-size.x * 0.5, -size.y * 0.5);
+    }
+
     _spritePaint.color = const Color(
       0xFFFFFFFF,
     ).withValues(alpha: opacity.clamp(0, 1).toDouble());
     final clip = clipPath;
     if (clip == null) {
       sprite.render(canvas, size: size, overridePaint: _spritePaint);
+      if (guidePulseScale != 1) {
+        canvas.restore();
+      }
       return;
     }
 
@@ -4608,6 +4655,9 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
     canvas.clipPath(clip.resolve(Size(size.x, size.y)), doAntiAlias: true);
     sprite.render(canvas, size: size, overridePaint: _spritePaint);
     canvas.restore();
+    if (guidePulseScale != 1) {
+      canvas.restore();
+    }
   }
 
   @override
@@ -4691,6 +4741,19 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
       _SceneSpriteBehavior.wallBadge => 0.12,
       _SceneSpriteBehavior.staticOverlay => 0,
     };
+  }
+
+  double _guidePulseScale() {
+    final step = game._homeGuideStep;
+    final isGuideTarget =
+        (step == HomeGuideStep.taskSticker &&
+            behavior == _SceneSpriteBehavior.taskNote) ||
+        (step == HomeGuideStep.familyFrame &&
+            behavior == _SceneSpriteBehavior.familyPhoto);
+    if (!isGuideTarget) {
+      return 1;
+    }
+    return 1 + (math.sin(_ambientTime * math.pi * 2.0) * 0.035);
   }
 
   static Anchor _anchorForBehavior(_SceneSpriteBehavior behavior) {
@@ -4780,6 +4843,7 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
   double _speechBubbleElapsed = 0;
   double _completionRewardElapsed = 0;
   double _idleActionCooldown = 0;
+  double _guidePulseElapsed = 0;
   double? _pendingTapCallbackDelay;
   int _animationIndex = 0;
   int _activePoseIndex = 0;
@@ -4815,6 +4879,13 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
     if (activePose == null) {
       return;
     }
+
+    if (game.isHomeGuidePetFrozen(petId)) {
+      _guidePulseElapsed += dt;
+      _resetGuideFrozenMotion();
+      return;
+    }
+    _guidePulseElapsed = 0;
 
     _updateFramePlayback(activePose, dt);
 
@@ -4877,17 +4948,33 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
       return;
     }
 
-    _renderContactShadow(canvas);
-    _renderCompletionSpotlight(canvas);
+    final guideFrozen = game.isHomeGuidePetFrozen(petId);
+    if (!guideFrozen) {
+      _renderContactShadow(canvas);
+      _renderCompletionSpotlight(canvas);
+    }
 
-    final floatOffset = _currentFloatOffset();
-    final breathScale = _currentBreathScale();
-    final actionTransform = _currentActionTransform();
-    final rewardTransform = _currentCompletionRewardTransform();
+    final floatOffset = guideFrozen ? 0.0 : _currentFloatOffset();
+    final breathScale = guideFrozen ? 1.0 : _currentBreathScale();
+    final guidePulseScale = guideFrozen && game.isHomeGuidePetPulseTarget(petId)
+        ? 1 + (math.sin(_guidePulseElapsed * math.pi * 2.0) * 0.035)
+        : 1.0;
+    final actionTransform = guideFrozen
+        ? const _PetMotionTransform()
+        : _currentActionTransform();
+    final rewardTransform = guideFrozen
+        ? const _PetMotionTransform()
+        : _currentCompletionRewardTransform();
     final combinedScaleX =
-        breathScale * actionTransform.scaleX * rewardTransform.scaleX;
+        breathScale *
+        guidePulseScale *
+        actionTransform.scaleX *
+        rewardTransform.scaleX;
     final combinedScaleY =
-        breathScale * actionTransform.scaleY * rewardTransform.scaleY;
+        breathScale *
+        guidePulseScale *
+        actionTransform.scaleY *
+        rewardTransform.scaleY;
 
     if (floatOffset != 0 ||
         actionTransform.offsetX != 0 ||
@@ -4928,8 +5015,10 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
       canvas.restore();
     }
 
-    _renderCompletionReward(canvas);
-    _renderSpeechBubble(canvas);
+    if (!guideFrozen) {
+      _renderCompletionReward(canvas);
+      _renderSpeechBubble(canvas);
+    }
   }
 
   _LoadedPetPoseVariant? get _activePose {
@@ -5501,6 +5590,18 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
         _animationIndex += 1;
       }
     }
+  }
+
+  void _resetGuideFrozenMotion() {
+    if (_activePoseIndex != _initialPoseIndex) {
+      _applyPose(_initialPoseIndex);
+    }
+    _isFrameAnimationPlaying = false;
+    _animationElapsed = 0;
+    _animationIndex = 0;
+    _activeMotionAction = null;
+    _motionActionElapsed = 0;
+    _framePlaybackCooldown = math.max(_framePlaybackCooldown, 0.8);
   }
 
   void _startRandomIdleAction() {

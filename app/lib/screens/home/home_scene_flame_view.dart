@@ -224,6 +224,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   bool _homeGuideLoading = true;
   bool _advanceHomeGuideAfterTaskPanelClose = false;
   bool _homeGuideCompletionPaywallQueued = false;
+  bool _didAutoOpenCurrentUserPetSelection = false;
   OverlayEntry? _topSnackBarEntry;
   bool _paywallDialogVisible = false;
   final math.Random _taskCompletionMessageRandom = math.Random();
@@ -542,6 +543,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       _homeGuideLoading = false;
     });
     _maybeShowHomeGuideCompletionPaywall();
+    _maybeAutoOpenCurrentUserPetSelection();
   }
 
   Future<void> _loadFamilyForHomeGuide() async {
@@ -563,6 +565,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     if (currentProgress?.currentStep == nextProgress.currentStep &&
         currentProgress?.completed == nextProgress.completed &&
         currentProgress?.skipped == nextProgress.skipped) {
+      _maybeAutoOpenCurrentUserPetSelection();
       return;
     }
     if (mounted) {
@@ -571,6 +574,45 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       _homeGuideProgress = nextProgress;
     }
     _maybeShowHomeGuideCompletionPaywall();
+    _maybeAutoOpenCurrentUserPetSelection();
+  }
+
+  void _maybeAutoOpenCurrentUserPetSelection() {
+    if (_didAutoOpenCurrentUserPetSelection ||
+        _homeGuideLoading ||
+        _isReadOnlyAfterTrial ||
+        _familyPanelVisible ||
+        _taskPanelVisible ||
+        _shopPanelVisible ||
+        _settingsPanelVisible ||
+        _paywallDialogVisible) {
+      return;
+    }
+
+    final authState = ref.read(authProvider);
+    if (homeGuideBlockedByEntitlement(authState)) {
+      return;
+    }
+
+    final snapshot = _homeGuideSnapshot;
+    if (!snapshot.hasFamilyMembers || snapshot.hasCurrentUserPet) {
+      return;
+    }
+
+    _didAutoOpenCurrentUserPetSelection = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          _familyPanelVisible ||
+          _taskPanelVisible ||
+          _shopPanelVisible ||
+          _settingsPanelVisible ||
+          _paywallDialogVisible ||
+          _isReadOnlyAfterTrial ||
+          homeGuideBlockedByEntitlement(ref.read(authProvider))) {
+        return;
+      }
+      unawaited(_showFamilyPanel(clearRouteAfterClose: false));
+    });
   }
 
   Rect? _homeGuideAnchorRect(Size size) {
@@ -711,6 +753,27 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     } finally {
       _paywallDialogVisible = false;
     }
+    await _refreshHomeAfterPaywallDismiss();
+  }
+
+  Future<void> _refreshHomeAfterPaywallDismiss() async {
+    if (!mounted) {
+      return;
+    }
+
+    try {
+      await ref.read(familyProvider.notifier).loadFamily();
+    } catch (error, stackTrace) {
+      debugPrint('Failed to refresh family after paywall dismissed: $error');
+      debugPrint('$stackTrace');
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    await _loadFamilyPets(forceSync: true);
+    _refreshHomeGuideProgress();
   }
 
   Future<void> _openSettings() async {
@@ -3048,7 +3111,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     _refreshHomeGuideProgress();
   }
 
-  void _syncGamePetsFromServer() {
+  void _syncGamePetsFromServer({bool forceGameRebuild = false}) {
     final sortedPets = List<Pet>.from(_pets)
       ..sort((left, right) {
         final ownerCompare = left.ownerId.compareTo(right.ownerId);
@@ -3087,7 +3150,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       );
     }
 
-    _game.replacePetEntries(seeds);
+    _game.replacePetEntries(seeds, forceRebuild: forceGameRebuild);
     _refreshHomeGuideProgress();
   }
 
@@ -3132,12 +3195,12 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     return int.tryParse('$value') ?? fallback;
   }
 
-  Future<void> _loadFamilyPets() async {
+  Future<void> _loadFamilyPets({bool forceSync = false}) async {
     final familyId = ref.read(authProvider).user?.familyId;
 
     if (familyId == null) {
       _pets = const <Pet>[];
-      _syncGamePetsFromServer();
+      _syncGamePetsFromServer(forceGameRebuild: forceSync);
       return;
     }
 
@@ -3164,12 +3227,15 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         return;
       }
 
-      if (_sameHomePets(_pets, pets)) {
+      final samePets = _sameHomePets(_pets, pets);
+      if (samePets && !forceSync) {
         return;
       }
 
-      setState(() => _pets = pets);
-      _syncGamePetsFromServer();
+      if (!samePets) {
+        setState(() => _pets = pets);
+      }
+      _syncGamePetsFromServer(forceGameRebuild: forceSync);
     } catch (error, stackTrace) {
       debugPrint('Failed to load home scene pets: $error');
       debugPrint('$stackTrace');
@@ -3322,11 +3388,13 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
           _homeGuideLoading = true;
           _homeGuideProgress = null;
           _homeGuideCompletionPaywallQueued = false;
+          _didAutoOpenCurrentUserPetSelection = false;
         });
       } else {
         _homeGuideLoading = true;
         _homeGuideProgress = null;
         _homeGuideCompletionPaywallQueued = false;
+        _didAutoOpenCurrentUserPetSelection = false;
       }
       _initHomeGuide();
       _loadFamilyForHomeGuide();
@@ -3343,7 +3411,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       }
 
       _loadFamilyForHomeGuide();
-      _loadFamilyPets();
+      _loadFamilyPets(forceSync: true);
       _refreshHomeGuideProgress();
     });
 
@@ -3359,6 +3427,13 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = constraints.biggest;
+        final guideStep = _homeGuideProgress?.currentStep;
+        final shouldShowGuideOverlay = _shouldShowHomeGuideOverlay;
+        _game.setHomeGuideStep(shouldShowGuideOverlay ? guideStep : null);
+        _game.setHomeGuidePetFrozen(shouldShowGuideOverlay);
+        _game.setHomeGuidePetsHidden(
+          shouldShowGuideOverlay && guideStep == HomeGuideStep.familyFrame,
+        );
         return ColoredBox(
           color: const Color(0xFFF6E8CB),
           child: Stack(
@@ -3388,11 +3463,11 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
               ),
               const _TrialStatusBanner(),
               if (_taskPanelVisible) _buildAnimatedTaskPanelOverlay(size),
-              if (_shouldShowHomeGuideOverlay)
+              if (shouldShowGuideOverlay)
                 Builder(
                   builder: (context) {
                     final anchorRect = _homeGuideAnchorRect(size);
-                    final step = _homeGuideProgress?.currentStep;
+                    final step = guideStep;
                     if (anchorRect == null ||
                         step == null ||
                         step == HomeGuideStep.done) {
