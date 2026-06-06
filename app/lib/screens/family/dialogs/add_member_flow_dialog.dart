@@ -118,18 +118,18 @@ class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
   @override
   Widget build(BuildContext context) {
     final viewportHeight = MediaQuery.sizeOf(context).height;
-    final dense = viewportHeight < 700;
+    final dense = viewportHeight < 900;
 
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(
         horizontal: HomePetsDialogGutter.medium,
-        vertical: 18,
+        vertical: 14,
       ),
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxWidth: 390,
-          maxHeight: viewportHeight * 0.92,
+          maxWidth: dense ? 354 : 374,
+          maxHeight: viewportHeight * (dense ? 0.88 : 0.90),
         ),
         child: DecoratedBox(
           decoration: BoxDecoration(
@@ -154,17 +154,17 @@ class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
               children: [
                 SingleChildScrollView(
                   padding: EdgeInsets.fromLTRB(
-                    dense ? 22 : 26,
-                    dense ? 22 : 28,
-                    dense ? 22 : 26,
                     dense ? 18 : 24,
+                    dense ? 18 : 26,
+                    dense ? 18 : 24,
+                    dense ? 16 : 22,
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Center(child: _DialogTitle(dense: dense)),
-                      SizedBox(height: dense ? 18 : 28),
+                      SizedBox(height: dense ? 14 : 24),
                       _SectionLabel(text: '成员名称', dense: dense),
                       SizedBox(height: dense ? 8 : 10),
                       TextField(
@@ -191,9 +191,10 @@ class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
                       ),
                       _DashedDivider(dense: dense),
                       _SectionLabel(text: '选择宠物', dense: dense),
-                      SizedBox(height: dense ? 10 : 12),
+                      SizedBox(height: dense ? 8 : 12),
                       _PetOptionGrid(
                         dense: dense,
+                        twoRowLayout: true,
                         selectedPetType: _selectedPetType,
                         onSelect: _selectPetType,
                       ),
@@ -203,15 +204,15 @@ class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
                       ],
                       _DashedDivider(dense: dense),
                       _SectionLabel(text: '宠物名字', dense: dense),
-                      SizedBox(height: dense ? 8 : 10),
+                      SizedBox(height: dense ? 6 : 10),
                       TextField(
                         key: const Key('family_add_member_pet_name_field'),
                         controller: _petNameController,
                         maxLength: 20,
                         textInputAction: TextInputAction.done,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: _AddMemberPalette.ink,
-                          fontSize: 17,
+                          fontSize: dense ? 15 : 16,
                           fontWeight: FontWeight.w800,
                         ),
                         onChanged: (_) {
@@ -227,7 +228,7 @@ class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
                           errorText: _petNameError,
                         ),
                       ),
-                      SizedBox(height: dense ? 16 : 24),
+                      SizedBox(height: dense ? 12 : 22),
                       Row(
                         children: [
                           Expanded(
@@ -284,7 +285,7 @@ class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
       isDense: true,
       hintStyle: TextStyle(
         color: _AddMemberPalette.ink.withValues(alpha: 0.38),
-        fontSize: 17,
+        fontSize: dense ? 15 : 16,
         fontWeight: FontWeight.w900,
       ),
       errorStyle: const TextStyle(
@@ -295,8 +296,8 @@ class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
       filled: true,
       fillColor: Colors.white.withValues(alpha: 0.42),
       contentPadding: EdgeInsets.symmetric(
-        horizontal: 18,
-        vertical: dense ? 12 : 16,
+        horizontal: dense ? 15 : 17,
+        vertical: dense ? 10 : 14,
       ),
       border: OutlineInputBorder(
         borderRadius: borderRadius,
@@ -389,7 +390,7 @@ class _SelectPetFlowDialogState extends State<SelectPetFlowDialog> {
   @override
   Widget build(BuildContext context) {
     final viewportHeight = MediaQuery.sizeOf(context).height;
-    final dense = viewportHeight < 700;
+    final dense = viewportHeight < 900;
     final memberName = widget.memberName.trim().isEmpty
         ? '这个成员'
         : widget.memberName.trim();
@@ -398,12 +399,12 @@ class _SelectPetFlowDialogState extends State<SelectPetFlowDialog> {
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(
         horizontal: HomePetsDialogGutter.medium,
-        vertical: 18,
+        vertical: 14,
       ),
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxWidth: 390,
-          maxHeight: viewportHeight * 0.92,
+          maxWidth: dense ? 354 : 374,
+          maxHeight: viewportHeight * (dense ? 0.88 : 0.90),
         ),
         child: DecoratedBox(
           decoration: BoxDecoration(
@@ -428,10 +429,10 @@ class _SelectPetFlowDialogState extends State<SelectPetFlowDialog> {
               children: [
                 SingleChildScrollView(
                   padding: EdgeInsets.fromLTRB(
-                    dense ? 22 : 26,
-                    dense ? 22 : 28,
-                    dense ? 22 : 26,
                     dense ? 18 : 24,
+                    dense ? 18 : 26,
+                    dense ? 18 : 24,
+                    dense ? 16 : 22,
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -443,26 +444,27 @@ class _SelectPetFlowDialogState extends State<SelectPetFlowDialog> {
                           dense: dense,
                         ),
                       ),
-                      SizedBox(height: dense ? 18 : 28),
+                      SizedBox(height: dense ? 14 : 24),
                       _SectionLabel(text: '选择宠物', dense: dense),
-                      SizedBox(height: dense ? 10 : 12),
+                      SizedBox(height: dense ? 8 : 12),
                       _PetOptionGrid(
                         dense: dense,
+                        twoRowLayout: true,
                         selectedPetType: _selectedPetType,
                         onSelect: _selectPetType,
                       ),
                       _DashedDivider(dense: dense),
                       _SectionLabel(text: '宠物名字', dense: dense),
-                      SizedBox(height: dense ? 8 : 10),
+                      SizedBox(height: dense ? 6 : 10),
                       TextField(
                         key: const Key('family_select_pet_name_field'),
                         controller: _petNameController,
                         maxLength: 20,
                         autofocus: true,
                         textInputAction: TextInputAction.done,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: _AddMemberPalette.ink,
-                          fontSize: 17,
+                          fontSize: dense ? 15 : 16,
                           fontWeight: FontWeight.w800,
                         ),
                         onChanged: (_) {
@@ -478,7 +480,7 @@ class _SelectPetFlowDialogState extends State<SelectPetFlowDialog> {
                           errorText: _petNameError,
                         ),
                       ),
-                      SizedBox(height: dense ? 16 : 24),
+                      SizedBox(height: dense ? 12 : 22),
                       Row(
                         children: [
                           Expanded(
@@ -630,12 +632,12 @@ class _SelectPetDialogTitle extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: _AddMemberPalette.ink,
-            fontSize: dense ? 26 : 30,
+            fontSize: dense ? 22 : 26,
             fontWeight: FontWeight.w900,
             height: 1,
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: dense ? 5 : 7),
         Text(
           '给 $memberName 选择一位伙伴',
           textAlign: TextAlign.center,
@@ -643,7 +645,7 @@ class _SelectPetDialogTitle extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: _AddMemberPalette.ink.withValues(alpha: 0.68),
-            fontSize: dense ? 13 : 15,
+            fontSize: dense ? 11.5 : 13,
             fontWeight: FontWeight.w800,
             height: 1.1,
           ),
@@ -665,7 +667,7 @@ class _SectionLabel extends StatelessWidget {
       text,
       style: TextStyle(
         color: _AddMemberPalette.ink,
-        fontSize: dense ? 18 : 21,
+        fontSize: dense ? 16 : 20,
         fontWeight: FontWeight.w900,
         height: 1.1,
       ),
@@ -676,11 +678,13 @@ class _SectionLabel extends StatelessWidget {
 class _PetOptionGrid extends StatelessWidget {
   const _PetOptionGrid({
     required this.dense,
+    this.twoRowLayout = false,
     required this.selectedPetType,
     required this.onSelect,
   });
 
   final bool dense;
+  final bool twoRowLayout;
   final String? selectedPetType;
   final ValueChanged<String> onSelect;
 
@@ -689,15 +693,30 @@ class _PetOptionGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 300;
-        final cardWidth = compact ? 82.0 : 92.0;
-        final cardHeight = dense ? 86.0 : (compact ? 108.0 : 118.0);
+        final spacing = twoRowLayout
+            ? (compact ? 8.0 : 10.0)
+            : (compact ? 9.0 : 12.0);
+        final cardWidth = twoRowLayout
+            ? ((constraints.maxWidth - spacing * 2) / 3)
+                  .clamp(74.0, dense ? 86.0 : 92.0)
+                  .toDouble()
+            : compact
+            ? 82.0
+            : 92.0;
+        final cardHeight = twoRowLayout
+            ? (dense ? 80.0 : 90.0)
+            : dense
+            ? 86.0
+            : (compact ? 108.0 : 118.0);
 
         return SizedBox(
           width: double.infinity,
           child: Wrap(
             alignment: WrapAlignment.center,
-            spacing: compact ? 9 : 12,
-            runSpacing: dense ? 10 : (compact ? 12 : 16),
+            spacing: spacing,
+            runSpacing: twoRowLayout
+                ? (dense ? 8 : 10)
+                : (dense ? 10 : (compact ? 12 : 16)),
             children: [
               for (final petType in selectablePetTypes)
                 _PetOptionCard(
@@ -755,12 +774,17 @@ class _PetOptionCard extends StatelessWidget {
                 curve: Curves.easeOutCubic,
                 width: width,
                 height: height,
-                padding: EdgeInsets.fromLTRB(8, dense ? 6 : 8, 8, 10),
+                padding: EdgeInsets.fromLTRB(
+                  7,
+                  dense ? 5 : 7,
+                  7,
+                  dense ? 7 : 9,
+                ),
                 decoration: BoxDecoration(
                   color: selected
                       ? const Color(0xFFFFF8D8)
                       : _AddMemberPalette.card.withValues(alpha: 0.78),
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(dense ? 20 : 22),
                   border: Border.all(
                     color: selected
                         ? _AddMemberPalette.sageDark
@@ -780,16 +804,16 @@ class _PetOptionCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    SizedBox(height: dense ? 4 : 6),
+                    SizedBox(height: dense ? 3 : 5),
                     Container(
                       width: double.infinity,
-                      height: dense ? 24 : 29,
+                      height: dense ? 22 : 26,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: _AddMemberPalette.labelPill.withValues(
                           alpha: 0.82,
                         ),
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(13),
                         border: Border.all(
                           color: _AddMemberPalette.line.withValues(alpha: 0.3),
                           width: 1.2,
@@ -799,9 +823,9 @@ class _PetOptionCard extends StatelessWidget {
                         petTypeLabel(petType),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: _AddMemberPalette.ink,
-                          fontSize: 14,
+                          fontSize: dense ? 12 : 13,
                           fontWeight: FontWeight.w900,
                           height: 1,
                         ),
@@ -812,11 +836,11 @@ class _PetOptionCard extends StatelessWidget {
               ),
               if (selected)
                 Positioned(
-                  top: dense ? -8 : -10,
-                  right: dense ? -6 : -8,
+                  top: dense ? -7 : -9,
+                  right: dense ? -5 : -7,
                   child: Container(
-                    width: dense ? 27 : 31,
-                    height: dense ? 27 : 31,
+                    width: dense ? 24 : 28,
+                    height: dense ? 24 : 28,
                     decoration: BoxDecoration(
                       color: _AddMemberPalette.sage,
                       shape: BoxShape.circle,
@@ -828,7 +852,7 @@ class _PetOptionCard extends StatelessWidget {
                     child: Icon(
                       Icons.check_rounded,
                       color: Colors.white,
-                      size: dense ? 19 : 22,
+                      size: dense ? 17 : 20,
                     ),
                   ),
                 ),
@@ -867,7 +891,7 @@ class _DialogActionButton extends StatelessWidget {
         onTap: onPressed,
         borderRadius: radius,
         child: Ink(
-          height: dense ? 46 : 54,
+          height: dense ? 42 : 50,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
@@ -898,9 +922,9 @@ class _DialogActionButton extends StatelessWidget {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 color: _AddMemberPalette.ink,
-                fontSize: 20,
+                fontSize: dense ? 17 : 19,
                 fontWeight: FontWeight.w900,
                 height: 1,
               ),
@@ -926,8 +950,8 @@ class _DialogCloseButton extends StatelessWidget {
         onTap: onPressed,
         child: Image.asset(
           _closeIconAsset,
-          width: 40,
-          height: 40,
+          width: 34,
+          height: 34,
           fit: BoxFit.contain,
           filterQuality: FilterQuality.high,
         ),
@@ -944,7 +968,7 @@ class _DashedDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: dense ? 12 : 24),
+      padding: EdgeInsets.symmetric(vertical: dense ? 10 : 20),
       child: SizedBox(
         height: 2,
         width: double.infinity,
