@@ -39,30 +39,7 @@ const String _homeLayoutRightArmchairNearArmOccluder =
 const String _homeLayoutRightArmchairFrontOccluder =
     'rightArmchairFrontOccluder';
 const String _homeLayoutRightArmchairSideOccluder = 'rightArmchairSideOccluder';
-const ui.ColorFilter _homeGuideTargetLiftFilter = ui.ColorFilter.matrix(
-  <double>[
-    1.15,
-    0,
-    0,
-    0,
-    10,
-    0,
-    1.15,
-    0,
-    0,
-    10,
-    0,
-    0,
-    1.15,
-    0,
-    10,
-    0,
-    0,
-    0,
-    1,
-    0,
-  ],
-);
+const Color _homeGuideSceneScrimColor = Color(0x2E000000);
 const Set<String> _homeSceneDensityAwareAssets = <String>{
   _homeTaskStickerAsset,
   _homeFamilyPhotoFrameAsset,
@@ -157,6 +134,8 @@ const int _homePetRenderPriority = 4;
 const int _homeSeatBackfillRenderPriority = _homePetRenderPriority - 1;
 const int _homeSeatOccluderRenderPriority = 8;
 const int _homeSceneUiRenderPriority = 12;
+const int _homeGuideScrimRenderPriority = 40;
+const int _homeGuideTargetRenderPriority = _homeGuideScrimRenderPriority + 1;
 const Set<String> _homePetDynamicPoseTypes = <String>{};
 const Size _homePetScaleReferenceSlotSize = Size(
   _homeSceneBackgroundAspectRatio * 0.17,
@@ -1477,6 +1456,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
 
   late Vector2 _sceneSize;
   late final _SceneBackgroundComponent _background;
+  late final _HomeGuideScrimComponent _homeGuideScrim;
   final List<_AnimatedSceneComponent> _animatedComponents =
       <_AnimatedSceneComponent>[];
   _SceneSpriteComponent? _taskNoteComponent;
@@ -3062,6 +3042,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     camera.viewfinder.position = _sceneSize / 2;
     if (_ready) {
       _background.updateSceneSize(_sceneSize);
+      _homeGuideScrim.updateSceneSize(_sceneSize);
       _taskPanelOverlay?.updateSceneSize(_sceneSize);
       if (_needsUiRebuild()) {
         unawaited(_rebuildUiFromProfile());
@@ -3228,6 +3209,8 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
       fit: _profile.backgroundFit,
     );
     await world.add(_background);
+    _homeGuideScrim = _HomeGuideScrimComponent(sceneSize: _sceneSize);
+    await world.add(_homeGuideScrim);
 
     _ready = true;
     unawaited(_finishInitialSceneUiLoad());
@@ -3310,6 +3293,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     _uiRebuildGeneration += 1;
 
     _background.startExit();
+    _homeGuideScrim.active = false;
     _taskPanelOverlay?.startExit();
 
     for (var i = 0; i < _animatedComponents.length; i++) {
@@ -3396,6 +3380,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
     _taskNoteComponent = nextTaskNoteComponent;
     _familyPhotoComponent = nextFamilyPhotoComponent;
     _lastUiLayoutSize = _sceneSize.clone();
+    _syncHomeGuideSceneLayers();
     onGuideAnchorLayoutChanged?.call();
     Future<void>.delayed(_homeGuideAnchorReadyDelay, () {
       if (_exitTriggered || rebuildGeneration != _uiRebuildGeneration) {
@@ -3437,6 +3422,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
 
   void setHomeGuideStep(HomeGuideStep? step) {
     _homeGuideStep = step;
+    _syncHomeGuideSceneLayers();
   }
 
   void setHomeGuidePetsHidden(bool hidden) {
@@ -3456,6 +3442,36 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   bool isHomeGuidePetPulseTarget(int petId) {
     return _homeGuideStep == HomeGuideStep.petArea &&
         _primaryPetComponent()?.petId == petId;
+  }
+
+  void _syncHomeGuideSceneLayers() {
+    if (!_ready) {
+      return;
+    }
+
+    final step = _homeGuideStep;
+    final guideActive = step != null && step != HomeGuideStep.done;
+    _homeGuideScrim.active = guideActive;
+    final targetPetId = step == HomeGuideStep.petArea
+        ? _primaryPetComponent()?.petId
+        : null;
+
+    for (final component in _animatedComponents) {
+      if (component is _SceneSpriteComponent) {
+        final isTarget =
+            (step == HomeGuideStep.taskSticker &&
+                component.behavior == _SceneSpriteBehavior.taskNote) ||
+            (step == HomeGuideStep.familyFrame &&
+                component.behavior == _SceneSpriteBehavior.familyPhoto);
+        component.priority = isTarget
+            ? _homeGuideTargetRenderPriority
+            : component.renderPriority;
+      } else if (component is _PetSpriteComponent) {
+        component.priority = component.petId == targetPetId
+            ? _homeGuideTargetRenderPriority
+            : component.renderPriority;
+      }
+    }
   }
 
   int? primaryPetId() {
@@ -4162,6 +4178,30 @@ class _SceneBackgroundComponent extends SpriteComponent {
   }
 }
 
+class _HomeGuideScrimComponent extends PositionComponent {
+  _HomeGuideScrimComponent({required Vector2 sceneSize})
+    : super(
+        position: Vector2.zero(),
+        size: sceneSize.clone(),
+        priority: _homeGuideScrimRenderPriority,
+      );
+
+  bool active = false;
+  final Paint _paint = Paint()..color = _homeGuideSceneScrimColor;
+
+  void updateSceneSize(Vector2 sceneSize) {
+    size = sceneSize.clone();
+  }
+
+  @override
+  void render(Canvas canvas) {
+    if (!active || size.x <= 0 || size.y <= 0) {
+      return;
+    }
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y), _paint);
+  }
+}
+
 abstract class _AnimatedSceneComponent extends PositionComponent
     with HasPaint, TapCallbacks {
   _AnimatedSceneComponent({
@@ -4667,7 +4707,7 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
     _spritePaint.color = const Color(
       0xFFFFFFFF,
     ).withValues(alpha: opacity.clamp(0, 1).toDouble());
-    _spritePaint.colorFilter = guideTarget ? _homeGuideTargetLiftFilter : null;
+    _spritePaint.colorFilter = null;
     final clip = clipPath;
     if (clip == null) {
       sprite.render(canvas, size: size, overridePaint: _spritePaint);
@@ -5030,7 +5070,7 @@ class _PetSpriteComponent extends _AnimatedSceneComponent
     _spritePaint.color = const Color(
       0xFFFFFFFF,
     ).withValues(alpha: opacity.clamp(0, 1).toDouble());
-    _spritePaint.colorFilter = guideTarget ? _homeGuideTargetLiftFilter : null;
+    _spritePaint.colorFilter = null;
     sprite.render(canvas, size: size, overridePaint: _spritePaint);
 
     if (floatOffset != 0 ||

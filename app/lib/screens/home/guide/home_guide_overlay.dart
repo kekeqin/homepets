@@ -8,7 +8,6 @@ import 'home_guide_controller.dart';
 const String _guideFingerAsset = 'assets/images/ui/login/finger1.png';
 const String _guideBubbleAsset = 'assets/images/ui/login/bubble.png';
 const double _guideFingerSize = 76.0;
-const Color _guideScrimColor = Color(0x2E000000);
 const double _guideBubbleMinWidth = 184.0;
 const double _guideBubbleMaxWidth = 224.0;
 const double _guideBubbleWidthFactor = 0.54;
@@ -561,22 +560,6 @@ class _GuideObjectGlow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const CustomPaint(painter: _GuideObjectGlowPainter());
+    return const SizedBox.expand();
   }
-}
-
-class _GuideObjectGlowPainter extends CustomPainter {
-  const _GuideObjectGlowPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (size.isEmpty) {
-      return;
-    }
-
-    canvas.drawRect(Offset.zero & size, Paint()..color = _guideScrimColor);
-  }
-
-  @override
-  bool shouldRepaint(covariant _GuideObjectGlowPainter oldDelegate) => false;
 }
