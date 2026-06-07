@@ -1141,6 +1141,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       context: context,
       barrierLabel: 'shop_coming_soon',
       minimumSafeArea: HomePetsDialogGutter.smallInsets,
+      showInnerBorder: false,
       title: '商店完善中',
       contentBuilder: (dialogContext) {
         return const Text(

@@ -32,6 +32,7 @@ Future<T?> showHomePetsDialog<T>({
   bool barrierDismissible = true,
   AppModalLayout layout = _defaultHomePetsDialogLayout,
   EdgeInsets minimumSafeArea = HomePetsDialogGutter.mediumInsets,
+  bool showInnerBorder = true,
 }) {
   return showAppModalDialog<T>(
     context: context,
@@ -48,6 +49,7 @@ Future<T?> showHomePetsDialog<T>({
         minimumSafeArea: minimumSafeArea,
         title: title,
         actions: actionsBuilder(dialogContext),
+        showInnerBorder: showInnerBorder,
         child: contentBuilder(dialogContext),
       );
     },
@@ -64,6 +66,7 @@ class HomePetsDialog extends StatelessWidget {
     this.layout = _defaultHomePetsDialogLayout,
     this.minimumSafeArea = HomePetsDialogGutter.mediumInsets,
     this.contentPadding = const EdgeInsets.fromLTRB(24, 24, 24, 22),
+    this.showInnerBorder = true,
   });
 
   final String title;
@@ -73,6 +76,7 @@ class HomePetsDialog extends StatelessWidget {
   final AppModalLayout layout;
   final EdgeInsets minimumSafeArea;
   final EdgeInsets contentPadding;
+  final bool showInnerBorder;
 
   @override
   Widget build(BuildContext context) {
@@ -90,7 +94,7 @@ class HomePetsDialog extends StatelessWidget {
         fit: StackFit.passthrough,
         children: [
           if (background != null) Positioned.fill(child: background!),
-          if (background == null)
+          if (background == null && showInnerBorder)
             Positioned.fill(
               child: IgnorePointer(
                 child: Padding(
