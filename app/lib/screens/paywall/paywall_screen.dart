@@ -83,7 +83,13 @@ class PaywallScreen extends ConsumerWidget {
         },
         child: Stack(
           children: [
-            const Positioned.fill(child: _PaywallRouteBackdrop()),
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _closePaywall(context, ref),
+                child: const _PaywallRouteBackdrop(),
+              ),
+            ),
             SafeArea(
               child: AppModalShell(
                 layout: AppModalLayouts.paywall,

@@ -831,7 +831,7 @@ class _FamilyStageCard extends StatelessWidget {
             builder: (context, constraints) {
               final width = constraints.maxWidth;
               final height = constraints.maxHeight;
-              final titleWidth = (width * 0.42).clamp(176.0, 288.0).toDouble();
+              final titleWidth = (width * 0.36).clamp(148.0, 238.0).toDouble();
               final titleHeight = titleWidth / 3.03;
 
               return Stack(
@@ -898,7 +898,7 @@ class _FamilyTitleText extends StatelessWidget {
           maxLines: 1,
           style: const TextStyle(
             color: _FamilyPalette.deepBrown,
-            fontSize: 40,
+            fontSize: 34,
             fontWeight: FontWeight.w900,
             height: 1,
             shadows: [
@@ -1355,13 +1355,13 @@ class _CircleIconButton extends StatelessWidget {
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
           child: SizedBox(
-            width: 60,
-            height: 60,
+            width: 48,
+            height: 48,
             child: Center(
               child: Image.asset(
                 FamilyPopupAssets.closeButton,
-                width: 58,
-                height: 58,
+                width: 44,
+                height: 44,
                 filterQuality: FilterQuality.medium,
                 isAntiAlias: true,
               ),

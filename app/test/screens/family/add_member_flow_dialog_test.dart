@@ -147,6 +147,90 @@ void main() {
       lessThan(844),
     );
   });
+
+  testWidgets('uses a compact floating close button on phone', (tester) async {
+    _setSurface(tester, const Size(390, 844));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: FilledButton(
+                onPressed: () {
+                  showAddMemberFlowDialog(context);
+                },
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    final closeRect = tester.getRect(
+      find.byKey(const Key('family_add_member_close_button')),
+    );
+    final firstFieldRect = tester.getRect(
+      find.byKey(const Key('family_add_member_nickname_field')),
+    );
+
+    expect(closeRect.width, 48);
+    expect(closeRect.height, 48);
+    expect(closeRect.top, greaterThanOrEqualTo(0));
+    expect(closeRect.right, lessThanOrEqualTo(390));
+    expect(closeRect.bottom, lessThan(firstFieldRect.top));
+  });
+
+  testWidgets('uses the member name field style for all text inputs', (
+    tester,
+  ) async {
+    _setSurface(tester, const Size(390, 844));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: FilledButton(
+                onPressed: () {
+                  showAddMemberFlowDialog(context);
+                },
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    final nicknameField = tester.widget<TextField>(
+      find.byKey(const Key('family_add_member_nickname_field')),
+    );
+    final petNameField = tester.widget<TextField>(
+      find.byKey(const Key('family_add_member_pet_name_field')),
+    );
+
+    expect(petNameField.style, nicknameField.style);
+    expect(
+      petNameField.decoration?.contentPadding,
+      nicknameField.decoration?.contentPadding,
+    );
+    expect(
+      petNameField.decoration?.fillColor,
+      nicknameField.decoration?.fillColor,
+    );
+    expect(
+      petNameField.decoration?.hintStyle,
+      nicknameField.decoration?.hintStyle,
+    );
+  });
 }
 
 void _setSurface(WidgetTester tester, Size size) {

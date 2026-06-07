@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:homepets/widgets/app_modal_shell.dart';
 import 'package:homepets/widgets/homepets_button.dart';
 import 'package:homepets/widgets/homepets_dialog.dart';
 import 'package:homepets/widgets/homepets_select_field.dart';
@@ -81,5 +82,80 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(result, 2);
+  });
+
+  testWidgets('modal background tap dismisses outside aspect ratio panel', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    var dismissed = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () async {
+                  await showAppModalDialog<void>(
+                    context: context,
+                    barrierLabel: 'aspect_ratio_test_dialog',
+                    pageBuilder: (dialogContext) {
+                      return AppModalShell(
+                        layout: const AppModalLayout(
+                          mobileWidthFactor: 1.0,
+                          mobileMaxWidth: 430,
+                          mobileHeightFactor: 0.90,
+                          mobileMaxHeight: 700,
+                          tabletWidthFactor: 0.45,
+                          tabletMaxWidth: 430,
+                          tabletHeightFactor: 0.90,
+                          tabletMaxHeight: 700,
+                          contentAspectRatio: 1,
+                        ),
+                        minimumSafeArea: HomePetsDialogGutter.mediumInsets,
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            return Center(
+                              child: SizedBox(
+                                width: constraints.maxWidth,
+                                height: constraints.maxWidth,
+                                child: const ColoredBox(
+                                  color: Colors.white,
+                                  child: Center(child: Text('modal-body')),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  );
+                  dismissed = true;
+                },
+                child: const Text('open-aspect'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open-aspect'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('modal-body'), findsOneWidget);
+
+    await tester.tapAt(const Offset(195, 760));
+    await tester.pumpAndSettle();
+
+    expect(find.text('modal-body'), findsNothing);
+    expect(dismissed, isTrue);
   });
 }

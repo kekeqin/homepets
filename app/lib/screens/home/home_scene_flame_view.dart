@@ -131,6 +131,10 @@ const Color _completeMemberFieldBorderColor = Color(0xFF76563E);
 const Color _completeMemberMenuFillColor = Color(0xFFFFF4E5);
 const Color _completeMemberOptionFillColor = Color(0xFFFBE3BD);
 const Color _completeMemberOptionSelectedColor = Color(0xFFD7E09A);
+const Color _taskEditorFieldFillColor = Color(0x6BFFFFFF);
+const Color _taskEditorFieldLineColor = Color(0xFF2F2218);
+const Color _taskEditorFieldInkColor = Color(0xFF5A3A21);
+const Color _taskEditorFieldHintColor = Color(0x615A3A21);
 const Duration _taskCompletionFeedbackDuration = Duration(milliseconds: 650);
 const double _taskMutationDialogMaxWidth = 430;
 const double _taskMutationDialogHeightFactor = 0.76;
@@ -3831,24 +3835,24 @@ class _TaskDeleteConfirmDialog extends StatelessWidget {
       horizontalGutter: HomePetsDialogGutter.small,
     );
 
-    return Material(
-      color: Colors.transparent,
-      child: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(
-          HomePetsDialogGutter.small,
-          24,
-          HomePetsDialogGutter.small,
-          24,
-        ),
-        child: Center(
-          child: Transform.translate(
-            offset: Offset(
-              _taskDialogVisibleCenterOffset(panelSize.width),
-              screenSize.height * 0.025,
-            ),
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {},
+    return SafeArea(
+      minimum: const EdgeInsets.fromLTRB(
+        HomePetsDialogGutter.small,
+        24,
+        HomePetsDialogGutter.small,
+        24,
+      ),
+      child: Center(
+        child: Transform.translate(
+          offset: Offset(
+            _taskDialogVisibleCenterOffset(panelSize.width),
+            screenSize.height * 0.025,
+          ),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {},
+            child: Material(
+              color: Colors.transparent,
               child: SizedBox(
                 width: panelSize.width,
                 height: panelSize.height,
@@ -4640,22 +4644,19 @@ class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
     final viewInsets = MediaQuery.viewInsetsOf(context);
     final panelSize = _taskMutationDialogSize(screenSize);
 
-    return Material(
-      color: Colors.transparent,
-      child: SafeArea(
-        child: AnimatedPadding(
-          duration: const Duration(milliseconds: 150),
-          curve: Curves.easeOutCubic,
-          padding: EdgeInsets.only(bottom: viewInsets.bottom * 0.72),
-          child: Center(
-            child: Transform.translate(
-              offset: Offset(
-                _taskDialogVisibleCenterOffset(panelSize.width),
-                0,
-              ),
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => FocusScope.of(context).unfocus(),
+    return SafeArea(
+      child: AnimatedPadding(
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.only(bottom: viewInsets.bottom * 0.72),
+        child: Center(
+          child: Transform.translate(
+            offset: Offset(_taskDialogVisibleCenterOffset(panelSize.width), 0),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => FocusScope.of(context).unfocus(),
+              child: Material(
+                color: Colors.transparent,
                 child: SizedBox(
                   width: panelSize.width,
                   height: panelSize.height,
@@ -4824,9 +4825,9 @@ class _TaskEditorSpriteCard extends StatelessWidget {
       builder: (context, constraints) {
         final panelSize = constraints.biggest;
         final titleWidth = panelSize.width * 0.40;
-        final fieldWidth = panelSize.width * 0.66;
-        final fieldHeight = panelSize.height * 0.112;
-        final fieldLeft = panelSize.width * 0.17;
+        final fieldWidth = panelSize.width * 0.80;
+        final fieldHeight = panelSize.height * 0.128;
+        final fieldLeft = (panelSize.width - fieldWidth) * 0.5;
         final buttonBottom =
             panelSize.height * (bottomInset > 0 ? 0.052 : 0.075);
         final buttonGap = panelSize.width * 0.035;
@@ -4870,7 +4871,7 @@ class _TaskEditorSpriteCard extends StatelessWidget {
             ),
             Positioned(
               top: panelSize.height * 0.238,
-              left: panelSize.width * 0.17,
+              left: fieldLeft,
               width: panelSize.width * 0.168,
               height:
                   panelSize.width * 0.18 / sprites.labelTaskName.aspectRatio,
@@ -4894,8 +4895,6 @@ class _TaskEditorSpriteCard extends StatelessWidget {
               width: fieldWidth,
               height: fieldHeight,
               child: _TaskEditorSpriteField(
-                sprites: sprites,
-                frame: sprites.taskNameField,
                 controller: taskNameController,
                 hintText: '\u6574\u7406\u73a9\u5177',
                 maxLength: _taskTitleMaxLength,
@@ -4904,7 +4903,7 @@ class _TaskEditorSpriteCard extends StatelessWidget {
             ),
             Positioned(
               top: panelSize.height * 0.457,
-              left: panelSize.width * 0.17,
+              left: fieldLeft,
               width: panelSize.width * 0.373,
               height:
                   panelSize.width *
@@ -4930,8 +4929,6 @@ class _TaskEditorSpriteCard extends StatelessWidget {
               width: fieldWidth,
               height: fieldHeight,
               child: _TaskEditorSpriteField(
-                sprites: sprites,
-                frame: sprites.pointsField,
                 controller: taskPointsController,
                 hintText: '10',
                 keyboardType: TextInputType.number,
@@ -5006,8 +5003,6 @@ class _TaskEditorSpriteCard extends StatelessWidget {
 
 class _TaskEditorSpriteField extends StatelessWidget {
   const _TaskEditorSpriteField({
-    required this.sprites,
-    required this.frame,
     required this.controller,
     required this.hintText,
     this.keyboardType,
@@ -5016,8 +5011,6 @@ class _TaskEditorSpriteField extends StatelessWidget {
     this.textInputAction,
   });
 
-  final TaskEditorSheetSpriteCatalog sprites;
-  final SpriteAtlasFrame frame;
   final TextEditingController controller;
   final String hintText;
   final TextInputType? keyboardType;
@@ -5027,56 +5020,62 @@ class _TaskEditorSpriteField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        SpriteFrameImage(
-          imageAsset: sprites.imageAsset,
-          sheetSize: sprites.sheetSize,
-          frame: frame,
-          fit: BoxFit.fill,
-        ),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            return Padding(
-              padding: EdgeInsets.fromLTRB(
-                constraints.maxWidth * 0.070,
-                0,
-                constraints.maxWidth * 0.060,
-                0,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final fieldHeight = constraints.maxHeight.isFinite
+            ? constraints.maxHeight
+            : 48.0;
+        final dense = fieldHeight < 54;
+        final borderRadius = BorderRadius.circular(18);
+        final horizontalPadding = dense ? 15.0 : 17.0;
+        final verticalPadding = dense ? 10.0 : 14.0;
+        final border = OutlineInputBorder(
+          borderRadius: borderRadius,
+          borderSide: const BorderSide(
+            color: _taskEditorFieldLineColor,
+            width: 1.6,
+          ),
+        );
+
+        return TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          maxLength: maxLength,
+          textInputAction: textInputAction,
+          cursorColor: const Color(0xFF2F2218),
+          maxLines: 1,
+          style: const TextStyle(
+            color: _taskEditorFieldInkColor,
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+          ),
+          decoration: InputDecoration(
+            hintText: hintText,
+            hintStyle: TextStyle(
+              color: _taskEditorFieldHintColor,
+              fontSize: dense ? 15 : 16,
+              fontWeight: FontWeight.w900,
+            ),
+            counterText: '',
+            isDense: true,
+            filled: true,
+            fillColor: _taskEditorFieldFillColor,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding,
+              vertical: verticalPadding,
+            ),
+            border: border,
+            enabledBorder: border,
+            focusedBorder: border.copyWith(
+              borderSide: const BorderSide(
+                color: _taskEditorFieldInkColor,
+                width: 1.8,
               ),
-              child: Center(
-                child: TextField(
-                  controller: controller,
-                  keyboardType: keyboardType,
-                  inputFormatters: inputFormatters,
-                  maxLength: maxLength,
-                  textInputAction: textInputAction,
-                  cursorColor: const Color(0xFF2F2218),
-                  maxLines: 1,
-                  style: TextStyle(
-                    color: const Color(0xFF4E3A27),
-                    fontWeight: FontWeight.w900,
-                    fontSize: constraints.maxHeight * 0.44,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: hintText,
-                    hintStyle: TextStyle(
-                      color: const Color(0xA36F563D),
-                      fontSize: constraints.maxHeight * 0.38,
-                      fontWeight: FontWeight.w800,
-                    ),
-                    counterText: '',
-                    border: InputBorder.none,
-                    isCollapsed: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

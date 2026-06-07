@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../models/pet_artwork.dart';
 import '../../../widgets/app_modal_shell.dart';
-
-const String _closeIconAsset = 'assets/images/ui/close_icon_simple.png';
+import '../widgets/family_sprite_slice.dart';
 
 class AddMemberFlowResult {
   const AddMemberFlowResult({
@@ -131,28 +130,29 @@ class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
           maxWidth: dense ? 354 : 374,
           maxHeight: viewportHeight * (dense ? 0.88 : 0.90),
         ),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [_AddMemberPalette.paperTop, _AddMemberPalette.paper],
-            ),
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: _AddMemberPalette.ink, width: 1.8),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x2A5A3A21),
-                blurRadius: 28,
-                offset: Offset(0, 14),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [_AddMemberPalette.paperTop, _AddMemberPalette.paper],
+                ),
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(color: _AddMemberPalette.ink, width: 1.8),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x2A5A3A21),
+                    blurRadius: 28,
+                    offset: Offset(0, 14),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(32),
-            child: Stack(
-              children: [
-                SingleChildScrollView(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(32),
+                child: SingleChildScrollView(
                   padding: EdgeInsets.fromLTRB(
                     dense ? 18 : 24,
                     dense ? 18 : 26,
@@ -173,17 +173,13 @@ class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
                         maxLength: 20,
                         autofocus: true,
                         textInputAction: TextInputAction.next,
-                        style: const TextStyle(
-                          color: _AddMemberPalette.ink,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
-                        ),
+                        style: _addMemberInputTextStyle,
                         onChanged: (_) {
                           if (_nicknameError != null) {
                             setState(() => _nicknameError = null);
                           }
                         },
-                        decoration: _inputDecoration(
+                        decoration: _addMemberInputDecoration(
                           dense: dense,
                           hintText: '小宝',
                           errorText: _nicknameError,
@@ -210,11 +206,7 @@ class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
                         controller: _petNameController,
                         maxLength: 20,
                         textInputAction: TextInputAction.done,
-                        style: TextStyle(
-                          color: _AddMemberPalette.ink,
-                          fontSize: dense ? 15 : 16,
-                          fontWeight: FontWeight.w800,
-                        ),
+                        style: _addMemberInputTextStyle,
                         onChanged: (_) {
                           _petNameDirty = true;
                           if (_petNameError != null) {
@@ -222,7 +214,7 @@ class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
                           }
                         },
                         onSubmitted: (_) => _submit(),
-                        decoration: _inputDecoration(
+                        decoration: _addMemberInputDecoration(
                           dense: dense,
                           hintText: '团团',
                           errorText: _petNameError,
@@ -256,73 +248,18 @@ class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
                     ],
                   ),
                 ),
-                Positioned(
-                  top: 16,
-                  right: 16,
-                  child: _DialogCloseButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  InputDecoration _inputDecoration({
-    required bool dense,
-    required String hintText,
-    required String? errorText,
-  }) {
-    final borderRadius = BorderRadius.circular(18);
-
-    return InputDecoration(
-      hintText: hintText,
-      errorText: errorText,
-      counterText: '',
-      isDense: true,
-      hintStyle: TextStyle(
-        color: _AddMemberPalette.ink.withValues(alpha: 0.38),
-        fontSize: dense ? 15 : 16,
-        fontWeight: FontWeight.w900,
-      ),
-      errorStyle: const TextStyle(
-        color: _AddMemberPalette.error,
-        fontSize: 12,
-        fontWeight: FontWeight.w800,
-      ),
-      filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.42),
-      contentPadding: EdgeInsets.symmetric(
-        horizontal: dense ? 15 : 17,
-        vertical: dense ? 10 : 14,
-      ),
-      border: OutlineInputBorder(
-        borderRadius: borderRadius,
-        borderSide: const BorderSide(color: _AddMemberPalette.line, width: 1.6),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: borderRadius,
-        borderSide: const BorderSide(color: _AddMemberPalette.line, width: 1.6),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: borderRadius,
-        borderSide: const BorderSide(color: _AddMemberPalette.ink, width: 1.8),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: borderRadius,
-        borderSide: const BorderSide(
-          color: _AddMemberPalette.error,
-          width: 1.6,
-        ),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: borderRadius,
-        borderSide: const BorderSide(
-          color: _AddMemberPalette.error,
-          width: 1.8,
+            Positioned(
+              top: dense ? -14 : -16,
+              right: dense ? -12 : -14,
+              child: _DialogCloseButton(
+                key: const Key('family_add_member_close_button'),
+                dense: dense,
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -406,28 +343,29 @@ class _SelectPetFlowDialogState extends State<SelectPetFlowDialog> {
           maxWidth: dense ? 354 : 374,
           maxHeight: viewportHeight * (dense ? 0.88 : 0.90),
         ),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [_AddMemberPalette.paperTop, _AddMemberPalette.paper],
-            ),
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: _AddMemberPalette.ink, width: 1.8),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x2A5A3A21),
-                blurRadius: 28,
-                offset: Offset(0, 14),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [_AddMemberPalette.paperTop, _AddMemberPalette.paper],
+                ),
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(color: _AddMemberPalette.ink, width: 1.8),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x2A5A3A21),
+                    blurRadius: 28,
+                    offset: Offset(0, 14),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(32),
-            child: Stack(
-              children: [
-                SingleChildScrollView(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(32),
+                child: SingleChildScrollView(
                   padding: EdgeInsets.fromLTRB(
                     dense ? 18 : 24,
                     dense ? 18 : 26,
@@ -462,11 +400,7 @@ class _SelectPetFlowDialogState extends State<SelectPetFlowDialog> {
                         maxLength: 20,
                         autofocus: true,
                         textInputAction: TextInputAction.done,
-                        style: TextStyle(
-                          color: _AddMemberPalette.ink,
-                          fontSize: dense ? 15 : 16,
-                          fontWeight: FontWeight.w800,
-                        ),
+                        style: _addMemberInputTextStyle,
                         onChanged: (_) {
                           _petNameDirty = true;
                           if (_petNameError != null) {
@@ -474,7 +408,7 @@ class _SelectPetFlowDialogState extends State<SelectPetFlowDialog> {
                           }
                         },
                         onSubmitted: (_) => _submit(),
-                        decoration: _inputDecoration(
+                        decoration: _addMemberInputDecoration(
                           dense: dense,
                           hintText: '团团',
                           errorText: _petNameError,
@@ -508,73 +442,18 @@ class _SelectPetFlowDialogState extends State<SelectPetFlowDialog> {
                     ],
                   ),
                 ),
-                Positioned(
-                  top: 16,
-                  right: 16,
-                  child: _DialogCloseButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  InputDecoration _inputDecoration({
-    required bool dense,
-    required String hintText,
-    required String? errorText,
-  }) {
-    final borderRadius = BorderRadius.circular(18);
-
-    return InputDecoration(
-      hintText: hintText,
-      errorText: errorText,
-      counterText: '',
-      isDense: true,
-      hintStyle: TextStyle(
-        color: _AddMemberPalette.ink.withValues(alpha: 0.38),
-        fontSize: 17,
-        fontWeight: FontWeight.w900,
-      ),
-      errorStyle: const TextStyle(
-        color: _AddMemberPalette.error,
-        fontSize: 12,
-        fontWeight: FontWeight.w800,
-      ),
-      filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.42),
-      contentPadding: EdgeInsets.symmetric(
-        horizontal: 18,
-        vertical: dense ? 12 : 16,
-      ),
-      border: OutlineInputBorder(
-        borderRadius: borderRadius,
-        borderSide: const BorderSide(color: _AddMemberPalette.line, width: 1.6),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: borderRadius,
-        borderSide: const BorderSide(color: _AddMemberPalette.line, width: 1.6),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: borderRadius,
-        borderSide: const BorderSide(color: _AddMemberPalette.ink, width: 1.8),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: borderRadius,
-        borderSide: const BorderSide(
-          color: _AddMemberPalette.error,
-          width: 1.6,
-        ),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: borderRadius,
-        borderSide: const BorderSide(
-          color: _AddMemberPalette.error,
-          width: 1.8,
+            Positioned(
+              top: dense ? -14 : -16,
+              right: dense ? -12 : -14,
+              child: _DialogCloseButton(
+                key: const Key('family_select_pet_close_button'),
+                dense: dense,
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -594,6 +473,63 @@ class _AddMemberPalette {
   static const sage = Color(0xFFB7BE72);
   static const sageDark = Color(0xFF767B33);
   static const error = Color(0xFFB0483D);
+}
+
+const TextStyle _addMemberInputTextStyle = TextStyle(
+  color: _AddMemberPalette.ink,
+  fontSize: 17,
+  fontWeight: FontWeight.w800,
+);
+
+InputDecoration _addMemberInputDecoration({
+  required bool dense,
+  required String hintText,
+  required String? errorText,
+}) {
+  final borderRadius = BorderRadius.circular(18);
+
+  return InputDecoration(
+    hintText: hintText,
+    errorText: errorText,
+    counterText: '',
+    isDense: true,
+    hintStyle: TextStyle(
+      color: _AddMemberPalette.ink.withValues(alpha: 0.38),
+      fontSize: dense ? 15 : 16,
+      fontWeight: FontWeight.w900,
+    ),
+    errorStyle: const TextStyle(
+      color: _AddMemberPalette.error,
+      fontSize: 12,
+      fontWeight: FontWeight.w800,
+    ),
+    filled: true,
+    fillColor: Colors.white.withValues(alpha: 0.42),
+    contentPadding: EdgeInsets.symmetric(
+      horizontal: dense ? 15 : 17,
+      vertical: dense ? 10 : 14,
+    ),
+    border: OutlineInputBorder(
+      borderRadius: borderRadius,
+      borderSide: const BorderSide(color: _AddMemberPalette.line, width: 1.6),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: borderRadius,
+      borderSide: const BorderSide(color: _AddMemberPalette.line, width: 1.6),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: borderRadius,
+      borderSide: const BorderSide(color: _AddMemberPalette.ink, width: 1.8),
+    ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: borderRadius,
+      borderSide: const BorderSide(color: _AddMemberPalette.error, width: 1.6),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: borderRadius,
+      borderSide: const BorderSide(color: _AddMemberPalette.error, width: 1.8),
+    ),
+  );
 }
 
 class _DialogTitle extends StatelessWidget {
@@ -910,9 +846,10 @@ class _DialogActionButton extends StatelessWidget {
             boxShadow: primary
                 ? const [
                     BoxShadow(
-                      color: Color(0x4A6E7437),
-                      offset: Offset(0, 4),
-                      blurRadius: 0,
+                      color: Color(0x286E7437),
+                      offset: Offset(0, 3),
+                      blurRadius: 8,
+                      spreadRadius: -2,
                     ),
                   ]
                 : null,
@@ -937,23 +874,38 @@ class _DialogActionButton extends StatelessWidget {
 }
 
 class _DialogCloseButton extends StatelessWidget {
-  const _DialogCloseButton({required this.onPressed});
+  const _DialogCloseButton({
+    super.key,
+    required this.dense,
+    required this.onPressed,
+  });
 
+  final bool dense;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
+    final hitSize = dense ? 48.0 : 52.0;
+    final visualSize = dense ? 42.0 : 46.0;
+
     return Tooltip(
       message: '关闭',
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onPressed,
-        child: Image.asset(
-          _closeIconAsset,
-          width: 34,
-          height: 34,
-          fit: BoxFit.contain,
-          filterQuality: FilterQuality.high,
+        child: SizedBox(
+          width: hitSize,
+          height: hitSize,
+          child: Center(
+            child: Image.asset(
+              FamilyPopupAssets.closeButton,
+              width: visualSize,
+              height: visualSize,
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.high,
+              isAntiAlias: true,
+            ),
+          ),
         ),
       ),
     );

@@ -287,6 +287,10 @@ class AppModalShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final horizontal = _resolveHorizontal(size);
+    final aspectRatio = layout.contentAspectRatio;
+    final panelHeight = aspectRatio == null || aspectRatio <= 0
+        ? null
+        : horizontal.panelWidth / aspectRatio;
 
     Widget current = child;
     if (clipChild) {
@@ -326,6 +330,7 @@ class AppModalShell extends StatelessWidget {
             offset: Offset(horizontal.offsetX, 0),
             child: SizedBox(
               width: horizontal.panelWidth,
+              height: panelHeight,
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   maxHeight: layout.panelMaxHeight(size),
