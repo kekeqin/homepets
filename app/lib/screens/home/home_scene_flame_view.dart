@@ -30,6 +30,7 @@ import '../../widgets/homepets_button.dart';
 import '../../widgets/homepets_dialog.dart';
 import '../../widgets/homepets_select_field.dart';
 import '../../widgets/membership_top_notice.dart';
+import '../../widgets/source_scaled_rrect_border.dart';
 
 import '../family/family_screen.dart';
 import '../family/models/family_member_view_data.dart';
@@ -90,8 +91,6 @@ const String _membershipRequiredMessage = membershipRequiredMessage;
 const String _taskDeleteTrashAsset = 'assets/images/ui/task_delete/trash.png';
 const String _taskDeleteTitleAsset =
     'assets/images/ui/task_delete/title_text.png';
-const String _taskDeleteWarningAsset =
-    'assets/images/ui/task_delete/restore_warning_text.png';
 const String _taskDeleteNoteAsset = 'assets/images/ui/task_delete/note.png';
 const String _taskDeleteCatAsset = 'assets/images/ui/task_delete/cat_head.png';
 const String _taskDeleteCancelButtonAsset =
@@ -135,6 +134,7 @@ const Color _taskEditorFieldFillColor = Color(0x6BFFFFFF);
 const Color _taskEditorFieldLineColor = Color(0xFF2F2218);
 const Color _taskEditorFieldInkColor = Color(0xFF5A3A21);
 const Color _taskEditorFieldHintColor = Color(0x615A3A21);
+const Color _taskDialogOuterBorderColor = Color(0xFF6A3D20);
 const Duration _taskCompletionFeedbackDuration = Duration(milliseconds: 650);
 const double _taskMutationDialogMaxWidth = 430;
 const double _taskMutationDialogHeightFactor = 0.76;
@@ -3948,16 +3948,16 @@ class _TaskDeleteConfirmPanel extends StatelessWidget {
               right: 0,
               height: height * 0.065,
               child: Center(
-                child: SizedBox(
-                  width: width * 0.43,
-                  child: AspectRatio(
-                    aspectRatio: 226 / 30,
-                    child: Image.asset(
-                      _taskDeleteWarningAsset,
-                      fit: BoxFit.contain,
-                      alignment: Alignment.center,
-                      filterQuality: FilterQuality.high,
-                    ),
+                child: Text(
+                  '删除后无法恢复',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: const Color(0xFF4D3322).withValues(alpha: 0.38),
+                    fontFamily: 'HomePetsFont',
+                    fontSize: width * 0.038,
+                    fontWeight: FontWeight.w800,
+                    height: 1,
                   ),
                 ),
               ),
@@ -4004,6 +4004,9 @@ class _TaskDeleteConfirmPanel extends StatelessWidget {
                 label: '取消',
                 assetPath: _taskDeleteCancelButtonAsset,
                 pressedAssetPath: _taskDeleteCancelButtonPressedAsset,
+                borderSourceSize: const Size(712, 328),
+                borderSourceRect: const Rect.fromLTRB(36, 33, 671, 283),
+                borderSourceRadius: const Radius.elliptical(109, 125),
                 onPressed: onCancel,
               ),
             ),
@@ -4016,6 +4019,9 @@ class _TaskDeleteConfirmPanel extends StatelessWidget {
                 label: '删除',
                 assetPath: _taskDeleteButtonAsset,
                 pressedAssetPath: _taskDeleteButtonPressedAsset,
+                borderSourceSize: const Size(712, 344),
+                borderSourceRect: const Rect.fromLTRB(37, 25, 671, 279),
+                borderSourceRadius: const Radius.elliptical(111, 127),
                 onPressed: onDelete,
               ),
             ),
@@ -4031,12 +4037,18 @@ class _TaskDeleteActionButton extends StatefulWidget {
     required this.label,
     required this.assetPath,
     required this.pressedAssetPath,
+    required this.borderSourceSize,
+    required this.borderSourceRect,
+    required this.borderSourceRadius,
     required this.onPressed,
   });
 
   final String label;
   final String assetPath;
   final String pressedAssetPath;
+  final Size borderSourceSize;
+  final Rect borderSourceRect;
+  final Radius borderSourceRadius;
   final VoidCallback onPressed;
 
   @override
@@ -4069,10 +4081,26 @@ class _TaskDeleteActionButtonState extends State<_TaskDeleteActionButton> {
           duration: const Duration(milliseconds: 90),
           curve: Curves.easeOutCubic,
           scale: _pressed ? 0.985 : 1,
-          child: Image.asset(
-            _pressed ? widget.pressedAssetPath : widget.assetPath,
-            fit: BoxFit.fill,
-            filterQuality: FilterQuality.high,
+          child: Stack(
+            fit: StackFit.expand,
+            clipBehavior: Clip.none,
+            children: [
+              Image.asset(
+                _pressed ? widget.pressedAssetPath : widget.assetPath,
+                fit: BoxFit.fill,
+                filterQuality: FilterQuality.high,
+              ),
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: SourceScaledRRectBorder(
+                    sourceSize: widget.borderSourceSize,
+                    sourceRect: widget.borderSourceRect,
+                    sourceRadius: widget.borderSourceRadius,
+                    strokeWidth: 2.3,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -4541,10 +4569,26 @@ class _TaskDialogPanelBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      _taskDialogPanelBackgroundAsset,
-      fit: BoxFit.fill,
-      filterQuality: FilterQuality.high,
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.asset(
+          _taskDialogPanelBackgroundAsset,
+          fit: BoxFit.fill,
+          filterQuality: FilterQuality.high,
+        ),
+        const Positioned.fill(
+          child: IgnorePointer(
+            child: SourceScaledRRectBorder(
+              sourceSize: Size(1149, 1369),
+              sourceRect: Rect.fromLTRB(48, 43, 1098, 1315),
+              sourceRadius: Radius.elliptical(58, 64),
+              color: _taskDialogOuterBorderColor,
+              strokeWidth: 2.4,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

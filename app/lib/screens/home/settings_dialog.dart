@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../widgets/app_modal_shell.dart';
+import '../../widgets/source_scaled_rrect_border.dart';
 
 const String _settingsFrameAsset = 'assets/images/ui/setup/frame.png';
 const String _settingsCloseButtonAsset =
@@ -53,6 +54,7 @@ const AppModalLayout _settingsDialogLayout = AppModalLayout(
   tabletMaxWidth: 540,
   tabletHeightFactor: 0.80,
   tabletMaxHeight: 660,
+  contentAspectRatio: _settingsDialogDesignWidth / _settingsDialogDesignHeight,
 );
 
 enum HomeSettingsAction { editProfile, about, logout }
@@ -121,16 +123,16 @@ class _SettingsDialogPanel extends StatelessWidget {
                       const Positioned.fill(child: _SettingsPanelFrame()),
                       const Positioned(
                         left: 0,
-                        top: 38,
+                        top: 36,
                         right: 0,
-                        height: 42,
+                        height: 48,
                         child: Center(
                           child: Text(
                             '设置',
                             style: TextStyle(
                               color: _settingsTextColor,
                               fontFamily: 'HomePetsFont',
-                              fontSize: 30,
+                              fontSize: 34,
                               fontWeight: FontWeight.w900,
                               height: 1,
                             ),
@@ -138,8 +140,8 @@ class _SettingsDialogPanel extends StatelessWidget {
                         ),
                       ),
                       Positioned(
-                        left: 326,
-                        top: -8,
+                        left: 340,
+                        top: -28,
                         width: 132,
                         height: 132,
                         child: GestureDetector(
@@ -240,11 +242,22 @@ class _SettingsActionTile extends StatelessWidget {
             onTap: onTap,
             child: Stack(
               fit: StackFit.expand,
+              clipBehavior: Clip.none,
               children: [
                 Image.asset(
                   _settingsEditProfileInputAsset,
                   fit: BoxFit.fill,
                   filterQuality: FilterQuality.high,
+                ),
+                const Positioned.fill(
+                  child: IgnorePointer(
+                    child: SourceScaledRRectBorder(
+                      sourceSize: Size(409, 97),
+                      sourceRect: Rect.fromLTRB(6, 4, 403, 91),
+                      sourceRadius: Radius.elliptical(16, 18),
+                      strokeWidth: 2.1,
+                    ),
+                  ),
                 ),
                 Positioned(
                   left: 0,
