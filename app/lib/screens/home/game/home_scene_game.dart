@@ -4615,7 +4615,11 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
                  behavior == _SceneSpriteBehavior.wallBadge
              ? 0.94
              : 1,
-       );
+       ) {
+    if (behavior == _SceneSpriteBehavior.wallBadge) {
+      _spritePaint.filterQuality = ui.FilterQuality.high;
+    }
+  }
 
   final String assetPath;
   final _SceneSpriteBehavior behavior;
