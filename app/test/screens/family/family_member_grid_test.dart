@@ -296,7 +296,8 @@ void main() {
         ownerId: 1,
         familyId: 99,
       );
-      const homeAssetPath = 'assets/images/pets/pets/rabbit_sleep.png';
+      const homeAssetPath =
+          'assets/images/pets/grow/rabbit/growing/sleeping.png';
       Pet? tappedPet;
       String? tappedAvatarAssetPath;
 

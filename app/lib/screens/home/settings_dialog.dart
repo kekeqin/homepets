@@ -7,7 +7,7 @@ import '../../widgets/source_scaled_rrect_border.dart';
 
 const String _settingsFrameAsset = 'assets/images/ui/setup/frame.png';
 const String _settingsCloseButtonAsset =
-    'assets/images/ui/setup/close_button_transparent.png';
+    'assets/images/ui/family/12 (2).png';
 const String _settingsEditProfileInputAsset =
     'assets/images/ui/setup/7 (1).png';
 const String _settingsEditProfileIconAsset =
@@ -140,10 +140,10 @@ class _SettingsDialogPanel extends StatelessWidget {
                         ),
                       ),
                       Positioned(
-                        left: 340,
-                        top: -28,
-                        width: 132,
-                        height: 132,
+                        top: 0,
+                        right: 2,
+                        width: 48,
+                        height: 48,
                         child: GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           onTap: onClose,

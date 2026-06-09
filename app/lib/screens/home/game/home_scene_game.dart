@@ -81,6 +81,10 @@ void _removeMatchingChildEffects(
   }
 }
 
+bool _sceneComponentCanReceiveTap(VoidCallback? onTap) {
+  return onTap != null;
+}
+
 const List<_PetCandidatePoint>
 _defaultHomePetCandidatePoints = <_PetCandidatePoint>[
   // 1. Sofa left seat, seated on the cushion instead of the rug edge.
@@ -2172,6 +2176,10 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
 
   static bool debugUsesDynamicHomePoseSwitching(String petType) {
     return _shouldRotateHomePetPosesForType(petType);
+  }
+
+  static bool debugSceneComponentCanReceiveTap({required bool hasTapCallback}) {
+    return _sceneComponentCanReceiveTap(hasTapCallback ? () {} : null);
   }
 
   static int get debugSeatOccluderRenderPriority =>
@@ -4321,6 +4329,9 @@ abstract class _AnimatedSceneComponent extends PositionComponent
 
   @override
   bool containsLocalPoint(Vector2 point) {
+    if (!_sceneComponentCanReceiveTap(onTap)) {
+      return false;
+    }
     return point.x >= 0 &&
         point.y >= 0 &&
         point.x <= size.x &&
@@ -6378,9 +6389,14 @@ class _TaskPanelOverlay extends PositionComponent
 
   Vector2 _closeButtonPosition() {
     final panelCenter = _openPanelTargetPosition();
+    final panelSize = _panelRoot.size;
+    final buttonHalfSize = _basePanelSize.x * 0.13 * 0.5;
     return Vector2(
-      panelCenter.x + (_basePanelSize.x * 0.43),
-      panelCenter.y - (_basePanelSize.y * 0.43),
+      panelCenter.x +
+          (panelSize.x * 0.5) -
+          buttonHalfSize -
+          (_basePanelSize.x * 0.005),
+      panelCenter.y - (panelSize.y * 0.5) + buttonHalfSize,
     );
   }
 

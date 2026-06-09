@@ -251,8 +251,8 @@ class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
               ),
             ),
             Positioned(
-              top: dense ? -14 : -16,
-              right: dense ? -12 : -14,
+              top: 0,
+              right: 2,
               child: _DialogCloseButton(
                 key: const Key('family_add_member_close_button'),
                 dense: dense,
@@ -445,8 +445,8 @@ class _SelectPetFlowDialogState extends State<SelectPetFlowDialog> {
               ),
             ),
             Positioned(
-              top: dense ? -14 : -16,
-              right: dense ? -12 : -14,
+              top: 0,
+              right: 2,
               child: _DialogCloseButton(
                 key: const Key('family_select_pet_close_button'),
                 dense: dense,

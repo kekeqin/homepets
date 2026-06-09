@@ -6,7 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 import '../../core/constants.dart';
+import '../../core/ui/adaptive_design_layout.dart';
 import '../../core/ui/sprite_atlas.dart';
+import '../../models/subscription_status.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/revenue_cat_provider.dart';
 import '../../providers/subscription_provider.dart';
@@ -183,23 +185,14 @@ class _PaywallContentState extends ConsumerState<PaywallContent> {
     final subscriptionState = ref.watch(subscriptionProvider);
     final statusMessage = _inlineStatusMessageFor(state, subscriptionState);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final maxWidth = constraints.hasBoundedWidth
-            ? constraints.maxWidth
-            : _PaywallSprite.design.width;
-        final maxHeight = constraints.hasBoundedHeight
-            ? constraints.maxHeight
-            : _PaywallSprite.design.height;
-        final scale = math.min(
-          maxWidth / _PaywallSprite.design.width,
-          maxHeight / _PaywallSprite.design.height,
-        );
-
+    return AdaptiveDesignLayout(
+      designSize: _PaywallSprite.design,
+      useViewPadding: false,
+      builder: (context, geometry) {
         return Center(
           child: SizedBox(
-            width: _PaywallSprite.design.width * scale,
-            height: _PaywallSprite.design.height * scale,
+            width: geometry.scaledDesignSize.width,
+            height: geometry.scaledDesignSize.height,
             child: FittedBox(
               fit: BoxFit.fill,
               child: SizedBox(
@@ -273,12 +266,16 @@ class _PaywallContentState extends ConsumerState<PaywallContent> {
                         }
                         if (unlocked) {
                           final user = ref.read(authProvider).user;
+                          final entitlement = ref
+                              .read(revenueCatProvider.notifier)
+                              .currentClientEntitlement();
                           final backendUnlocked = await ref
                               .read(subscriptionProvider.notifier)
                               .syncAfterStorePurchase(
                                 revenueCatAppUserId: user == null
                                     ? null
                                     : revenueCatAppUserIdFor(user),
+                                entitlement: entitlement,
                               );
                           if (!context.mounted || !backendUnlocked) {
                             return;
@@ -299,12 +296,16 @@ class _PaywallContentState extends ConsumerState<PaywallContent> {
                         }
                         if (restored) {
                           final user = ref.read(authProvider).user;
+                          final entitlement = ref
+                              .read(revenueCatProvider.notifier)
+                              .currentClientEntitlement();
                           final backendUnlocked = await ref
                               .read(subscriptionProvider.notifier)
                               .syncAfterStorePurchase(
                                 revenueCatAppUserId: user == null
                                     ? null
                                     : revenueCatAppUserIdFor(user),
+                                entitlement: entitlement,
                               );
                           if (!context.mounted || !backendUnlocked) {
                             return;
@@ -620,7 +621,7 @@ class _PaywallTrialChip extends StatelessWidget {
         .active[RevenueCatConstants.entitlementId];
     final status = subscriptionState.status;
     final text =
-        _activeMembershipChipText(entitlement) ??
+        _membershipChipText(entitlement, status) ??
         (status == null
             ? '正在确认试用状态'
             : status.isTrialActive
@@ -1351,25 +1352,21 @@ String _readableSubscriptionPeriod(String period) {
   };
 }
 
-String? _activeMembershipChipText(EntitlementInfo? entitlement) {
+String? _membershipChipText(
+  EntitlementInfo? entitlement,
+  SubscriptionStatus? status,
+) {
+  if (status?.isPremiumActive == true) {
+    final expirationDate = status?.subscriptionExpiresAt?.toLocal();
+    if (expirationDate == null) {
+      return '永久会员已开通';
+    }
+    return '会员有效期至：${_formatChineseDate(expirationDate)}';
+  }
   if (entitlement == null || !entitlement.isActive) {
     return null;
   }
-
-  final expirationDate = _dateFromRevenueCat(entitlement.expirationDate);
-  if (expirationDate == null) {
-    return '永久会员已开通';
-  }
-
-  return '会员有效期至：${_formatChineseDate(expirationDate)}';
-}
-
-DateTime? _dateFromRevenueCat(String? value) {
-  final text = value?.trim();
-  if (text == null || text.isEmpty) {
-    return null;
-  }
-  return DateTime.tryParse(text)?.toLocal();
+  return '家庭会员已开通';
 }
 
 String _formatChineseDate(DateTime date) {
@@ -1414,7 +1411,7 @@ class _PaywallSprite {
   static const annualCardTarget = Rect.fromLTWH(274, 880, 216, 130);
   static const lifetimeCardTarget = Rect.fromLTWH(505, 880, 216, 130);
   static const unlockButtonTarget = Rect.fromLTWH(151, 1074, 458, 96);
-  static const closeTarget = Rect.fromLTWH(667, -18, 96, 96);
+  static const closeTarget = Rect.fromLTWH(662, 0, 96, 96);
   static const statusTarget = Rect.fromLTWH(120, 1024, 520, 46);
   static const trialChipTarget = Rect.fromLTWH(118, 805, 524, 46);
   static const restoreTarget = Rect.fromLTWH(282, 1180, 196, 48);

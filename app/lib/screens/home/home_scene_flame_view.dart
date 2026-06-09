@@ -88,19 +88,12 @@ const int _taskPointsMax = 1000;
 
 const String _taskPanelNoteAsset = 'assets/images/ui/task_note.png';
 const String _membershipRequiredMessage = membershipRequiredMessage;
+const String _sharedCloseButtonAsset = 'assets/images/ui/sprites/close.png';
 const String _taskDeleteTrashAsset = 'assets/images/ui/task_delete/trash.png';
 const String _taskDeleteTitleAsset =
     'assets/images/ui/task_delete/title_text.png';
 const String _taskDeleteNoteAsset = 'assets/images/ui/task_delete/note.png';
 const String _taskDeleteCatAsset = 'assets/images/ui/task_delete/cat_head.png';
-const String _taskDeleteCancelButtonAsset =
-    'assets/images/ui/task_delete/cancel_button.png';
-const String _taskDeleteCancelButtonPressedAsset =
-    'assets/images/ui/task_delete/cancel_button_pressed.png';
-const String _taskDeleteButtonAsset =
-    'assets/images/ui/task_delete/delete_button.png';
-const String _taskDeleteButtonPressedAsset =
-    'assets/images/ui/task_delete/delete_button_pressed.png';
 const String _taskDialogPanelBackgroundAsset =
     TaskBoardReferenceAsset.dialogPanel;
 const String _completeMemberDialogAssetRoot =
@@ -879,6 +872,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
           tabletHeightFactor: 0.62,
           tabletMaxHeight: 560,
         ),
+        showInnerBorder: false,
         contentBuilder: (dialogContext) {
           return Column(
             mainAxisSize: MainAxisSize.min,
@@ -1054,6 +1048,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       barrierLabel: 'logout_confirm_dialog',
       minimumSafeArea: HomePetsDialogGutter.smallInsets,
       title: '\u9000\u51fa\u767b\u5f55',
+      showInnerBorder: false,
       contentBuilder: (dialogContext) {
         return const Text(
           '\u786e\u5b9a\u8981\u9000\u51fa\u5f53\u524d\u8d26\u53f7\u5417\uff1f',
@@ -1089,6 +1084,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       context: context,
       barrierLabel: 'about_homepets_dialog',
       minimumSafeArea: HomePetsDialogGutter.smallInsets,
+      showInnerBorder: false,
       title: '关于',
       contentBuilder: (dialogContext) {
         return const Text(
@@ -1749,8 +1745,8 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
               ),
             ),
             Positioned(
-              top: panelSize.height * 0.082,
-              right: panelSize.width * 0.032,
+              top: 0,
+              right: panelSize.width * 0.005,
               width: closeButtonHitSize,
               height: closeButtonHitSize,
               child: _buildTaskPanelCloseButton(
@@ -3892,9 +3888,19 @@ class _TaskDeleteConfirmPanel extends StatelessWidget {
         final messageFontSize = taskLabel.runes.length > 10
             ? width * 0.034
             : width * 0.039;
-        final buttonGap = width * 0.07;
-        final buttonGroupWidth = width * 0.78;
-        final buttonWidth = (buttonGroupWidth - buttonGap) * 0.5;
+        const cancelButtonAspectRatio = 253 / 104;
+        const deleteButtonAspectRatio = 275 / 104;
+        final buttonGap = width * 0.035;
+        final buttonMaxGroupWidth = width * 0.70;
+        final buttonHeight = math.min(
+          height * 0.112,
+          (buttonMaxGroupWidth - buttonGap) /
+              (cancelButtonAspectRatio + deleteButtonAspectRatio),
+        );
+        final cancelButtonWidth = buttonHeight * cancelButtonAspectRatio;
+        final deleteButtonWidth = buttonHeight * deleteButtonAspectRatio;
+        final buttonGroupWidth =
+            cancelButtonWidth + buttonGap + deleteButtonWidth;
         final buttonLeft = (width - buttonGroupWidth) * 0.5;
 
         return Stack(
@@ -3999,32 +4005,31 @@ class _TaskDeleteConfirmPanel extends StatelessWidget {
             Positioned(
               left: buttonLeft,
               bottom: height * 0.074,
-              width: buttonWidth,
-              height: height * 0.166,
+              width: cancelButtonWidth,
+              height: buttonHeight,
               child: _TaskDeleteActionButton(
                 label: '取消',
-                assetPath: _taskDeleteCancelButtonAsset,
-                pressedAssetPath: _taskDeleteCancelButtonPressedAsset,
-                borderSourceSize: const Size(712, 328),
-                borderSourceRect: const Rect.fromLTRB(36, 33, 671, 283),
-                borderSourceRadius: const Radius.elliptical(109, 125),
+                tone: _TaskDeleteActionButtonTone.cancel,
                 onPressed: onCancel,
               ),
             ),
             Positioned(
-              left: buttonLeft + buttonWidth + buttonGap,
+              left: buttonLeft + cancelButtonWidth + buttonGap,
               bottom: height * 0.074,
-              width: buttonWidth,
-              height: height * 0.166,
+              width: deleteButtonWidth,
+              height: buttonHeight,
               child: _TaskDeleteActionButton(
                 label: '删除',
-                assetPath: _taskDeleteButtonAsset,
-                pressedAssetPath: _taskDeleteButtonPressedAsset,
-                borderSourceSize: const Size(712, 344),
-                borderSourceRect: const Rect.fromLTRB(37, 25, 671, 279),
-                borderSourceRadius: const Radius.elliptical(111, 127),
+                tone: _TaskDeleteActionButtonTone.delete,
                 onPressed: onDelete,
               ),
+            ),
+            Positioned(
+              top: 0,
+              right: width * 0.005,
+              width: width * 0.124,
+              height: width * 0.124,
+              child: _TaskDialogCloseButton(onPressed: onCancel),
             ),
           ],
         );
@@ -4033,23 +4038,17 @@ class _TaskDeleteConfirmPanel extends StatelessWidget {
   }
 }
 
+enum _TaskDeleteActionButtonTone { cancel, delete }
+
 class _TaskDeleteActionButton extends StatefulWidget {
   const _TaskDeleteActionButton({
     required this.label,
-    required this.assetPath,
-    required this.pressedAssetPath,
-    required this.borderSourceSize,
-    required this.borderSourceRect,
-    required this.borderSourceRadius,
+    required this.tone,
     required this.onPressed,
   });
 
   final String label;
-  final String assetPath;
-  final String pressedAssetPath;
-  final Size borderSourceSize;
-  final Rect borderSourceRect;
-  final Radius borderSourceRadius;
+  final _TaskDeleteActionButtonTone tone;
   final VoidCallback onPressed;
 
   @override
@@ -4086,18 +4085,28 @@ class _TaskDeleteActionButtonState extends State<_TaskDeleteActionButton> {
             fit: StackFit.expand,
             clipBehavior: Clip.none,
             children: [
-              Image.asset(
-                _pressed ? widget.pressedAssetPath : widget.assetPath,
-                fit: BoxFit.fill,
-                filterQuality: FilterQuality.high,
+              CustomPaint(
+                painter: _TaskDeleteActionButtonPainter(
+                  tone: widget.tone,
+                  pressed: _pressed,
+                ),
               ),
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: SourceScaledRRectBorder(
-                    sourceSize: widget.borderSourceSize,
-                    sourceRect: widget.borderSourceRect,
-                    sourceRadius: widget.borderSourceRadius,
-                    strokeWidth: 2.3,
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 8, 18, 11),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      widget.label,
+                      maxLines: 1,
+                      style: const TextStyle(
+                        color: Color(0xFF4D3322),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        height: 1,
+                        letterSpacing: 0,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -4106,6 +4115,64 @@ class _TaskDeleteActionButtonState extends State<_TaskDeleteActionButton> {
         ),
       ),
     );
+  }
+}
+
+class _TaskDeleteActionButtonPainter extends CustomPainter {
+  const _TaskDeleteActionButtonPainter({
+    required this.tone,
+    required this.pressed,
+  });
+
+  final _TaskDeleteActionButtonTone tone;
+  final bool pressed;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.width <= 0 || size.height <= 0) {
+      return;
+    }
+
+    final rect = Rect.fromLTWH(
+      size.width * 0.045,
+      size.height * 0.10,
+      size.width * 0.91,
+      size.height * 0.78,
+    );
+    final rrect = RRect.fromRectAndRadius(
+      rect,
+      Radius.circular(rect.height * 0.42),
+    );
+    final fillColors = switch (tone) {
+      _TaskDeleteActionButtonTone.cancel =>
+        pressed
+            ? const [Color(0xFFF2D6B2), Color(0xFFFDE7C9)]
+            : const [Color(0xFFFDECD4), Color(0xFFFDEDD7)],
+      _TaskDeleteActionButtonTone.delete =>
+        pressed
+            ? const [Color(0xFFF39B8B), Color(0xFFFFB09D)]
+            : const [Color(0xFFFEAE9B), Color(0xFFFEA691)],
+    };
+    final fillPaint = Paint()
+      ..isAntiAlias = true
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: fillColors,
+      ).createShader(rect);
+    final borderPaint = Paint()
+      ..color = const Color(0xFF5A3A21)
+      ..isAntiAlias = true
+      ..strokeWidth = math.max(1.6, size.height * 0.032)
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawRRect(rrect, fillPaint);
+    canvas.drawRRect(rrect.deflate(borderPaint.strokeWidth / 2), borderPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _TaskDeleteActionButtonPainter oldDelegate) {
+    return oldDelegate.tone != tone || oldDelegate.pressed != pressed;
   }
 }
 
@@ -4732,12 +4799,11 @@ class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
                             ),
                           ),
                           Positioned(
-                            top: -panelSize.height * 0.036,
-                            right: -panelSize.width * 0.002,
-                            width: panelSize.width * 0.138,
-                            height: panelSize.width * 0.138,
-                            child: _TaskEditorCloseButton(
-                              sprites: sprites,
+                            top: 0,
+                            right: panelSize.width * 0.005,
+                            width: panelSize.width * 0.124,
+                            height: panelSize.width * 0.124,
+                            child: _TaskDialogCloseButton(
                               onPressed: () => Navigator.of(context).pop(),
                             ),
                           ),
@@ -4755,13 +4821,9 @@ class _TaskEditorSpriteDialogState extends State<_TaskEditorSpriteDialog> {
   }
 }
 
-class _TaskEditorCloseButton extends StatelessWidget {
-  const _TaskEditorCloseButton({
-    required this.sprites,
-    required this.onPressed,
-  });
+class _TaskDialogCloseButton extends StatelessWidget {
+  const _TaskDialogCloseButton({required this.onPressed});
 
-  final TaskEditorSheetSpriteCatalog sprites;
   final VoidCallback onPressed;
 
   @override
@@ -4772,17 +4834,10 @@ class _TaskEditorCloseButton extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onPressed,
-        child: Center(
-          child: FractionallySizedBox(
-            widthFactor: 0.78,
-            heightFactor: 0.78,
-            child: SpriteFrameImage(
-              imageAsset: sprites.imageAsset,
-              sheetSize: sprites.sheetSize,
-              frame: sprites.closeButton,
-              fit: BoxFit.contain,
-            ),
-          ),
+        child: Image.asset(
+          _sharedCloseButtonAsset,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.high,
         ),
       ),
     );
@@ -5004,10 +5059,7 @@ class _TaskEditorSpriteCard extends StatelessWidget {
                 left: panelSize.width * 0.28,
                 width: panelSize.width * 0.44,
                 height: panelSize.height * 0.085,
-                child: _TaskEditorDeleteSpriteButton(
-                  sprites: sprites,
-                  onTap: onDelete,
-                ),
+                child: _TaskEditorDeleteSpriteButton(onTap: onDelete),
               ),
             Positioned(
               bottom: buttonBottom,
@@ -5202,12 +5254,8 @@ class _TaskEditorSpriteImageButtonState
 }
 
 class _TaskEditorDeleteSpriteButton extends StatelessWidget {
-  const _TaskEditorDeleteSpriteButton({
-    required this.sprites,
-    required this.onTap,
-  });
+  const _TaskEditorDeleteSpriteButton({required this.onTap});
 
-  final TaskEditorSheetSpriteCatalog sprites;
   final VoidCallback onTap;
 
   @override
@@ -5223,14 +5271,11 @@ class _TaskEditorDeleteSpriteButton extends StatelessWidget {
           children: [
             SizedBox(
               width: 34,
-              child: AspectRatio(
-                aspectRatio: sprites.trashIcon.aspectRatio,
-                child: SpriteFrameImage(
-                  imageAsset: sprites.imageAsset,
-                  sheetSize: sprites.sheetSize,
-                  frame: sprites.trashIcon,
-                  fit: BoxFit.contain,
-                ),
+              height: 40,
+              child: Image.asset(
+                _taskDeleteTrashAsset,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
               ),
             ),
             const SizedBox(width: 8),

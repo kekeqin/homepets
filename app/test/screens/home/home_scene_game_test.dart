@@ -367,6 +367,17 @@ void main() {
       expect(game.primaryPetRect(), isNull);
     });
 
+    test('excludes decorative scene layers from tap hit testing', () {
+      expect(
+        HomeSceneGame.debugSceneComponentCanReceiveTap(hasTapCallback: false),
+        isFalse,
+      );
+      expect(
+        HomeSceneGame.debugSceneComponentCanReceiveTap(hasTapCallback: true),
+        isTrue,
+      );
+    });
+
     test('debug guide sprite rects resolve to real home targets', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
 

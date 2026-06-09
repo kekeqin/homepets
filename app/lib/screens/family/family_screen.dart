@@ -831,7 +831,7 @@ class _FamilyStageCard extends StatelessWidget {
             builder: (context, constraints) {
               final width = constraints.maxWidth;
               final height = constraints.maxHeight;
-              final titleWidth = (width * 0.36).clamp(148.0, 238.0).toDouble();
+              final titleWidth = (width * 0.32).clamp(132.0, 210.0).toDouble();
               final titleHeight = titleWidth / 3.03;
 
               return Stack(
@@ -858,7 +858,7 @@ class _FamilyStageCard extends StatelessWidget {
                   Positioned(
                     left: width * 0.055,
                     right: width * 0.055,
-                    top: height * 0.195,
+                    top: height * 0.158,
                     bottom: height * 0.062,
                     child: membersPanel,
                   ),
@@ -898,7 +898,7 @@ class _FamilyTitleText extends StatelessWidget {
           maxLines: 1,
           style: const TextStyle(
             color: _FamilyPalette.deepBrown,
-            fontSize: 34,
+            fontSize: 30,
             fontWeight: FontWeight.w900,
             height: 1,
             shadows: [
@@ -1124,8 +1124,8 @@ class _HeroAddButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(999),
         child: SizedBox(
-          width: compact ? 62 : 76,
-          height: compact ? 62 : 76,
+          width: compact ? 50 : 58,
+          height: compact ? 50 : 58,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -1136,9 +1136,9 @@ class _HeroAddButton extends StatelessWidget {
                 isAntiAlias: true,
               ),
               Positioned(
-                left: compact ? 8 : 10,
-                right: compact ? 8 : 10,
-                bottom: compact ? 5 : 7,
+                left: compact ? 7 : 8,
+                right: compact ? 7 : 8,
+                bottom: compact ? 4 : 5,
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(
@@ -1146,7 +1146,7 @@ class _HeroAddButton extends StatelessWidget {
                     maxLines: 1,
                     style: TextStyle(
                       color: const Color(0xFF3F230D),
-                      fontSize: compact ? 17 : 20,
+                      fontSize: compact ? 14 : 16,
                       height: 1,
                       fontWeight: FontWeight.w900,
                     ),

@@ -1,6 +1,9 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/ui/adaptive_design_layout.dart';
 import '../../../core/ui/sprite_atlas.dart';
 import '../../../models/pet.dart';
 import '../../../models/pet_artwork.dart';
@@ -8,6 +11,22 @@ import '../../../providers/auth_provider.dart';
 import '../../../services/pet_detail_service.dart';
 import '../models/pet_history_entry.dart';
 import '../pet_detail_sprite_catalog.dart';
+
+class PetDetailDesignLayout {
+  const PetDetailDesignLayout._();
+
+  static const designSize = Size(412, 655);
+  static const embeddedMinimumInsets = EdgeInsets.fromLTRB(0, 28, 0, 16);
+  static const screenMinimumInsets = EdgeInsets.fromLTRB(20, 32, 20, 28);
+
+  static const profileCardRect = Rect.fromLTWH(0, 0, 412, 655);
+  static const nameBannerRect = Rect.fromLTWH(76, -18, 260, 86);
+  static const portraitFrameRect = Rect.fromLTWH(34, 94, 186, 268);
+  static const metricColumnRect = Rect.fromLTWH(226, 98, 166, 287);
+  static const recentTasksPanelRect = Rect.fromLTWH(30, 401, 248, 207);
+  static const achievementTagRect = Rect.fromLTWH(274, 388, 128, 205);
+  static const closeButtonRect = Rect.fromLTWH(354, 0, 56, 56);
+}
 
 class PetDetailView extends ConsumerStatefulWidget {
   const PetDetailView({
@@ -17,6 +36,13 @@ class PetDetailView extends ConsumerStatefulWidget {
     this.embedded = false,
     this.onClose,
   });
+
+  static const profileCardKey = Key('pet_detail_profile_card');
+  static const nameBannerKey = Key('pet_detail_name_banner');
+  static const portraitFrameKey = Key('pet_detail_portrait_frame');
+  static const metricColumnKey = Key('pet_detail_metric_column');
+  static const recentTasksPanelKey = Key('pet_detail_recent_tasks_panel');
+  static const achievementTagKey = Key('pet_detail_achievement_tag');
 
   final Pet pet;
   final String? avatarAssetPath;
@@ -63,37 +89,47 @@ class _PetDetailViewState extends ConsumerState<PetDetailView> {
   @override
   Widget build(BuildContext context) {
     final pet = widget.pet;
-    final horizontalPadding = widget.embedded ? 0.0 : 20.0;
-    final content = SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
-        horizontalPadding,
-        widget.embedded ? 28 : 32,
-        horizontalPadding,
-        widget.embedded ? 16 : 28,
+    final content = DefaultTextStyle.merge(
+      style: const TextStyle(
+        color: _PetDetailColors.ink,
+        decoration: TextDecoration.none,
+        decorationColor: Colors.transparent,
+        fontWeight: FontWeight.w800,
       ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 448),
-          child: DefaultTextStyle.merge(
-            style: const TextStyle(
-              color: _PetDetailColors.ink,
-              decoration: TextDecoration.none,
-              decorationColor: Colors.transparent,
-              fontWeight: FontWeight.w800,
-            ),
-            child: _ProfileCard(
-              pet: pet,
-              avatarAssetPath: widget.avatarAssetPath,
-              stageLabel: _stageLabel(pet),
-              growthValue: _growthValueLabel(pet),
-              ownerNameLabel: pet.ownerDisplayName,
-              recentTasks: _buildRecentTasks(),
-              statusLabel: _statusStampLabel(pet),
-              loading: _loading,
-              onClose: widget.onClose,
-            ),
-          ),
-        ),
+      child: AdaptiveDesignLayout(
+        designSize: PetDetailDesignLayout.designSize,
+        minimumInsets: widget.embedded
+            ? PetDetailDesignLayout.embeddedMinimumInsets
+            : PetDetailDesignLayout.screenMinimumInsets,
+        useViewPadding: !widget.embedded,
+        builder: (context, geometry) {
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fromRect(
+                rect: geometry.designRect,
+                child: FittedBox(
+                  fit: BoxFit.fill,
+                  child: SizedBox(
+                    width: PetDetailDesignLayout.designSize.width,
+                    height: PetDetailDesignLayout.designSize.height,
+                    child: _ProfileCard(
+                      pet: pet,
+                      avatarAssetPath: widget.avatarAssetPath,
+                      stageLabel: _stageLabel(pet),
+                      growthValue: _growthValueLabel(pet),
+                      ownerNameLabel: pet.ownerDisplayName,
+                      recentTasks: _buildRecentTasks(),
+                      statusLabel: _statusStampLabel(pet),
+                      loading: _loading,
+                      onClose: widget.onClose,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
 
@@ -101,10 +137,7 @@ class _PetDetailViewState extends ConsumerState<PetDetailView> {
       return content;
     }
 
-    return ColoredBox(
-      color: _PetDetailColors.background,
-      child: SafeArea(child: content),
-    );
+    return ColoredBox(color: _PetDetailColors.background, child: content);
   }
 
   String _stageLabel(Pet pet) {
@@ -161,6 +194,335 @@ class _PetDetailColors {
   static const shadow = Color(0x28604429);
 }
 
+class _PetDetailFrameDecorations {
+  const _PetDetailFrameDecorations._();
+
+  static const outerPanel = BoxDecoration(
+    gradient: LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFFFFF5DD), Color(0xFFF8E3C1)],
+    ),
+    borderRadius: BorderRadius.all(Radius.circular(28)),
+    border: Border.fromBorderSide(
+      BorderSide(color: Color(0xFF6D4A2D), width: 4.2),
+    ),
+    boxShadow: [
+      BoxShadow(
+        color: _PetDetailColors.shadow,
+        blurRadius: 22,
+        offset: Offset(0, 10),
+      ),
+    ],
+  );
+
+  static const portraitFrame = BoxDecoration(
+    gradient: LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFFFFEAC3), Color(0xFFF8D8A8)],
+    ),
+    borderRadius: BorderRadius.all(Radius.circular(20)),
+    border: Border.fromBorderSide(
+      BorderSide(color: Color(0xFF6D4A2D), width: 4),
+    ),
+  );
+
+  static const recentPanel = BoxDecoration(
+    gradient: LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFFFFF2D8), Color(0xFFF8E0BB)],
+    ),
+    borderRadius: BorderRadius.all(Radius.circular(22)),
+    border: Border.fromBorderSide(
+      BorderSide(color: Color(0xFF6D4A2D), width: 3.8),
+    ),
+  );
+
+  static const stageCard = BoxDecoration(
+    gradient: LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFFFDEDD0), Color(0xFFFFF6E1)],
+    ),
+    borderRadius: BorderRadius.all(Radius.circular(16)),
+    border: Border.fromBorderSide(
+      BorderSide(color: Color(0xFF63843A), width: 3.6),
+    ),
+  );
+
+  static const growthCard = BoxDecoration(
+    gradient: LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFFFEEECF), Color(0xFFFFF7E3)],
+    ),
+    borderRadius: BorderRadius.all(Radius.circular(16)),
+    border: Border.fromBorderSide(
+      BorderSide(color: Color(0xFFD8A21C), width: 3.6),
+    ),
+  );
+
+  static const feedCard = BoxDecoration(
+    gradient: LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFFFDEACC), Color(0xFFFFF4DD)],
+    ),
+    borderRadius: BorderRadius.all(Radius.circular(16)),
+    border: Border.fromBorderSide(
+      BorderSide(color: Color(0xFFD07B2E), width: 3.6),
+    ),
+  );
+}
+
+class _PetDetailMetricIconFrames {
+  const _PetDetailMetricIconFrames._();
+
+  static const stagePlant = SpriteAtlasFrame(
+    name: 'stage_plant_icon.png',
+    textureRect: Rect.fromLTWH(823, 231, 68, 72),
+    sourceRect: Rect.fromLTWH(0, 0, 68, 72),
+    sourceSize: Size(68, 72),
+    rotated: false,
+    trimmed: false,
+  );
+
+  static const growthStar = SpriteAtlasFrame(
+    name: 'growth_star_icon.png',
+    textureRect: Rect.fromLTWH(814, 530, 74, 78),
+    sourceRect: Rect.fromLTWH(0, 0, 74, 78),
+    sourceSize: Size(74, 78),
+    rotated: false,
+    trimmed: false,
+  );
+
+  static const feedBowl = SpriteAtlasFrame(
+    name: 'feed_bowl_icon.png',
+    textureRect: Rect.fromLTWH(806, 740, 74, 76),
+    sourceRect: Rect.fromLTWH(0, 0, 74, 76),
+    sourceSize: Size(74, 76),
+    rotated: false,
+    trimmed: false,
+  );
+}
+
+class _PetDetailFrameSurface extends StatelessWidget {
+  const _PetDetailFrameSurface({
+    required this.decoration,
+    required this.child,
+    this.foregroundPainter,
+  });
+
+  final BoxDecoration decoration;
+  final Widget child;
+  final CustomPainter? foregroundPainter;
+
+  @override
+  Widget build(BuildContext context) {
+    final foregroundPainter = this.foregroundPainter;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        DecoratedBox(decoration: decoration),
+        child,
+        if (foregroundPainter != null)
+          IgnorePointer(child: CustomPaint(painter: foregroundPainter)),
+      ],
+    );
+  }
+}
+
+class _RoundedDashedBorderPainter extends CustomPainter {
+  const _RoundedDashedBorderPainter({
+    required this.color,
+    required this.inset,
+    required this.radius,
+    required this.strokeWidth,
+    required this.dashWidth,
+    required this.dashGap,
+  });
+
+  final Color color;
+  final double inset;
+  final double radius;
+  final double strokeWidth;
+  final double dashWidth;
+  final double dashGap;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(
+      inset,
+      inset,
+      size.width - (inset * 2),
+      size.height - (inset * 2),
+    );
+    if (rect.width <= 0 || rect.height <= 0) {
+      return;
+    }
+
+    final path = Path()
+      ..addRRect(RRect.fromRectAndRadius(rect, Radius.circular(radius)));
+    final paint = Paint()
+      ..color = color
+      ..isAntiAlias = true
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        final end = math.min(distance + dashWidth, metric.length);
+        canvas.drawPath(metric.extractPath(distance, end), paint);
+        distance += dashWidth + dashGap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _RoundedDashedBorderPainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.inset != inset ||
+        oldDelegate.radius != radius ||
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.dashWidth != dashWidth ||
+        oldDelegate.dashGap != dashGap;
+  }
+}
+
+class _RecentPanelGuidesPainter extends CustomPainter {
+  const _RecentPanelGuidesPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const lineYs = <double>[84, 131];
+    const left = 30.0;
+    const rightInset = 28.0;
+    const dashWidth = 9.0;
+    const dashGap = 7.0;
+
+    final paint = Paint()
+      ..color = const Color(0xFFD0A670)
+      ..isAntiAlias = true
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = 2;
+
+    for (final y in lineYs) {
+      final right = size.width - rightInset;
+      var x = left;
+      while (x < right) {
+        canvas.drawLine(
+          Offset(x, y),
+          Offset(math.min(x + dashWidth, right), y),
+          paint,
+        );
+        x += dashWidth + dashGap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _RecentPanelGuidesPainter oldDelegate) => false;
+}
+
+class _RecentPanelRibbon extends StatelessWidget {
+  const _RecentPanelRibbon();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: const _RecentPanelRibbonPainter(),
+      child: const Center(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(25, 8, 25, 9),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              '最近互动TOP3',
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: 24,
+                height: 1,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFFFFF7E7),
+                shadows: [
+                  Shadow(
+                    color: Color(0x805E2F17),
+                    offset: Offset(0, 1.2),
+                    blurRadius: 1,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentPanelRibbonPainter extends CustomPainter {
+  const _RecentPanelRibbonPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.width <= 0 || size.height <= 0) {
+      return;
+    }
+
+    final rect = Offset.zero & size;
+    final path = _buildRibbonPath(size);
+    final shadowPaint = Paint()
+      ..color = const Color(0x22604429)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2)
+      ..style = PaintingStyle.fill;
+    final fillPaint = Paint()
+      ..isAntiAlias = true
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFFE98B45), Color(0xFFD97032)],
+      ).createShader(rect);
+    final borderPaint = Paint()
+      ..color = const Color(0xFF96511F)
+      ..isAntiAlias = true
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawPath(path.shift(const Offset(0, 2)), shadowPaint);
+    canvas.drawPath(path, fillPaint);
+    canvas.drawPath(path, borderPaint);
+  }
+
+  Path _buildRibbonPath(Size size) {
+    final w = size.width;
+    final h = size.height;
+    return Path()
+      ..moveTo(w * 0.10, h * 0.10)
+      ..lineTo(w * 0.88, h * 0.10)
+      ..quadraticBezierTo(w * 0.94, h * 0.10, w * 0.95, h * 0.22)
+      ..lineTo(w * 0.99, h * 0.50)
+      ..lineTo(w * 0.95, h * 0.78)
+      ..quadraticBezierTo(w * 0.94, h * 0.90, w * 0.88, h * 0.90)
+      ..lineTo(w * 0.10, h * 0.90)
+      ..quadraticBezierTo(w * 0.06, h * 0.90, w * 0.05, h * 0.78)
+      ..lineTo(w * 0.01, h * 0.50)
+      ..lineTo(w * 0.05, h * 0.22)
+      ..quadraticBezierTo(w * 0.06, h * 0.10, w * 0.10, h * 0.10)
+      ..close();
+  }
+
+  @override
+  bool shouldRepaint(covariant _RecentPanelRibbonPainter oldDelegate) => false;
+}
+
 class _ProfileCard extends StatelessWidget {
   const _ProfileCard({
     required this.pet,
@@ -186,94 +548,67 @@ class _ProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: 499 / 793,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final width = constraints.maxWidth;
-          final height = constraints.maxHeight;
-
-          double x(double value) => width * value / 412;
-          double y(double value) => height * value / 655;
-
-          return Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: const BoxDecoration(
-                    boxShadow: [
-                      BoxShadow(
-                        color: _PetDetailColors.shadow,
-                        blurRadius: 22,
-                        offset: Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: const _PetDetailSprite(
-                    frame: PetDetailSheetSpriteCatalog.panelBlank,
-                    fit: BoxFit.fill,
-                    sampleInset: 1,
-                  ),
-                ),
-              ),
-              Positioned(
-                top: y(-18),
-                left: x(76),
-                width: x(260),
-                height: y(86),
-                child: _NameBanner(text: pet.name),
-              ),
-              Positioned(
-                left: x(34),
-                top: y(94),
-                width: x(186),
-                height: y(268),
-                child: _PortraitFrame(
-                  pet: pet,
-                  avatarAssetPath: avatarAssetPath,
-                ),
-              ),
-              Positioned(
-                left: x(226),
-                top: y(98),
-                width: x(166),
-                child: _MetricColumn(
-                  stageLabel: stageLabel,
-                  level: pet.level,
-                  growthValue: growthValue,
-                  ownerNameLabel: ownerNameLabel,
-                  progress: pet.progress,
-                ),
-              ),
-              Positioned(
-                left: x(30),
-                top: y(401),
-                width: x(248),
-                height: y(207),
-                child: _RecentTasksPanel(tasks: recentTasks, loading: loading),
-              ),
-              Positioned(
-                left: x(274),
-                top: y(388),
-                width: x(128),
-                height: y(205),
-                child: _AchievementTag(
-                  level: pet.level,
-                  statusLabel: statusLabel,
-                ),
-              ),
-              if (onClose != null)
-                Positioned(
-                  top: y(18),
-                  right: x(16),
-                  width: x(52),
-                  height: x(52),
-                  child: _PetDetailCloseButton(onPressed: onClose!),
-                ),
-            ],
-          );
-        },
+    return SizedBox(
+      key: PetDetailView.profileCardKey,
+      width: PetDetailDesignLayout.designSize.width,
+      height: PetDetailDesignLayout.designSize.height,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          const Positioned.fill(
+            child: _PetDetailFrameSurface(
+              decoration: _PetDetailFrameDecorations.outerPanel,
+              child: SizedBox.expand(),
+            ),
+          ),
+          Positioned.fromRect(
+            rect: PetDetailDesignLayout.nameBannerRect,
+            child: _NameBanner(
+              key: PetDetailView.nameBannerKey,
+              text: pet.name,
+            ),
+          ),
+          Positioned.fromRect(
+            rect: PetDetailDesignLayout.portraitFrameRect,
+            child: _PortraitFrame(
+              key: PetDetailView.portraitFrameKey,
+              pet: pet,
+              avatarAssetPath: avatarAssetPath,
+            ),
+          ),
+          Positioned.fromRect(
+            rect: PetDetailDesignLayout.metricColumnRect,
+            child: _MetricColumn(
+              key: PetDetailView.metricColumnKey,
+              stageLabel: stageLabel,
+              level: pet.level,
+              growthValue: growthValue,
+              ownerNameLabel: ownerNameLabel,
+              progress: pet.progress,
+            ),
+          ),
+          Positioned.fromRect(
+            rect: PetDetailDesignLayout.recentTasksPanelRect,
+            child: _RecentTasksPanel(
+              key: PetDetailView.recentTasksPanelKey,
+              tasks: recentTasks,
+              loading: loading,
+            ),
+          ),
+          Positioned.fromRect(
+            rect: PetDetailDesignLayout.achievementTagRect,
+            child: _AchievementTag(
+              key: PetDetailView.achievementTagKey,
+              level: pet.level,
+              statusLabel: statusLabel,
+            ),
+          ),
+          if (onClose != null)
+            Positioned.fromRect(
+              rect: PetDetailDesignLayout.closeButtonRect,
+              child: _PetDetailCloseButton(onPressed: onClose!),
+            ),
+        ],
       ),
     );
   }
@@ -281,6 +616,8 @@ class _ProfileCard extends StatelessWidget {
 
 class _PetDetailCloseButton extends StatelessWidget {
   const _PetDetailCloseButton({required this.onPressed});
+
+  static const _assetPath = 'assets/images/ui/sprites/close.png';
 
   final VoidCallback onPressed;
 
@@ -292,14 +629,20 @@ class _PetDetailCloseButton extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onPressed,
-        child: const SizedBox.expand(),
+        child: Image.asset(
+          _assetPath,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.high,
+        ),
       ),
     );
   }
 }
 
 class _NameBanner extends StatelessWidget {
-  const _NameBanner({required this.text});
+  const _NameBanner({super.key, required this.text});
+
+  static const _assetPath = 'assets/images/ui/sprites/pet-title.png';
 
   final String text;
 
@@ -308,9 +651,10 @@ class _NameBanner extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        const _PetDetailSprite(
-          frame: PetDetailSheetSpriteCatalog.nameBanner,
-          fit: BoxFit.fill,
+        Image.asset(
+          _assetPath,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.high,
         ),
         Align(
           alignment: const Alignment(0, -0.12),
@@ -338,27 +682,33 @@ class _NameBanner extends StatelessWidget {
 }
 
 class _PortraitFrame extends StatelessWidget {
-  const _PortraitFrame({required this.pet, required this.avatarAssetPath});
+  const _PortraitFrame({
+    super.key,
+    required this.pet,
+    required this.avatarAssetPath,
+  });
 
   final Pet pet;
   final String? avatarAssetPath;
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        const _PetDetailSprite(
-          frame: PetDetailSheetSpriteCatalog.portraitFrameBlank,
-          fit: BoxFit.fill,
+    return _PetDetailFrameSurface(
+      decoration: _PetDetailFrameDecorations.portraitFrame,
+      foregroundPainter: const _RoundedDashedBorderPainter(
+        color: Color(0xFFE8B56E),
+        inset: 15,
+        radius: 14,
+        strokeWidth: 2,
+        dashWidth: 8,
+        dashGap: 8,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 26, 24, 30),
+        child: Center(
+          child: _PetPoseImage(pet: pet, assetPath: avatarAssetPath),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
-          child: Center(
-            child: _PetPoseImage(pet: pet, assetPath: avatarAssetPath),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -379,18 +729,27 @@ class _PetPoseImage extends StatelessWidget {
           deterministicPetGrowthPoseIndex(pet.petType, pet.level, pet.id),
         );
 
-    return Image.asset(
-      resolvedAssetPath,
-      fit: BoxFit.contain,
-      filterQuality: FilterQuality.high,
-      errorBuilder: (_, _, _) =>
-          const Icon(Icons.pets_rounded, size: 82, color: Color(0xFF628222)),
+    final normalizedType = normalizePetType(pet.petType);
+    final widthFactor = normalizedType == 'turtle' ? 0.90 : 0.96;
+    final heightFactor = normalizedType == 'turtle' ? 0.86 : 0.94;
+
+    return FractionallySizedBox(
+      widthFactor: widthFactor,
+      heightFactor: heightFactor,
+      child: Image.asset(
+        resolvedAssetPath,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+        errorBuilder: (_, _, _) =>
+            const Icon(Icons.pets_rounded, size: 82, color: Color(0xFF628222)),
+      ),
     );
   }
 }
 
 class _MetricColumn extends StatelessWidget {
   const _MetricColumn({
+    super.key,
     required this.stageLabel,
     required this.level,
     required this.growthValue,
@@ -409,7 +768,11 @@ class _MetricColumn extends StatelessWidget {
     return Column(
       children: [
         _MetricCard(
-          frame: PetDetailSheetSpriteCatalog.stageCard,
+          decoration: _PetDetailFrameDecorations.stageCard,
+          iconFrame: _PetDetailMetricIconFrames.stagePlant,
+          iconLeft: 12,
+          iconTop: 15,
+          iconSize: 39,
           title: '成长阶段',
           value: '$stageLabel (LV$level)',
           progress: progress,
@@ -417,14 +780,22 @@ class _MetricColumn extends StatelessWidget {
         ),
         const SizedBox(height: 11),
         _MetricCard(
-          frame: PetDetailSheetSpriteCatalog.growthCard,
+          decoration: _PetDetailFrameDecorations.growthCard,
+          iconFrame: _PetDetailMetricIconFrames.growthStar,
+          iconLeft: 12,
+          iconTop: 16,
+          iconSize: 39,
           title: '成长值',
           value: growthValue,
           height: 82,
         ),
         const SizedBox(height: 12),
         _MetricCard(
-          frame: PetDetailSheetSpriteCatalog.feedCard,
+          decoration: _PetDetailFrameDecorations.feedCard,
+          iconFrame: _PetDetailMetricIconFrames.feedBowl,
+          iconLeft: 12,
+          iconTop: 16,
+          iconSize: 40,
           title: '所属人员',
           value: ownerNameLabel,
           height: 82,
@@ -436,14 +807,22 @@ class _MetricColumn extends StatelessWidget {
 
 class _MetricCard extends StatelessWidget {
   const _MetricCard({
-    required this.frame,
+    required this.decoration,
+    required this.iconFrame,
+    required this.iconLeft,
+    required this.iconTop,
+    required this.iconSize,
     required this.title,
     required this.value,
     required this.height,
     this.progress,
   });
 
-  final SpriteAtlasFrame frame;
+  final BoxDecoration decoration;
+  final SpriteAtlasFrame iconFrame;
+  final double iconLeft;
+  final double iconTop;
+  final double iconSize;
   final String title;
   final String value;
   final double height;
@@ -453,52 +832,65 @@ class _MetricCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       height: height,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          _PetDetailSprite(frame: frame, fit: BoxFit.fill),
-          Positioned(
-            left: 51,
-            top: progress == null ? 17 : 15,
-            right: 10,
-            child: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
-                color: _PetDetailColors.ink,
+      child: _PetDetailFrameSurface(
+        decoration: decoration,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Positioned(
+              left: iconLeft,
+              top: iconTop,
+              width: iconSize,
+              height: iconSize,
+              child: _PetDetailSprite(
+                frame: iconFrame,
+                fit: BoxFit.contain,
+                sampleInset: 0,
               ),
             ),
-          ),
-          Positioned(
-            left: 51,
-            top: progress == null ? 40 : 40,
-            right: 8,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
+            Positioned(
+              left: 51,
+              top: progress == null ? 17 : 15,
+              right: 10,
               child: Text(
-                value,
+                title,
                 maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 20,
+                  fontSize: 12,
                   fontWeight: FontWeight.w900,
                   color: _PetDetailColors.ink,
                 ),
               ),
             ),
-          ),
-          if (progress != null)
             Positioned(
-              left: 18,
-              right: 12,
-              bottom: 14,
-              height: 12,
-              child: _SpriteProgressBar(value: progress!),
+              left: 51,
+              top: 40,
+              right: 8,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: _PetDetailColors.ink,
+                  ),
+                ),
+              ),
             ),
-        ],
+            if (progress != null)
+              Positioned(
+                left: 18,
+                right: 12,
+                bottom: 14,
+                height: 12,
+                child: _SpriteProgressBar(value: progress!),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -543,7 +935,11 @@ class _SpriteProgressBar extends StatelessWidget {
 }
 
 class _RecentTasksPanel extends StatelessWidget {
-  const _RecentTasksPanel({required this.tasks, required this.loading});
+  const _RecentTasksPanel({
+    super.key,
+    required this.tasks,
+    required this.loading,
+  });
 
   final List<_InteractionData> tasks;
   final bool loading;
@@ -551,11 +947,29 @@ class _RecentTasksPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Stack(
-      fit: StackFit.expand,
+      clipBehavior: Clip.none,
       children: [
-        const _PetDetailSprite(
-          frame: PetDetailSheetSpriteCatalog.recentPanel,
-          fit: BoxFit.fill,
+        const Positioned(
+          left: 0,
+          top: 24,
+          right: 0,
+          bottom: 0,
+          child: _PetDetailFrameSurface(
+            decoration: _PetDetailFrameDecorations.recentPanel,
+            child: SizedBox.expand(),
+          ),
+        ),
+        const Positioned.fill(
+          child: IgnorePointer(
+            child: CustomPaint(painter: _RecentPanelGuidesPainter()),
+          ),
+        ),
+        const Positioned(
+          left: 13,
+          top: -8,
+          width: 184,
+          height: 48,
+          child: _RecentPanelRibbon(),
         ),
         if (loading && tasks.isEmpty)
           const Positioned(
@@ -630,7 +1044,11 @@ class _InteractionRow extends StatelessWidget {
 }
 
 class _AchievementTag extends StatelessWidget {
-  const _AchievementTag({required this.level, required this.statusLabel});
+  const _AchievementTag({
+    super.key,
+    required this.level,
+    required this.statusLabel,
+  });
 
   static const _assetPath = 'assets/images/ui/sprites/label_blank.png';
   static const _aspectRatio = 266 / 368;
@@ -708,7 +1126,7 @@ class _PetDetailSprite extends StatelessWidget {
   const _PetDetailSprite({
     required this.frame,
     this.fit = BoxFit.contain,
-    this.sampleInset = 0,
+    this.sampleInset = 1,
   });
 
   final SpriteAtlasFrame frame;

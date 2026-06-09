@@ -238,29 +238,36 @@ class _FamilyMemberGridState extends State<FamilyMemberGrid> {
                             }
                             _dragDelta = 0;
                           },
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 240),
-                            switchInCurve: Curves.easeOutCubic,
-                            switchOutCurve: Curves.easeInCubic,
-                            transitionBuilder: (child, animation) {
-                              final offsetAnimation = Tween<Offset>(
-                                begin: Offset(_movingForward ? 0.05 : -0.05, 0),
-                                end: Offset.zero,
-                              ).animate(animation);
+                          child: ClipRect(
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 260),
+                              switchInCurve: Curves.easeOutCubic,
+                              switchOutCurve: Curves.easeInCubic,
+                              transitionBuilder: (child, animation) {
+                                final childKey = child.key;
+                                final isIncoming =
+                                    childKey is ValueKey<int> &&
+                                    childKey.value == _currentPage;
+                                final direction = _movingForward ? 1.0 : -1.0;
+                                final horizontalOffset = isIncoming
+                                    ? direction
+                                    : -direction;
+                                final offsetAnimation = Tween<Offset>(
+                                  begin: Offset(horizontalOffset, 0),
+                                  end: Offset.zero,
+                                ).animate(animation);
 
-                              return FadeTransition(
-                                opacity: animation,
-                                child: SlideTransition(
+                                return SlideTransition(
                                   position: offsetAnimation,
                                   child: child,
+                                );
+                              },
+                              child: KeyedSubtree(
+                                key: ValueKey<int>(_currentPage),
+                                child: Align(
+                                  alignment: Alignment.center,
+                                  child: grid,
                                 ),
-                              );
-                            },
-                            child: KeyedSubtree(
-                              key: ValueKey<int>(_currentPage),
-                              child: Align(
-                                alignment: Alignment.center,
-                                child: grid,
                               ),
                             ),
                           ),
