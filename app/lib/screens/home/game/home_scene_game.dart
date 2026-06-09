@@ -4750,7 +4750,7 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
       _SceneSpriteBehavior.familyPhoto =>
         math.sin((_ambientTime * 1.3) + ambientPhase) * 0.008,
       _SceneSpriteBehavior.wallBadge =>
-        math.sin((_ambientTime * 1.5) + ambientPhase) * 0.014,
+        math.sin((_ambientTime * 1.5) + ambientPhase) * 0.024,
       _SceneSpriteBehavior.staticOverlay => 0,
     };
   }
