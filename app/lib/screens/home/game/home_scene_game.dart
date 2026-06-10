@@ -6395,8 +6395,11 @@ class _TaskPanelOverlay extends PositionComponent
       panelCenter.x +
           (panelSize.x * 0.5) -
           buttonHalfSize -
-          (_basePanelSize.x * 0.005),
-      panelCenter.y - (panelSize.y * 0.5) + buttonHalfSize,
+          (panelSize.x * 0.050),
+      panelCenter.y -
+          (panelSize.y * 0.5) +
+          (panelSize.y * 0.082) +
+          buttonHalfSize,
     );
   }
 

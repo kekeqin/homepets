@@ -1745,8 +1745,8 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
               ),
             ),
             Positioned(
-              top: 0,
-              right: panelSize.width * 0.005,
+              top: panelSize.height * 0.082,
+              right: panelSize.width * 0.050,
               width: closeButtonHitSize,
               height: closeButtonHitSize,
               child: _buildTaskPanelCloseButton(
@@ -4412,6 +4412,18 @@ class _CompletionMemberSelectContentState
                                       ? () {}
                                       : _confirm,
                                 ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 0,
+                              right:
+                                  _completeMemberDialogDesignSize.width * 0.005,
+                              width:
+                                  _completeMemberDialogDesignSize.width * 0.124,
+                              height:
+                                  _completeMemberDialogDesignSize.width * 0.124,
+                              child: _TaskDialogCloseButton(
+                                onPressed: () => Navigator.of(context).pop(),
                               ),
                             ),
                           ],

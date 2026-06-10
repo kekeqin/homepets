@@ -184,7 +184,9 @@ class _PetDetailViewState extends ConsumerState<PetDetailView> {
 }
 
 class _PetDetailColors {
-  static const background = Color(0xFFF3E0C4);
+  static const paywallPanelTop = Color(0xFFFCE8C1);
+  static const paywallPanelBottom = Color(0xFFFEEDC9);
+  static const background = Color(0xFFFDEBC6);
   static const ink = Color(0xFF684328);
   static const softInk = Color(0xFF88613E);
   static const progressTrack = Color(0xFFFFF6D9);
@@ -199,9 +201,12 @@ class _PetDetailFrameDecorations {
 
   static const outerPanel = BoxDecoration(
     gradient: LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [Color(0xFFFFF5DD), Color(0xFFF8E3C1)],
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [
+        _PetDetailColors.paywallPanelTop,
+        _PetDetailColors.paywallPanelBottom,
+      ],
     ),
     borderRadius: BorderRadius.all(Radius.circular(28)),
     border: Border.fromBorderSide(
