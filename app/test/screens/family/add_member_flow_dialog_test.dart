@@ -178,11 +178,19 @@ void main() {
       find.byKey(const Key('family_add_member_nickname_field')),
     );
 
-    expect(closeRect.width, 48);
-    expect(closeRect.height, 48);
+    expect(closeRect.width, 44);
+    expect(closeRect.height, 44);
     expect(closeRect.top, greaterThanOrEqualTo(0));
     expect(closeRect.right, lessThanOrEqualTo(390));
     expect(closeRect.bottom, lessThan(firstFieldRect.top));
+
+    final panelRect = tester.getRect(
+      find.byKey(const Key('family_add_member_panel')),
+    );
+    final submitRect = tester.getRect(
+      find.byKey(const Key('family_add_member_submit_button')),
+    );
+    expect(submitRect.bottom, lessThanOrEqualTo(panelRect.bottom));
   });
 
   testWidgets('uses the member name field style for all text inputs', (
@@ -230,6 +238,64 @@ void main() {
       petNameField.decoration?.hintStyle,
       nicknameField.decoration?.hintStyle,
     );
+  });
+
+  testWidgets('does not overflow when keyboard is open', (tester) async {
+    _setSurface(tester, const Size(390, 844));
+    tester.view.viewInsets = const FakeViewPadding(bottom: 320);
+    addTearDown(tester.view.resetViewInsets);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: FilledButton(
+                onPressed: () {
+                  showAddMemberFlowDialog(context);
+                },
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(
+      find.byKey(const Key('family_add_member_submit_button')),
+      findsOneWidget,
+    );
+    final petNameRect = tester.getRect(
+      find.byKey(const Key('family_add_member_pet_name_field')),
+    );
+    final scrollRect = tester.getRect(
+      find.byKey(const Key('family_add_member_content_scroll')),
+    );
+    final submitRect = tester.getRect(
+      find.byKey(const Key('family_add_member_submit_button')),
+    );
+    expect(petNameRect.bottom, lessThanOrEqualTo(scrollRect.bottom));
+    expect(petNameRect.bottom, lessThanOrEqualTo(submitRect.top));
+
+    final panelBeforeDrag = tester.getRect(
+      find.byKey(const Key('family_add_member_panel')),
+    );
+    await tester.drag(
+      find.byKey(const Key('family_add_member_content_scroll')),
+      const Offset(0, -120),
+    );
+    await tester.pumpAndSettle();
+
+    final panelAfterDrag = tester.getRect(
+      find.byKey(const Key('family_add_member_panel')),
+    );
+    expect(panelAfterDrag.top, closeTo(panelBeforeDrag.top, 0.01));
+    expect(panelAfterDrag.bottom, closeTo(panelBeforeDrag.bottom, 0.01));
   });
 }
 

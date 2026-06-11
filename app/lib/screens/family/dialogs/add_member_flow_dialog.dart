@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../models/pet_artwork.dart';
@@ -52,17 +54,20 @@ class AddMemberFlowDialog extends StatefulWidget {
 class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
   final TextEditingController _nicknameController = TextEditingController();
   final TextEditingController _petNameController = TextEditingController();
+  final ScrollController _contentScrollController = ScrollController();
 
   String? _selectedPetType = selectablePetTypes.first;
   String? _nicknameError;
   String? _petTypeError;
   String? _petNameError;
   bool _petNameDirty = false;
+  bool _keyboardWasOpen = false;
 
   @override
   void dispose() {
     _nicknameController.dispose();
     _petNameController.dispose();
+    _contentScrollController.dispose();
     super.dispose();
   }
 
@@ -114,152 +119,203 @@ class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
     );
   }
 
+  void _revealPetNameWhenKeyboardOpens(bool keyboardOpen) {
+    if (!keyboardOpen) {
+      _keyboardWasOpen = false;
+      return;
+    }
+    if (_keyboardWasOpen) {
+      return;
+    }
+    _keyboardWasOpen = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_contentScrollController.hasClients) {
+        return;
+      }
+      final targetOffset = _contentScrollController.position.maxScrollExtent;
+      if (targetOffset <= 0) {
+        return;
+      }
+      _contentScrollController.jumpTo(targetOffset);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final viewportHeight = MediaQuery.sizeOf(context).height;
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final keyboardOpen = keyboardInset > 0;
     final dense = viewportHeight < 900;
+    _revealPetNameWhenKeyboardOpens(keyboardOpen);
+    final normalMaxDialogHeight = viewportHeight * (dense ? 0.84 : 0.88);
+    final maxDialogHeight = math.max(
+      260.0,
+      math.min(normalMaxDialogHeight, viewportHeight - keyboardInset - 28),
+    );
+    final dialogWidth = dense ? 388.0 : 420.0;
 
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(
-        horizontal: HomePetsDialogGutter.medium,
+        horizontal: HomePetsDialogGutter.large,
         vertical: 14,
       ),
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxWidth: dense ? 354 : 374,
-          maxHeight: viewportHeight * (dense ? 0.88 : 0.90),
+          maxWidth: dialogWidth,
+          maxHeight: maxDialogHeight,
         ),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [_AddMemberPalette.paperTop, _AddMemberPalette.paper],
-                ),
-                borderRadius: BorderRadius.circular(32),
-                border: Border.all(color: _AddMemberPalette.ink, width: 1.8),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x2A5A3A21),
-                    blurRadius: 28,
-                    offset: Offset(0, 14),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(32),
-                child: SingleChildScrollView(
+        child: SizedBox(
+          key: const Key('family_add_member_panel'),
+          width: dialogWidth,
+          height: keyboardOpen ? maxDialogHeight : null,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              _FamilyPageDialogBackground(
+                child: Padding(
                   padding: EdgeInsets.fromLTRB(
-                    dense ? 18 : 24,
-                    dense ? 18 : 26,
-                    dense ? 18 : 24,
                     dense ? 16 : 22,
+                    dense ? 24 : 30,
+                    dense ? 16 : 22,
+                    dense ? 24 : 28,
                   ),
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisSize: keyboardOpen
+                        ? MainAxisSize.max
+                        : MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Center(child: _DialogTitle(dense: dense)),
-                      SizedBox(height: dense ? 14 : 24),
-                      _SectionLabel(text: '成员名称', dense: dense),
-                      SizedBox(height: dense ? 8 : 10),
-                      TextField(
-                        key: const Key('family_add_member_nickname_field'),
-                        controller: _nicknameController,
-                        maxLength: 20,
-                        autofocus: true,
-                        textInputAction: TextInputAction.next,
-                        style: _addMemberInputTextStyle,
-                        onChanged: (_) {
-                          if (_nicknameError != null) {
-                            setState(() => _nicknameError = null);
-                          }
-                        },
-                        decoration: _addMemberInputDecoration(
-                          dense: dense,
-                          hintText: '小宝',
-                          errorText: _nicknameError,
-                        ),
-                      ),
-                      _DashedDivider(dense: dense),
-                      _SectionLabel(text: '选择宠物', dense: dense),
-                      SizedBox(height: dense ? 8 : 12),
-                      _PetOptionGrid(
-                        dense: dense,
-                        twoRowLayout: true,
-                        selectedPetType: _selectedPetType,
-                        onSelect: _selectPetType,
-                      ),
-                      if (_petTypeError != null) ...[
-                        const SizedBox(height: 8),
-                        Center(child: _ErrorText(_petTypeError!)),
-                      ],
-                      _DashedDivider(dense: dense),
-                      _SectionLabel(text: '宠物名字', dense: dense),
-                      SizedBox(height: dense ? 6 : 10),
-                      TextField(
-                        key: const Key('family_add_member_pet_name_field'),
-                        controller: _petNameController,
-                        maxLength: 20,
-                        textInputAction: TextInputAction.done,
-                        style: _addMemberInputTextStyle,
-                        onChanged: (_) {
-                          _petNameDirty = true;
-                          if (_petNameError != null) {
-                            setState(() => _petNameError = null);
-                          }
-                        },
-                        onSubmitted: (_) => _submit(),
-                        decoration: _addMemberInputDecoration(
-                          dense: dense,
-                          hintText: '团团',
-                          errorText: _petNameError,
-                        ),
-                      ),
-                      SizedBox(height: dense ? 12 : 22),
-                      Row(
-                        children: [
-                          Expanded(
-                            flex: 8,
-                            child: _DialogActionButton(
-                              label: '取消',
-                              dense: dense,
-                              variant: _DialogActionButtonVariant.secondary,
-                              onPressed: () => Navigator.of(context).pop(),
-                            ),
+                      SizedBox(height: dense ? 8 : 18),
+                      Flexible(
+                        child: SingleChildScrollView(
+                          key: const Key('family_add_member_content_scroll'),
+                          controller: _contentScrollController,
+                          clipBehavior: Clip.hardEdge,
+                          physics: const ClampingScrollPhysics(),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _SectionLabel(text: '成员名称', dense: dense),
+                              SizedBox(height: dense ? 5 : 8),
+                              _DialogFormControl(
+                                dense: dense,
+                                child: TextField(
+                                  key: const Key(
+                                    'family_add_member_nickname_field',
+                                  ),
+                                  controller: _nicknameController,
+                                  maxLength: 20,
+                                  autofocus: true,
+                                  textInputAction: TextInputAction.next,
+                                  style: _addMemberInputTextStyle,
+                                  onChanged: (_) {
+                                    if (_nicknameError != null) {
+                                      setState(() => _nicknameError = null);
+                                    }
+                                  },
+                                  decoration: _addMemberInputDecoration(
+                                    dense: dense,
+                                    hintText: '小宝',
+                                    errorText: _nicknameError,
+                                  ),
+                                ),
+                              ),
+                              _DashedDivider(dense: dense),
+                              _SectionLabel(text: '选择宠物', dense: dense),
+                              SizedBox(height: dense ? 6 : 10),
+                              _PetOptionGrid(
+                                dense: dense,
+                                twoRowLayout: true,
+                                selectedPetType: _selectedPetType,
+                                onSelect: _selectPetType,
+                              ),
+                              if (_petTypeError != null) ...[
+                                const SizedBox(height: 8),
+                                Center(child: _ErrorText(_petTypeError!)),
+                              ],
+                              SizedBox(height: dense ? 12 : 18),
+                              _DashedDivider(dense: dense),
+                              _SectionLabel(text: '宠物名字', dense: dense),
+                              SizedBox(height: dense ? 5 : 8),
+                              _DialogFormControl(
+                                dense: dense,
+                                child: TextField(
+                                  key: const Key(
+                                    'family_add_member_pet_name_field',
+                                  ),
+                                  controller: _petNameController,
+                                  maxLength: 20,
+                                  textInputAction: TextInputAction.done,
+                                  style: _addMemberInputTextStyle,
+                                  onChanged: (_) {
+                                    _petNameDirty = true;
+                                    if (_petNameError != null) {
+                                      setState(() => _petNameError = null);
+                                    }
+                                  },
+                                  onSubmitted: (_) => _submit(),
+                                  decoration: _addMemberInputDecoration(
+                                    dense: dense,
+                                    hintText: '团团',
+                                    errorText: _petNameError,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(height: dense ? 8 : 18),
+                              Center(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(
+                                      width: dense ? 96 : 112,
+                                      child: _DialogActionButton(
+                                        label: '取消',
+                                        dense: dense,
+                                        variant: _DialogActionButtonVariant
+                                            .secondary,
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(),
+                                      ),
+                                    ),
+                                    SizedBox(width: dense ? 10 : 12),
+                                    SizedBox(
+                                      width: dense ? 150 : 174,
+                                      child: _DialogActionButton(
+                                        key: const Key(
+                                          'family_add_member_submit_button',
+                                        ),
+                                        label: '确认添加',
+                                        dense: dense,
+                                        variant:
+                                            _DialogActionButtonVariant.primary,
+                                        onPressed: _submit,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            flex: 13,
-                            child: _DialogActionButton(
-                              key: const Key('family_add_member_submit_button'),
-                              label: '确认添加',
-                              dense: dense,
-                              variant: _DialogActionButtonVariant.primary,
-                              onPressed: _submit,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
-            ),
-            Positioned(
-              top: 0,
-              right: 2,
-              child: _DialogCloseButton(
-                key: const Key('family_add_member_close_button'),
-                dense: dense,
-                onPressed: () => Navigator.of(context).pop(),
+              Positioned(
+                top: 6,
+                right: 8,
+                child: _DialogCloseButton(
+                  key: const Key('family_add_member_close_button'),
+                  dense: dense,
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -279,14 +335,17 @@ class _SelectPetFlowDialogState extends State<SelectPetFlowDialog> {
   final TextEditingController _petNameController = TextEditingController(
     text: petTypeLabel(selectablePetTypes.first),
   );
+  final ScrollController _contentScrollController = ScrollController();
 
   String _selectedPetType = selectablePetTypes.first;
   String? _petNameError;
   bool _petNameDirty = false;
+  bool _keyboardWasOpen = false;
 
   @override
   void dispose() {
     _petNameController.dispose();
+    _contentScrollController.dispose();
     super.dispose();
   }
 
@@ -324,10 +383,40 @@ class _SelectPetFlowDialogState extends State<SelectPetFlowDialog> {
     ).pop(SelectPetFlowResult(petType: _selectedPetType, petName: petName));
   }
 
+  void _revealPetNameWhenKeyboardOpens(bool keyboardOpen) {
+    if (!keyboardOpen) {
+      _keyboardWasOpen = false;
+      return;
+    }
+    if (_keyboardWasOpen) {
+      return;
+    }
+    _keyboardWasOpen = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_contentScrollController.hasClients) {
+        return;
+      }
+      final targetOffset = _contentScrollController.position.maxScrollExtent;
+      if (targetOffset <= 0) {
+        return;
+      }
+      _contentScrollController.jumpTo(targetOffset);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final viewportHeight = MediaQuery.sizeOf(context).height;
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final keyboardOpen = keyboardInset > 0;
     final dense = viewportHeight < 900;
+    _revealPetNameWhenKeyboardOpens(keyboardOpen);
+    final normalMaxDialogHeight = viewportHeight * (dense ? 0.84 : 0.88);
+    final maxDialogHeight = math.max(
+      260.0,
+      math.min(normalMaxDialogHeight, viewportHeight - keyboardInset - 28),
+    );
+    final dialogWidth = dense ? 388.0 : 420.0;
     final memberName = widget.memberName.trim().isEmpty
         ? '这个成员'
         : widget.memberName.trim();
@@ -335,45 +424,33 @@ class _SelectPetFlowDialogState extends State<SelectPetFlowDialog> {
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(
-        horizontal: HomePetsDialogGutter.medium,
+        horizontal: HomePetsDialogGutter.large,
         vertical: 14,
       ),
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxWidth: dense ? 354 : 374,
-          maxHeight: viewportHeight * (dense ? 0.88 : 0.90),
+          maxWidth: dialogWidth,
+          maxHeight: maxDialogHeight,
         ),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [_AddMemberPalette.paperTop, _AddMemberPalette.paper],
-                ),
-                borderRadius: BorderRadius.circular(32),
-                border: Border.all(color: _AddMemberPalette.ink, width: 1.8),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x2A5A3A21),
-                    blurRadius: 28,
-                    offset: Offset(0, 14),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(32),
-                child: SingleChildScrollView(
+        child: SizedBox(
+          key: const Key('family_select_pet_panel'),
+          width: dialogWidth,
+          height: keyboardOpen ? maxDialogHeight : null,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              _FamilyPageDialogBackground(
+                child: Padding(
                   padding: EdgeInsets.fromLTRB(
-                    dense ? 18 : 24,
-                    dense ? 18 : 26,
-                    dense ? 18 : 24,
                     dense ? 16 : 22,
+                    dense ? 24 : 30,
+                    dense ? 16 : 22,
+                    dense ? 24 : 28,
                   ),
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisSize: keyboardOpen
+                        ? MainAxisSize.max
+                        : MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Center(
@@ -382,78 +459,106 @@ class _SelectPetFlowDialogState extends State<SelectPetFlowDialog> {
                           dense: dense,
                         ),
                       ),
-                      SizedBox(height: dense ? 14 : 24),
-                      _SectionLabel(text: '选择宠物', dense: dense),
-                      SizedBox(height: dense ? 8 : 12),
-                      _PetOptionGrid(
-                        dense: dense,
-                        twoRowLayout: true,
-                        selectedPetType: _selectedPetType,
-                        onSelect: _selectPetType,
-                      ),
-                      _DashedDivider(dense: dense),
-                      _SectionLabel(text: '宠物名字', dense: dense),
-                      SizedBox(height: dense ? 6 : 10),
-                      TextField(
-                        key: const Key('family_select_pet_name_field'),
-                        controller: _petNameController,
-                        maxLength: 20,
-                        autofocus: true,
-                        textInputAction: TextInputAction.done,
-                        style: _addMemberInputTextStyle,
-                        onChanged: (_) {
-                          _petNameDirty = true;
-                          if (_petNameError != null) {
-                            setState(() => _petNameError = null);
-                          }
-                        },
-                        onSubmitted: (_) => _submit(),
-                        decoration: _addMemberInputDecoration(
-                          dense: dense,
-                          hintText: '团团',
-                          errorText: _petNameError,
+                      SizedBox(height: dense ? 8 : 18),
+                      Flexible(
+                        child: SingleChildScrollView(
+                          key: const Key('family_select_pet_content_scroll'),
+                          controller: _contentScrollController,
+                          clipBehavior: Clip.hardEdge,
+                          physics: const ClampingScrollPhysics(),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _SectionLabel(text: '选择宠物', dense: dense),
+                              SizedBox(height: dense ? 6 : 10),
+                              _PetOptionGrid(
+                                dense: dense,
+                                twoRowLayout: true,
+                                selectedPetType: _selectedPetType,
+                                onSelect: _selectPetType,
+                              ),
+                              SizedBox(height: dense ? 12 : 18),
+                              _DashedDivider(dense: dense),
+                              _SectionLabel(text: '宠物名字', dense: dense),
+                              SizedBox(height: dense ? 5 : 8),
+                              _DialogFormControl(
+                                dense: dense,
+                                child: TextField(
+                                  key: const Key(
+                                    'family_select_pet_name_field',
+                                  ),
+                                  controller: _petNameController,
+                                  maxLength: 20,
+                                  autofocus: true,
+                                  textInputAction: TextInputAction.done,
+                                  style: _addMemberInputTextStyle,
+                                  onChanged: (_) {
+                                    _petNameDirty = true;
+                                    if (_petNameError != null) {
+                                      setState(() => _petNameError = null);
+                                    }
+                                  },
+                                  onSubmitted: (_) => _submit(),
+                                  decoration: _addMemberInputDecoration(
+                                    dense: dense,
+                                    hintText: '团团',
+                                    errorText: _petNameError,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(height: dense ? 8 : 18),
+                              Center(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(
+                                      width: dense ? 96 : 112,
+                                      child: _DialogActionButton(
+                                        label: '稍后',
+                                        dense: dense,
+                                        variant: _DialogActionButtonVariant
+                                            .secondary,
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(),
+                                      ),
+                                    ),
+                                    SizedBox(width: dense ? 10 : 12),
+                                    SizedBox(
+                                      width: dense ? 150 : 174,
+                                      child: _DialogActionButton(
+                                        key: const Key(
+                                          'family_select_pet_submit_button',
+                                        ),
+                                        label: '确认领养',
+                                        dense: dense,
+                                        variant:
+                                            _DialogActionButtonVariant.primary,
+                                        onPressed: _submit,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      SizedBox(height: dense ? 12 : 22),
-                      Row(
-                        children: [
-                          Expanded(
-                            flex: 8,
-                            child: _DialogActionButton(
-                              label: '稍后',
-                              dense: dense,
-                              variant: _DialogActionButtonVariant.secondary,
-                              onPressed: () => Navigator.of(context).pop(),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            flex: 13,
-                            child: _DialogActionButton(
-                              key: const Key('family_select_pet_submit_button'),
-                              label: '确认领养',
-                              dense: dense,
-                              variant: _DialogActionButtonVariant.primary,
-                              onPressed: _submit,
-                            ),
-                          ),
-                        ],
                       ),
                     ],
                   ),
                 ),
               ),
-            ),
-            Positioned(
-              top: 0,
-              right: 2,
-              child: _DialogCloseButton(
-                key: const Key('family_select_pet_close_button'),
-                dense: dense,
-                onPressed: () => Navigator.of(context).pop(),
+              Positioned(
+                top: 6,
+                right: 8,
+                child: _DialogCloseButton(
+                  key: const Key('family_select_pet_close_button'),
+                  dense: dense,
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -463,8 +568,6 @@ class _SelectPetFlowDialogState extends State<SelectPetFlowDialog> {
 class _AddMemberPalette {
   const _AddMemberPalette._();
 
-  static const paperTop = Color(0xFFFFF8E9);
-  static const paper = Color(0xFFFFF0D8);
   static const card = Color(0xFFFFF8EC);
   static const ink = Color(0xFF5A3A21);
   static const line = Color(0xFF9B7A5C);
@@ -473,6 +576,58 @@ class _AddMemberPalette {
   static const sage = Color(0xFFB7BE72);
   static const sageDark = Color(0xFF767B33);
   static const error = Color(0xFFB0483D);
+}
+
+class _FamilyPageDialogBackground extends StatelessWidget {
+  const _FamilyPageDialogBackground({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.passthrough,
+      children: [
+        Positioned.fill(
+          child: Image.asset(
+            FamilyPopupAssets.mainPanel,
+            fit: BoxFit.fill,
+            filterQuality: FilterQuality.medium,
+            isAntiAlias: true,
+          ),
+        ),
+        Positioned.fill(
+          child: IgnorePointer(
+            child: Image.asset(
+              FamilyPopupAssets.mainPanelOutline,
+              fit: BoxFit.fill,
+              filterQuality: FilterQuality.medium,
+              isAntiAlias: true,
+            ),
+          ),
+        ),
+        child,
+      ],
+    );
+  }
+}
+
+class _DialogFormControl extends StatelessWidget {
+  const _DialogFormControl({required this.dense, required this.child});
+
+  final bool dense;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: dense ? 280 : 304),
+        child: child,
+      ),
+    );
+  }
 }
 
 const TextStyle _addMemberInputTextStyle = TextStyle(
@@ -544,7 +699,7 @@ class _DialogTitle extends StatelessWidget {
       textAlign: TextAlign.center,
       style: TextStyle(
         color: _AddMemberPalette.ink,
-        fontSize: dense ? 26 : 30,
+        fontSize: dense ? 24 : 28,
         fontWeight: FontWeight.w900,
         height: 1,
       ),
@@ -568,7 +723,7 @@ class _SelectPetDialogTitle extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: _AddMemberPalette.ink,
-            fontSize: dense ? 22 : 26,
+            fontSize: dense ? 23 : 27,
             fontWeight: FontWeight.w900,
             height: 1,
           ),
@@ -581,7 +736,7 @@ class _SelectPetDialogTitle extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: _AddMemberPalette.ink.withValues(alpha: 0.68),
-            fontSize: dense ? 11.5 : 13,
+            fontSize: dense ? 9.5 : 11,
             fontWeight: FontWeight.w800,
             height: 1.1,
           ),
@@ -603,7 +758,7 @@ class _SectionLabel extends StatelessWidget {
       text,
       style: TextStyle(
         color: _AddMemberPalette.ink,
-        fontSize: dense ? 16 : 20,
+        fontSize: dense ? 16 : 18,
         fontWeight: FontWeight.w900,
         height: 1.1,
       ),
@@ -630,17 +785,17 @@ class _PetOptionGrid extends StatelessWidget {
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 300;
         final spacing = twoRowLayout
-            ? (compact ? 8.0 : 10.0)
+            ? (compact ? 7.0 : 8.0)
             : (compact ? 9.0 : 12.0);
         final cardWidth = twoRowLayout
             ? ((constraints.maxWidth - spacing * 2) / 3)
-                  .clamp(74.0, dense ? 86.0 : 92.0)
+                  .clamp(66.0, dense ? 78.0 : 84.0)
                   .toDouble()
             : compact
             ? 82.0
             : 92.0;
         final cardHeight = twoRowLayout
-            ? (dense ? 80.0 : 90.0)
+            ? (dense ? 68.0 : 78.0)
             : dense
             ? 86.0
             : (compact ? 108.0 : 118.0);
@@ -651,7 +806,7 @@ class _PetOptionGrid extends StatelessWidget {
             alignment: WrapAlignment.center,
             spacing: spacing,
             runSpacing: twoRowLayout
-                ? (dense ? 8 : 10)
+                ? (dense ? 7 : 9)
                 : (dense ? 10 : (compact ? 12 : 16)),
             children: [
               for (final petType in selectablePetTypes)
@@ -711,10 +866,10 @@ class _PetOptionCard extends StatelessWidget {
                 width: width,
                 height: height,
                 padding: EdgeInsets.fromLTRB(
-                  7,
-                  dense ? 5 : 7,
-                  7,
-                  dense ? 7 : 9,
+                  6,
+                  dense ? 4 : 6,
+                  6,
+                  dense ? 6 : 8,
                 ),
                 decoration: BoxDecoration(
                   color: selected
@@ -743,7 +898,7 @@ class _PetOptionCard extends StatelessWidget {
                     SizedBox(height: dense ? 3 : 5),
                     Container(
                       width: double.infinity,
-                      height: dense ? 22 : 26,
+                      height: dense ? 19 : 24,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: _AddMemberPalette.labelPill.withValues(
@@ -761,7 +916,7 @@ class _PetOptionCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: _AddMemberPalette.ink,
-                          fontSize: dense ? 12 : 13,
+                          fontSize: dense ? 11 : 12.5,
                           fontWeight: FontWeight.w900,
                           height: 1,
                         ),
@@ -772,11 +927,11 @@ class _PetOptionCard extends StatelessWidget {
               ),
               if (selected)
                 Positioned(
-                  top: dense ? -7 : -9,
-                  right: dense ? -5 : -7,
+                  top: dense ? -5 : -7,
+                  right: dense ? -4 : -6,
                   child: Container(
-                    width: dense ? 24 : 28,
-                    height: dense ? 24 : 28,
+                    width: dense ? 20 : 24,
+                    height: dense ? 20 : 24,
                     decoration: BoxDecoration(
                       color: _AddMemberPalette.sage,
                       shape: BoxShape.circle,
@@ -788,7 +943,7 @@ class _PetOptionCard extends StatelessWidget {
                     child: Icon(
                       Icons.check_rounded,
                       color: Colors.white,
-                      size: dense ? 17 : 20,
+                      size: dense ? 14 : 17,
                     ),
                   ),
                 ),
@@ -819,7 +974,7 @@ class _DialogActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primary = variant == _DialogActionButtonVariant.primary;
-    final radius = BorderRadius.circular(24);
+    final radius = BorderRadius.circular(20);
 
     return Material(
       color: Colors.transparent,
@@ -861,7 +1016,7 @@ class _DialogActionButton extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: _AddMemberPalette.ink,
-                fontSize: dense ? 17 : 19,
+                fontSize: 16,
                 fontWeight: FontWeight.w900,
                 height: 1,
               ),
@@ -885,8 +1040,8 @@ class _DialogCloseButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hitSize = dense ? 48.0 : 52.0;
-    final visualSize = dense ? 42.0 : 46.0;
+    final hitSize = dense ? 44.0 : 48.0;
+    final visualSize = dense ? 36.0 : 40.0;
 
     return Tooltip(
       message: '关闭',
@@ -920,7 +1075,7 @@ class _DashedDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: dense ? 10 : 20),
+      padding: EdgeInsets.symmetric(vertical: dense ? 8 : 16),
       child: SizedBox(
         height: 2,
         width: double.infinity,
