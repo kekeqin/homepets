@@ -1,18 +1,17 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../widgets/app_modal_shell.dart';
+import '../../../widgets/homepets_button.dart';
+import '../../../widgets/source_scaled_rrect_border.dart';
 import '../widgets/family_sprite_slice.dart';
 
 const String _deleteMemberDialogAsset =
     'assets/images/ui/sprites/delete_member_dialog_sprites.png';
 const Size _deleteMemberDialogSheetSize = Size(1536, 1024);
 
-const Rect _deleteMemberPanelRegion = Rect.fromLTWH(798, 49, 619, 605);
 const Rect _deleteMemberTrashRegion = Rect.fromLTWH(99, 698, 110, 115);
-const Rect _deleteMemberTitleRegion = Rect.fromLTWH(317, 733, 196, 49);
-const Rect _deleteMemberQuestionPrefixRegion = Rect.fromLTWH(634, 750, 210, 30);
-const Rect _deleteMemberQuestionSuffixRegion = Rect.fromLTWH(905, 750, 78, 30);
-const Rect _deleteMemberWarningRegion = Rect.fromLTWH(1068, 733, 404, 68);
 const Rect _deleteMemberIllustrationRegion = Rect.fromLTWH(284, 818, 211, 134);
 const Rect _deleteMemberCancelButtonRegion = Rect.fromLTWH(639, 856, 257, 102);
 const Rect _deleteMemberConfirmButtonRegion = Rect.fromLTWH(
@@ -22,19 +21,37 @@ const Rect _deleteMemberConfirmButtonRegion = Rect.fromLTWH(
   102,
 );
 
-const double _dialogDesignWidth = 619;
-const double _dialogDesignHeight = 605;
+const String _deleteMemberTaskPanelAsset = 'assets/images/ui/task/33.png';
+const double _deleteMemberTaskPanelSourceWidth = 1149;
+const double _deleteMemberTaskPanelSourceHeight = 1369;
+const double _deleteMemberTaskPanelVisibleLeftInset = 48;
+const double _deleteMemberTaskPanelVisibleRightInset = 51;
+const Color _deleteMemberTaskPanelBorderColor = Color(0xFF6A3D20);
+const String _deleteMemberFontFamily = 'HomePetsFont';
+const Color _deleteMemberTextColor = Color(0xFF4D3322);
+const Color _deleteMemberMutedTextColor = Color(0x7A4D3322);
+
+const double _dialogDesignWidth = _deleteMemberTaskPanelSourceWidth;
+const double _dialogDesignHeight = _deleteMemberTaskPanelSourceHeight;
 
 const AppModalLayout _deleteMemberDialogLayout = AppModalLayout(
   mobileWidthFactor: 1.0,
   mobileMaxWidth: 430,
   mobileHeightFactor: 0.76,
-  mobileMaxHeight: 420,
+  mobileMaxHeight: 560,
   tabletWidthFactor: 0.48,
-  tabletMaxWidth: 560,
+  tabletMaxWidth: 430,
   tabletHeightFactor: 0.78,
-  tabletMaxHeight: 560,
+  tabletMaxHeight: 620,
+  contentAspectRatio: _dialogDesignWidth / _dialogDesignHeight,
 );
+
+const AppModalVisibleFrame _deleteMemberDialogVisibleFrame =
+    AppModalVisibleFrame(
+      sourceWidth: _deleteMemberTaskPanelSourceWidth,
+      leftInset: _deleteMemberTaskPanelVisibleLeftInset,
+      rightInset: _deleteMemberTaskPanelVisibleRightInset,
+    );
 
 Future<bool> showDeleteMemberDialog(
   BuildContext context, {
@@ -77,116 +94,160 @@ class _DeleteMemberDialog extends StatelessWidget {
     return AppModalShell(
       layout: _deleteMemberDialogLayout,
       minimumSafeArea: HomePetsDialogGutter.mediumInsets,
+      visibleFrame: _deleteMemberDialogVisibleFrame,
       clipChild: false,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final targetHeight = constraints.maxHeight.isFinite
-              ? constraints.maxHeight
-              : _dialogDesignHeight;
+          final panelSize = constraints.biggest;
+          final width = panelSize.width;
+          final height = panelSize.height;
+          final cancelButtonAspectRatio =
+              _deleteMemberCancelButtonRegion.width /
+              _deleteMemberCancelButtonRegion.height;
+          final deleteButtonAspectRatio =
+              _deleteMemberConfirmButtonRegion.width /
+              _deleteMemberConfirmButtonRegion.height;
+          final buttonGap = width * 0.035;
+          final buttonMaxGroupWidth = width * 0.70;
+          final buttonHeight = math.min(
+            height * 0.112,
+            (buttonMaxGroupWidth - buttonGap) /
+                (cancelButtonAspectRatio + deleteButtonAspectRatio),
+          );
+          final cancelButtonWidth = buttonHeight * cancelButtonAspectRatio;
+          final deleteButtonWidth = buttonHeight * deleteButtonAspectRatio;
+          final buttonGroupWidth =
+              cancelButtonWidth + buttonGap + deleteButtonWidth;
+          final buttonLeft = (width - buttonGroupWidth) * 0.5;
+          final questionFontSize = memberName.runes.length > 5
+              ? width * 0.041
+              : width * 0.046;
 
           return SizedBox(
-            width: constraints.maxWidth,
-            height: targetHeight,
-            child: FittedBox(
-              fit: BoxFit.contain,
-              child: SizedBox(
-                width: _dialogDesignWidth,
-                height: _dialogDesignHeight,
-                child: Stack(
-                  children: [
-                    const Positioned.fill(
-                      child: FamilySpriteSlice(
-                        assetPath: _deleteMemberDialogAsset,
-                        sheetSize: _deleteMemberDialogSheetSize,
-                        region: _deleteMemberPanelRegion,
-                        fit: BoxFit.fill,
-                        sampleInset: 1,
-                      ),
-                    ),
-                    const Positioned(
-                      left: 255,
-                      top: 18,
-                      width: 110,
-                      height: 115,
-                      child: FamilySpriteSlice(
-                        assetPath: _deleteMemberDialogAsset,
-                        sheetSize: _deleteMemberDialogSheetSize,
-                        region: _deleteMemberTrashRegion,
-                        fit: BoxFit.contain,
-                        sampleInset: 0,
-                      ),
-                    ),
-                    const Positioned(
-                      left: 211,
-                      top: 136,
-                      width: 196,
-                      height: 49,
-                      child: FamilySpriteSlice(
-                        assetPath: _deleteMemberDialogAsset,
-                        sheetSize: _deleteMemberDialogSheetSize,
-                        region: _deleteMemberTitleRegion,
-                        fit: BoxFit.contain,
-                        sampleInset: 0,
-                      ),
-                    ),
-                    Positioned(
-                      left: 134,
-                      top: 205,
-                      width: 350,
-                      height: 32,
-                      child: _DeleteMemberQuestionRow(memberName: memberName),
-                    ),
-                    const Positioned(
-                      left: 107,
-                      top: 255,
-                      width: 404,
-                      height: 68,
-                      child: FamilySpriteSlice(
-                        assetPath: _deleteMemberDialogAsset,
-                        sheetSize: _deleteMemberDialogSheetSize,
-                        region: _deleteMemberWarningRegion,
-                        fit: BoxFit.contain,
-                        sampleInset: 0,
-                      ),
-                    ),
-                    const Positioned(
-                      left: 204,
-                      top: 350,
-                      width: 211,
-                      height: 134,
-                      child: FamilySpriteSlice(
-                        assetPath: _deleteMemberDialogAsset,
-                        sheetSize: _deleteMemberDialogSheetSize,
-                        region: _deleteMemberIllustrationRegion,
-                        fit: BoxFit.contain,
-                        sampleInset: 0,
-                      ),
-                    ),
-                    Positioned(
-                      left: 49,
-                      top: 479,
-                      width: 257,
-                      height: 102,
-                      child: _DeleteMemberActionButton(
-                        semanticLabel: '取消',
-                        region: _deleteMemberCancelButtonRegion,
-                        onPressed: onCancel,
-                      ),
-                    ),
-                    Positioned(
-                      left: 316,
-                      top: 479,
-                      width: 258,
-                      height: 102,
-                      child: _DeleteMemberActionButton(
-                        semanticLabel: '删除',
-                        region: _deleteMemberConfirmButtonRegion,
-                        onPressed: onDelete,
-                      ),
-                    ),
-                  ],
+            width: width,
+            height: height,
+            child: Stack(
+              children: [
+                const Positioned.fill(
+                  child: _DeleteMemberTaskPanelBackground(),
                 ),
-              ),
+                Positioned(
+                  top: height * 0.052,
+                  left: width * 0.5 - width * 0.086,
+                  width: width * 0.172,
+                  height: height * 0.185,
+                  child: const FamilySpriteSlice(
+                    assetPath: _deleteMemberDialogAsset,
+                    sheetSize: _deleteMemberDialogSheetSize,
+                    region: _deleteMemberTrashRegion,
+                    fit: BoxFit.contain,
+                    sampleInset: 0,
+                  ),
+                ),
+                Positioned(
+                  top: height * 0.255,
+                  left: width * 0.18,
+                  right: width * 0.18,
+                  height: height * 0.072,
+                  child: Center(
+                    child: Text(
+                      '删除成员',
+                      maxLines: 1,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: _deleteMemberTextColor,
+                        fontFamily: _deleteMemberFontFamily,
+                        fontSize: width * 0.078,
+                        fontWeight: FontWeight.w900,
+                        height: 1,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: height * 0.374,
+                  left: width * 0.09,
+                  right: width * 0.09,
+                  height: height * 0.088,
+                  child: Center(
+                    child: Text(
+                      '确认删除 $memberName 吗？',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: _deleteMemberTextColor,
+                        fontFamily: _deleteMemberFontFamily,
+                        fontSize: questionFontSize,
+                        fontWeight: FontWeight.w900,
+                        height: 1.12,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: height * 0.486,
+                  left: width * 0.12,
+                  right: width * 0.12,
+                  height: height * 0.056,
+                  child: Center(
+                    child: Text(
+                      '删除后无法恢复',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: _deleteMemberMutedTextColor,
+                        fontFamily: _deleteMemberFontFamily,
+                        fontSize: width * 0.04,
+                        fontWeight: FontWeight.w800,
+                        height: 1,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: height * 0.585,
+                  left: width * 0.305,
+                  width: width * 0.39,
+                  height: height * 0.18,
+                  child: const FamilySpriteSlice(
+                    assetPath: _deleteMemberDialogAsset,
+                    sheetSize: _deleteMemberDialogSheetSize,
+                    region: _deleteMemberIllustrationRegion,
+                    fit: BoxFit.contain,
+                    sampleInset: 0,
+                  ),
+                ),
+                Positioned(
+                  left: buttonLeft,
+                  bottom: height * 0.074,
+                  width: cancelButtonWidth,
+                  height: buttonHeight,
+                  child: HomePetsButton(
+                    label: '取消',
+                    variant: HomePetsButtonVariant.secondary,
+                    width: cancelButtonWidth,
+                    height: buttonHeight,
+                    onPressed: onCancel,
+                  ),
+                ),
+                Positioned(
+                  left: buttonLeft + cancelButtonWidth + buttonGap,
+                  bottom: height * 0.074,
+                  width: deleteButtonWidth,
+                  height: buttonHeight,
+                  child: HomePetsButton(
+                    label: '删除',
+                    width: deleteButtonWidth,
+                    height: buttonHeight,
+                    onPressed: onDelete,
+                  ),
+                ),
+              ],
             ),
           );
         },
@@ -195,120 +256,31 @@ class _DeleteMemberDialog extends StatelessWidget {
   }
 }
 
-class _DeleteMemberQuestionRow extends StatelessWidget {
-  const _DeleteMemberQuestionRow({required this.memberName});
-
-  final String memberName;
+class _DeleteMemberTaskPanelBackground extends StatelessWidget {
+  const _DeleteMemberTaskPanelBackground();
 
   @override
   Widget build(BuildContext context) {
     return Stack(
-      children: [
-        const Positioned(
-          left: 0,
-          top: 0,
-          width: 210,
-          height: 30,
-          child: FamilySpriteSlice(
-            assetPath: _deleteMemberDialogAsset,
-            sheetSize: _deleteMemberDialogSheetSize,
-            region: _deleteMemberQuestionPrefixRegion,
-            fit: BoxFit.contain,
-            alignment: Alignment.centerLeft,
-            sampleInset: 0,
-          ),
+      fit: StackFit.expand,
+      children: const [
+        Image(
+          image: AssetImage(_deleteMemberTaskPanelAsset),
+          fit: BoxFit.fill,
+          filterQuality: FilterQuality.high,
         ),
-        Positioned(
-          left: 210,
-          top: 0,
-          width: 72,
-          height: 30,
-          child: Center(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                memberName,
-                maxLines: 1,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Color(0xFF4A2E1F),
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  height: 1,
-                ),
-              ),
+        Positioned.fill(
+          child: IgnorePointer(
+            child: SourceScaledRRectBorder(
+              sourceSize: Size(1149, 1369),
+              sourceRect: Rect.fromLTRB(48, 43, 1098, 1315),
+              sourceRadius: Radius.elliptical(58, 64),
+              color: _deleteMemberTaskPanelBorderColor,
+              strokeWidth: 2.4,
             ),
           ),
         ),
-        const Positioned(
-          right: 0,
-          top: 0,
-          width: 78,
-          height: 30,
-          child: FamilySpriteSlice(
-            assetPath: _deleteMemberDialogAsset,
-            sheetSize: _deleteMemberDialogSheetSize,
-            region: _deleteMemberQuestionSuffixRegion,
-            fit: BoxFit.contain,
-            alignment: Alignment.centerRight,
-            sampleInset: 0,
-          ),
-        ),
       ],
-    );
-  }
-}
-
-class _DeleteMemberActionButton extends StatefulWidget {
-  const _DeleteMemberActionButton({
-    required this.semanticLabel,
-    required this.region,
-    required this.onPressed,
-  });
-
-  final String semanticLabel;
-  final Rect region;
-  final VoidCallback onPressed;
-
-  @override
-  State<_DeleteMemberActionButton> createState() =>
-      _DeleteMemberActionButtonState();
-}
-
-class _DeleteMemberActionButtonState extends State<_DeleteMemberActionButton> {
-  bool _pressed = false;
-
-  void _setPressed(bool value) {
-    if (_pressed == value) {
-      return;
-    }
-    setState(() => _pressed = value);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: widget.semanticLabel,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: (_) => _setPressed(true),
-        onTapUp: (_) => _setPressed(false),
-        onTapCancel: () => _setPressed(false),
-        onTap: widget.onPressed,
-        child: AnimatedScale(
-          scale: _pressed ? 0.97 : 1,
-          duration: const Duration(milliseconds: 90),
-          curve: Curves.easeOutCubic,
-          child: FamilySpriteSlice(
-            assetPath: _deleteMemberDialogAsset,
-            sheetSize: _deleteMemberDialogSheetSize,
-            region: widget.region,
-            fit: BoxFit.contain,
-            sampleInset: 0,
-          ),
-        ),
-      ),
     );
   }
 }
