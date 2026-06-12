@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -978,133 +977,15 @@ class _PaywallPanelBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _NineSliceSprite(
-      source: _PaywallSprite.panel,
-      left: 92,
-      top: 92,
-      right: 92,
-      bottom: 92,
-      targetLeft: 92,
-      targetTop: 92,
-      targetRight: 92,
-      targetBottom: 92,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(54),
+        border: Border.all(color: const Color(0xFF8F623F), width: 3.2),
+        gradient: HomePetsDialogTheme.shellGradient,
+        boxShadow: HomePetsDialogTheme.shellShadow,
+      ),
     );
   }
-}
-
-class _NineSliceSprite extends StatelessWidget {
-  const _NineSliceSprite({
-    required this.source,
-    required this.left,
-    required this.top,
-    required this.right,
-    required this.bottom,
-    required this.targetLeft,
-    required this.targetTop,
-    required this.targetRight,
-    required this.targetBottom,
-  });
-
-  final Rect source;
-  final double left;
-  final double top;
-  final double right;
-  final double bottom;
-  final double targetLeft;
-  final double targetTop;
-  final double targetRight;
-  final double targetBottom;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final size = constraints.biggest;
-        final dstLeft = math.min(targetLeft, size.width / 2);
-        final dstRight = math.min(targetRight, size.width - dstLeft);
-        final dstTop = math.min(targetTop, size.height / 2);
-        final dstBottom = math.min(targetBottom, size.height - dstTop);
-        final dstCenterWidth = math.max(0.0, size.width - dstLeft - dstRight);
-        final dstCenterHeight = math.max(0.0, size.height - dstTop - dstBottom);
-        final srcCenterWidth = math.max(0.0, source.width - left - right);
-        final srcCenterHeight = math.max(0.0, source.height - top - bottom);
-
-        final srcColumns = <_SliceAxis>[
-          _SliceAxis(source.left, left, 0, dstLeft),
-          _SliceAxis(
-            source.left + left,
-            srcCenterWidth,
-            dstLeft,
-            dstCenterWidth,
-          ),
-          _SliceAxis(
-            source.right - right,
-            right,
-            dstLeft + dstCenterWidth,
-            dstRight,
-          ),
-        ];
-        final srcRows = <_SliceAxis>[
-          _SliceAxis(source.top, top, 0, dstTop),
-          _SliceAxis(
-            source.top + top,
-            srcCenterHeight,
-            dstTop,
-            dstCenterHeight,
-          ),
-          _SliceAxis(
-            source.bottom - bottom,
-            bottom,
-            dstTop + dstCenterHeight,
-            dstBottom,
-          ),
-        ];
-
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            for (final row in srcRows)
-              for (final column in srcColumns)
-                if (row.sourceSize > 0 &&
-                    column.sourceSize > 0 &&
-                    row.targetSize > 0 &&
-                    column.targetSize > 0)
-                  Positioned.fromRect(
-                    rect: Rect.fromLTWH(
-                      column.targetOffset,
-                      row.targetOffset,
-                      column.targetSize,
-                      row.targetSize,
-                    ),
-                    child: _PaywallSpritePiece(
-                      source: Rect.fromLTWH(
-                        column.sourceOffset,
-                        row.sourceOffset,
-                        column.sourceSize,
-                        row.sourceSize,
-                      ),
-                      fit: BoxFit.fill,
-                    ),
-                  ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _SliceAxis {
-  const _SliceAxis(
-    this.sourceOffset,
-    this.sourceSize,
-    this.targetOffset,
-    this.targetSize,
-  );
-
-  final double sourceOffset;
-  final double sourceSize;
-  final double targetOffset;
-  final double targetSize;
 }
 
 class _PaywallSpritePiece extends StatelessWidget {
@@ -1393,7 +1274,6 @@ class _PaywallSprite {
   static const sheetSize = Size(1122, 1402);
   static const design = Size(760, 1320);
 
-  static const panel = Rect.fromLTWH(21, 17, 529, 532);
   static const cat = Rect.fromLTWH(608, 48, 235, 273);
   static const gift = Rect.fromLTWH(876, 92, 150, 169);
   static const calendar = Rect.fromLTWH(819, 290, 220, 277);

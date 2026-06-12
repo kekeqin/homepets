@@ -392,28 +392,15 @@ class _AvatarOptionCard extends StatelessWidget {
                 : const [],
           ),
           child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFFFF2D8),
-                  border: Border.all(
-                    color: const Color(0xFF8A623A),
-                    width: 1.2,
-                  ),
-                ),
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: ClipOval(
-                    child: CenteredAvatarAsset(
-                      assetPath: option.avatarValue,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, _, _) =>
-                          _AvatarCardFallback(label: option.label),
-                    ),
-                  ),
+            padding: const EdgeInsets.all(8),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Center(
+                child: CenteredAvatarAsset(
+                  assetPath: option.avatarValue,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, _, _) =>
+                      _AvatarCardFallback(label: option.label),
                 ),
               ),
             ),

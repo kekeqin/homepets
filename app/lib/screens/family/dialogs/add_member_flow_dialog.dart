@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../models/pet_artwork.dart';
 import '../../../widgets/app_modal_shell.dart';
+import '../../../widgets/homepets_button.dart';
 import '../widgets/family_sprite_slice.dart';
 
 class AddMemberFlowResult {
@@ -620,11 +621,14 @@ class _DialogFormControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: dense ? 280 : 304),
-        child: child,
+    return Padding(
+      padding: EdgeInsets.only(left: dense ? 8 : 12),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: dense ? 272 : 292),
+          child: child,
+        ),
       ),
     );
   }
@@ -974,56 +978,14 @@ class _DialogActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primary = variant == _DialogActionButtonVariant.primary;
-    final radius = BorderRadius.circular(20);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: radius,
-        child: Ink(
-          height: dense ? 42 : 50,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: primary
-                  ? const [Color(0xFFC7CE82), Color(0xFFAEB762)]
-                  : const [Color(0xFFFFF4E3), Color(0xFFFFE7CA)],
-            ),
-            borderRadius: radius,
-            border: Border.all(
-              color: primary
-                  ? _AddMemberPalette.sageDark
-                  : _AddMemberPalette.line.withValues(alpha: 0.48),
-              width: primary ? 1.7 : 1.4,
-            ),
-            boxShadow: primary
-                ? const [
-                    BoxShadow(
-                      color: Color(0x286E7437),
-                      offset: Offset(0, 3),
-                      blurRadius: 8,
-                      spreadRadius: -2,
-                    ),
-                  ]
-                : null,
-          ),
-          child: Center(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: _AddMemberPalette.ink,
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                height: 1,
-              ),
-            ),
-          ),
-        ),
-      ),
+    return HomePetsButton(
+      label: label,
+      variant: primary
+          ? HomePetsButtonVariant.primary
+          : HomePetsButtonVariant.secondary,
+      height: dense ? 42 : 50,
+      onPressed: onPressed,
     );
   }
 }
