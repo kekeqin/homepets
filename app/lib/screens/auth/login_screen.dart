@@ -30,13 +30,12 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   static const String _backgroundAsset = 'assets/images/ui/login/login-bg.png';
-  static const int _countdownSeconds = 60;
-
   final _phoneController = TextEditingController();
   final _codeController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   Timer? _resendTimer;
   String? _localError;
+  String? _localNotice;
   bool _hideAuthErrorAfterEdit = false;
   bool _isSendingCode = false;
   bool _hasSentCode = false;
@@ -62,12 +61,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _handleInputChanged() {
-    if (_localError == null && _hideAuthErrorAfterEdit) {
+    if (_localError == null &&
+        _localNotice == null &&
+        _hideAuthErrorAfterEdit) {
       return;
     }
 
     setState(() {
       _localError = null;
+      _localNotice = null;
       _hideAuthErrorAfterEdit = true;
     });
   }
@@ -98,6 +100,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (phoneError != null) {
       setState(() {
         _localError = phoneError;
+        _localNotice = null;
         _hideAuthErrorAfterEdit = false;
       });
       return;
@@ -105,25 +108,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     setState(() {
       _localError = null;
+      _localNotice = null;
       _hideAuthErrorAfterEdit = false;
       _isSendingCode = true;
     });
     FocusScope.of(context).unfocus();
 
-    final success = await ref
+    final sendResult = await ref
         .read(authProvider.notifier)
         .sendSmsCode(_phoneController.text.trim());
     if (!mounted) {
       return;
     }
 
+    final devCode = sendResult?.devCode;
+    if (devCode != null) {
+      _codeController.text = devCode;
+    }
+
     setState(() {
       _isSendingCode = false;
+      _localNotice = devCode == null ? null : '开发验证码：$devCode';
       _hideAuthErrorAfterEdit = false;
     });
 
-    if (success) {
-      _startCountdown();
+    if (sendResult != null) {
+      _startCountdown(sendResult.cooldownSeconds);
     }
   }
 
@@ -135,6 +145,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         _localError =
             inputError ??
             '\u8bf7\u68c0\u67e5\u624b\u673a\u53f7\u548c\u9a8c\u8bc1\u7801';
+        _localNotice = null;
         _hideAuthErrorAfterEdit = false;
       });
       return;
@@ -142,6 +153,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     setState(() {
       _localError = null;
+      _localNotice = null;
       _hideAuthErrorAfterEdit = false;
     });
     FocusScope.of(context).unfocus();
@@ -153,6 +165,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _loginWithApple() async {
     setState(() {
       _localError = null;
+      _localNotice = null;
       _hideAuthErrorAfterEdit = false;
     });
     FocusScope.of(context).unfocus();
@@ -167,11 +180,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _appleSignInAvailable = available);
   }
 
-  void _startCountdown() {
+  void _startCountdown(int seconds) {
     _resendTimer?.cancel();
+    if (seconds <= 0) {
+      setState(() {
+        _hasSentCode = true;
+        _resendSeconds = 0;
+      });
+      return;
+    }
+
     setState(() {
       _hasSentCode = true;
-      _resendSeconds = _countdownSeconds;
+      _resendSeconds = seconds;
     });
     _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
@@ -192,6 +213,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authProvider);
     final visibleError =
         _localError ?? (_hideAuthErrorAfterEdit ? null : authState.error);
+    final visibleNotice = visibleError == null ? _localNotice : null;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6E2BC),
@@ -267,6 +289,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           codeController: _codeController,
                           authState: authState,
                           visibleError: visibleError,
+                          visibleNotice: visibleNotice,
                           onLogin: _login,
                           onAppleLogin: _loginWithApple,
                           onSendCode: _sendCode,
@@ -331,6 +354,7 @@ class _LoginPanel extends StatelessWidget {
     required this.codeController,
     required this.authState,
     required this.visibleError,
+    required this.visibleNotice,
     required this.onLogin,
     required this.onAppleLogin,
     required this.onSendCode,
@@ -345,6 +369,7 @@ class _LoginPanel extends StatelessWidget {
   final TextEditingController codeController;
   final AuthState authState;
   final String? visibleError;
+  final String? visibleNotice;
   final Future<void> Function() onLogin;
   final Future<void> Function() onAppleLogin;
   final Future<void> Function() onSendCode;
@@ -354,6 +379,9 @@ class _LoginPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final visibleMessage = visibleError ?? visibleNotice;
+    final isErrorMessage = visibleError != null;
+
     return SizedBox(
       width: panelWidth,
       child: DecoratedBox(
@@ -370,7 +398,7 @@ class _LoginPanel extends StatelessWidget {
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(28, 30, 28, 26),
+          padding: const EdgeInsets.fromLTRB(28, 24, 28, 18),
           child: Form(
             key: formKey,
             child: AutofillGroup(
@@ -379,7 +407,7 @@ class _LoginPanel extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const _LoginPanelHeader(),
-                  const SizedBox(height: 26),
+                  const SizedBox(height: 20),
                   HomePetsTextField(
                     controller: phoneController,
                     hintText: '\u624b\u673a\u53f7',
@@ -441,16 +469,20 @@ class _LoginPanel extends StatelessWidget {
                   ),
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 160),
-                    child: visibleError == null
-                        ? const SizedBox(height: 20)
+                    child: visibleMessage == null
+                        ? const SizedBox(height: 18)
                         : Padding(
-                            key: ValueKey(visibleError),
-                            padding: const EdgeInsets.only(top: 8, bottom: 2),
+                            key: ValueKey(visibleMessage),
+                            padding: const EdgeInsets.only(top: 6, bottom: 2),
                             child: Text(
-                              visibleError!,
+                              visibleMessage,
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Color(0xFFB53A2D),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: isErrorMessage
+                                    ? const Color(0xFFB53A2D)
+                                    : const Color(0xFF6B8F3E),
                                 fontSize: 13,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 0,
@@ -464,6 +496,7 @@ class _LoginPanel extends StatelessWidget {
                         ? '\u767b\u5f55\u4e2d'
                         : '\u9a8c\u8bc1\u767b\u5f55',
                     onPressed: authState.isLoading ? null : onLogin,
+                    height: 54,
                   ),
                   if (showAppleLogin) ...[
                     const SizedBox(height: 12),
@@ -497,19 +530,19 @@ class _LoginPanelHeader extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Color(0xFF3E2A1F),
-            fontSize: 36,
+            fontSize: 34,
             fontWeight: FontWeight.w900,
             height: 1,
             letterSpacing: 0,
           ),
         ),
-        SizedBox(height: 12),
+        SizedBox(height: 10),
         Text(
           '\u548c\u5bb6\u4eba\u4e00\u8d77\u7167\u987e\u5c0f\u5ba0\u7269',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Color(0xFF4D3623),
-            fontSize: 20,
+            fontSize: 19,
             fontWeight: FontWeight.w800,
             height: 1.1,
             letterSpacing: 0,

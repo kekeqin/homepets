@@ -38,8 +38,9 @@ class FakeSmsVerificationClient:
     def __init__(self) -> None:
         self.sent_phones: list[str] = []
 
-    def send_code(self, phone: str) -> None:
+    def send_code(self, phone: str) -> str:
         self.sent_phones.append(phone)
+        return "123456"
 
     def check_code(self, phone: str, code: str) -> bool:
         return code == "123456"

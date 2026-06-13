@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/api_client.dart';
@@ -143,13 +145,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> sendSmsCode(String phone) async {
+  Future<SmsCodeSendResult?> sendSmsCode(String phone) async {
     state = state.copyWith(error: null);
 
     try {
-      await _authService.sendSmsCode(phone: phone);
-      return true;
+      return await _authService.sendSmsCode(phone: phone);
     } catch (error) {
+      if (kDebugMode &&
+          error is DioException &&
+          error.response?.statusCode == 429) {
+        return const SmsCodeSendResult(cooldownSeconds: 0);
+      }
+
       state = state.copyWith(
         isInitialized: true,
         error: friendlyApiErrorMessage(
@@ -166,7 +173,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           },
         ),
       );
-      return false;
+      return null;
     }
   }
 

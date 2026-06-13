@@ -22,6 +22,12 @@ def clear_apple_verifier_override() -> Generator[None, None, None]:
     app.dependency_overrides.pop(get_apple_identity_verifier, None)
 
 
+@pytest.fixture(autouse=True)
+def use_real_sms_rate_limits_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(auth_api.settings, "DEBUG", False)
+    monkeypatch.setattr(auth_api.settings, "SMS_VERIFICATION_MOCK_ENABLED", False)
+
+
 def _create_admin(db: Session, phone: str = "13800000001") -> User:
     user = User(phone=phone, nickname="管理员", role="admin")
     db.add(user)
@@ -55,6 +61,40 @@ def test_send_sms_code_rate_limited_by_phone(
     assert second.status_code == 429
     assert second.json()["detail"]["retry_after_seconds"] > 0
     assert fake_sms_client.sent_phones == ["13800000001"]
+
+
+def test_send_sms_code_mock_mode_skips_send_rate_limit(
+    client: TestClient,
+    fake_sms_client: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(auth_api.settings, "SMS_VERIFICATION_MOCK_ENABLED", True)
+
+    first = client.post("/api/auth/sms-code", json={"phone": "13800000001"})
+    second = client.post("/api/auth/sms-code", json={"phone": "13800000001"})
+
+    assert first.status_code == 200
+    assert first.json() == {"cooldown_seconds": 0, "dev_code": "123456"}
+    assert second.status_code == 200
+    assert second.json() == {"cooldown_seconds": 0, "dev_code": "123456"}
+    assert fake_sms_client.sent_phones == ["13800000001", "13800000001"]
+
+
+def test_send_sms_code_debug_mode_skips_send_rate_limit(
+    client: TestClient,
+    fake_sms_client: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(auth_api.settings, "DEBUG", True)
+
+    first = client.post("/api/auth/sms-code", json={"phone": "13800000001"})
+    second = client.post("/api/auth/sms-code", json={"phone": "13800000001"})
+
+    assert first.status_code == 200
+    assert first.json() == {"cooldown_seconds": 0, "dev_code": "123456"}
+    assert second.status_code == 200
+    assert second.json() == {"cooldown_seconds": 0, "dev_code": "123456"}
+    assert fake_sms_client.sent_phones == ["13800000001", "13800000001"]
 
 
 def test_login_with_sms_code_existing_user(client: TestClient, db: Session) -> None:

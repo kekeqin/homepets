@@ -17,7 +17,7 @@ from app.core.config import Settings, settings
 
 
 class SmsVerificationClient(Protocol):
-    def send_code(self, phone: str) -> None: ...
+    def send_code(self, phone: str) -> str | None: ...
 
     def check_code(self, phone: str, code: str) -> bool: ...
 
@@ -50,7 +50,7 @@ class MockSmsVerificationClient:
         self._codes: dict[str, _MockSmsCode] = {}
         self._lock = Lock()
 
-    def send_code(self, phone: str) -> None:
+    def send_code(self, phone: str) -> str:
         code = self._code_factory()
         expires_at = self._now() + timedelta(seconds=self._valid_seconds)
         with self._lock:
@@ -60,6 +60,7 @@ class MockSmsVerificationClient:
             f"[HomePets SMS MOCK] phone={phone} code={code} expires_at={expires_at.isoformat()}",
             flush=True,
         )
+        return code
 
     def check_code(self, phone: str, code: str) -> bool:
         with self._lock:
@@ -223,9 +224,7 @@ class AliyunSmsVerificationClient:
         message = payload.get("Message")
         request_id = payload.get("RequestId")
         parts = [
-            str(value)
-            for value in (code, message, request_id)
-            if isinstance(value, str) and value
+            str(value) for value in (code, message, request_id) if isinstance(value, str) and value
         ]
         return " | ".join(parts) if parts else raw_body
 
@@ -261,6 +260,6 @@ mock_sms_verification_client = MockSmsVerificationClient(
 
 
 def get_sms_verification_client() -> SmsVerificationClient:
-    if settings.SMS_VERIFICATION_MOCK_ENABLED:
+    if settings.DEBUG or settings.SMS_VERIFICATION_MOCK_ENABLED:
         return mock_sms_verification_client
     return AliyunSmsVerificationClient.from_settings(settings)

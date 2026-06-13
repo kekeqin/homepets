@@ -7,6 +7,7 @@ class SmsCodeRequest(BaseModel):
 
 class SmsCodeResponse(BaseModel):
     cooldown_seconds: int
+    dev_code: str | None = None
 
 
 class LoginRequest(BaseModel):

@@ -62,6 +62,59 @@ void main() {
     expect(find.text('\u91cd\u65b0\u53d1\u9001'), findsOneWidget);
   });
 
+  testWidgets('send code button stays available for zero cooldown', (
+    tester,
+  ) async {
+    final authService = _FakeAuthService()..sendCodeCooldownSeconds = 0;
+
+    _setPhoneViewport(tester);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [authServiceProvider.overrideWithValue(authService)],
+        child: const MaterialApp(home: LoginScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextFormField).first, '13800000001');
+    await tester.tap(find.byKey(LoginScreen.sendCodeButtonKey));
+    await tester.pump();
+
+    expect(authService.sendCodeCalls, 1);
+    expect(find.text('\u91cd\u65b0\u53d1\u9001'), findsOneWidget);
+
+    await tester.tap(find.byKey(LoginScreen.sendCodeButtonKey));
+    await tester.pump();
+
+    expect(authService.sendCodeCalls, 2);
+  });
+
+  testWidgets('send code fills development sms code when backend returns it', (
+    tester,
+  ) async {
+    final authService = _FakeAuthService()
+      ..sendCodeCooldownSeconds = 0
+      ..sendCodeDevCode = '123456';
+
+    _setPhoneViewport(tester);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [authServiceProvider.overrideWithValue(authService)],
+        child: const MaterialApp(home: LoginScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextFormField).first, '13800000001');
+    await tester.tap(find.byKey(LoginScreen.sendCodeButtonKey));
+    await tester.pump();
+
+    expect(find.text('123456'), findsOneWidget);
+    expect(find.text('开发验证码：123456'), findsOneWidget);
+  });
+
   testWidgets('login panel follows adaptive design coordinates', (
     tester,
   ) async {
@@ -281,6 +334,8 @@ class _FakeAuthService extends AuthService {
   String? lastNonce;
   String? lastFullName;
   Object? sendCodeError;
+  int sendCodeCooldownSeconds = 60;
+  String? sendCodeDevCode;
 
   @override
   Future<String?> getSavedToken() async {
@@ -288,13 +343,17 @@ class _FakeAuthService extends AuthService {
   }
 
   @override
-  Future<void> sendSmsCode({required String phone}) async {
+  Future<SmsCodeSendResult> sendSmsCode({required String phone}) async {
     sendCodeCalls++;
     lastPhone = phone;
     final error = sendCodeError;
     if (error != null) {
       throw error;
     }
+    return SmsCodeSendResult(
+      cooldownSeconds: sendCodeCooldownSeconds,
+      devCode: sendCodeDevCode,
+    );
   }
 
   @override

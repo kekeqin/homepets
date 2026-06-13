@@ -135,23 +135,29 @@ def login_with_apple(
     return _create_session_token(db, user)
 
 
-@router.post("/sms-code", response_model=SmsCodeResponse)
+@router.post(
+    "/sms-code",
+    response_model=SmsCodeResponse,
+    response_model_exclude_none=True,
+)
 def send_sms_code(
     body: SmsCodeRequest,
     request: Request,
     sms_client: SmsVerificationClient = Depends(get_sms_verification_client),
 ) -> SmsCodeResponse:
     ip_address = _client_host(request)
-    retry_after = sms_rate_limiter.retry_after_send(body.phone, ip_address)
-    if retry_after > 0:
-        raise _rate_limited(
-            code="SMS_SEND_RATE_LIMITED",
-            message="验证码发送太频繁，请稍后再试",
-            retry_after_seconds=retry_after,
-        )
+    apply_send_rate_limit = _should_apply_sms_send_rate_limit()
+    if apply_send_rate_limit:
+        retry_after = sms_rate_limiter.retry_after_send(body.phone, ip_address)
+        if retry_after > 0:
+            raise _rate_limited(
+                code="SMS_SEND_RATE_LIMITED",
+                message="验证码发送太频繁，请稍后再试",
+                retry_after_seconds=retry_after,
+            )
 
     try:
-        sms_client.send_code(body.phone)
+        dev_code = sms_client.send_code(body.phone)
     except SmsVerificationConfigurationError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -168,8 +174,13 @@ def send_sms_code(
             detail="验证码发送失败，请稍后再试",
         ) from exc
 
-    sms_rate_limiter.record_send(body.phone, ip_address)
-    return SmsCodeResponse(cooldown_seconds=settings.ALIYUN_SMS_RESEND_INTERVAL_SECONDS)
+    if apply_send_rate_limit:
+        sms_rate_limiter.record_send(body.phone, ip_address)
+
+    cooldown_seconds = settings.ALIYUN_SMS_RESEND_INTERVAL_SECONDS if apply_send_rate_limit else 0
+    if not (settings.DEBUG or settings.SMS_VERIFICATION_MOCK_ENABLED):
+        dev_code = None
+    return SmsCodeResponse(cooldown_seconds=cooldown_seconds, dev_code=dev_code)
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -180,7 +191,11 @@ def login(
     sms_client: SmsVerificationClient = Depends(get_sms_verification_client),
 ) -> TokenResponse:
     ip_address = _client_host(request)
-    retry_after = sms_rate_limiter.retry_after_verify(body.phone, ip_address)
+    apply_verify_rate_limit = _should_apply_sms_verify_rate_limit()
+    if apply_verify_rate_limit:
+        retry_after = sms_rate_limiter.retry_after_verify(body.phone, ip_address)
+    else:
+        retry_after = 0
     if retry_after > 0:
         raise _rate_limited(
             code="SMS_VERIFY_RATE_LIMITED",
@@ -202,13 +217,15 @@ def login(
         ) from exc
 
     if not verified:
-        sms_rate_limiter.record_verify_failure(body.phone, ip_address)
+        if apply_verify_rate_limit:
+            sms_rate_limiter.record_verify_failure(body.phone, ip_address)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="验证码错误或已过期",
         )
 
-    sms_rate_limiter.clear_verify_failures(body.phone, ip_address)
+    if apply_verify_rate_limit:
+        sms_rate_limiter.clear_verify_failures(body.phone, ip_address)
     user = db.exec(select(User).where(User.phone == body.phone)).first()
     if user is None:
         user = User(phone=body.phone, nickname="家长", role="admin")
@@ -229,6 +246,14 @@ def get_me(current_user: User = Depends(get_current_user)) -> User:
 
 def _client_host(request: Request) -> str:
     return request.client.host if request.client else "unknown"
+
+
+def _should_apply_sms_send_rate_limit() -> bool:
+    return not (settings.DEBUG or settings.SMS_VERIFICATION_MOCK_ENABLED)
+
+
+def _should_apply_sms_verify_rate_limit() -> bool:
+    return not (settings.DEBUG or settings.SMS_VERIFICATION_MOCK_ENABLED)
 
 
 def _apple_display_name(full_name: str | None) -> str:
