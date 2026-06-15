@@ -809,24 +809,7 @@ class _FamilyStageCard extends StatelessWidget {
         clipBehavior: Clip.none,
         fit: StackFit.expand,
         children: [
-          Positioned.fill(
-            child: Image.asset(
-              FamilyPopupAssets.mainPanel,
-              fit: BoxFit.fill,
-              filterQuality: FilterQuality.medium,
-              isAntiAlias: true,
-            ),
-          ),
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Image.asset(
-                FamilyPopupAssets.mainPanelOutline,
-                fit: BoxFit.fill,
-                filterQuality: FilterQuality.medium,
-                isAntiAlias: true,
-              ),
-            ),
-          ),
+          Positioned.fill(child: const _FamilyOuterPanelBackground()),
           LayoutBuilder(
             builder: (context, constraints) {
               final width = constraints.maxWidth;
@@ -881,6 +864,20 @@ class _FamilyStageCard extends StatelessWidget {
   }
 }
 
+class _FamilyOuterPanelBackground extends StatelessWidget {
+  const _FamilyOuterPanelBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      FamilyPopupAssets.mainPanel,
+      fit: BoxFit.fill,
+      filterQuality: FilterQuality.medium,
+      isAntiAlias: true,
+    );
+  }
+}
+
 class _FamilyTitleText extends StatelessWidget {
   const _FamilyTitleText({required this.title});
 
@@ -898,7 +895,7 @@ class _FamilyTitleText extends StatelessWidget {
           maxLines: 1,
           style: const TextStyle(
             color: _FamilyPalette.deepBrown,
-            fontSize: 30,
+            fontSize: 28,
             fontWeight: FontWeight.w900,
             height: 1,
             shadows: [

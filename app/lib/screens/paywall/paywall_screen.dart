@@ -13,7 +13,6 @@ import '../../providers/revenue_cat_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../widgets/app_modal_shell.dart';
 import '../../widgets/membership_top_notice.dart';
-import '../family/widgets/family_sprite_slice.dart';
 
 enum PaywallMode { optional, blocking }
 
@@ -192,133 +191,146 @@ class _PaywallContentState extends ConsumerState<PaywallContent> {
           child: SizedBox(
             width: geometry.scaledDesignSize.width,
             height: geometry.scaledDesignSize.height,
-            child: FittedBox(
-              fit: BoxFit.fill,
-              child: SizedBox(
-                width: _PaywallSprite.design.width,
-                height: _PaywallSprite.design.height,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    const Positioned.fill(child: _PaywallPanelBackground()),
-                    _sprite(_PaywallSprite.cat, _PaywallSprite.catTarget),
-                    _sprite(_PaywallSprite.gift, _PaywallSprite.giftTarget),
-                    _sprite(
-                      _PaywallSprite.calendar,
-                      _PaywallSprite.calendarTarget,
-                    ),
-                    _sprite(_PaywallSprite.star, _PaywallSprite.starTarget),
-                    _PaywallHeaderCopy(
-                      mode: widget.mode,
-                      revenueCatState: state,
-                      subscriptionState: subscriptionState,
-                    ),
-                    const _PaywallBenefitRow(),
-                    _PaywallTrialChip(
-                      revenueCatState: state,
-                      subscriptionState: subscriptionState,
-                    ),
-                    _PaywallPlanCard(
-                      target: _PaywallSprite.monthlyCardTarget,
-                      fallbackTitle: '月度订阅',
-                      fallbackPrice: '¥9.99',
-                      fallbackPeriod: '每月 · 自动续订',
-                      accentColor: const Color(0xFFD15F52),
-                      selected: selectedSlot == 0,
-                      package: slotPackages[0],
-                      onTap: () => _selectPlan(0, slotPackages[0]),
-                    ),
-                    _PaywallPlanCard(
-                      target: _PaywallSprite.annualCardTarget,
-                      fallbackTitle: '年度订阅',
-                      fallbackPrice: '¥79.98',
-                      fallbackPeriod: '每年 · 自动续订',
-                      accentColor: const Color(0xFF6F9A4A),
-                      selected: selectedSlot == 1,
-                      package: slotPackages[1],
-                      onTap: () => _selectPlan(1, slotPackages[1]),
-                    ),
-                    _PaywallPlanCard(
-                      target: _PaywallSprite.lifetimeCardTarget,
-                      fallbackTitle: '永久会员',
-                      fallbackPrice: '¥99.99',
-                      fallbackPeriod: '一次购买',
-                      accentColor: const Color(0xFFE09A28),
-                      selected: selectedSlot == 2,
-                      package: slotPackages[2],
-                      onTap: () => _selectPlan(2, slotPackages[2]),
-                    ),
-                    if (statusMessage != null)
-                      _PaywallStatusMessage(
-                        message: statusMessage,
-                        isError: _hasError(state),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Positioned.fill(child: _PaywallPanelBackground()),
+                Positioned.fill(
+                  child: FittedBox(
+                    fit: BoxFit.fill,
+                    child: SizedBox(
+                      width: _PaywallSprite.design.width,
+                      height: _PaywallSprite.design.height,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          _sprite(_PaywallSprite.cat, _PaywallSprite.catTarget),
+                          _sprite(
+                            _PaywallSprite.gift,
+                            _PaywallSprite.giftTarget,
+                          ),
+                          _sprite(
+                            _PaywallSprite.calendar,
+                            _PaywallSprite.calendarTarget,
+                          ),
+                          _sprite(
+                            _PaywallSprite.star,
+                            _PaywallSprite.starTarget,
+                          ),
+                          _PaywallHeaderCopy(
+                            mode: widget.mode,
+                            revenueCatState: state,
+                            subscriptionState: subscriptionState,
+                          ),
+                          const _PaywallBenefitRow(),
+                          _PaywallTrialChip(
+                            revenueCatState: state,
+                            subscriptionState: subscriptionState,
+                          ),
+                          _PaywallPlanCard(
+                            target: _PaywallSprite.monthlyCardTarget,
+                            fallbackTitle: '月度订阅',
+                            fallbackPrice: '¥9.99',
+                            fallbackPeriod: '每月 · 自动续订',
+                            accentColor: const Color(0xFFD15F52),
+                            selected: selectedSlot == 0,
+                            package: slotPackages[0],
+                            onTap: () => _selectPlan(0, slotPackages[0]),
+                          ),
+                          _PaywallPlanCard(
+                            target: _PaywallSprite.annualCardTarget,
+                            fallbackTitle: '年度订阅',
+                            fallbackPrice: '¥79.98',
+                            fallbackPeriod: '每年 · 自动续订',
+                            accentColor: const Color(0xFF6F9A4A),
+                            selected: selectedSlot == 1,
+                            package: slotPackages[1],
+                            onTap: () => _selectPlan(1, slotPackages[1]),
+                          ),
+                          _PaywallPlanCard(
+                            target: _PaywallSprite.lifetimeCardTarget,
+                            fallbackTitle: '永久会员',
+                            fallbackPrice: '¥99.99',
+                            fallbackPeriod: '一次购买',
+                            accentColor: const Color(0xFFE09A28),
+                            selected: selectedSlot == 2,
+                            package: slotPackages[2],
+                            onTap: () => _selectPlan(2, slotPackages[2]),
+                          ),
+                          if (statusMessage != null)
+                            _PaywallStatusMessage(
+                              message: statusMessage,
+                              isError: _hasError(state),
+                            ),
+                          _PaywallUnlockHitTarget(
+                            state: state,
+                            canStartPurchase: authState.user?.isAdmin == true,
+                            onPressed: () async {
+                              final unlocked = await ref
+                                  .read(revenueCatProvider.notifier)
+                                  .purchaseSelectedPackage();
+                              if (!context.mounted) {
+                                return;
+                              }
+                              if (unlocked) {
+                                final user = ref.read(authProvider).user;
+                                final entitlement = ref
+                                    .read(revenueCatProvider.notifier)
+                                    .currentClientEntitlement();
+                                final backendUnlocked = await ref
+                                    .read(subscriptionProvider.notifier)
+                                    .syncAfterStorePurchase(
+                                      revenueCatAppUserId: user == null
+                                          ? null
+                                          : revenueCatAppUserIdFor(user),
+                                      entitlement: entitlement,
+                                    );
+                                if (!context.mounted || !backendUnlocked) {
+                                  return;
+                                }
+                                widget.onClose();
+                                return;
+                              }
+                            },
+                          ),
+                          _PaywallRestoreHitTarget(
+                            state: state,
+                            onRestore: () async {
+                              final restored = await ref
+                                  .read(revenueCatProvider.notifier)
+                                  .restorePurchases();
+                              if (!context.mounted) {
+                                return;
+                              }
+                              if (restored) {
+                                final user = ref.read(authProvider).user;
+                                final entitlement = ref
+                                    .read(revenueCatProvider.notifier)
+                                    .currentClientEntitlement();
+                                final backendUnlocked = await ref
+                                    .read(subscriptionProvider.notifier)
+                                    .syncAfterStorePurchase(
+                                      revenueCatAppUserId: user == null
+                                          ? null
+                                          : revenueCatAppUserIdFor(user),
+                                      entitlement: entitlement,
+                                    );
+                                if (!context.mounted || !backendUnlocked) {
+                                  return;
+                                }
+                                widget.onClose();
+                                return;
+                              }
+                            },
+                          ),
+                          const _PaywallComplianceLinks(),
+                          _CloseButton(onPressed: widget.onClose),
+                        ],
                       ),
-                    _PaywallUnlockHitTarget(
-                      state: state,
-                      canStartPurchase: authState.user?.isAdmin == true,
-                      onPressed: () async {
-                        final unlocked = await ref
-                            .read(revenueCatProvider.notifier)
-                            .purchaseSelectedPackage();
-                        if (!context.mounted) {
-                          return;
-                        }
-                        if (unlocked) {
-                          final user = ref.read(authProvider).user;
-                          final entitlement = ref
-                              .read(revenueCatProvider.notifier)
-                              .currentClientEntitlement();
-                          final backendUnlocked = await ref
-                              .read(subscriptionProvider.notifier)
-                              .syncAfterStorePurchase(
-                                revenueCatAppUserId: user == null
-                                    ? null
-                                    : revenueCatAppUserIdFor(user),
-                                entitlement: entitlement,
-                              );
-                          if (!context.mounted || !backendUnlocked) {
-                            return;
-                          }
-                          widget.onClose();
-                          return;
-                        }
-                      },
                     ),
-                    _PaywallRestoreHitTarget(
-                      state: state,
-                      onRestore: () async {
-                        final restored = await ref
-                            .read(revenueCatProvider.notifier)
-                            .restorePurchases();
-                        if (!context.mounted) {
-                          return;
-                        }
-                        if (restored) {
-                          final user = ref.read(authProvider).user;
-                          final entitlement = ref
-                              .read(revenueCatProvider.notifier)
-                              .currentClientEntitlement();
-                          final backendUnlocked = await ref
-                              .read(subscriptionProvider.notifier)
-                              .syncAfterStorePurchase(
-                                revenueCatAppUserId: user == null
-                                    ? null
-                                    : revenueCatAppUserIdFor(user),
-                                entitlement: entitlement,
-                              );
-                          if (!context.mounted || !backendUnlocked) {
-                            return;
-                          }
-                          widget.onClose();
-                          return;
-                        }
-                      },
-                    ),
-                    const _PaywallComplianceLinks(),
-                    _CloseButton(onPressed: widget.onClose),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         );
@@ -949,6 +961,9 @@ class _PaywallStatusMessage extends StatelessWidget {
 class _CloseButton extends StatelessWidget {
   const _CloseButton({required this.onPressed});
 
+  static const _assetPath = 'assets/images/ui/sprites/close.png';
+  static const _visualSize = 90.0;
+
   final VoidCallback onPressed;
 
   @override
@@ -961,10 +976,16 @@ class _CloseButton extends StatelessWidget {
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onPressed,
-          child: Image.asset(
-            FamilyHomePartAssets.closeButton,
-            fit: BoxFit.contain,
-            filterQuality: FilterQuality.high,
+          child: Center(
+            child: SizedBox.square(
+              dimension: _visualSize,
+              child: Image.asset(
+                _assetPath,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
+                isAntiAlias: true,
+              ),
+            ),
           ),
         ),
       ),
@@ -977,13 +998,29 @@ class _PaywallPanelBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(54),
-        border: Border.all(color: const Color(0xFF8F623F), width: 3.2),
-        gradient: HomePetsDialogTheme.shellGradient,
-        boxShadow: HomePetsDialogTheme.shellShadow,
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final radius = constraints.maxWidth * 54 / _PaywallSprite.design.width;
+
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(radius),
+            border: Border.all(color: const Color(0xFF6D4A2D), width: 2.8),
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFFFCE8C1), Color(0xFFFEEDC9)],
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x28604429),
+                blurRadius: 22,
+                offset: Offset(0, 10),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
