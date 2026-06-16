@@ -125,7 +125,7 @@ def test_login_with_sms_code_auto_registers_new_phone(
     assert response.status_code == 200
     created = db.exec(select(User).where(User.phone == "13800000002")).first()
     assert created is not None
-    assert created.nickname == "家长"
+    assert created.nickname == "我"
     assert created.role == "admin"
     assert "password_hash" not in User.model_fields
     family = db.get(Family, created.family_id)

@@ -73,7 +73,7 @@ def _migrate_sqlite_legacy_user_table(db_engine: Engine) -> None:
             phone_expr = "phone" if "phone" in actual_columns else "NULL"
             apple_sub_expr = "apple_sub" if "apple_sub" in actual_columns else "NULL"
             email_expr = "email" if "email" in actual_columns else "NULL"
-            nickname_expr = _sqlite_column_or_default(actual_columns, "nickname", "'家长'")
+            nickname_expr = _sqlite_column_or_default(actual_columns, "nickname", "'我'")
             role_expr = _sqlite_column_or_default(actual_columns, "role", "'admin'")
             avatar_url_expr = "avatar_url" if "avatar_url" in actual_columns else "NULL"
             points_expr = _sqlite_column_or_default(actual_columns, "points", "0")
@@ -120,9 +120,7 @@ def _migrate_sqlite_legacy_user_table(db_engine: Engine) -> None:
             connection.exec_driver_sql(
                 "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_apple_sub ON users (apple_sub)"
             )
-            connection.exec_driver_sql(
-                "CREATE INDEX IF NOT EXISTS ix_users_email ON users (email)"
-            )
+            connection.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_users_email ON users (email)")
             connection.exec_driver_sql(
                 "CREATE INDEX IF NOT EXISTS ix_users_family_id ON users (family_id)"
             )

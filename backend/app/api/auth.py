@@ -228,7 +228,7 @@ def login(
         sms_rate_limiter.clear_verify_failures(body.phone, ip_address)
     user = db.exec(select(User).where(User.phone == body.phone)).first()
     if user is None:
-        user = User(phone=body.phone, nickname="家长", role="admin")
+        user = User(phone=body.phone, nickname="我", role="admin")
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -258,11 +258,11 @@ def _should_apply_sms_verify_rate_limit() -> bool:
 
 def _apple_display_name(full_name: str | None) -> str:
     if full_name is None:
-        return "\u5bb6\u957f"
+        return "我"
 
     display_name = " ".join(full_name.split())
     if not display_name:
-        return "\u5bb6\u957f"
+        return "我"
 
     return display_name[:50]
 
