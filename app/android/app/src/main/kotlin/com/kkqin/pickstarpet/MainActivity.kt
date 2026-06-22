@@ -1,4 +1,4 @@
-package com.homepets.homepets
+package com.kkqin.pickstarpet
 
 import io.flutter.embedding.android.FlutterActivity
 

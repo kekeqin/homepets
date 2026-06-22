@@ -1,0 +1,92 @@
+workflows:
+  ios-release:
+    name: iOS Release
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    working_directory: app
+
+    integrations:
+      # Create an App Store Connect API key integration in Codemagic with this exact name.
+      app_store_connect: codemagic
+
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.kkqin.pickstarpet
+      vars:
+        XCODE_WORKSPACE: ios/Runner.xcworkspace
+        XCODE_SCHEME: Runner
+        APP_BUNDLE_ID: com.kkqin.pickstarpet
+
+    triggering:
+      events:
+        - push
+        - tag
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+      cancel_previous_builds: true
+
+    cache:
+      cache_paths:
+        - $HOME/.pub-cache
+        - $HOME/Library/Caches/CocoaPods
+        - ios/Pods
+
+    scripts:
+      - name: Show build tool versions
+        script: |
+          set -euo pipefail
+          flutter --version
+          xcodebuild -version
+          pod --version
+
+      - name: Get Flutter packages
+        script: |
+          set -euo pipefail
+          flutter pub get
+
+      - name: Validate iOS project
+        script: |
+          set -euo pipefail
+          test -f pubspec.yaml
+          test -d ios
+          test -d "$XCODE_WORKSPACE"
+          test -f ios/Runner.xcodeproj/project.pbxproj
+
+      - name: Analyze Flutter code
+        script: |
+          set -euo pipefail
+          flutter analyze
+
+      - name: Run Flutter tests
+        script: |
+          set -euo pipefail
+          flutter test
+
+      - name: Set up iOS code signing
+        script: |
+          set -euo pipefail
+          xcode-project use-profiles
+
+      - name: Build signed IPA
+        script: |
+          set -euo pipefail
+          flutter build ipa --release \
+            --build-number=$PROJECT_BUILD_NUMBER \
+            --export-options-plist=/Users/builder/export_options.plist
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/ios/archive/*.xcarchive
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false

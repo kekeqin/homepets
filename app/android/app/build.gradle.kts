@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.homepets.homepets"
+    namespace = "com.kkqin.pickstarpet"
     compileSdk = 36
     ndkVersion = "27.2.12479018"
     buildToolsVersion = "35.0.0"
@@ -22,7 +22,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.homepets.homepets"
+        applicationId = "com.kkqin.pickstarpet"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 24
