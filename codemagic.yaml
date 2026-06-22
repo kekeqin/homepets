@@ -23,12 +23,10 @@ workflows:
 
     triggering:
       events:
-        - push
         - tag
-      branch_patterns:
-        - pattern: main
+      tag_patterns:
+        - pattern: '*'
           include: true
-          source: true
       cancel_previous_builds: true
 
     cache:
