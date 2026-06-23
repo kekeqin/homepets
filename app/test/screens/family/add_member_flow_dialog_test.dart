@@ -31,7 +31,7 @@ void main() {
 
     await tester.enterText(
       find.byKey(const Key('family_add_member_nickname_field')),
-      '灏忓疂',
+      '小宝',
     );
 
     await tester.tap(find.byKey(const Key('family_add_member_pet_type_dog')));
@@ -44,16 +44,16 @@ void main() {
 
     await tester.enterText(
       find.byKey(const Key('family_add_member_pet_name_field')),
-      '鍥㈠洟',
+      '团团',
     );
 
     await tester.tap(find.byKey(const Key('family_add_member_submit_button')));
     await tester.pumpAndSettle();
 
     expect(result, isNotNull);
-    expect(result?.nickname, '灏忓疂');
+    expect(result?.nickname, '小宝');
     expect(result?.petType, 'dog');
-    expect(result?.petName, '鍥㈠洟');
+    expect(result?.petName, '团团');
   });
 
   testWidgets('collects pet type and pet name for an existing member', (
@@ -70,7 +70,7 @@ void main() {
                 onPressed: () async {
                   result = await showSelectPetFlowDialog(
                     context,
-                    memberName: '瀹堕暱',
+                    memberName: '家长',
                   );
                 },
                 child: const Text('open-select'),
@@ -94,7 +94,7 @@ void main() {
 
     await tester.enterText(
       find.byKey(const Key('family_select_pet_name_field')),
-      '绫崇背',
+      '米米',
     );
 
     await tester.tap(find.byKey(const Key('family_select_pet_submit_button')));
@@ -102,7 +102,7 @@ void main() {
 
     expect(result, isNotNull);
     expect(result?.petType, 'cat');
-    expect(result?.petName, '绫崇背');
+    expect(result?.petName, '米米');
   });
   testWidgets('lays existing member pet choices in two compact rows on phone', (
     tester,
