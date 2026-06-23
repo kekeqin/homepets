@@ -6,8 +6,8 @@ workflows:
     working_directory: app
 
     integrations:
-      # Create an App Store Connect API key integration in Codemagic with this exact name.
-      app_store_connect: codemagic
+      # App Store Connect API key integration name in Codemagic UI (Team settings > Team integrations).
+      app_store_connect: kkqin
 
     environment:
       flutter: stable
