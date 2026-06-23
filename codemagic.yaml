@@ -3,7 +3,6 @@ workflows:
     name: iOS Release
     instance_type: mac_mini_m2
     max_build_duration: 120
-    working_directory: app
 
     integrations:
       # App Store Connect API key integration name in Codemagic UI (Team settings > Team integrations).
@@ -46,6 +45,7 @@ workflows:
 
     scripts:
       - name: Show build tool versions
+        working_directory: app
         script: |
           set -euo pipefail
           flutter --version
@@ -53,11 +53,13 @@ workflows:
           pod --version
 
       - name: Get Flutter packages
+        working_directory: app
         script: |
           set -euo pipefail
           flutter pub get
 
       - name: Validate iOS project
+        working_directory: app
         script: |
           set -euo pipefail
           test -f pubspec.yaml
@@ -66,27 +68,25 @@ workflows:
           test -f ios/Runner.xcodeproj/project.pbxproj
 
       - name: Analyze Flutter code
+        working_directory: app
         script: |
           set -euo pipefail
           flutter analyze
 
       - name: Run Flutter tests
+        working_directory: app
         script: |
           set -euo pipefail
           flutter test
 
       - name: Set up iOS code signing
+        working_directory: app
         script: |
           set -euo pipefail
           xcode-project use-profiles
-          echo "=== export_options.plist ==="
-          cat /Users/builder/export_options.plist 2>/dev/null || echo "(not found)"
-          echo "=== Provisioning profiles on disk ==="
-          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ 2>/dev/null || echo "(none)"
-          echo "=== Certificates on disk ==="
-          ls -la ~/Library/MobileDevice/Certificates/ 2>/dev/null || echo "(none)"
 
       - name: Build signed IPA
+        working_directory: app
         script: |
           set -euo pipefail
           # RevenueCat API keys are set as Secure environment variables in
@@ -102,6 +102,11 @@ workflows:
             --dart-define=REVENUECAT_ENTITLEMENT_ID="$REVENUECAT_ENTITLEMENT_ID" \
             --dart-define=REVENUECAT_USE_TEST_STORE="$REVENUECAT_USE_TEST_STORE" \
             --export-options-plist=/Users/builder/export_options.plist
+          # Copy IPA to repo-root build/ios/ipa/ so Codemagic's publishing
+          # step (which runs in the clone root, not the working_directory)
+          # can discover it for App Store Connect upload.
+          mkdir -p ../build/ios/ipa
+          cp build/ios/ipa/*.ipa ../build/ios/ipa/
 
     artifacts:
       - app/build/ios/ipa/*.ipa
