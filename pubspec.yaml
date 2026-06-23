@@ -1,0 +1,10 @@
+# Placeholder pubspec.yaml so Codemagic's automatic Flutter dependency
+# installation step (which runs in the repo root and ignores workflow
+# `working_directory`) succeeds. The real Flutter app lives in app/.
+# Do not add dependencies here.
+name: homepets_root
+description: "Placeholder for CI. Real app is in app/."
+publish_to: 'none'
+
+environment:
+  sdk: ^3.11.3

@@ -58,6 +58,8 @@ coverage/
 .cxx/
 **/Flutter/ephemeral/
 **/.plugin_symlinks/
+# Root placeholder pubspec.lock (CI only). app/pubspec.lock is tracked.
+/pubspec.lock
 
 # Logs / runtime
 *.log
