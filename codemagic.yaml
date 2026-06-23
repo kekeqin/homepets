@@ -79,11 +79,17 @@ workflows:
         script: |
           set -euo pipefail
           xcode-project use-profiles
+          echo "=== export_options.plist ==="
+          cat /Users/builder/export_options.plist 2>/dev/null || echo "(not found)"
+          echo "=== Provisioning profiles on disk ==="
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ 2>/dev/null || echo "(none)"
+          echo "=== Certificates on disk ==="
+          ls -la ~/Library/MobileDevice/Certificates/ 2>/dev/null || echo "(none)"
 
       - name: Build signed IPA
         script: |
           set -euo pipefail
-          flutter build ipa --release \
+          flutter build ipa --release --verbose \
             --build-number=$PROJECT_BUILD_NUMBER \
             --dart-define=API_BASE_URL="$API_BASE_URL" \
             --dart-define=REVENUECAT_IOS_API_KEY="$REVENUECAT_IOS_API_KEY" \
