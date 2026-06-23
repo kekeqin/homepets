@@ -89,6 +89,11 @@ workflows:
       - name: Build signed IPA
         script: |
           set -euo pipefail
+          # RevenueCat API keys are set as Secure environment variables in
+          # Codemagic UI. Provide empty fallback so the build doesn't fail
+          # with "unbound variable" before you've configured them.
+          : "${REVENUECAT_IOS_API_KEY:=}"
+          : "${REVENUECAT_ANDROID_API_KEY:=}"
           flutter build ipa --release --verbose \
             --build-number=$PROJECT_BUILD_NUMBER \
             --dart-define=API_BASE_URL="$API_BASE_URL" \
