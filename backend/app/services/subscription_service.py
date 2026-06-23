@@ -9,7 +9,7 @@ from sqlmodel import Session, select
 from app.core.config import settings
 from app.models.subscription import Subscription
 from app.models.user import User
-from app.schemas.subscription import SubscriptionStatusResponse
+from app.schemas.subscription import SubscriptionStatusResponse, SubscriptionSyncRequest
 
 ACCESS_ALLOWED_STATUSES = {
     "trial_active",
@@ -157,8 +157,7 @@ def build_subscription_status(
         trial_started_at=subscription.trial_started_at,
         trial_ends_at=subscription.trial_ends_at,
         trial_days_remaining=trial_days_remaining(subscription, at=at),
-        is_premium_active=computed_status
-        in {"subscribed_active", "subscription_grace_period"},
+        is_premium_active=computed_status in {"subscribed_active", "subscription_grace_period"},
         entitlement_id=subscription.entitlement_id,
         product_id=subscription.product_id,
         subscription_expires_at=subscription.expires_at,
@@ -204,6 +203,31 @@ def sync_subscription_from_customer_payload(
     )
 
 
+def sync_subscription_from_client_entitlement(
+    subscription: Subscription,
+    entitlement: SubscriptionSyncRequest,
+) -> None:
+    """Update a subscription from an active entitlement already verified by the app SDK."""
+    current_time = now_utc()
+    subscription.last_verified_at = current_time
+    subscription.updated_at = current_time
+
+    if entitlement.entitlement_id:
+        subscription.entitlement_id = entitlement.entitlement_id
+    subscription.expires_at = (
+        as_utc(entitlement.subscription_expires_at)
+        if entitlement.subscription_expires_at is not None
+        else None
+    )
+    subscription.product_id = entitlement.product_id
+    subscription.will_renew = entitlement.will_renew
+    subscription.status = (
+        "subscribed_active"
+        if subscription.expires_at is None or as_utc(subscription.expires_at) > current_time
+        else "subscription_expired"
+    )
+
+
 def fetch_revenuecat_customer_info(app_user_id: str) -> dict[str, Any] | None:
     """Fetch current RevenueCat subscriber state when server credentials exist."""
     secret_api_key = settings.REVENUECAT_SECRET_API_KEY
@@ -243,18 +267,14 @@ def apply_revenuecat_event(
 ) -> tuple[Subscription | None, bool]:
     """Apply one RevenueCat webhook event and return whether it changed state."""
     event_payload = payload.get("event")
-    event: dict[str, Any] = (
-        dict(event_payload) if isinstance(event_payload, dict) else payload
-    )
+    event: dict[str, Any] = dict(event_payload) if isinstance(event_payload, dict) else payload
     event_id = _string_or_none(
         event.get("id")
         or event.get("event_id")
         or event.get("transaction_id")
         or event.get("original_transaction_id")
     )
-    app_user_id = _string_or_none(
-        event.get("app_user_id") or event.get("original_app_user_id")
-    )
+    app_user_id = _string_or_none(event.get("app_user_id") or event.get("original_app_user_id"))
     aliases = event.get("aliases")
     if app_user_id is None and isinstance(aliases, list) and aliases:
         app_user_id = _string_or_none(aliases[0])
@@ -294,8 +314,7 @@ def apply_revenuecat_event(
     elif event_type in REVENUECAT_BLOCKING_EVENTS:
         subscription.status = (
             "subscription_expired"
-            if subscription.expires_at is None
-            or as_utc(subscription.expires_at) <= current_time
+            if subscription.expires_at is None or as_utc(subscription.expires_at) <= current_time
             else "subscribed_active"
         )
     else:

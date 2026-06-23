@@ -151,13 +151,17 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
     }
   }
 
-  Future<bool> syncAfterStorePurchase({String? revenueCatAppUserId}) async {
+  Future<bool> syncAfterStorePurchase({
+    String? revenueCatAppUserId,
+    ClientSubscriptionEntitlement? entitlement,
+  }) async {
     final requestVersion = ++_requestVersion;
     state = state.copyWith(isLoading: true, error: null);
 
     try {
       final status = await _service.syncStatus(
         revenueCatAppUserId: revenueCatAppUserId,
+        entitlement: entitlement,
       );
       if (!mounted || requestVersion != _requestVersion) {
         return false;

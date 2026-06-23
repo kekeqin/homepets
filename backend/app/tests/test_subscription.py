@@ -288,3 +288,125 @@ def test_subscription_sync_uses_revenuecat_payload(
     assert data["status"] == "subscribed_active"
     assert data["access_allowed"] is True
     assert data["product_id"] == "homepets_monthly"
+
+
+def test_subscription_sync_uses_active_client_entitlement_without_secret(
+    client: TestClient,
+    db: Session,
+) -> None:
+    _create_admin(db)
+    token = _login(client)
+    subscription = _subscription(db)
+    subscription.trial_started_at = datetime.now(UTC) - timedelta(days=8)
+    subscription.trial_ends_at = datetime.now(UTC) - timedelta(days=1)
+    db.add(subscription)
+    db.commit()
+
+    expires_at = datetime.now(UTC) + timedelta(days=365)
+    response = client.post(
+        "/api/subscription/sync",
+        json={
+            "revenuecat_app_user_id": subscription.revenuecat_app_user_id,
+            "entitlement_id": "premium",
+            "product_id": "homepets_annual",
+            "subscription_expires_at": expires_at.isoformat(),
+            "will_renew": True,
+            "is_active": True,
+        },
+        headers=_auth_header(token),
+    )
+
+    assert response.status_code == 200
+    data = response.json()["subscription"]
+    assert data["status"] == "subscribed_active"
+    assert data["access_allowed"] is True
+    assert data["paywall_required"] is False
+    assert data["product_id"] == "homepets_annual"
+    assert data["subscription_expires_at"] is not None
+
+
+def test_subscription_sync_extends_short_revenuecat_expiration_from_client_entitlement(
+    client: TestClient,
+    db: Session,
+    monkeypatch,
+) -> None:
+    _create_admin(db)
+    token = _login(client)
+    subscription = _subscription(db)
+    subscription.trial_started_at = datetime.now(UTC) - timedelta(days=8)
+    subscription.trial_ends_at = datetime.now(UTC) - timedelta(days=1)
+    db.add(subscription)
+    db.commit()
+
+    short_expires_at = datetime.now(UTC) + timedelta(hours=1)
+    client_expires_at = datetime.now(UTC) + timedelta(days=365)
+
+    def fake_customer_info(app_user_id: str) -> dict[str, object]:
+        assert app_user_id == subscription.revenuecat_app_user_id
+        return {
+            "subscriber": {
+                "entitlements": {
+                    "premium": {
+                        "expires_date": short_expires_at.isoformat(),
+                        "product_identifier": "homepets_annual",
+                        "will_renew": True,
+                    }
+                }
+            }
+        }
+
+    monkeypatch.setattr(
+        "app.api.subscription.fetch_revenuecat_customer_info",
+        fake_customer_info,
+    )
+
+    response = client.post(
+        "/api/subscription/sync",
+        json={
+            "revenuecat_app_user_id": subscription.revenuecat_app_user_id,
+            "entitlement_id": "premium",
+            "product_id": "homepets_annual",
+            "subscription_expires_at": client_expires_at.isoformat(),
+            "will_renew": True,
+            "is_active": True,
+        },
+        headers=_auth_header(token),
+    )
+
+    assert response.status_code == 200
+    data = response.json()["subscription"]
+    assert data["status"] == "subscribed_active"
+    assert data["access_allowed"] is True
+    assert as_utc(datetime.fromisoformat(data["subscription_expires_at"])) > short_expires_at
+
+
+def test_subscription_sync_does_not_unlock_expired_client_entitlement(
+    client: TestClient,
+    db: Session,
+) -> None:
+    _create_admin(db)
+    token = _login(client)
+    subscription = _subscription(db)
+    subscription.trial_started_at = datetime.now(UTC) - timedelta(days=8)
+    subscription.trial_ends_at = datetime.now(UTC) - timedelta(days=1)
+    db.add(subscription)
+    db.commit()
+
+    response = client.post(
+        "/api/subscription/sync",
+        json={
+            "revenuecat_app_user_id": subscription.revenuecat_app_user_id,
+            "entitlement_id": "premium",
+            "product_id": "homepets_monthly",
+            "subscription_expires_at": (datetime.now(UTC) - timedelta(days=1)).isoformat(),
+            "will_renew": False,
+            "is_active": True,
+        },
+        headers=_auth_header(token),
+    )
+
+    assert response.status_code == 200
+    data = response.json()["subscription"]
+    assert data["status"] == "subscription_expired"
+    assert data["access_allowed"] is False
+    assert data["paywall_required"] is True

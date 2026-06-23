@@ -1,10 +1,15 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 import '../models/user.dart';
 import '../services/revenue_cat_service.dart';
+import '../services/subscription_service.dart';
 import 'auth_provider.dart';
+import 'subscription_provider.dart';
 
 final revenueCatServiceProvider = Provider<RevenueCatService>((ref) {
   final service = RevenueCatService();
@@ -202,6 +207,7 @@ class RevenueCatNotifier extends StateNotifier<RevenueCatState> {
         isPremiumActive: _service.hasActiveEntitlement(customerInfo),
         errorMessage: null,
       );
+      unawaited(_syncActiveEntitlementToBackend(customerInfo));
     } on RevenueCatUnavailableException catch (error) {
       _markUnavailable(error.message);
     } on RevenueCatConfigurationException catch (error) {
@@ -292,6 +298,9 @@ class RevenueCatNotifier extends StateNotifier<RevenueCatState> {
         isPremiumActive: isPremiumActive,
         purchaseError: isPremiumActive ? null : '购买已完成，但会员状态还未生效，请稍后刷新。',
       );
+      if (isPremiumActive) {
+        unawaited(_syncActiveEntitlementToBackend(customerInfo));
+      }
       return isPremiumActive;
     } on PlatformException catch (error) {
       if (!mounted) {
@@ -332,6 +341,9 @@ class RevenueCatNotifier extends StateNotifier<RevenueCatState> {
         isPremiumActive: isPremiumActive,
         restoreError: isPremiumActive ? null : '没有找到已开通的高级版订阅。',
       );
+      if (isPremiumActive) {
+        unawaited(_syncActiveEntitlementToBackend(customerInfo));
+      }
       return isPremiumActive;
     } on PlatformException catch (error) {
       if (!mounted) {
@@ -370,7 +382,12 @@ class RevenueCatNotifier extends StateNotifier<RevenueCatState> {
         customerInfo: customerInfo,
         isPremiumActive: _service.hasActiveEntitlement(customerInfo),
       );
+      unawaited(_syncActiveEntitlementToBackend(customerInfo));
     } catch (_) {}
+  }
+
+  ClientSubscriptionEntitlement? currentClientEntitlement() {
+    return _clientEntitlementFromCustomerInfo(state.customerInfo);
   }
 
   void clearErrors() {
@@ -389,6 +406,162 @@ class RevenueCatNotifier extends StateNotifier<RevenueCatState> {
       customerInfo: customerInfo,
       isPremiumActive: _service.hasActiveEntitlement(customerInfo),
     );
+    unawaited(_syncActiveEntitlementToBackend(customerInfo));
+  }
+
+  Future<void> _syncActiveEntitlementToBackend(
+    CustomerInfo customerInfo,
+  ) async {
+    final user = _ref.read(authProvider).user;
+    final entitlement = _clientEntitlementFromCustomerInfo(customerInfo);
+    if (user == null || entitlement == null || !entitlement.isActive) {
+      return;
+    }
+    try {
+      await _ref
+          .read(subscriptionProvider.notifier)
+          .syncAfterStorePurchase(
+            revenueCatAppUserId: revenueCatAppUserIdFor(user),
+            entitlement: entitlement,
+          );
+    } catch (_) {}
+  }
+
+  ClientSubscriptionEntitlement? _clientEntitlementFromCustomerInfo(
+    CustomerInfo? customerInfo,
+  ) {
+    final entitlement =
+        customerInfo?.entitlements.active[_service.entitlementId];
+    if (entitlement == null || !entitlement.isActive) {
+      return null;
+    }
+    return ClientSubscriptionEntitlement(
+      entitlementId: entitlement.identifier,
+      productId: entitlement.productIdentifier,
+      willRenew: entitlement.willRenew,
+      isActive: entitlement.isActive,
+      subscriptionExpiresAt: _businessExpirationFor(entitlement),
+    );
+  }
+
+  DateTime? _businessExpirationFor(EntitlementInfo entitlement) {
+    final revenueCatExpiration = _dateFromRevenueCat(
+      entitlement.expirationDate,
+    );
+    if (entitlement.periodType == PeriodType.trial ||
+        entitlement.periodType == PeriodType.intro) {
+      return revenueCatExpiration;
+    }
+
+    final packageExpiration = _packageExpirationFor(entitlement);
+    if (packageExpiration == null) {
+      return revenueCatExpiration;
+    }
+    if (revenueCatExpiration == null) {
+      return packageExpiration;
+    }
+    return packageExpiration.isAfter(revenueCatExpiration)
+        ? packageExpiration
+        : revenueCatExpiration;
+  }
+
+  DateTime? _packageExpirationFor(EntitlementInfo entitlement) {
+    final period = _subscriptionPeriodFor(entitlement.productIdentifier);
+    if (period == null) {
+      return null;
+    }
+    final purchasedAt =
+        _dateFromRevenueCat(entitlement.latestPurchaseDate) ??
+        _dateFromRevenueCat(entitlement.originalPurchaseDate) ??
+        DateTime.now().toUtc();
+    return _addIso8601Period(purchasedAt, period);
+  }
+
+  String? _subscriptionPeriodFor(String productIdentifier) {
+    final offerings = state.offerings;
+    if (offerings != null) {
+      final currentPackages = offerings.current?.availablePackages;
+      if (currentPackages != null) {
+        for (final package in currentPackages) {
+          if (package.storeProduct.identifier == productIdentifier &&
+              package.storeProduct.subscriptionPeriod != null) {
+            return package.storeProduct.subscriptionPeriod;
+          }
+        }
+      }
+      for (final offering in offerings.all.values) {
+        for (final package in offering.availablePackages) {
+          if (package.storeProduct.identifier == productIdentifier) {
+            return package.storeProduct.subscriptionPeriod;
+          }
+        }
+      }
+    }
+    return _subscriptionPeriodFromProductIdentifier(productIdentifier);
+  }
+
+  String? _subscriptionPeriodFromProductIdentifier(String productIdentifier) {
+    final normalized = productIdentifier.toLowerCase();
+    if (normalized.contains('year') || normalized.contains('annual')) {
+      return 'P1Y';
+    }
+    if (normalized.contains('month') || normalized.contains('monthly')) {
+      return 'P1M';
+    }
+    if (normalized.contains('week') || normalized.contains('weekly')) {
+      return 'P1W';
+    }
+    return null;
+  }
+
+  DateTime? _dateFromRevenueCat(String? value) {
+    final text = value?.trim();
+    if (text == null || text.isEmpty) {
+      return null;
+    }
+    return DateTime.tryParse(text)?.toUtc();
+  }
+
+  DateTime? _addIso8601Period(DateTime start, String period) {
+    final match = RegExp(
+      r'^P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?$',
+    ).firstMatch(period);
+    if (match == null) {
+      return null;
+    }
+    final years = int.tryParse(match.group(1) ?? '') ?? 0;
+    final months = int.tryParse(match.group(2) ?? '') ?? 0;
+    final weeks = int.tryParse(match.group(3) ?? '') ?? 0;
+    final days = int.tryParse(match.group(4) ?? '') ?? 0;
+    var result = _addMonths(start, years * 12 + months);
+    if (weeks != 0 || days != 0) {
+      result = result.add(Duration(days: weeks * 7 + days));
+    }
+    return result;
+  }
+
+  DateTime _addMonths(DateTime date, int months) {
+    if (months == 0) {
+      return date;
+    }
+    final monthIndex = date.month - 1 + months;
+    final year = date.year + monthIndex ~/ 12;
+    final month = monthIndex % 12 + 1;
+    final day = math.min(date.day, _lastDayOfMonth(year, month));
+    return DateTime.utc(
+      year,
+      month,
+      day,
+      date.hour,
+      date.minute,
+      date.second,
+      date.millisecond,
+      date.microsecond,
+    );
+  }
+
+  int _lastDayOfMonth(int year, int month) {
+    return DateTime.utc(year, month + 1, 0).day;
   }
 
   void _markUnavailable(String message) {

@@ -25,6 +25,11 @@ class SubscriptionStatusResponse(BaseModel):
 
 class SubscriptionSyncRequest(BaseModel):
     revenuecat_app_user_id: str | None = Field(default=None, min_length=1, max_length=150)
+    entitlement_id: str | None = Field(default=None, min_length=1, max_length=100)
+    product_id: str | None = Field(default=None, min_length=1, max_length=200)
+    subscription_expires_at: datetime | None = None
+    will_renew: bool = False
+    is_active: bool | None = None
 
 
 class SubscriptionSyncResponse(BaseModel):
