@@ -4755,13 +4755,13 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
   double _ambientAngle() {
     return switch (behavior) {
       _SceneSpriteBehavior.taskNote =>
-        math.sin((_ambientTime * 1.8) + ambientPhase) * 0.004,
+        math.sin((_ambientTime * 1.8) + ambientPhase) * 0.010,
       _SceneSpriteBehavior.shopBasket =>
-        math.sin((_ambientTime * 1.5) + ambientPhase) * 0.014,
+        math.sin((_ambientTime * 1.5) + ambientPhase) * 0.022,
       _SceneSpriteBehavior.familyPhoto =>
-        math.sin((_ambientTime * 1.3) + ambientPhase) * 0.008,
+        math.sin((_ambientTime * 1.3) + ambientPhase) * 0.014,
       _SceneSpriteBehavior.wallBadge =>
-        math.sin((_ambientTime * 1.5) + ambientPhase) * 0.024,
+        math.sin((_ambientTime * 1.5) + ambientPhase) * 0.036,
       _SceneSpriteBehavior.staticOverlay => 0,
     };
   }

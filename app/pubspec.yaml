@@ -72,8 +72,6 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
-  shaders:
-    - shaders/guide_alpha_glow.frag
   assets:
     - assets/scenes/
     - assets/images/pets/grow/cat/baby/

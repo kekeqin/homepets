@@ -20,7 +20,7 @@ workflows:
         XCODE_SCHEME: Runner
         APP_BUNDLE_ID: com.kkqin.pickstarpet
         # 生产环境变量 —— 在 Codemagic UI (Workflow > Environment variables) 覆盖为真实值
-        API_BASE_URL: "https://api.homepets.example.com"
+        API_BASE_URL: "https://pickstarpet.kkqin.com"
         REVENUECAT_ENTITLEMENT_ID: "premium"
         # 生产构建必须为 false，强制使用真实 SDK key 而不是测试商店 key
         REVENUECAT_USE_TEST_STORE: "false"

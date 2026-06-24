@@ -77,7 +77,6 @@ class FamilyPopupAssets {
   static const String mainPanelOutline =
       '$_base/family_popup_panel_outline.png';
   static const String cardPanel = '$_base/3.png';
-  static const String title = '$_base/8 (3).png';
   static const String closeButton = '$_base/12 (2).png';
   static const String addButton = '$_base/2.png';
   static const String pageArrow = '$_base/9 (2).png';

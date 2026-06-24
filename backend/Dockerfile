@@ -1,4 +1,7 @@
-FROM python:3.12-slim
+FROM python:3.12-slim AS builder
+
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
 
 WORKDIR /app
 
@@ -7,9 +10,22 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
-COPY . .
-RUN uv sync --frozen --no-dev
+FROM python:3.12-slim AS runtime
+
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+RUN groupadd --system homepets \
+    && useradd --system --gid homepets --home-dir /app homepets
+
+COPY --from=builder /app/.venv /app/.venv
+COPY app ./app
+
+USER homepets
 
 EXPOSE 8000
 
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

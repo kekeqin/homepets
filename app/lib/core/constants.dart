@@ -1,9 +1,19 @@
 class ApiConstants {
-  // Real device: http://192.168.1.3:8000  |  Emulator: http://10.0.2.2:8000
-  static const String baseUrl = String.fromEnvironment(
+  static const bool isProductionBuild = bool.fromEnvironment('dart.vm.product');
+  static const String _configuredBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:8000',
   );
+  static const String _developmentBaseUrl = 'http://10.0.2.2:8000';
+  static const String productionBaseUrl = 'https://pickstarpet.kkqin.com';
+
+  static String get baseUrl {
+    final configuredBaseUrl = _configuredBaseUrl.trim();
+    if (configuredBaseUrl.isNotEmpty) {
+      return configuredBaseUrl;
+    }
+    return isProductionBuild ? productionBaseUrl : _developmentBaseUrl;
+  }
+
   static const String tokenKey = 'access_token';
 }
 

@@ -60,21 +60,6 @@ def list_pets(
     return [_build_pet_response(pet, db) for pet in pets]
 
 
-# 获取单只宠物的成长信息。
-@router.get("/pets/{pet_id}", response_model=PetResponse)
-def get_pet(
-    pet_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> PetResponse:
-    pet = db.get(Pet, pet_id)
-    if not pet:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="宠物不存在")
-    if current_user.family_id != pet.family_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权查看此宠物")
-    return _build_pet_response(pet, db)
-
-
 @router.get("/pets/{pet_id}/history", response_model=list[PetHistoryEntryResponse])
 def list_pet_history(
     pet_id: int,

@@ -1,0 +1,65 @@
+name: homepets
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-homepets}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-homepets}
+      POSTGRES_DB: ${POSTGRES_DB:-homepets}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test:
+        ["CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  backend:
+    image: pickstarpet:latest
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-homepets}:${POSTGRES_PASSWORD:-homepets}@db:5432/${POSTGRES_DB:-homepets}
+      DEBUG: ${DEBUG:-false}
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
+      ALIBABA_CLOUD_ACCESS_KEY_ID: ${ALIBABA_CLOUD_ACCESS_KEY_ID:-}
+      ALIBABA_CLOUD_ACCESS_KEY_SECRET: ${ALIBABA_CLOUD_ACCESS_KEY_SECRET:-}
+      ALIYUN_SMS_SIGN_NAME: ${ALIYUN_SMS_SIGN_NAME:-}
+      ALIYUN_SMS_TEMPLATE_CODE: ${ALIYUN_SMS_TEMPLATE_CODE:-}
+      ALIYUN_SMS_SCHEME_NAME: ${ALIYUN_SMS_SCHEME_NAME:-HomePets}
+      ALIYUN_SMS_REGION_ID: ${ALIYUN_SMS_REGION_ID:-cn-hangzhou}
+      ALIYUN_SMS_ENDPOINT: ${ALIYUN_SMS_ENDPOINT:-https://dypnsapi.aliyuncs.com/}
+      ALIYUN_SMS_CODE_VALID_SECONDS: ${ALIYUN_SMS_CODE_VALID_SECONDS:-300}
+      ALIYUN_SMS_RESEND_INTERVAL_SECONDS: ${ALIYUN_SMS_RESEND_INTERVAL_SECONDS:-60}
+      ALIYUN_SMS_TIMEOUT_SECONDS: ${ALIYUN_SMS_TIMEOUT_SECONDS:-5}
+      SMS_VERIFICATION_MOCK_ENABLED: ${SMS_VERIFICATION_MOCK_ENABLED:-false}
+      SMS_SEND_RATE_LIMIT_PER_PHONE_PER_HOUR: ${SMS_SEND_RATE_LIMIT_PER_PHONE_PER_HOUR:-5}
+      SMS_SEND_RATE_LIMIT_PER_IP_PER_HOUR: ${SMS_SEND_RATE_LIMIT_PER_IP_PER_HOUR:-30}
+      SMS_VERIFY_FAILURE_LIMIT_PER_PHONE: ${SMS_VERIFY_FAILURE_LIMIT_PER_PHONE:-5}
+      SMS_VERIFY_FAILURE_LIMIT_PER_IP: ${SMS_VERIFY_FAILURE_LIMIT_PER_IP:-30}
+      SMS_VERIFY_FAILURE_WINDOW_SECONDS: ${SMS_VERIFY_FAILURE_WINDOW_SECONDS:-600}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  postgres_data:

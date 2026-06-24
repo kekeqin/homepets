@@ -198,19 +198,6 @@ def _list_family_completion_payload(
     return payload
 
 
-# 管理员为家庭创建任务，任务完成后会奖励成员积分并推动宠物成长。
-@router.post("/tasks", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
-def create_task(
-    body: TaskCreate,
-    db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin_with_active_access),
-) -> Task:
-    if admin.family_id is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="您还没有家庭")
-
-    return _create_task_for_family(db=db, family_id=admin.family_id, body=body)
-
-
 @router.post(
     "/families/{family_id}/tasks",
     response_model=TaskResponse,

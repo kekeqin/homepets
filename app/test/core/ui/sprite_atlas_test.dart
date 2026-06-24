@@ -69,6 +69,10 @@ void main() {
         const Rect.fromLTWH(1066, 43, 317, 137),
       );
       expect(
+        sprites.closeButton.textureRect,
+        const Rect.fromLTWH(1170, 214, 76, 82),
+      );
+      expect(
         sprites.taskRowBlank.textureRect,
         const Rect.fromLTWH(917, 796, 479, 92),
       );

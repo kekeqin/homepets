@@ -3,10 +3,6 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
-class FamilyCreate(BaseModel):
-    name: str = Field(min_length=1, max_length=100)
-
-
 class MemberCreate(BaseModel):
     nickname: str = Field(min_length=1, max_length=50)
     pet_type: str | None = Field(default=None, min_length=1, max_length=50)
