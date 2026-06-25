@@ -230,6 +230,7 @@ class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
                               _PetOptionGrid(
                                 dense: dense,
                                 twoRowLayout: true,
+                                showLabel: false,
                                 selectedPetType: _selectedPetType,
                                 onSelect: _selectPetType,
                               ),
@@ -471,17 +472,22 @@ class _SelectPetFlowDialogState extends State<SelectPetFlowDialog> {
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _SectionLabel(text: '选择宠物', dense: dense),
-                              SizedBox(height: dense ? 6 : 10),
                               _PetOptionGrid(
                                 dense: dense,
                                 twoRowLayout: true,
+                                showLabel: false,
                                 selectedPetType: _selectedPetType,
                                 onSelect: _selectPetType,
                               ),
                               SizedBox(height: dense ? 12 : 18),
                               _DashedDivider(dense: dense),
-                              _SectionLabel(text: '宠物名字', dense: dense),
+                              Padding(
+                                padding: EdgeInsets.only(left: dense ? 8 : 12),
+                                child: _SectionLabel(
+                                  text: '宠物名字',
+                                  dense: dense,
+                                ),
+                              ),
                               SizedBox(height: dense ? 5 : 8),
                               _DialogFormControl(
                                 dense: dense,
@@ -510,35 +516,17 @@ class _SelectPetFlowDialogState extends State<SelectPetFlowDialog> {
                               ),
                               SizedBox(height: dense ? 8 : 18),
                               Center(
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    SizedBox(
-                                      width: dense ? 96 : 112,
-                                      child: _DialogActionButton(
-                                        label: '稍后',
-                                        dense: dense,
-                                        variant: _DialogActionButtonVariant
-                                            .secondary,
-                                        onPressed: () =>
-                                            Navigator.of(context).pop(),
-                                      ),
+                                child: SizedBox(
+                                  width: dense ? 150 : 174,
+                                  child: _DialogActionButton(
+                                    key: const Key(
+                                      'family_select_pet_submit_button',
                                     ),
-                                    SizedBox(width: dense ? 10 : 12),
-                                    SizedBox(
-                                      width: dense ? 150 : 174,
-                                      child: _DialogActionButton(
-                                        key: const Key(
-                                          'family_select_pet_submit_button',
-                                        ),
-                                        label: '确认领养',
-                                        dense: dense,
-                                        variant:
-                                            _DialogActionButtonVariant.primary,
-                                        onPressed: _submit,
-                                      ),
-                                    ),
-                                  ],
+                                    label: '确认领养',
+                                    dense: dense,
+                                    variant: _DialogActionButtonVariant.primary,
+                                    onPressed: _submit,
+                                  ),
                                 ),
                               ),
                             ],
@@ -547,15 +535,6 @@ class _SelectPetFlowDialogState extends State<SelectPetFlowDialog> {
                       ),
                     ],
                   ),
-                ),
-              ),
-              Positioned(
-                top: 6,
-                right: 8,
-                child: _DialogCloseButton(
-                  key: const Key('family_select_pet_close_button'),
-                  dense: dense,
-                  onPressed: () => Navigator.of(context).pop(),
                 ),
               ),
             ],
@@ -774,12 +753,14 @@ class _PetOptionGrid extends StatelessWidget {
   const _PetOptionGrid({
     required this.dense,
     this.twoRowLayout = false,
+    this.showLabel = true,
     required this.selectedPetType,
     required this.onSelect,
   });
 
   final bool dense;
   final bool twoRowLayout;
+  final bool showLabel;
   final String? selectedPetType;
   final ValueChanged<String> onSelect;
 
@@ -819,6 +800,7 @@ class _PetOptionGrid extends StatelessWidget {
                   height: cardHeight,
                   petType: petType,
                   selected: selectedPetType == petType,
+                  showLabel: showLabel,
                   onTap: () => onSelect(petType),
                 ),
             ],
@@ -836,6 +818,7 @@ class _PetOptionCard extends StatelessWidget {
     required this.petType,
     required this.selected,
     required this.onTap,
+    this.showLabel = true,
   });
 
   final double width;
@@ -843,6 +826,7 @@ class _PetOptionCard extends StatelessWidget {
   final String petType;
   final bool selected;
   final VoidCallback onTap;
+  final bool showLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -899,33 +883,37 @@ class _PetOptionCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    SizedBox(height: dense ? 3 : 5),
-                    Container(
-                      width: double.infinity,
-                      height: dense ? 19 : 24,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: _AddMemberPalette.labelPill.withValues(
-                          alpha: 0.82,
+                    if (showLabel) ...[
+                      SizedBox(height: dense ? 3 : 5),
+                      Container(
+                        width: double.infinity,
+                        height: dense ? 19 : 24,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: _AddMemberPalette.labelPill.withValues(
+                            alpha: 0.82,
+                          ),
+                          borderRadius: BorderRadius.circular(13),
+                          border: Border.all(
+                            color: _AddMemberPalette.line.withValues(
+                              alpha: 0.3,
+                            ),
+                            width: 1.2,
+                          ),
                         ),
-                        borderRadius: BorderRadius.circular(13),
-                        border: Border.all(
-                          color: _AddMemberPalette.line.withValues(alpha: 0.3),
-                          width: 1.2,
+                        child: Text(
+                          petTypeLabel(petType),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: _AddMemberPalette.ink,
+                            fontSize: dense ? 11 : 12.5,
+                            fontWeight: FontWeight.w900,
+                            height: 1,
+                          ),
                         ),
                       ),
-                      child: Text(
-                        petTypeLabel(petType),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: _AddMemberPalette.ink,
-                          fontSize: dense ? 11 : 12.5,
-                          fontWeight: FontWeight.w900,
-                          height: 1,
-                        ),
-                      ),
-                    ),
+                    ],
                   ],
                 ),
               ),
