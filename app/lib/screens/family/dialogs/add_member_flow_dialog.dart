@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../models/pet_artwork.dart';
 import '../../../widgets/app_modal_shell.dart';
-import '../../../widgets/homepets_button.dart';
+import '../../../widgets/pickstarpet_button.dart';
 import '../widgets/family_sprite_slice.dart';
 
 class AddMemberFlowResult {
@@ -158,7 +158,7 @@ class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(
-        horizontal: HomePetsDialogGutter.large,
+        horizontal: PickStarPetDialogGutter.large,
         vertical: 14,
       ),
       child: ConstrainedBox(
@@ -425,7 +425,7 @@ class _SelectPetFlowDialogState extends State<SelectPetFlowDialog> {
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(
-        horizontal: HomePetsDialogGutter.large,
+        horizontal: PickStarPetDialogGutter.large,
         vertical: 14,
       ),
       child: ConstrainedBox(
@@ -979,11 +979,11 @@ class _DialogActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final primary = variant == _DialogActionButtonVariant.primary;
 
-    return HomePetsButton(
+    return PickStarPetButton(
       label: label,
       variant: primary
-          ? HomePetsButtonVariant.primary
-          : HomePetsButtonVariant.secondary,
+          ? PickStarPetButtonVariant.primary
+          : PickStarPetButtonVariant.secondary,
       height: dense ? 42 : 50,
       onPressed: onPressed,
     );

@@ -2,9 +2,9 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:homepets/core/api_client.dart';
-import 'package:homepets/core/auth_session_bus.dart';
-import 'package:homepets/core/subscription_access_bus.dart';
+import 'package:pickstarpet/core/api_client.dart';
+import 'package:pickstarpet/core/auth_session_bus.dart';
+import 'package:pickstarpet/core/subscription_access_bus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

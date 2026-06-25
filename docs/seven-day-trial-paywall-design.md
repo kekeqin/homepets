@@ -1,4 +1,4 @@
-# HomePets 七天试用期与强制 Paywall 方案说明
+# 拾星小宠七天试用期与强制 Paywall 方案说明
 
 文档状态：方案设计，不改代码。  
 汇总人：@TechLead  
@@ -15,7 +15,7 @@
 也就是：
 
 - 新用户注册并创建家庭后，自动获得 7 天免费体验。
-- 7 天内正常使用 HomePets 核心功能。
+- 7 天内正常使用拾星小宠核心功能。
 - 到期后如果没有有效订阅，进入强制 Paywall。
 - 未订阅时不能使用核心功能，但必须保留合规和账号相关入口。
 - 订阅状态以后端 entitlement 为准，不能只靠前端本地时间或本地缓存。
@@ -25,7 +25,7 @@
 
 - 不要做“用户没有同意订阅，7 天后自动扣费”。如果要自动续费免费试用，必须走 App Store / Google Play 的订阅试用购买流程，并在购买页明确展示试用时长、试用结束后的价格和周期。
 - 本文推荐第一版采用“先免费体验 7 天，第 8 天再引导订阅”的模式，不把商店侧 free trial 作为唯一试用机制。
-- 如果后续决定使用商店官方 7 天 free trial，就不要再叠加 HomePets 自定义 7 天体验，避免“双重试用”和审核/用户理解混乱。
+- 如果后续决定使用商店官方 7 天 free trial，就不要再叠加拾星小宠自定义 7 天体验，避免“双重试用”和审核/用户理解混乱。
 
 ## 2. 当前项目基础
 
@@ -34,7 +34,7 @@
 - Flutter 端已有 `RevenueCatService`、`RevenueCatNotifier`、`PaywallScreen`。
 - 路由已有 `/paywall`，当前会重定向到 `/home?panel=paywall`。
 - `docs/revenuecat-configuration.md` 已说明 RevenueCat public SDK key、secret key、webhook auth 等配置。
-- 当前 `RevenueCatService.initialize()` 还没有绑定稳定 app user id，默认匿名用户会让后端 webhook 难以映射到 HomePets 用户/家庭。
+- 当前 `RevenueCatService.initialize()` 还没有绑定稳定 app user id，默认匿名用户会让后端 webhook 难以映射到拾星小宠用户/家庭。
 - 当前 Paywall 视觉资产里有较多烘焙文字/价格，不适合正式订阅页，需要改成 Flutter 动态文本。
 
 本文只说明目标方案，不要求现阶段修改代码。
@@ -54,7 +54,7 @@
 
 原因：
 
-- HomePets 是家庭任务和宠物成长产品，付费决策人是家长。
+- 拾星小宠是家庭任务和宠物成长产品，付费决策人是家长。
 - 家庭只订阅一次更符合使用场景。
 - 不按设备或本地安装时间计时，避免卸载重装、换设备、改本地时间绕过。
 
@@ -331,7 +331,7 @@ family_{family_id}
 
 - 如果用 `family_{family_id}`，必须在家庭创建后再绑定或调用 `Purchases.logIn()`。
 - 如果先匿名初始化 RevenueCat，再登录，需要调用 `logIn(stableAppUserId)` 做身份切换。
-- 后端 webhook 必须能从 RevenueCat app user id 映射回 HomePets 用户/家庭。
+- 后端 webhook 必须能从 RevenueCat app user id 映射回拾星小宠用户/家庭。
 
 ## 6. Flutter 端设计
 
@@ -461,13 +461,13 @@ Paywall 需要区分两种模式：
 说明：
 
 ```text
-订阅 HomePets 后，可以继续使用家庭任务、宠物成长和成长记录功能。
+订阅拾星小宠后，可以继续使用家庭任务、宠物成长和成长记录功能。
 ```
 
 主按钮：
 
 ```text
-继续使用 HomePets
+继续使用拾星小宠
 ```
 
 副入口：
@@ -520,7 +520,7 @@ Paywall 至少覆盖：
 
 推荐视觉方向：
 
-- 沿用 HomePets 温馨纸张/房间风格。
+- 沿用拾星小宠温馨纸张/房间风格。
 - 不做冷冰冰的商业锁屏。
 - 语气是“继续守护家庭任务和宠物成长”，不是“禁止使用”。
 
@@ -618,7 +618,7 @@ Paywall 必须保留：
 
 1. 确认订阅按家庭共享。
 2. 确认老用户补发 7 天试用。
-3. 确认第一版使用 HomePets 自定义免费体验，不使用商店侧 free trial。
+3. 确认第一版使用拾星小宠自定义免费体验，不使用商店侧 free trial。
 4. 补隐私政策、用户协议、账号/数据删除入口。
 5. 定稿 Paywall 文案和套餐描述。
 

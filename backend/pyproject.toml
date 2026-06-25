@@ -1,7 +1,7 @@
 [project]
-name = "homepets"
+name = "pickstarpet"
 version = "0.1.0"
-description = "HomePets - Family pet raising system"
+description = "拾星小宠 - family pet raising system"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

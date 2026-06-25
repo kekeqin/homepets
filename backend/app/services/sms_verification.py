@@ -57,7 +57,7 @@ class MockSmsVerificationClient:
             self._codes[phone] = _MockSmsCode(code=code, expires_at=expires_at)
 
         print(
-            f"[HomePets SMS MOCK] phone={phone} code={code} expires_at={expires_at.isoformat()}",
+            f"[拾星小宠 SMS MOCK] phone={phone} code={code} expires_at={expires_at.isoformat()}",
             flush=True,
         )
         return code

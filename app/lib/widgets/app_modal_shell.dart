@@ -135,8 +135,8 @@ class AppModalLayouts {
   );
 }
 
-class HomePetsDialogTheme {
-  const HomePetsDialogTheme._();
+class PickStarPetDialogTheme {
+  const PickStarPetDialogTheme._();
 
   static const surfaceTop = Color(0xFFFFF4E5);
   static const surfaceBottom = Color(0xFFF3E0C4);
@@ -162,8 +162,8 @@ class HomePetsDialogTheme {
   ];
 }
 
-class HomePetsDialogGutter {
-  const HomePetsDialogGutter._();
+class PickStarPetDialogGutter {
+  const PickStarPetDialogGutter._();
 
   static const double large = 20;
   static const double medium = 32;
@@ -262,7 +262,7 @@ class AppModalShell extends StatelessWidget {
     super.key,
     required this.layout,
     required this.child,
-    this.minimumSafeArea = HomePetsDialogGutter.mediumInsets,
+    this.minimumSafeArea = PickStarPetDialogGutter.mediumInsets,
     this.visibleFrame,
     this.borderRadius = const BorderRadius.all(Radius.circular(30)),
     this.backgroundColor,

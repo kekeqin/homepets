@@ -110,7 +110,7 @@ class AppleIdentityVerifier:
             ):
                 return self._keys
 
-            request = Request(self._keys_url, headers={"User-Agent": "HomePets/1.0"})
+            request = Request(self._keys_url, headers={"User-Agent": "PickStarPet/1.0"})
             try:
                 with urlopen(request, timeout=self._timeout_seconds) as response:
                     payload = json.loads(response.read().decode("utf-8"))

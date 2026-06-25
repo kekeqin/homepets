@@ -10,9 +10,9 @@ import '../../models/user.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../widgets/app_modal_shell.dart';
-import '../../widgets/homepets_button.dart';
-import '../../widgets/homepets_dialog.dart';
-import '../../widgets/homepets_text_field.dart';
+import '../../widgets/pickstarpet_button.dart';
+import '../../widgets/pickstarpet_dialog.dart';
+import '../../widgets/pickstarpet_text_field.dart';
 import '../member/member_home_screen.dart';
 import '../paywall/paywall_screen.dart';
 
@@ -201,7 +201,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             icon: Icons.info_outline_rounded,
             tone: _ProfilePalette.sky,
             toneSoft: _ProfilePalette.skySoft,
-            title: '关于 HomePets',
+            title: '关于拾星小宠',
             subtitle: '版本和产品说明',
             onTap: () => _showAbout(context),
           ),
@@ -307,7 +307,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
 
     final nicknameController = TextEditingController(text: user.nickname);
-    final nickname = await showHomePetsDialog<String>(
+    final nickname = await showPickStarPetDialog<String>(
       context: context,
       barrierLabel: 'profile_edit_dialog',
       title: '编辑资料',
@@ -327,7 +327,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 14),
-            HomePetsTextField(
+            PickStarPetTextField(
               controller: nicknameController,
               hintText: '请输入昵称',
               icon: Icons.person_outline_rounded,
@@ -341,12 +341,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       },
       actionsBuilder: (dialogContext) {
         return <Widget>[
-          HomePetsButton(
+          PickStarPetButton(
             label: '取消',
-            variant: HomePetsButtonVariant.secondary,
+            variant: PickStarPetButtonVariant.secondary,
             onPressed: () => Navigator.of(dialogContext).pop(),
           ),
-          HomePetsButton(
+          PickStarPetButton(
             label: '保存',
             onPressed: () =>
                 _submitNicknameDialog(dialogContext, nicknameController),
@@ -396,11 +396,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _showAbout(BuildContext context) {
-    return showHomePetsDialog<void>(
+    return showPickStarPetDialog<void>(
       context: context,
       barrierLabel: 'profile_about_dialog',
-      minimumSafeArea: HomePetsDialogGutter.smallInsets,
-      title: '关于 HomePets',
+      minimumSafeArea: PickStarPetDialogGutter.smallInsets,
+      title: '关于拾星小宠',
       contentBuilder: (dialogContext) {
         return const Column(
           mainAxisSize: MainAxisSize.min,
@@ -409,7 +409,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             _AboutLine(label: '版本', value: '1.0.0'),
             SizedBox(height: 10),
             Text(
-              'HomePets 是面向中国家庭的亲子宠物养成系统。'
+              '拾星小宠是面向中国家庭的亲子宠物养成系统。'
               '家长和孩子可以通过任务、奖励和宠物成长记录每天的陪伴。',
               style: TextStyle(
                 color: _ProfilePalette.mutedInk,
@@ -424,7 +424,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       },
       actionsBuilder: (dialogContext) {
         return <Widget>[
-          HomePetsButton(
+          PickStarPetButton(
             label: '知道了',
             onPressed: () => Navigator.of(dialogContext).pop(),
           ),
@@ -434,10 +434,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<bool> _showLogoutConfirmDialog(BuildContext context) async {
-    final result = await showHomePetsDialog<bool>(
+    final result = await showPickStarPetDialog<bool>(
       context: context,
       barrierLabel: 'profile_logout_confirm_dialog',
-      minimumSafeArea: HomePetsDialogGutter.smallInsets,
+      minimumSafeArea: PickStarPetDialogGutter.smallInsets,
       title: '退出登录',
       contentBuilder: (dialogContext) {
         return const Text(
@@ -453,12 +453,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       },
       actionsBuilder: (dialogContext) {
         return <Widget>[
-          HomePetsButton(
+          PickStarPetButton(
             label: '取消',
-            variant: HomePetsButtonVariant.secondary,
+            variant: PickStarPetButtonVariant.secondary,
             onPressed: () => Navigator.of(dialogContext).pop(false),
           ),
-          HomePetsButton(
+          PickStarPetButton(
             label: '确认退出',
             onPressed: () => Navigator.of(dialogContext).pop(true),
           ),
@@ -930,7 +930,11 @@ class _GuestProfilePanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          HomePetsButton(label: '登录 / 注册', onPressed: onLoginTap, width: 180),
+          PickStarPetButton(
+            label: '登录 / 注册',
+            onPressed: onLoginTap,
+            width: 180,
+          ),
         ],
       ),
     );

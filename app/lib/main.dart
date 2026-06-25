@@ -5,11 +5,11 @@ import 'providers/revenue_cat_provider.dart';
 import 'providers/subscription_provider.dart';
 
 void main() {
-  runApp(const ProviderScope(child: HomePetsApp()));
+  runApp(const ProviderScope(child: PickStarPetApp()));
 }
 
-class HomePetsApp extends ConsumerWidget {
-  const HomePetsApp({super.key});
+class PickStarPetApp extends ConsumerWidget {
+  const PickStarPetApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -22,7 +22,7 @@ class HomePetsApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
-        fontFamily: 'HomePetsFont',
+        fontFamily: 'PickStarPetFont',
         useMaterial3: true,
       ),
       routerConfig: router,

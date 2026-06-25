@@ -11,7 +11,7 @@ UNET_NAME = "flux-2-klein-base-4b-fp8.safetensors"
 CLIP_NAME = "qwen_3_4b_fp4_flux2.safetensors"
 VAE_NAME = "flux2-vae.safetensors"
 
-# HomePets 素材以统一、干净、偏平面卡通为主，默认参数偏向稳定和出图速度。
+# 拾星小宠 素材以统一、干净、偏平面卡通为主，默认参数偏向稳定和出图速度。
 DEFAULT_STEPS = int(os.getenv("COMFYUI_FULL_STEPS", "28"))
 DEFAULT_CFG = float(os.getenv("COMFYUI_FULL_CFG", "4.0"))
 DEFAULT_SAMPLER = os.getenv("COMFYUI_FULL_SAMPLER", "euler")

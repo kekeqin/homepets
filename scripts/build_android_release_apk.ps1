@@ -12,7 +12,7 @@ if ([string]::IsNullOrWhiteSpace($apiBaseUrl)) {
 if (
     $apiBaseUrl -match '^http://(10\.0\.2\.2|127\.0\.0\.1|localhost)(:|/|$)' -or
     $apiBaseUrl -match '^http://192\.168\.' -or
-    $apiBaseUrl -like '*homepets.example.com*'
+    $apiBaseUrl -like '*pickstarpet.example.com*'
 ) {
     throw "API_BASE_URL must not point to a local development server: $apiBaseUrl"
 }

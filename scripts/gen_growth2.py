@@ -1,4 +1,4 @@
-"""HomePets 成长阶段生成器 v2"""
+"""拾星小宠 成长阶段生成器 v2"""
 
 import requests
 import time
@@ -7,7 +7,7 @@ import os
 import sys
 
 from comfy_full_workflow_local import SERVER_URL, create_workflow as create_full_workflow, ensure_models_present
-ASSETS_DIR = r"C:\Users\Administrator\Desktop\homepets\app\assets\images\growth_v2"
+ASSETS_DIR = r"C:\Users\Administrator\Desktop\pickstarpet\app\assets\images\growth_v2"
 
 os.makedirs(ASSETS_DIR, exist_ok=True)
 ensure_models_present()
@@ -157,7 +157,7 @@ def generate(name):
 
 if __name__ == "__main__":
     print("=" * 50)
-    print("HomePets 成长阶段生成器 v2")
+    print("拾星小宠 成长阶段生成器 v2")
     print("=" * 50)
 
     resp = requests.get(f"{SERVER_URL}/system_stats")

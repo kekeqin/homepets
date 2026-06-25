@@ -18,13 +18,13 @@ ENV PATH="/app/.venv/bin:$PATH" \
 
 WORKDIR /app
 
-RUN groupadd --system homepets \
-    && useradd --system --gid homepets --home-dir /app homepets
+RUN groupadd --system pickstarpet \
+    && useradd --system --gid pickstarpet --home-dir /app pickstarpet
 
 COPY --from=builder /app/.venv /app/.venv
 COPY app ./app
 
-USER homepets
+USER pickstarpet
 
 EXPOSE 8000
 

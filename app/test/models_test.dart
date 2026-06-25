@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:homepets/models/pet_artwork.dart';
-import 'package:homepets/models/subscription_status.dart';
-import 'package:homepets/models/user.dart';
-import 'package:homepets/providers/auth_provider.dart';
-import 'package:homepets/providers/subscription_provider.dart';
+import 'package:pickstarpet/models/pet_artwork.dart';
+import 'package:pickstarpet/models/subscription_status.dart';
+import 'package:pickstarpet/models/user.dart';
+import 'package:pickstarpet/providers/auth_provider.dart';
+import 'package:pickstarpet/providers/subscription_provider.dart';
 
 void main() {
   test('User model parses JSON correctly', () {

@@ -2,19 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../core/ui/sprite_atlas.dart';
 
-enum HomePetsButtonVariant { primary, secondary }
+enum PickStarPetButtonVariant { primary, secondary }
 
 const SpriteAtlasAsset _homePetsButtonAtlasAsset = SpriteAtlasAsset(
   imageAsset: 'assets/images/ui/sprites/edit_task_sheet_clean_alpha.png',
   metadataAsset: 'assets/images/ui/sprites/edit_task_sheet_clean_alpha.json',
 );
 
-class HomePetsButton extends StatefulWidget {
-  const HomePetsButton({
+class PickStarPetButton extends StatefulWidget {
+  const PickStarPetButton({
     super.key,
     required this.label,
     required this.onPressed,
-    this.variant = HomePetsButtonVariant.primary,
+    this.variant = PickStarPetButtonVariant.primary,
     this.height = 48,
     this.width,
     this.textStyle,
@@ -24,7 +24,7 @@ class HomePetsButton extends StatefulWidget {
 
   final String label;
   final VoidCallback? onPressed;
-  final HomePetsButtonVariant variant;
+  final PickStarPetButtonVariant variant;
   final double height;
   final double? width;
   final TextStyle? textStyle;
@@ -32,17 +32,17 @@ class HomePetsButton extends StatefulWidget {
   final EdgeInsets labelPadding;
 
   @override
-  State<HomePetsButton> createState() => _HomePetsButtonState();
+  State<PickStarPetButton> createState() => _PickStarPetButtonState();
 }
 
-class _HomePetsButtonState extends State<HomePetsButton> {
+class _PickStarPetButtonState extends State<PickStarPetButton> {
   bool _pressed = false;
 
   String get _backgroundFrameName {
     switch (widget.variant) {
-      case HomePetsButtonVariant.primary:
+      case PickStarPetButtonVariant.primary:
         return 'save_button_bg.png';
-      case HomePetsButtonVariant.secondary:
+      case PickStarPetButtonVariant.secondary:
         return 'cancel_button_bg.png';
     }
   }
@@ -58,10 +58,10 @@ class _HomePetsButtonState extends State<HomePetsButton> {
 
   @override
   Widget build(BuildContext context) {
-    final defaultTextColor = widget.variant == HomePetsButtonVariant.primary
+    final defaultTextColor = widget.variant == PickStarPetButtonVariant.primary
         ? const Color(0xFF4D3623)
         : const Color(0xFF70513A);
-    final fallbackColor = widget.variant == HomePetsButtonVariant.primary
+    final fallbackColor = widget.variant == PickStarPetButtonVariant.primary
         ? const Color(0xFFFFB65A)
         : const Color(0xFFFFF1D7);
 
@@ -78,7 +78,7 @@ class _HomePetsButtonState extends State<HomePetsButton> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              _HomePetsButtonBackground(
+              _PickStarPetButtonBackground(
                 frameName: _backgroundFrameName,
                 fallbackColor: fallbackColor,
               ),
@@ -128,8 +128,8 @@ class _HomePetsButtonState extends State<HomePetsButton> {
   }
 }
 
-class _HomePetsButtonBackground extends StatelessWidget {
-  const _HomePetsButtonBackground({
+class _PickStarPetButtonBackground extends StatelessWidget {
+  const _PickStarPetButtonBackground({
     required this.frameName,
     required this.fallbackColor,
   });

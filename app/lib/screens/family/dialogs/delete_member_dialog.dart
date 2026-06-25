@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../widgets/app_modal_shell.dart';
-import '../../../widgets/homepets_button.dart';
+import '../../../widgets/pickstarpet_button.dart';
 import '../../../widgets/source_scaled_rrect_border.dart';
 import '../widgets/family_sprite_slice.dart';
 
@@ -27,7 +27,7 @@ const double _deleteMemberTaskPanelSourceHeight = 1369;
 const double _deleteMemberTaskPanelVisibleLeftInset = 48;
 const double _deleteMemberTaskPanelVisibleRightInset = 51;
 const Color _deleteMemberTaskPanelBorderColor = Color(0xFF6A3D20);
-const String _deleteMemberFontFamily = 'HomePetsFont';
+const String _deleteMemberFontFamily = 'PickStarPetFont';
 const Color _deleteMemberTextColor = Color(0xFF4D3322);
 const Color _deleteMemberMutedTextColor = Color(0x7A4D3322);
 
@@ -93,7 +93,7 @@ class _DeleteMemberDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppModalShell(
       layout: _deleteMemberDialogLayout,
-      minimumSafeArea: HomePetsDialogGutter.mediumInsets,
+      minimumSafeArea: PickStarPetDialogGutter.mediumInsets,
       visibleFrame: _deleteMemberDialogVisibleFrame,
       clipChild: false,
       child: LayoutBuilder(
@@ -227,9 +227,9 @@ class _DeleteMemberDialog extends StatelessWidget {
                   bottom: height * 0.074,
                   width: cancelButtonWidth,
                   height: buttonHeight,
-                  child: HomePetsButton(
+                  child: PickStarPetButton(
                     label: '取消',
-                    variant: HomePetsButtonVariant.secondary,
+                    variant: PickStarPetButtonVariant.secondary,
                     width: cancelButtonWidth,
                     height: buttonHeight,
                     onPressed: onCancel,
@@ -240,7 +240,7 @@ class _DeleteMemberDialog extends StatelessWidget {
                   bottom: height * 0.074,
                   width: deleteButtonWidth,
                   height: buttonHeight,
-                  child: HomePetsButton(
+                  child: PickStarPetButton(
                     label: '删除',
                     width: deleteButtonWidth,
                     height: buttonHeight,

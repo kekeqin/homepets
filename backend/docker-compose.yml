@@ -2,9 +2,9 @@ services:
   db:
     image: postgres:18-alpine
     environment:
-      POSTGRES_USER: homepets
-      POSTGRES_PASSWORD: homepets
-      POSTGRES_DB: homepets
+      POSTGRES_USER: pickstarpet
+      POSTGRES_PASSWORD: pickstarpet
+      POSTGRES_DB: pickstarpet
     ports:
       - "5432:5432"
     volumes:
@@ -15,7 +15,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql://homepets:homepets@db:5432/homepets
+      DATABASE_URL: postgresql://pickstarpet:pickstarpet@db:5432/pickstarpet
     depends_on:
       - db
 

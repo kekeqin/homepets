@@ -27,14 +27,14 @@ Future<void> showPaywallDialog(
     barrierLabel: '会员权益',
     barrierDismissible: mode == PaywallMode.optional,
     blurSigma: 7,
-    barrierTint: HomePetsDialogTheme.barrierTint,
+    barrierTint: PickStarPetDialogTheme.barrierTint,
     transitionDuration: const Duration(milliseconds: 260),
     beginScale: 0.92,
     beginYOffset: 22,
     pageBuilder: (dialogContext) {
       return AppModalShell(
         layout: AppModalLayouts.paywall,
-        minimumSafeArea: HomePetsDialogGutter.largeInsets,
+        minimumSafeArea: PickStarPetDialogGutter.largeInsets,
         clipChild: false,
         child: PaywallContent(
           mode: mode,
@@ -93,7 +93,7 @@ class PaywallScreen extends ConsumerWidget {
             SafeArea(
               child: AppModalShell(
                 layout: AppModalLayouts.paywall,
-                minimumSafeArea: HomePetsDialogGutter.largeInsets,
+                minimumSafeArea: PickStarPetDialogGutter.largeInsets,
                 clipChild: false,
                 child: PaywallContent(
                   mode: mode,
@@ -143,7 +143,7 @@ class _PaywallRouteBackdrop extends StatelessWidget {
       child: BackdropFilter(
         filter: ui.ImageFilter.blur(sigmaX: 7, sigmaY: 7),
         child: ColoredBox(
-          color: HomePetsDialogTheme.barrierTint,
+          color: PickStarPetDialogTheme.barrierTint,
           child: const SizedBox.expand(),
         ),
       ),
@@ -492,13 +492,13 @@ class _PaywallHeaderCopy extends StatelessWidget {
         ?.entitlements
         .active[RevenueCatConstants.entitlementId];
     final status = subscriptionState.status;
-    final title = isBlocking ? '试用期已结束' : 'HomePets 家庭会员';
+    final title = isBlocking ? '试用期已结束' : '拾星小宠家庭会员';
     final subtitle = entitlement?.isActive == true
         ? '会员权益已生效，可继续体验全部家庭功能。'
         : status?.status == 'trial_expiring'
         ? '试用期即将结束。订阅后可继续管理家庭任务和宠物成长。'
         : isBlocking
-        ? '订阅 HomePets 后，可以继续使用家庭任务、宠物成长和成长记录功能。'
+        ? '订阅拾星小宠后，可以继续使用家庭任务、宠物成长和成长记录功能。'
         : '试用期内可完整体验家庭任务、宠物成长和任务记录，试用结束后需要订阅继续使用。';
     return Positioned.fromRect(
       rect: Rect.fromLTWH(
@@ -803,7 +803,7 @@ class _PaywallComplianceLinks extends ConsumerWidget {
             onTap: () => _showInfo(
               context,
               '联系客服',
-              '请通过 support@homepets.app 联系我们处理订阅、账号或数据问题。',
+              '请通过 support@kkqin.com 联系我们处理订阅、账号或数据问题。',
             ),
           ),
           _ComplianceLink(
@@ -820,7 +820,7 @@ class _PaywallComplianceLinks extends ConsumerWidget {
           ),
           _ComplianceLink(
             label: '版本信息',
-            onTap: () => _showInfo(context, '版本信息', 'HomePets 版本：1.0.0'),
+            onTap: () => _showInfo(context, '版本信息', '拾星小宠版本：1.0.0'),
           ),
         ],
       ),
@@ -833,7 +833,7 @@ class _PaywallComplianceLinks extends ConsumerWidget {
       builder: (dialogContext) {
         return AlertDialog(
           insetPadding: const EdgeInsets.symmetric(
-            horizontal: HomePetsDialogGutter.small,
+            horizontal: PickStarPetDialogGutter.small,
             vertical: 24,
           ),
           title: Text(title),

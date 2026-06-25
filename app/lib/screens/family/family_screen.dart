@@ -52,7 +52,7 @@ Future<void> showFamilyDialog(
     useRootNavigator: useRootNavigator,
     barrierLabel: 'family_overlay',
     blurSigma: 7,
-    barrierTint: HomePetsDialogTheme.barrierTint,
+    barrierTint: PickStarPetDialogTheme.barrierTint,
     transitionDuration: const Duration(milliseconds: 220),
     beginScale: 0.96,
     beginYOffset: 16,
@@ -60,9 +60,9 @@ Future<void> showFamilyDialog(
       return AppModalShell(
         layout: AppModalLayouts.family,
         minimumSafeArea: const EdgeInsets.fromLTRB(
-          HomePetsDialogGutter.large,
+          PickStarPetDialogGutter.large,
           10,
-          HomePetsDialogGutter.large,
+          PickStarPetDialogGutter.large,
           8,
         ),
         visibleFrame: _familyDialogVisibleFrame,

@@ -170,7 +170,7 @@ def test_active_subscription_unlocks_expired_trial(client: TestClient, db: Sessi
     subscription.trial_ends_at = datetime.now(UTC) - timedelta(days=1)
     subscription.status = "subscribed_active"
     subscription.expires_at = datetime.now(UTC) + timedelta(days=30)
-    subscription.product_id = "homepets_monthly"
+    subscription.product_id = "pickstarpet_monthly"
     subscription.will_renew = True
     db.add(subscription)
     db.commit()
@@ -221,7 +221,7 @@ def test_revenuecat_webhook_updates_and_deduplicates(
             "id": "evt_1",
             "app_user_id": subscription.revenuecat_app_user_id,
             "type": "INITIAL_PURCHASE",
-            "product_id": "homepets_monthly",
+            "product_id": "pickstarpet_monthly",
             "expiration_at_ms": int((datetime.now(UTC) + timedelta(days=30)).timestamp() * 1000),
             "will_renew": True,
         }
@@ -243,7 +243,7 @@ def test_revenuecat_webhook_updates_and_deduplicates(
     assert second.json()["processed"] is False
     db.refresh(subscription)
     assert subscription.status == "subscribed_active"
-    assert subscription.product_id == "homepets_monthly"
+    assert subscription.product_id == "pickstarpet_monthly"
     assert subscription.last_event_id == "evt_1"
 
 
@@ -269,7 +269,7 @@ def test_subscription_sync_uses_revenuecat_payload(
                 "entitlements": {
                     "premium": {
                         "expires_date": expires_at,
-                        "product_identifier": "homepets_monthly",
+                        "product_identifier": "pickstarpet_monthly",
                         "will_renew": True,
                     }
                 }
@@ -287,7 +287,7 @@ def test_subscription_sync_uses_revenuecat_payload(
     data = response.json()["subscription"]
     assert data["status"] == "subscribed_active"
     assert data["access_allowed"] is True
-    assert data["product_id"] == "homepets_monthly"
+    assert data["product_id"] == "pickstarpet_monthly"
 
 
 def test_subscription_sync_uses_active_client_entitlement_without_secret(
@@ -308,7 +308,7 @@ def test_subscription_sync_uses_active_client_entitlement_without_secret(
         json={
             "revenuecat_app_user_id": subscription.revenuecat_app_user_id,
             "entitlement_id": "premium",
-            "product_id": "homepets_annual",
+            "product_id": "pickstarpet_annual",
             "subscription_expires_at": expires_at.isoformat(),
             "will_renew": True,
             "is_active": True,
@@ -321,7 +321,7 @@ def test_subscription_sync_uses_active_client_entitlement_without_secret(
     assert data["status"] == "subscribed_active"
     assert data["access_allowed"] is True
     assert data["paywall_required"] is False
-    assert data["product_id"] == "homepets_annual"
+    assert data["product_id"] == "pickstarpet_annual"
     assert data["subscription_expires_at"] is not None
 
 
@@ -348,7 +348,7 @@ def test_subscription_sync_extends_short_revenuecat_expiration_from_client_entit
                 "entitlements": {
                     "premium": {
                         "expires_date": short_expires_at.isoformat(),
-                        "product_identifier": "homepets_annual",
+                        "product_identifier": "pickstarpet_annual",
                         "will_renew": True,
                     }
                 }
@@ -365,7 +365,7 @@ def test_subscription_sync_extends_short_revenuecat_expiration_from_client_entit
         json={
             "revenuecat_app_user_id": subscription.revenuecat_app_user_id,
             "entitlement_id": "premium",
-            "product_id": "homepets_annual",
+            "product_id": "pickstarpet_annual",
             "subscription_expires_at": client_expires_at.isoformat(),
             "will_renew": True,
             "is_active": True,
@@ -397,7 +397,7 @@ def test_subscription_sync_does_not_unlock_expired_client_entitlement(
         json={
             "revenuecat_app_user_id": subscription.revenuecat_app_user_id,
             "entitlement_id": "premium",
-            "product_id": "homepets_monthly",
+            "product_id": "pickstarpet_monthly",
             "subscription_expires_at": (datetime.now(UTC) - timedelta(days=1)).isoformat(),
             "will_renew": False,
             "is_active": True,

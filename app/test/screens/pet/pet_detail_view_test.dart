@@ -4,12 +4,12 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:homepets/core/api_client.dart';
-import 'package:homepets/core/auth_session_bus.dart';
-import 'package:homepets/core/ui/adaptive_design_layout.dart';
-import 'package:homepets/models/pet.dart';
-import 'package:homepets/providers/auth_provider.dart';
-import 'package:homepets/screens/pet/widgets/pet_detail_view.dart';
+import 'package:pickstarpet/core/api_client.dart';
+import 'package:pickstarpet/core/auth_session_bus.dart';
+import 'package:pickstarpet/core/ui/adaptive_design_layout.dart';
+import 'package:pickstarpet/models/pet.dart';
+import 'package:pickstarpet/providers/auth_provider.dart';
+import 'package:pickstarpet/screens/pet/widgets/pet_detail_view.dart';
 
 void main() {
   testWidgets('shows pet owner name instead of feed count', (tester) async {

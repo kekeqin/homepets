@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:homepets/screens/member/widgets/member_avatar_picker_sheet.dart';
-import 'package:homepets/widgets/user_avatar.dart';
+import 'package:pickstarpet/screens/member/widgets/member_avatar_picker_sheet.dart';
+import 'package:pickstarpet/widgets/user_avatar.dart';
 
 void main() {
   testWidgets('orders avatar options by adult men women boys and girls', (

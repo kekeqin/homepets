@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class HomePetsPrimaryButton extends StatefulWidget {
-  const HomePetsPrimaryButton({
+class PickStarPetPrimaryButton extends StatefulWidget {
+  const PickStarPetPrimaryButton({
     super.key,
     required this.label,
     required this.onPressed,
@@ -15,10 +15,11 @@ class HomePetsPrimaryButton extends StatefulWidget {
   final TextStyle? textStyle;
 
   @override
-  State<HomePetsPrimaryButton> createState() => _HomePetsPrimaryButtonState();
+  State<PickStarPetPrimaryButton> createState() =>
+      _PickStarPetPrimaryButtonState();
 }
 
-class _HomePetsPrimaryButtonState extends State<HomePetsPrimaryButton> {
+class _PickStarPetPrimaryButtonState extends State<PickStarPetPrimaryButton> {
   bool _pressed = false;
 
   bool get _enabled => widget.onPressed != null;

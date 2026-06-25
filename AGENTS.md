@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-HomePets — a family pet-raising system built to improve parent-child interaction through task-based pet feeding and leveling.
+拾星小宠 — 通过任务喂养和宠物成长提升亲子互动的家庭宠物养成系统。
 
 - **Backend**: Python 3.12+, FastAPI, SQLModel, PostgreSQL, uv (package manager), Docker
 - **Frontend**: Flutter (latest stable), Riverpod, GoRouter, Dio

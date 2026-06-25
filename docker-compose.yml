@@ -1,13 +1,13 @@
-name: homepets
+name: pickstarpet
 
 services:
   db:
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-homepets}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-homepets}
-      POSTGRES_DB: ${POSTGRES_DB:-homepets}
+      POSTGRES_USER: ${POSTGRES_USER:-pickstarpet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pickstarpet}
+      POSTGRES_DB: ${POSTGRES_DB:-pickstarpet}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -24,14 +24,14 @@ services:
     image: pickstarpet:latest
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-homepets}:${POSTGRES_PASSWORD:-homepets}@db:5432/${POSTGRES_DB:-homepets}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-pickstarpet}:${POSTGRES_PASSWORD:-pickstarpet}@db:5432/${POSTGRES_DB:-pickstarpet}
       DEBUG: ${DEBUG:-false}
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
       ALIBABA_CLOUD_ACCESS_KEY_ID: ${ALIBABA_CLOUD_ACCESS_KEY_ID:-}
       ALIBABA_CLOUD_ACCESS_KEY_SECRET: ${ALIBABA_CLOUD_ACCESS_KEY_SECRET:-}
       ALIYUN_SMS_SIGN_NAME: ${ALIYUN_SMS_SIGN_NAME:-}
       ALIYUN_SMS_TEMPLATE_CODE: ${ALIYUN_SMS_TEMPLATE_CODE:-}
-      ALIYUN_SMS_SCHEME_NAME: ${ALIYUN_SMS_SCHEME_NAME:-HomePets}
+      ALIYUN_SMS_SCHEME_NAME: ${ALIYUN_SMS_SCHEME_NAME:-拾星小宠}
       ALIYUN_SMS_REGION_ID: ${ALIYUN_SMS_REGION_ID:-cn-hangzhou}
       ALIYUN_SMS_ENDPOINT: ${ALIYUN_SMS_ENDPOINT:-https://dypnsapi.aliyuncs.com/}
       ALIYUN_SMS_CODE_VALID_SECONDS: ${ALIYUN_SMS_CODE_VALID_SECONDS:-300}

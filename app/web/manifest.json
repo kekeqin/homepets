@@ -1,11 +1,11 @@
 {
-    "name": "homepets",
-    "short_name": "homepets",
+    "name": "拾星小宠",
+    "short_name": "拾星小宠",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "拾星小宠家庭宠物养成应用",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

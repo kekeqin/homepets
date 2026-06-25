@@ -4,8 +4,8 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:homepets/screens/home/game/home_scene_game.dart';
-import 'package:homepets/screens/home/game/home_scene_layout.dart';
+import 'package:pickstarpet/screens/home/game/home_scene_game.dart';
+import 'package:pickstarpet/screens/home/game/home_scene_layout.dart';
 
 const _staticHomePetAssetPaths = <String>[
   'images/pets/grow/cat/growing/lying.png',

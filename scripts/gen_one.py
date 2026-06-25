@@ -7,7 +7,7 @@ import os
 import sys
 
 from comfy_full_workflow_local import SERVER_URL, create_workflow as create_full_workflow, ensure_models_present
-ASSETS_DIR = r"C:\Users\Administrator\Desktop\homepets\app\assets\images\growth"
+ASSETS_DIR = r"C:\Users\Administrator\Desktop\pickstarpet\app\assets\images\growth"
 
 BASE = "cute cartoon, round face, big sparkling eyes, white background, kawaii style, high quality illustration, simple design"
 

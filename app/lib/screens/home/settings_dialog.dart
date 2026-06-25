@@ -6,8 +6,7 @@ import '../../widgets/app_modal_shell.dart';
 import '../../widgets/source_scaled_rrect_border.dart';
 
 const String _settingsFrameAsset = 'assets/images/ui/setup/frame.png';
-const String _settingsCloseButtonAsset =
-    'assets/images/ui/family/12 (2).png';
+const String _settingsCloseButtonAsset = 'assets/images/ui/family/12 (2).png';
 const String _settingsEditProfileInputAsset =
     'assets/images/ui/setup/7 (1).png';
 const String _settingsEditProfileIconAsset =
@@ -68,7 +67,7 @@ Future<HomeSettingsAction?> showSettingsDialog(
     useRootNavigator: useRootNavigator,
     barrierLabel: 'settings_dialog',
     blurSigma: 6,
-    barrierTint: HomePetsDialogTheme.barrierTint,
+    barrierTint: PickStarPetDialogTheme.barrierTint,
     beginScale: 0.96,
     beginYOffset: 16,
     pageBuilder: (dialogContext) {
@@ -93,7 +92,7 @@ class _SettingsDialogPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppModalShell(
       layout: _settingsDialogLayout,
-      minimumSafeArea: HomePetsDialogGutter.mediumInsets,
+      minimumSafeArea: PickStarPetDialogGutter.mediumInsets,
       clipChild: false,
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -131,7 +130,7 @@ class _SettingsDialogPanel extends StatelessWidget {
                             '设置',
                             style: TextStyle(
                               color: _settingsTextColor,
-                              fontFamily: 'HomePetsFont',
+                              fontFamily: 'PickStarPetFont',
                               fontSize: 34,
                               fontWeight: FontWeight.w900,
                               height: 1,
@@ -283,7 +282,7 @@ class _SettingsActionTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: _settingsTextColor,
-                        fontFamily: 'HomePetsFont',
+                        fontFamily: 'PickStarPetFont',
                         fontSize: 26,
                         fontWeight: FontWeight.w900,
                         height: 1.05,

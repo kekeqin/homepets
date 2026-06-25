@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param(
     [string]$ProjectRoot,
     [switch]$NoLaunch
@@ -29,10 +29,10 @@ function Escape-YamlSingleQuoted {
 $desktopRoot = Split-Path $ProjectRoot -Parent
 $workspaces = [ordered]@{
     "主控窗口" = $ProjectRoot
-    "backend" = Join-Path $desktopRoot "homepets-backend"
-    "auth-family" = Join-Path $desktopRoot "homepets-auth-family"
-    "home-pet" = Join-Path $desktopRoot "homepets-home-pet"
-    "tasks-shop-tests" = Join-Path $desktopRoot "homepets-tasks-shop-tests"
+    "backend" = Join-Path $desktopRoot "pickstarpet-backend"
+    "auth-family" = Join-Path $desktopRoot "pickstarpet-auth-family"
+    "home-pet" = Join-Path $desktopRoot "pickstarpet-home-pet"
+    "tasks-shop-tests" = Join-Path $desktopRoot "pickstarpet-tasks-shop-tests"
 }
 
 foreach ($entry in $workspaces.GetEnumerator()) {
@@ -44,7 +44,7 @@ foreach ($entry in $workspaces.GetEnumerator()) {
 $launchConfigDir = Join-Path $env:APPDATA "warp\Warp\data\launch_configurations"
 New-Item -ItemType Directory -Force -Path $launchConfigDir | Out-Null
 
-$launchConfigName = "homepets_codex_parallel.yaml"
+$launchConfigName = "pickstarpet_codex_parallel.yaml"
 $launchConfigPath = Join-Path $launchConfigDir $launchConfigName
 
 $windowBlocks = foreach ($entry in $workspaces.GetEnumerator()) {
@@ -62,7 +62,7 @@ $windowBlocks = foreach ($entry in $workspaces.GetEnumerator()) {
 
 $yamlContent = @"
 ---
-name: HomePets Codex Parallel
+name: 拾星小宠 Codex Parallel
 active_window_index: 0
 windows:
 $($windowBlocks -join "`r`n")
@@ -97,10 +97,10 @@ try {
     Write-Host ""
     Write-Host "如果 Warp 没有自动打开，请手动执行以下任一方式：" -ForegroundColor Yellow
     Write-Host "1. 在 PowerShell 执行：Start-Process 'warp://launch/$launchConfigName'"
-    Write-Host "2. 打开 Warp -> Command Palette -> Launch Configuration -> 选择 HomePets Codex Parallel"
+    Write-Host "2. 打开 Warp -> Command Palette -> Launch Configuration -> 选择 拾星小宠 Codex Parallel"
 }
 catch {
     Write-Warning "无法直接通过 URI 启动 Warp：$($_.Exception.Message)"
-    Write-Host "你仍然可以在 Warp 中手动打开 Launch Configuration：HomePets Codex Parallel" -ForegroundColor Yellow
+    Write-Host "你仍然可以在 Warp 中手动打开 Launch Configuration：拾星小宠 Codex Parallel" -ForegroundColor Yellow
     exit 1
 }

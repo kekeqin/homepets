@@ -10,8 +10,8 @@ from comfy_full_workflow_local import SERVER_URL, create_workflow, ensure_models
 
 # 输出目录
 DIRS = {
-    "512": r"C:\Users\Administrator\Desktop\homepets\app\assets\images\pets",
-    "128": r"C:\Users\Administrator\Desktop\homepets\app\assets\images\icons",
+    "512": r"C:\Users\Administrator\Desktop\pickstarpet\app\assets\images\pets",
+    "128": r"C:\Users\Administrator\Desktop\pickstarpet\app\assets\images\icons",
 }
 
 for d in DIRS.values():

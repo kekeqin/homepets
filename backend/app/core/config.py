@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    APP_NAME: str = "HomePets"
+    APP_NAME: str = "拾星小宠"
     DEBUG: bool = True
 
     DATABASE_URL: str | None = None
@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     ALIBABA_CLOUD_ACCESS_KEY_SECRET: str | None = None
     ALIYUN_SMS_SIGN_NAME: str | None = None
     ALIYUN_SMS_TEMPLATE_CODE: str | None = None
-    ALIYUN_SMS_SCHEME_NAME: str = "HomePets"
+    ALIYUN_SMS_SCHEME_NAME: str = "拾星小宠"
     ALIYUN_SMS_REGION_ID: str = "cn-hangzhou"
     ALIYUN_SMS_ENDPOINT: str = "https://dypnsapi.aliyuncs.com/"
     ALIYUN_SMS_CODE_VALID_SECONDS: int = 300
@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     @property
     def database_url(self) -> str:
         """Use a local SQLite database by default for zero-config development."""
-        return self.DATABASE_URL or "sqlite:///./homepets.db"
+        return self.DATABASE_URL or "sqlite:///./pickstarpet.db"
 
     @property
     def apple_sign_in_client_ids(self) -> list[str]:

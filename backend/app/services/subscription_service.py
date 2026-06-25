@@ -52,7 +52,7 @@ def revenuecat_app_user_id_for(user: User) -> str:
 
 
 def ensure_subscription_for_user(db: Session, user: User) -> Subscription:
-    """Create or return the family/user entitlement record for a HomePets user."""
+    """Create or return the family/user entitlement record for a PickStarPet user."""
     if user.family_id is not None:
         statement = select(Subscription).where(Subscription.family_id == user.family_id)
     else:

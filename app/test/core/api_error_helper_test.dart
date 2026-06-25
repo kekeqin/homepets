@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:homepets/core/api_error_helper.dart';
+import 'package:pickstarpet/core/api_error_helper.dart';
 
 void main() {
   test('extracts message from structured API detail', () {

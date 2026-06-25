@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:homepets/widgets/app_modal_shell.dart';
+import 'package:pickstarpet/widgets/app_modal_shell.dart';
 
 const _testLayout = AppModalLayout(
   mobileWidthFactor: 1,

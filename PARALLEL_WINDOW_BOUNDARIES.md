@@ -1,12 +1,12 @@
-﻿# HomePets 并行 Codex 窗口边界清单
+# 拾星小宠 并行 Codex 窗口边界清单
 
 适用目录：
 
-- 主控：`C:\Users\Administrator\Desktop\homepets`
-- backend：`C:\Users\Administrator\Desktop\homepets-backend`
-- auth/family：`C:\Users\Administrator\Desktop\homepets-auth-family`
-- home/pet：`C:\Users\Administrator\Desktop\homepets-home-pet`
-- tasks/shop/tests：`C:\Users\Administrator\Desktop\homepets-tasks-shop-tests`
+- 主控：`C:\Users\Administrator\Desktop\pickstarpet`
+- backend：`C:\Users\Administrator\Desktop\pickstarpet-backend`
+- auth/family：`C:\Users\Administrator\Desktop\pickstarpet-auth-family`
+- home/pet：`C:\Users\Administrator\Desktop\pickstarpet-home-pet`
+- tasks/shop/tests：`C:\Users\Administrator\Desktop\pickstarpet-tasks-shop-tests`
 
 ---
 

@@ -6,11 +6,11 @@ def test_database_url_defaults_to_local_sqlite(monkeypatch) -> None:
 
     settings = Settings()
 
-    assert settings.database_url == "sqlite:///./homepets.db"
+    assert settings.database_url == "sqlite:///./pickstarpet.db"
 
 
 def test_database_url_prefers_explicit_env(monkeypatch) -> None:
-    expected_database_url = "postgresql://homepets:homepets@db:5432/homepets"
+    expected_database_url = "postgresql://pickstarpet:pickstarpet@db:5432/pickstarpet"
     monkeypatch.setenv("DATABASE_URL", expected_database_url)
 
     settings = Settings()

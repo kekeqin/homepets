@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:homepets/models/pet_artwork.dart';
-import 'package:homepets/screens/family/dialogs/add_member_flow_dialog.dart';
+import 'package:pickstarpet/models/pet_artwork.dart';
+import 'package:pickstarpet/screens/family/dialogs/add_member_flow_dialog.dart';
 
 void main() {
   testWidgets('collects nickname, pet type, and pet name in one dialog', (

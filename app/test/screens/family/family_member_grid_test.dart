@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:homepets/models/pet.dart';
-import 'package:homepets/models/pet_artwork.dart';
-import 'package:homepets/screens/family/models/family_member_view_data.dart';
-import 'package:homepets/screens/family/widgets/family_member_card.dart';
-import 'package:homepets/screens/family/widgets/family_member_grid.dart';
+import 'package:pickstarpet/models/pet.dart';
+import 'package:pickstarpet/models/pet_artwork.dart';
+import 'package:pickstarpet/screens/family/models/family_member_view_data.dart';
+import 'package:pickstarpet/screens/family/widgets/family_member_card.dart';
+import 'package:pickstarpet/screens/family/widgets/family_member_grid.dart';
 
 void main() {
   group('FamilyMemberGrid', () {

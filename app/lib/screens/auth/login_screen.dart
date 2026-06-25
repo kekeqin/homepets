@@ -9,8 +9,8 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../../core/ui/adaptive_design_layout.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/app_modal_shell.dart';
-import '../../widgets/homepets_primary_button.dart';
-import '../../widgets/homepets_text_field.dart';
+import '../../widgets/pickstarpet_primary_button.dart';
+import '../../widgets/pickstarpet_text_field.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -386,7 +386,7 @@ class _LoginPanel extends StatelessWidget {
       width: panelWidth,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: HomePetsDialogTheme.shellGradient,
+          gradient: PickStarPetDialogTheme.shellGradient,
           borderRadius: BorderRadius.circular(30),
           border: Border.all(color: const Color(0xFF4A2C1B), width: 2.5),
           boxShadow: const [
@@ -408,7 +408,7 @@ class _LoginPanel extends StatelessWidget {
                 children: [
                   const _LoginPanelHeader(),
                   const SizedBox(height: 20),
-                  HomePetsTextField(
+                  PickStarPetTextField(
                     controller: phoneController,
                     hintText: '\u624b\u673a\u53f7',
                     icon: Icons.phone_android_rounded,
@@ -431,7 +431,7 @@ class _LoginPanel extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: HomePetsTextField(
+                        child: PickStarPetTextField(
                           controller: codeController,
                           hintText: '\u9a8c\u8bc1\u7801',
                           icon: Icons.sms_outlined,
@@ -490,7 +490,7 @@ class _LoginPanel extends StatelessWidget {
                             ),
                           ),
                   ),
-                  HomePetsPrimaryButton(
+                  PickStarPetPrimaryButton(
                     key: LoginScreen.submitButtonKey,
                     label: authState.isLoading
                         ? '\u767b\u5f55\u4e2d'

@@ -5,7 +5,7 @@ SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 REPO_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
 BACKEND_DIR="$REPO_ROOT/backend"
 
-IMAGE_NAME="${IMAGE_NAME:-homepets-backend}"
+IMAGE_NAME="${IMAGE_NAME:-pickstarpet-backend}"
 TAG="${1:-${TAG:-v0.0.1}}"
 
 docker build \

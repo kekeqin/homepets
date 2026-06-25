@@ -26,9 +26,9 @@ import '../../providers/auth_provider.dart';
 import '../../providers/family_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../widgets/app_modal_shell.dart';
-import '../../widgets/homepets_button.dart';
-import '../../widgets/homepets_dialog.dart';
-import '../../widgets/homepets_select_field.dart';
+import '../../widgets/pickstarpet_button.dart';
+import '../../widgets/pickstarpet_dialog.dart';
+import '../../widgets/pickstarpet_select_field.dart';
 import '../../widgets/membership_top_notice.dart';
 import '../../widgets/source_scaled_rrect_border.dart';
 
@@ -157,7 +157,7 @@ const Duration _taskPanelTransitionDuration = Duration(milliseconds: 320);
 
 Size _taskMutationDialogSize(
   Size screenSize, {
-  double horizontalGutter = HomePetsDialogGutter.medium,
+  double horizontalGutter = PickStarPetDialogGutter.medium,
 }) {
   const visibleWidthRatio =
       (TaskBoardReferenceAsset.dialogPanelWidth -
@@ -880,7 +880,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         return;
       }
 
-      final result = await showHomePetsDialog<_ProfileEditResult>(
+      final result = await showPickStarPetDialog<_ProfileEditResult>(
         context: context,
         barrierLabel: 'edit_profile_dialog',
         title: '\u7f16\u8f91\u8d44\u6599',
@@ -933,12 +933,12 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         },
         actionsBuilder: (dialogContext) {
           return <Widget>[
-            HomePetsButton(
+            PickStarPetButton(
               label: '\u53d6\u6d88',
-              variant: HomePetsButtonVariant.secondary,
+              variant: PickStarPetButtonVariant.secondary,
               onPressed: () => Navigator.of(dialogContext).pop(),
             ),
-            HomePetsButton(
+            PickStarPetButton(
               label: '\u4fdd\u5b58',
               onPressed: () => _submitEditProfileDialog(
                 dialogContext,
@@ -1065,10 +1065,10 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   }
 
   Future<bool> _showLogoutConfirmDialog() async {
-    final result = await showHomePetsDialog<bool>(
+    final result = await showPickStarPetDialog<bool>(
       context: context,
       barrierLabel: 'logout_confirm_dialog',
-      minimumSafeArea: HomePetsDialogGutter.smallInsets,
+      minimumSafeArea: PickStarPetDialogGutter.smallInsets,
       title: '\u9000\u51fa\u767b\u5f55',
       showInnerBorder: false,
       contentBuilder: (dialogContext) {
@@ -1085,12 +1085,12 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       },
       actionsBuilder: (dialogContext) {
         return <Widget>[
-          HomePetsButton(
+          PickStarPetButton(
             label: '\u53d6\u6d88',
-            variant: HomePetsButtonVariant.secondary,
+            variant: PickStarPetButtonVariant.secondary,
             onPressed: () => Navigator.of(dialogContext).pop(false),
           ),
-          HomePetsButton(
+          PickStarPetButton(
             label: '\u786e\u8ba4\u9000\u51fa',
             onPressed: () => Navigator.of(dialogContext).pop(true),
           ),
@@ -1102,15 +1102,15 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   }
 
   Future<void> _showAboutDialog() {
-    return showHomePetsDialog<void>(
+    return showPickStarPetDialog<void>(
       context: context,
-      barrierLabel: 'about_homepets_dialog',
-      minimumSafeArea: HomePetsDialogGutter.smallInsets,
+      barrierLabel: 'about_pickstarpet_dialog',
+      minimumSafeArea: PickStarPetDialogGutter.smallInsets,
       showInnerBorder: false,
       title: '关于',
       contentBuilder: (dialogContext) {
         return const Text(
-          'HomePets 家庭宠物\n\n'
+          '拾星小宠家庭宠物\n\n'
           '通过任务喂养和宠物升级，把家庭日常任务变成亲子互动。\n\n'
           '版本：1.0.0',
           style: TextStyle(
@@ -1124,7 +1124,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       },
       actionsBuilder: (dialogContext) {
         return <Widget>[
-          HomePetsButton(
+          PickStarPetButton(
             label: '知道了',
             onPressed: () => Navigator.of(dialogContext).pop(),
           ),
@@ -1155,10 +1155,10 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     }
 
     _shopPanelVisible = true;
-    await showHomePetsDialog<void>(
+    await showPickStarPetDialog<void>(
       context: context,
       barrierLabel: 'shop_coming_soon',
-      minimumSafeArea: HomePetsDialogGutter.smallInsets,
+      minimumSafeArea: PickStarPetDialogGutter.smallInsets,
       showInnerBorder: false,
       title: '商店完善中',
       contentBuilder: (dialogContext) {
@@ -1175,7 +1175,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       },
       actionsBuilder: (dialogContext) {
         return <Widget>[
-          HomePetsButton(
+          PickStarPetButton(
             label: '知道了',
             onPressed: () => Navigator.of(dialogContext).pop(),
           ),
@@ -1243,7 +1243,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         TaskBoardReferenceAsset.panelWidth;
     final visibleWidthLimit = math.max(
       0.0,
-      size.width - HomePetsDialogGutter.large * 2,
+      size.width - PickStarPetDialogGutter.large * 2,
     );
     final maxWidth = math.min(visibleWidthLimit / visibleWidthRatio, 452.0);
     final maxHeight = size.height * 0.80;
@@ -2303,7 +2303,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                       child: ColoredBox(
                         color: Color.lerp(
                           Colors.transparent,
-                          HomePetsDialogTheme.barrierTint,
+                          PickStarPetDialogTheme.barrierTint,
                           backdropOpacity,
                         )!,
                         child: const SizedBox.expand(),
@@ -2338,13 +2338,13 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
                             borderRadius: BorderRadius.circular(
                               ui.lerpDouble(
                                 18,
-                                HomePetsDialogTheme.borderRadius.topLeft.x,
+                                PickStarPetDialogTheme.borderRadius.topLeft.x,
                                 panelProgress,
                               )!,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: HomePetsDialogTheme.shadow.withValues(
+                                color: PickStarPetDialogTheme.shadow.withValues(
                                   alpha: panelShadowOpacity,
                                 ),
                                 blurRadius: panelShadowBlur,
@@ -2819,7 +2819,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     final initialMemberId = _asInt(members.first['id'], fallback: -1);
     final options = members
         .map(
-          (member) => HomePetsSelectOption<int>(
+          (member) => PickStarPetSelectOption<int>(
             value: _asInt(member['id'], fallback: -1),
             label: _memberDisplayName(member),
           ),
@@ -2831,7 +2831,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       context: context,
       barrierLabel: 'completion_member_dialog',
       blurSigma: 6,
-      barrierTint: HomePetsDialogTheme.barrierTint,
+      barrierTint: PickStarPetDialogTheme.barrierTint,
       beginScale: 0.95,
       beginYOffset: 16,
       pageBuilder: (dialogContext) {
@@ -3215,7 +3215,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         return;
       }
 
-      final samePets = _sameHomePets(_pets, pets);
+      final samePets = _samePickStarPet(_pets, pets);
       if (samePets && !forceSync) {
         return;
       }
@@ -3230,7 +3230,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     }
   }
 
-  bool _sameHomePets(List<Pet> left, List<Pet> right) {
+  bool _samePickStarPet(List<Pet> left, List<Pet> right) {
     if (left.length != right.length) {
       return false;
     }
@@ -3610,7 +3610,7 @@ class _TaskContextSpriteMenu extends StatelessWidget {
 
   static const double _menuHeight = _menuWidth * (169 / 135);
 
-  static const double _screenPadding = HomePetsDialogGutter.small;
+  static const double _screenPadding = PickStarPetDialogGutter.small;
 
   Offset _resolveMenuOffset(Size screenSize) {
     var left = anchorInOverlay.dx + 8;
@@ -3858,14 +3858,14 @@ class _TaskDeleteConfirmDialog extends StatelessWidget {
     final screenSize = MediaQuery.sizeOf(context);
     final panelSize = _taskMutationDialogSize(
       screenSize,
-      horizontalGutter: HomePetsDialogGutter.small,
+      horizontalGutter: PickStarPetDialogGutter.small,
     );
 
     return SafeArea(
       minimum: const EdgeInsets.fromLTRB(
-        HomePetsDialogGutter.small,
+        PickStarPetDialogGutter.small,
         24,
-        HomePetsDialogGutter.small,
+        PickStarPetDialogGutter.small,
         24,
       ),
       child: Center(
@@ -3994,7 +3994,7 @@ class _TaskDeleteConfirmPanel extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: const Color(0xFF4D3322).withValues(alpha: 0.38),
-                    fontFamily: 'HomePetsFont',
+                    fontFamily: 'PickStarPetFont',
                     fontSize: width * 0.038,
                     fontWeight: FontWeight.w800,
                     height: 1,
@@ -4128,7 +4128,7 @@ class _CompletionMemberSelectContent extends StatefulWidget {
   });
 
   final int? initialMemberId;
-  final List<HomePetsSelectOption<int>> options;
+  final List<PickStarPetSelectOption<int>> options;
 
   @override
   State<_CompletionMemberSelectContent> createState() =>
@@ -4152,7 +4152,7 @@ class _CompletionMemberSelectContentState
         : widget.options.first.value;
   }
 
-  HomePetsSelectOption<int>? get _selectedOption {
+  PickStarPetSelectOption<int>? get _selectedOption {
     for (final option in widget.options) {
       if (option.value == _selectedMemberId) {
         return option;
@@ -4184,7 +4184,7 @@ class _CompletionMemberSelectContentState
     final buttonMaxGroupWidth = _completeMemberDialogDesignSize.width * 0.70;
 
     return SafeArea(
-      minimum: HomePetsDialogGutter.mediumInsets,
+      minimum: PickStarPetDialogGutter.mediumInsets,
       child: Center(
         child: Transform.translate(
           offset: Offset(_taskDialogVisibleCenterOffset(panelSize.width), 0),
@@ -4455,7 +4455,7 @@ class _CompleteMemberOptionsList extends StatelessWidget {
     required this.onSelected,
   });
 
-  final List<HomePetsSelectOption<int>> options;
+  final List<PickStarPetSelectOption<int>> options;
   final int? selectedMemberId;
   final ValueChanged<int> onSelected;
 
@@ -4508,7 +4508,7 @@ class _CompleteMemberOptionRow extends StatelessWidget {
     required this.onSelected,
   });
 
-  final HomePetsSelectOption<int> option;
+  final PickStarPetSelectOption<int> option;
   final bool selected;
   final ValueChanged<int> onSelected;
 

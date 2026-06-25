@@ -309,7 +309,7 @@ def make_large_selected_avatar(avatar: Image.Image) -> Image.Image:
 
 def make_manifest(meta: dict[str, object]) -> None:
     manifest = {
-        "source": "Derived from HomePets avatar artwork and rebuilt UI sprites for the user-provided avatar picker reference.",
+        "source": "Derived from 拾星小宠 avatar artwork and rebuilt UI sprites for the user-provided avatar picker reference.",
         "style": {
             "line": LINE,
             "line_width": "2-4px equivalent at mobile scale",

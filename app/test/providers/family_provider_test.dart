@@ -1,14 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:homepets/core/api_client.dart';
-import 'package:homepets/core/auth_session_bus.dart';
-import 'package:homepets/models/user.dart';
-import 'package:homepets/providers/auth_provider.dart';
-import 'package:homepets/providers/family_provider.dart' as family_provider;
-import 'package:homepets/providers/subscription_provider.dart';
-import 'package:homepets/services/apple_sign_in_service.dart';
-import 'package:homepets/services/auth_service.dart';
-import 'package:homepets/services/family_service.dart';
+import 'package:pickstarpet/core/api_client.dart';
+import 'package:pickstarpet/core/auth_session_bus.dart';
+import 'package:pickstarpet/models/user.dart';
+import 'package:pickstarpet/providers/auth_provider.dart';
+import 'package:pickstarpet/providers/family_provider.dart' as family_provider;
+import 'package:pickstarpet/providers/subscription_provider.dart';
+import 'package:pickstarpet/services/apple_sign_in_service.dart';
+import 'package:pickstarpet/services/auth_service.dart';
+import 'package:pickstarpet/services/family_service.dart';
 
 void main() {
   test('addMemberWithPet keeps pet returned by one-step member API', () async {

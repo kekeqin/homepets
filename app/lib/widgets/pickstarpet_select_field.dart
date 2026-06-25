@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
-class HomePetsSelectOption<T> {
-  const HomePetsSelectOption({required this.value, required this.label});
+class PickStarPetSelectOption<T> {
+  const PickStarPetSelectOption({required this.value, required this.label});
 
   final T value;
   final String label;
 }
 
-class HomePetsSelectField<T> extends StatelessWidget {
-  const HomePetsSelectField({
+class PickStarPetSelectField<T> extends StatelessWidget {
+  const PickStarPetSelectField({
     super.key,
     required this.label,
     required this.value,
@@ -20,7 +20,7 @@ class HomePetsSelectField<T> extends StatelessWidget {
 
   final String label;
   final T? value;
-  final List<HomePetsSelectOption<T>> options;
+  final List<PickStarPetSelectOption<T>> options;
   final ValueChanged<T?> onChanged;
   final String placeholder;
   final bool enabled;

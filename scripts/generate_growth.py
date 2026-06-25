@@ -1,4 +1,4 @@
-"""HomePets 动物成长阶段生成器"""
+"""拾星小宠 动物成长阶段生成器"""
 
 import requests
 import time
@@ -6,7 +6,7 @@ import uuid
 import os
 
 from comfy_full_workflow_local import SERVER_URL, create_workflow as create_full_workflow, ensure_models_present
-ASSETS_DIR = r"C:\Users\Administrator\Desktop\homepets\app\assets\images\growth"
+ASSETS_DIR = r"C:\Users\Administrator\Desktop\pickstarpet\app\assets\images\growth"
 
 os.makedirs(ASSETS_DIR, exist_ok=True)
 ensure_models_present()
@@ -148,7 +148,7 @@ ANIMALS = {
 
 if __name__ == "__main__":
     print("=" * 50)
-    print("HomePets 动物成长阶段生成器")
+    print("拾星小宠 动物成长阶段生成器")
     print("=" * 50)
     print(f"服务器: {SERVER_URL}")
     print(f"输出目录: {ASSETS_DIR}")

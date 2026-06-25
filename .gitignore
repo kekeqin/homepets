@@ -76,6 +76,6 @@ tmp/
 app/.flutter
 app/.flutter_tool_state
 generated/*.wav
-homepets_*.png
-homepets_*_preview.wav
+pickstarpet_*.png
+pickstarpet_*_preview.wav
 *.apk

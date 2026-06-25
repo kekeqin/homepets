@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.homepets" "\0"
-            VALUE "FileDescription", "homepets" "\0"
+            VALUE "CompanyName", "kkqin" "\0"
+            VALUE "FileDescription", "拾星小宠" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "homepets" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.homepets. All rights reserved." "\0"
-            VALUE "OriginalFilename", "homepets.exe" "\0"
-            VALUE "ProductName", "homepets" "\0"
+            VALUE "InternalName", "pickstarpet" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 kkqin. All rights reserved." "\0"
+            VALUE "OriginalFilename", "pickstarpet.exe" "\0"
+            VALUE "ProductName", "拾星小宠" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

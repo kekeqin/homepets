@@ -1,6 +1,6 @@
 """
 Flux.2 Klein 4B 远程 API 调用脚本
-用于生成 HomePets 项目的动物形象素材
+用于生成 拾星小宠 项目的动物形象素材
 """
 
 import requests
@@ -11,7 +11,7 @@ import os
 
 # 远程 ComfyUI 服务器
 from comfy_full_workflow_local import SERVER_URL, create_workflow, ensure_models_present
-OUTPUT_DIR = r"C:\Users\Administrator\Desktop\homepets\app\assets\images\pets"
+OUTPUT_DIR = r"C:\Users\Administrator\Desktop\pickstarpet\app\assets\images\pets"
 
 # 确保输出目录存在
 os.makedirs(OUTPUT_DIR, exist_ok=True)

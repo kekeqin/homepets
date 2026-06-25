@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-class HomePetsTextField extends StatelessWidget {
-  const HomePetsTextField({
+class PickStarPetTextField extends StatelessWidget {
+  const PickStarPetTextField({
     super.key,
     required this.controller,
     required this.hintText,
@@ -40,7 +40,7 @@ class HomePetsTextField extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          const _HomePetsTextFieldBackground(),
+          const _PickStarPetTextFieldBackground(),
           Padding(
             padding: EdgeInsets.fromLTRB(icon == null ? 22 : 20, 0, 22, 0),
             child: Row(
@@ -97,8 +97,8 @@ class HomePetsTextField extends StatelessWidget {
   }
 }
 
-class _HomePetsTextFieldBackground extends StatelessWidget {
-  const _HomePetsTextFieldBackground();
+class _PickStarPetTextFieldBackground extends StatelessWidget {
+  const _PickStarPetTextFieldBackground();
 
   @override
   Widget build(BuildContext context) {

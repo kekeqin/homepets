@@ -4,14 +4,14 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:homepets/core/api_client.dart';
-import 'package:homepets/core/auth_session_bus.dart';
-import 'package:homepets/core/ui/adaptive_design_layout.dart';
-import 'package:homepets/models/user.dart';
-import 'package:homepets/providers/auth_provider.dart';
-import 'package:homepets/screens/auth/login_screen.dart';
-import 'package:homepets/services/apple_sign_in_service.dart';
-import 'package:homepets/services/auth_service.dart';
+import 'package:pickstarpet/core/api_client.dart';
+import 'package:pickstarpet/core/auth_session_bus.dart';
+import 'package:pickstarpet/core/ui/adaptive_design_layout.dart';
+import 'package:pickstarpet/models/user.dart';
+import 'package:pickstarpet/providers/auth_provider.dart';
+import 'package:pickstarpet/screens/auth/login_screen.dart';
+import 'package:pickstarpet/services/apple_sign_in_service.dart';
+import 'package:pickstarpet/services/auth_service.dart';
 
 void main() {
   testWidgets('login button submits phone and sms code', (tester) async {

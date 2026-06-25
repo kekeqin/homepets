@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'app_modal_shell.dart';
 
-const AppModalLayout _defaultHomePetsDialogLayout = AppModalLayout(
+const AppModalLayout _defaultPickStarPetDialogLayout = AppModalLayout(
   mobileWidthFactor: 1.0,
   mobileMaxWidth: 360,
   mobileHeightFactor: 0.72,
@@ -13,7 +13,7 @@ const AppModalLayout _defaultHomePetsDialogLayout = AppModalLayout(
   tabletMaxHeight: 460,
 );
 
-typedef HomePetsDialogActionsBuilder =
+typedef PickStarPetDialogActionsBuilder =
     List<Widget> Function(BuildContext dialogContext);
 
 const Color _homePetsDialogOuterBorder = Color(0xFF8F623F);
@@ -22,16 +22,16 @@ const BorderRadius _homePetsDialogInnerBorderRadius = BorderRadius.all(
   Radius.circular(23),
 );
 
-Future<T?> showHomePetsDialog<T>({
+Future<T?> showPickStarPetDialog<T>({
   required BuildContext context,
   required String barrierLabel,
   required String title,
   required WidgetBuilder contentBuilder,
-  required HomePetsDialogActionsBuilder actionsBuilder,
+  required PickStarPetDialogActionsBuilder actionsBuilder,
   bool useRootNavigator = true,
   bool barrierDismissible = true,
-  AppModalLayout layout = _defaultHomePetsDialogLayout,
-  EdgeInsets minimumSafeArea = HomePetsDialogGutter.mediumInsets,
+  AppModalLayout layout = _defaultPickStarPetDialogLayout,
+  EdgeInsets minimumSafeArea = PickStarPetDialogGutter.mediumInsets,
   bool showInnerBorder = true,
 }) {
   return showAppModalDialog<T>(
@@ -40,11 +40,11 @@ Future<T?> showHomePetsDialog<T>({
     barrierDismissible: barrierDismissible,
     barrierLabel: barrierLabel,
     blurSigma: 6,
-    barrierTint: HomePetsDialogTheme.barrierTint,
+    barrierTint: PickStarPetDialogTheme.barrierTint,
     beginScale: 0.95,
     beginYOffset: 16,
     pageBuilder: (dialogContext) {
-      return HomePetsDialog(
+      return PickStarPetDialog(
         layout: layout,
         minimumSafeArea: minimumSafeArea,
         title: title,
@@ -56,15 +56,15 @@ Future<T?> showHomePetsDialog<T>({
   );
 }
 
-class HomePetsDialog extends StatelessWidget {
-  const HomePetsDialog({
+class PickStarPetDialog extends StatelessWidget {
+  const PickStarPetDialog({
     super.key,
     required this.title,
     required this.child,
     required this.actions,
     this.background,
-    this.layout = _defaultHomePetsDialogLayout,
-    this.minimumSafeArea = HomePetsDialogGutter.mediumInsets,
+    this.layout = _defaultPickStarPetDialogLayout,
+    this.minimumSafeArea = PickStarPetDialogGutter.mediumInsets,
     this.contentPadding = const EdgeInsets.fromLTRB(24, 24, 24, 22),
     this.showInnerBorder = true,
   });
@@ -83,13 +83,15 @@ class HomePetsDialog extends StatelessWidget {
     return AppModalShell(
       layout: layout,
       minimumSafeArea: minimumSafeArea,
-      borderRadius: HomePetsDialogTheme.borderRadius,
+      borderRadius: PickStarPetDialogTheme.borderRadius,
       backgroundColor: background == null ? null : Colors.transparent,
-      gradient: background == null ? HomePetsDialogTheme.shellGradient : null,
+      gradient: background == null
+          ? PickStarPetDialogTheme.shellGradient
+          : null,
       border: background == null
           ? Border.all(color: _homePetsDialogOuterBorder, width: 2.4)
           : null,
-      boxShadow: HomePetsDialogTheme.shellShadow,
+      boxShadow: PickStarPetDialogTheme.shellShadow,
       child: Stack(
         fit: StackFit.passthrough,
         children: [

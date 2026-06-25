@@ -2,8 +2,8 @@ import requests
 import os
 
 SERVER_URL = "http://127.0.0.1:8188"
-OUTPUT_DIR = r"C:\Users\Administrator\Desktop\homepets\app\assets\images\pets"
-ICON_DIR = r"C:\Users\Administrator\Desktop\homepets\app\assets\images\icons"
+OUTPUT_DIR = r"C:\Users\Administrator\Desktop\pickstarpet\app\assets\images\pets"
+ICON_DIR = r"C:\Users\Administrator\Desktop\pickstarpet\app\assets\images\icons"
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(ICON_DIR, exist_ok=True)

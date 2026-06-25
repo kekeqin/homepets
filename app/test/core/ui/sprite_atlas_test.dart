@@ -1,8 +1,8 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:homepets/core/ui/sprite_atlas.dart';
-import 'package:homepets/screens/home/task_panel_sprite_catalog.dart';
-import 'package:homepets/screens/pet/pet_detail_sprite_catalog.dart';
+import 'package:pickstarpet/core/ui/sprite_atlas.dart';
+import 'package:pickstarpet/screens/home/task_panel_sprite_catalog.dart';
+import 'package:pickstarpet/screens/pet/pet_detail_sprite_catalog.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

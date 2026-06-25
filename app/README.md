@@ -1,4 +1,4 @@
-# homepets
+# 拾星小宠
 
 A new Flutter project.
 

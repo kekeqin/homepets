@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:homepets/screens/home/guide/home_guide_controller.dart';
+import 'package:pickstarpet/screens/home/guide/home_guide_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

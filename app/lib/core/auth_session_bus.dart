@@ -1,8 +1,9 @@
 import 'dart:async';
 
 class AuthSessionBus {
-  final StreamController<void> _controller =
-      StreamController<void>.broadcast(sync: true);
+  final StreamController<void> _controller = StreamController<void>.broadcast(
+    sync: true,
+  );
 
   Stream<void> get stream => _controller.stream;
 

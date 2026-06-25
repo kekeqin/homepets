@@ -8,7 +8,7 @@ APP_DIR="$REPO_ROOT/app"
 API_BASE_URL="${API_BASE_URL:-https://pickstarpet.kkqin.com}"
 
 case "$API_BASE_URL" in
-  http://10.0.2.2:*|http://127.0.0.1:*|http://localhost:*|http://192.168.*|*homepets.example.com*)
+  http://10.0.2.2:*|http://127.0.0.1:*|http://localhost:*|http://192.168.*|*pickstarpet.example.com*)
     echo "API_BASE_URL must not point to a local development server: $API_BASE_URL" >&2
     exit 1
     ;;

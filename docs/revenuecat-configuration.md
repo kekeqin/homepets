@@ -1,6 +1,6 @@
 # RevenueCat 配置说明
 
-HomePets 的 Flutter 端使用 RevenueCat public SDK key 初始化购买 SDK。后端只在需要校验订阅状态、处理 webhook 或调用 RevenueCat REST API 时使用服务端 secret key。
+拾星小宠的 Flutter 端使用 RevenueCat public SDK key 初始化购买 SDK。后端只在需要校验订阅状态、处理 webhook 或调用 RevenueCat REST API 时使用服务端 secret key。
 
 ## Flutter 开发/测试配置
 

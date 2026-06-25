@@ -23,9 +23,9 @@ Future<void> showPetDetailDialog(
       return AppModalShell(
         layout: AppModalLayouts.petDetail,
         minimumSafeArea: const EdgeInsets.fromLTRB(
-          HomePetsDialogGutter.large,
+          PickStarPetDialogGutter.large,
           16,
-          HomePetsDialogGutter.large,
+          PickStarPetDialogGutter.large,
           16,
         ),
         boxShadow: [

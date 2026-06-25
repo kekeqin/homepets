@@ -51,9 +51,9 @@ def test_aliyun_template_param_matches_supported_minute_variables() -> None:
     client = AliyunSmsVerificationClient(
         access_key_id="access-key-id",
         access_key_secret="access-key-secret",
-        sign_name="HomePets",
+        sign_name="拾星小宠",
         template_code="100001",
-        scheme_name="HomePets",
+        scheme_name="拾星小宠",
         region_id="cn-hangzhou",
         endpoint="https://example.com/",
         valid_seconds=300,
@@ -69,9 +69,9 @@ def test_aliyun_send_code_uses_verify_code_parameter_names() -> None:
     client = _CapturingAliyunSmsVerificationClient(
         access_key_id="access-key-id",
         access_key_secret="access-key-secret",
-        sign_name="HomePets",
+        sign_name="拾星小宠",
         template_code="100001",
-        scheme_name="HomePets",
+        scheme_name="拾星小宠",
         region_id="cn-hangzhou",
         endpoint="https://example.com/",
         valid_seconds=300,

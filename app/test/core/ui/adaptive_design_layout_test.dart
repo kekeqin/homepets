@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:homepets/core/ui/adaptive_design_layout.dart';
+import 'package:pickstarpet/core/ui/adaptive_design_layout.dart';
 
 void main() {
   group('AdaptiveDesignLayoutGeometry', () {

@@ -1,5 +1,5 @@
 """
-批量生成 HomePets 动物形象素材
+批量生成 拾星小宠 动物形象素材
 - 512x512 动物主图
 - 128x128 UI 图标
 """
@@ -11,8 +11,8 @@ import uuid
 import os
 
 from comfy_full_workflow_local import SERVER_URL, create_workflow, ensure_models_present
-OUTPUT_DIR = r"C:\Users\Administrator\Desktop\homepets\app\assets\images\pets"
-ICON_DIR = r"C:\Users\Administrator\Desktop\homepets\app\assets\images\icons"
+OUTPUT_DIR = r"C:\Users\Administrator\Desktop\pickstarpet\app\assets\images\pets"
+ICON_DIR = r"C:\Users\Administrator\Desktop\pickstarpet\app\assets\images\icons"
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 ensure_models_present()
@@ -100,7 +100,7 @@ ICONS_128 = {
 
 if __name__ == "__main__":
     print("=" * 50)
-    print("HomePets 批量素材生成")
+    print("拾星小宠 批量素材生成")
     print("=" * 50)
 
     # 测试连接

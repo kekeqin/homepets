@@ -1,4 +1,4 @@
-"""HomePets 动物形象生成器 - Flux.2 API"""
+"""拾星小宠 动物形象生成器 - Flux.2 API"""
 
 import requests
 import time
@@ -7,7 +7,7 @@ import os
 import sys
 
 from comfy_full_workflow_local import SERVER_URL, create_workflow, ensure_models_present
-ASSETS_DIR = r"C:\Users\Administrator\Desktop\homepets\app\assets\images"
+ASSETS_DIR = r"C:\Users\Administrator\Desktop\pickstarpet\app\assets\images"
 
 os.makedirs(os.path.join(ASSETS_DIR, "pets"), exist_ok=True)
 os.makedirs(os.path.join(ASSETS_DIR, "icons"), exist_ok=True)
@@ -104,7 +104,7 @@ ICONS = {
 
 if __name__ == "__main__":
     print("=" * 50)
-    print("HomePets 动物形象生成器")
+    print("拾星小宠 动物形象生成器")
     print("=" * 50)
     print(f"服务器: {SERVER_URL}")
     print()
