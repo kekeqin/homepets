@@ -677,6 +677,11 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       if (!mounted) {
         return;
       }
+      _showTopSnackBar('引导已完成，开始体验吧');
+      await Future<void>.delayed(_topSnackBarDuration);
+      if (!mounted) {
+        return;
+      }
       _openPaywall();
     });
   }

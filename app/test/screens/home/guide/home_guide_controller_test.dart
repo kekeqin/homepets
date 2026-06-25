@@ -53,7 +53,7 @@ void main() {
       () async {
         final preferences = await SharedPreferences.getInstance();
         await preferences.setString(
-          'home_guide_v3_user_1_family_99_current_step',
+          'home_guide_v4_user_1_family_99_current_step',
           HomeGuideStep.petArea.storageValue,
         );
         final controller = HomeGuideController(
@@ -114,16 +114,7 @@ void main() {
         HomeGuideStep.familyFrame,
         snapshot,
       );
-      final task = await controller.advance(
-        HomeGuideStep.taskSticker,
-        const HomeGuideSnapshot(
-          hasFamilyMembers: true,
-          hasActiveTasks: false,
-          hasCurrentUserPet: true,
-          hasMembersMissingPets: false,
-        ),
-      );
-      final done = await controller.advance(
+      final pet = await controller.advance(
         HomeGuideStep.petArea,
         const HomeGuideSnapshot(
           hasFamilyMembers: true,
@@ -132,9 +123,18 @@ void main() {
           hasMembersMissingPets: false,
         ),
       );
+      final done = await controller.advance(
+        HomeGuideStep.taskSticker,
+        const HomeGuideSnapshot(
+          hasFamilyMembers: true,
+          hasActiveTasks: false,
+          hasCurrentUserPet: true,
+          hasMembersMissingPets: false,
+        ),
+      );
 
-      expect(family.currentStep, HomeGuideStep.taskSticker);
-      expect(task.currentStep, HomeGuideStep.petArea);
+      expect(family.currentStep, HomeGuideStep.petArea);
+      expect(pet.currentStep, HomeGuideStep.taskSticker);
       expect(done.completed, isTrue);
       expect(
         controller
@@ -188,7 +188,7 @@ void main() {
     test('member without pet sends user back to family frame', () async {
       final preferences = await SharedPreferences.getInstance();
       await preferences.setString(
-        'home_guide_v3_user_1_family_99_current_step',
+        'home_guide_v4_user_1_family_99_current_step',
         HomeGuideStep.taskSticker.storageValue,
       );
       final controller = HomeGuideController(
@@ -234,7 +234,7 @@ void main() {
       () async {
         final preferences = await SharedPreferences.getInstance();
         await preferences.setString(
-          'home_guide_v3_user_1_family_99_current_step',
+          'home_guide_v4_user_1_family_99_current_step',
           HomeGuideStep.petArea.storageValue,
         );
         final controller = HomeGuideController(
@@ -259,7 +259,7 @@ void main() {
     test('keeps stored family frame after family setup is fixed', () async {
       final preferences = await SharedPreferences.getInstance();
       await preferences.setString(
-        'home_guide_v3_user_1_family_99_current_step',
+        'home_guide_v4_user_1_family_99_current_step',
         HomeGuideStep.familyFrame.storageValue,
       );
       final controller = HomeGuideController(

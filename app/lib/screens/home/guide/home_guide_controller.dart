@@ -66,7 +66,7 @@ class HomeGuideController {
   HomeGuideController({
     required SharedPreferences preferences,
     required String scopeId,
-    this.guideVersion = 3,
+    this.guideVersion = 4,
   }) : _preferences = preferences,
        _scopeId = scopeId;
 
@@ -233,9 +233,9 @@ class HomeGuideController {
 
   HomeGuideStep _nextStepAfter(HomeGuideStep step) {
     return switch (step) {
-      HomeGuideStep.familyFrame => HomeGuideStep.taskSticker,
-      HomeGuideStep.taskSticker => HomeGuideStep.petArea,
-      HomeGuideStep.petArea => HomeGuideStep.done,
+      HomeGuideStep.familyFrame => HomeGuideStep.petArea,
+      HomeGuideStep.petArea => HomeGuideStep.taskSticker,
+      HomeGuideStep.taskSticker => HomeGuideStep.done,
       HomeGuideStep.done => HomeGuideStep.done,
     };
   }
