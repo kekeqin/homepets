@@ -132,8 +132,6 @@ const Size _completeMemberDialogDesignSize = Size(
   _completeMemberDialogDesignWidth /
       TaskBoardReferenceAsset.dialogPanelAspectRatio,
 );
-const String _completeMemberDialogPanelAsset =
-    TaskBoardReferenceAsset.dialogPanel;
 const String _completeMemberDropdownArrowAsset =
     '$_completeMemberDialogAssetRoot/complete_member_chevron_down_standalone.png';
 const String _completeMemberCheckmarkAsset =
@@ -4201,170 +4199,182 @@ class _CompletionMemberSelectContentState
               child: SizedBox(
                 width: panelSize.width,
                 height: panelSize.height,
-                child: FittedBox(
-                  fit: BoxFit.fill,
-                  child: FutureBuilder<SpriteAtlas>(
-                    future: _spriteAtlasFuture,
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) {
-                        return SizedBox(
-                          width: _completeMemberDialogDesignSize.width,
-                          height: _completeMemberDialogDesignSize.height,
-                        );
-                      }
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    const Positioned.fill(child: _TaskDialogPanelBackground()),
+                    Positioned.fill(
+                      child: FittedBox(
+                        fit: BoxFit.fill,
+                        child: FutureBuilder<SpriteAtlas>(
+                          future: _spriteAtlasFuture,
+                          builder: (context, snapshot) {
+                            if (!snapshot.hasData) {
+                              return SizedBox(
+                                width: _completeMemberDialogDesignSize.width,
+                                height: _completeMemberDialogDesignSize.height,
+                              );
+                            }
 
-                      final sprites = TaskEditorSheetSpriteCatalog(
-                        snapshot.requireData,
-                      );
-                      final cancelButtonAspectRatio =
-                          sprites.cancelButtonBg.aspectRatio;
-                      final confirmButtonAspectRatio =
-                          sprites.saveButtonBg.aspectRatio;
-                      final buttonHeight = math.min(
-                        _completeMemberDialogDesignSize.height * 0.112,
-                        (buttonMaxGroupWidth - buttonGap) /
-                            (cancelButtonAspectRatio +
-                                confirmButtonAspectRatio),
-                      );
-                      final cancelButtonWidth =
-                          buttonHeight * cancelButtonAspectRatio;
-                      final confirmButtonWidth =
-                          buttonHeight * confirmButtonAspectRatio;
-                      final buttonGroupWidth =
-                          cancelButtonWidth + buttonGap + confirmButtonWidth;
-                      final buttonGroupLeft =
-                          (_completeMemberDialogDesignSize.width -
-                              buttonGroupWidth) *
-                          0.5;
+                            final sprites = TaskEditorSheetSpriteCatalog(
+                              snapshot.requireData,
+                            );
+                            final cancelButtonAspectRatio =
+                                sprites.cancelButtonBg.aspectRatio;
+                            final confirmButtonAspectRatio =
+                                sprites.saveButtonBg.aspectRatio;
+                            final buttonHeight = math.min(
+                              _completeMemberDialogDesignSize.height * 0.112,
+                              (buttonMaxGroupWidth - buttonGap) /
+                                  (cancelButtonAspectRatio +
+                                      confirmButtonAspectRatio),
+                            );
+                            final cancelButtonWidth =
+                                buttonHeight * cancelButtonAspectRatio;
+                            final confirmButtonWidth =
+                                buttonHeight * confirmButtonAspectRatio;
+                            final buttonGroupWidth =
+                                cancelButtonWidth +
+                                buttonGap +
+                                confirmButtonWidth;
+                            final buttonGroupLeft =
+                                (_completeMemberDialogDesignSize.width -
+                                    buttonGroupWidth) *
+                                0.5;
 
-                      return SizedBox(
-                        width: _completeMemberDialogDesignSize.width,
-                        height: _completeMemberDialogDesignSize.height,
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            const Positioned.fill(
-                              child: _CompleteMemberAssetImage(
-                                assetPath: _completeMemberDialogPanelAsset,
-                                fit: BoxFit.fill,
-                              ),
-                            ),
-                            const Positioned(
-                              left: 42,
-                              top: 52,
-                              width: 352,
-                              height: 47,
-                              child: Align(
-                                alignment: Alignment.center,
-                                child: Text(
-                                  '选择完成人员',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Color(0xFF4D3623),
-                                    fontSize: _completeMemberTitleFontSize,
-                                    fontWeight: FontWeight.w900,
-                                    height: 1,
-                                    letterSpacing: 0,
+                            return SizedBox(
+                              width: _completeMemberDialogDesignSize.width,
+                              height: _completeMemberDialogDesignSize.height,
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  const Positioned(
+                                    left: 42,
+                                    top: 52,
+                                    width: 352,
+                                    height: 47,
+                                    child: Align(
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        '选择完成人员',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: Color(0xFF4D3623),
+                                          fontSize:
+                                              _completeMemberTitleFontSize,
+                                          fontWeight: FontWeight.w900,
+                                          height: 1,
+                                          letterSpacing: 0,
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
-                            ),
-                            const Positioned(
-                              left: 74,
-                              top: 126,
-                              width: 132,
-                              height: 30,
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  '完成成员',
-                                  maxLines: 1,
-                                  style: TextStyle(
-                                    color: Color(0xFF4D3623),
-                                    fontSize: _completeMemberLabelFontSize,
-                                    fontWeight: FontWeight.w900,
-                                    height: 1,
-                                    letterSpacing: 0,
+                                  const Positioned(
+                                    left: 74,
+                                    top: 126,
+                                    width: 132,
+                                    height: 30,
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        '完成成员',
+                                        maxLines: 1,
+                                        style: TextStyle(
+                                          color: Color(0xFF4D3623),
+                                          fontSize:
+                                              _completeMemberLabelFontSize,
+                                          fontWeight: FontWeight.w900,
+                                          height: 1,
+                                          letterSpacing: 0,
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                  Positioned(
+                                    left: 74,
+                                    top: 158,
+                                    width: 288,
+                                    height: _completeMemberFieldHeight,
+                                    child: _CompleteMemberClosedField(
+                                      label: _selectedOption?.label ?? '',
+                                    ),
+                                  ),
+                                  Positioned(
+                                    left: 74,
+                                    top: 214,
+                                    width: 288,
+                                    height: 193,
+                                    child: _CompleteMemberOptionsList(
+                                      options: widget.options,
+                                      selectedMemberId: _selectedMemberId,
+                                      onSelected: _selectMember,
+                                    ),
+                                  ),
+                                  Positioned(
+                                    left: buttonGroupLeft,
+                                    bottom:
+                                        _completeMemberDialogDesignSize.height *
+                                        0.075,
+                                    width: cancelButtonWidth,
+                                    height: buttonHeight,
+                                    child: _TaskEditorSpriteImageButton(
+                                      sprites: sprites,
+                                      backgroundFrame: sprites.cancelButtonBg,
+                                      fallbackText: '取消',
+                                      semanticsLabel: '取消',
+                                      onTap: () => Navigator.of(context).pop(),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    left:
+                                        buttonGroupLeft +
+                                        cancelButtonWidth +
+                                        buttonGap,
+                                    bottom:
+                                        _completeMemberDialogDesignSize.height *
+                                        0.075,
+                                    width: confirmButtonWidth,
+                                    height: buttonHeight,
+                                    child: Opacity(
+                                      opacity: _selectedMemberId == null
+                                          ? 0.55
+                                          : 1,
+                                      child: _TaskEditorSpriteImageButton(
+                                        sprites: sprites,
+                                        backgroundFrame: sprites.saveButtonBg,
+                                        fallbackText: '确认完成',
+                                        semanticsLabel: '确认完成',
+                                        onTap: _selectedMemberId == null
+                                            ? () {}
+                                            : _confirm,
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 0,
+                                    right:
+                                        _completeMemberDialogDesignSize.width *
+                                        0.005,
+                                    width:
+                                        _completeMemberDialogDesignSize.width *
+                                        0.124,
+                                    height:
+                                        _completeMemberDialogDesignSize.width *
+                                        0.124,
+                                    child: _TaskDialogCloseButton(
+                                      onPressed: () =>
+                                          Navigator.of(context).pop(),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                            Positioned(
-                              left: 74,
-                              top: 158,
-                              width: 288,
-                              height: _completeMemberFieldHeight,
-                              child: _CompleteMemberClosedField(
-                                label: _selectedOption?.label ?? '',
-                              ),
-                            ),
-                            Positioned(
-                              left: 74,
-                              top: 214,
-                              width: 288,
-                              height: 193,
-                              child: _CompleteMemberOptionsList(
-                                options: widget.options,
-                                selectedMemberId: _selectedMemberId,
-                                onSelected: _selectMember,
-                              ),
-                            ),
-                            Positioned(
-                              left: buttonGroupLeft,
-                              bottom:
-                                  _completeMemberDialogDesignSize.height *
-                                  0.075,
-                              width: cancelButtonWidth,
-                              height: buttonHeight,
-                              child: _TaskEditorSpriteImageButton(
-                                sprites: sprites,
-                                backgroundFrame: sprites.cancelButtonBg,
-                                fallbackText: '取消',
-                                semanticsLabel: '取消',
-                                onTap: () => Navigator.of(context).pop(),
-                              ),
-                            ),
-                            Positioned(
-                              left:
-                                  buttonGroupLeft +
-                                  cancelButtonWidth +
-                                  buttonGap,
-                              bottom:
-                                  _completeMemberDialogDesignSize.height *
-                                  0.075,
-                              width: confirmButtonWidth,
-                              height: buttonHeight,
-                              child: Opacity(
-                                opacity: _selectedMemberId == null ? 0.55 : 1,
-                                child: _TaskEditorSpriteImageButton(
-                                  sprites: sprites,
-                                  backgroundFrame: sprites.saveButtonBg,
-                                  fallbackText: '确认完成',
-                                  semanticsLabel: '确认完成',
-                                  onTap: _selectedMemberId == null
-                                      ? () {}
-                                      : _confirm,
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              top: 0,
-                              right:
-                                  _completeMemberDialogDesignSize.width * 0.005,
-                              width:
-                                  _completeMemberDialogDesignSize.width * 0.124,
-                              height:
-                                  _completeMemberDialogDesignSize.width * 0.124,
-                              child: _TaskDialogCloseButton(
-                                onPressed: () => Navigator.of(context).pop(),
-                              ),
-                            ),
-                          ],
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -4376,17 +4386,17 @@ class _CompletionMemberSelectContentState
 }
 
 class _CompleteMemberAssetImage extends StatelessWidget {
-  const _CompleteMemberAssetImage({
-    required this.assetPath,
-    this.fit = BoxFit.contain,
-  });
+  const _CompleteMemberAssetImage({required this.assetPath});
 
   final String assetPath;
-  final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(assetPath, fit: fit, filterQuality: FilterQuality.high);
+    return Image.asset(
+      assetPath,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.high,
+    );
   }
 }
 

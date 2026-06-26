@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi.testclient import TestClient
@@ -96,22 +96,14 @@ def test_list_tasks_success_after_completion(client: TestClient, db: Session) ->
     assert tasks_response.json()[0]["completed_today"] is True
 
 
-def test_list_tasks_resets_completed_today_by_local_day(
+def test_list_tasks_resets_completed_status_after_four_hours(
     client: TestClient,
     db: Session,
 ) -> None:
     token, family_id, member_id, _ = _setup_family(client, db)
     task = _create_task(client, token, family_id, title="Morning task", points=10)
 
-    local_day_zone = timezone(timedelta(hours=8), name="Asia/Shanghai")
-    yesterday_local = datetime.now(local_day_zone) - timedelta(days=1)
-    yesterday_late_local = yesterday_local.replace(
-        hour=23,
-        minute=30,
-        second=0,
-        microsecond=0,
-    )
-    completed_at = yesterday_late_local.astimezone(UTC)
+    completed_at = datetime.now(UTC) - timedelta(hours=4, minutes=1)
     completion = TaskCompletion(
         task_id=task["id"],
         member_id=member_id,

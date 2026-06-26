@@ -26,6 +26,7 @@ from app.services.pet_service import calculate_level
 router = APIRouter(prefix="/api", tags=["tasks"])
 
 LOCAL_DAY_ZONE = timezone(timedelta(hours=8), name="Asia/Shanghai")
+TASK_COMPLETION_RESET_WINDOW = timedelta(hours=4)
 
 
 def _as_utc(value: datetime) -> datetime:
@@ -103,8 +104,10 @@ def _list_active_tasks(
         reverse=True,
     )
 
-    today_start = _local_day_start_utc(datetime.now(UTC))
+    now = datetime.now(UTC)
+    today_start = _local_day_start_utc(now)
     week_start = today_start - timedelta(days=today_start.weekday())
+    completion_reset_cutoff = _as_utc(now) - TASK_COMPLETION_RESET_WINDOW
 
     approved_completions: list[TaskCompletion] = []
     if member_ids:
@@ -126,7 +129,8 @@ def _list_active_tasks(
         completed_week_counts[completion.task_id] = (
             completed_week_counts.get(completion.task_id, 0) + 1
         )
-        if _as_utc(completion.created_at) >= today_start:
+        completion_created_at = _as_utc(completion.created_at)
+        if completion_created_at >= completion_reset_cutoff:
             completed_today_ids.add(completion.task_id)
 
     return [
