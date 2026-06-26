@@ -481,13 +481,7 @@ class _SelectPetFlowDialogState extends State<SelectPetFlowDialog> {
                               ),
                               SizedBox(height: dense ? 12 : 18),
                               _DashedDivider(dense: dense),
-                              Padding(
-                                padding: EdgeInsets.only(left: dense ? 8 : 12),
-                                child: _SectionLabel(
-                                  text: '宠物名字',
-                                  dense: dense,
-                                ),
-                              ),
+                              _SectionLabel(text: '宠物名字', dense: dense),
                               SizedBox(height: dense ? 5 : 8),
                               _DialogFormControl(
                                 dense: dense,
@@ -601,7 +595,7 @@ class _DialogFormControl extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(left: dense ? 8 : 12),
+      padding: EdgeInsets.only(left: _dialogFormLeadingInset(dense)),
       child: Align(
         alignment: Alignment.centerLeft,
         child: ConstrainedBox(
@@ -612,6 +606,8 @@ class _DialogFormControl extends StatelessWidget {
     );
   }
 }
+
+double _dialogFormLeadingInset(bool dense) => dense ? 8 : 12;
 
 const TextStyle _addMemberInputTextStyle = TextStyle(
   color: _AddMemberPalette.ink,
@@ -642,7 +638,7 @@ InputDecoration _addMemberInputDecoration({
       fontWeight: FontWeight.w800,
     ),
     filled: true,
-    fillColor: Colors.white.withValues(alpha: 0.42),
+    fillColor: const Color(0xFFFFFCF7),
     contentPadding: EdgeInsets.symmetric(
       horizontal: dense ? 15 : 17,
       vertical: dense ? 10 : 14,
@@ -657,7 +653,7 @@ InputDecoration _addMemberInputDecoration({
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: borderRadius,
-      borderSide: const BorderSide(color: _AddMemberPalette.ink, width: 1.8),
+      borderSide: const BorderSide(color: _AddMemberPalette.line, width: 1.8),
     ),
     errorBorder: OutlineInputBorder(
       borderRadius: borderRadius,
@@ -737,13 +733,16 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: TextStyle(
-        color: _AddMemberPalette.ink,
-        fontSize: dense ? 16 : 18,
-        fontWeight: FontWeight.w900,
-        height: 1.1,
+    return Padding(
+      padding: EdgeInsets.only(left: _dialogFormLeadingInset(dense)),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: _AddMemberPalette.ink,
+          fontSize: dense ? 16 : 18,
+          fontWeight: FontWeight.w900,
+          height: 1.1,
+        ),
       ),
     );
   }
