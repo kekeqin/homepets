@@ -98,7 +98,6 @@ flutter:
     - assets/images/ui/task/
     - assets/images/ui/task_delete/
     - assets/images/ui/family/
-    - assets/images/ui/guide/
     - assets/images/ui/sprites/
     - assets/images/ui/sprites/complete_member_dialog_parts/
     - assets/images/ui/sprites/family_home_parts/
