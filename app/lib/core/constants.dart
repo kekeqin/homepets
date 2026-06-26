@@ -6,10 +6,18 @@ class ApiConstants {
   static const String _developmentBaseUrl = 'http://10.0.2.2:8000';
   static const String productionBaseUrl = 'https://pickstarpet.kkqin.com';
 
-  static String get baseUrl {
-    final configuredBaseUrl = _configuredBaseUrl.trim();
-    if (configuredBaseUrl.isNotEmpty) {
-      return configuredBaseUrl;
+  static String get baseUrl => resolveBaseUrl(
+    isProductionBuild: isProductionBuild,
+    configuredBaseUrl: _configuredBaseUrl,
+  );
+
+  static String resolveBaseUrl({
+    required bool isProductionBuild,
+    required String configuredBaseUrl,
+  }) {
+    final trimmedConfiguredBaseUrl = configuredBaseUrl.trim();
+    if (trimmedConfiguredBaseUrl.isNotEmpty) {
+      return trimmedConfiguredBaseUrl;
     }
     return isProductionBuild ? productionBaseUrl : _developmentBaseUrl;
   }
