@@ -2221,19 +2221,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   }
 
   Widget _buildTaskPanelAddButton({required VoidCallback onTap}) {
-    return Semantics(
-      button: true,
-      label: '\u6dfb\u52a0\u4efb\u52a1',
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Image.asset(
-          TaskBoardReferenceAsset.addTaskButton,
-          fit: BoxFit.fill,
-          filterQuality: FilterQuality.high,
-        ),
-      ),
-    );
+    return _TaskPanelAddButton(onTap: onTap);
   }
 
   Widget _buildAnimatedTaskPanelOverlay(Size size) {
@@ -3309,9 +3297,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     );
     if (mounted) {
       await _loadFamilyPets();
-      if (mounted) {
-        _game.shufflePetLayout();
-      }
     }
   }
 
@@ -3598,6 +3583,82 @@ class _HomeTopNoticeCard extends StatelessWidget {
                   onTap: onTap,
                   child: content,
                 ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TaskPanelAddButton extends StatefulWidget {
+  const _TaskPanelAddButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  State<_TaskPanelAddButton> createState() => _TaskPanelAddButtonState();
+}
+
+class _TaskPanelAddButtonState extends State<_TaskPanelAddButton> {
+  static const Duration _feedbackHoldDuration = Duration(milliseconds: 110);
+
+  bool _pressed = false;
+  bool _tapPending = false;
+
+  void _setPressed(bool pressed) {
+    if (_pressed == pressed) {
+      return;
+    }
+    setState(() => _pressed = pressed);
+  }
+
+  void _handleTap() {
+    if (_tapPending) {
+      return;
+    }
+    Feedback.forTap(context);
+    setState(() {
+      _pressed = true;
+      _tapPending = true;
+    });
+    Future<void>.delayed(_feedbackHoldDuration, () {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _pressed = false;
+        _tapPending = false;
+      });
+      widget.onTap();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: '\u6dfb\u52a0\u4efb\u52a1',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _handleTap,
+        onTapDown: (_) => _setPressed(true),
+        onTapCancel: () {
+          if (!_tapPending) {
+            _setPressed(false);
+          }
+        },
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 90),
+          curve: Curves.easeOutCubic,
+          scale: _pressed ? 0.88 : 1,
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 90),
+            opacity: _pressed ? 0.76 : 1,
+            child: Image.asset(
+              TaskBoardReferenceAsset.addTaskButton,
+              fit: BoxFit.fill,
+              filterQuality: FilterQuality.high,
+            ),
+          ),
         ),
       ),
     );

@@ -488,6 +488,24 @@ void main() {
       expect(secondAssignments, firstAssignments);
     });
 
+    test('keeps pet candidate assignments stable when pet data changes', () {
+      final game = HomeSceneGame(device: HomeSceneDevice.mobile);
+      game.replacePetEntries(const <HomeScenePetSeed>[
+        HomeScenePetSeed(petId: 11, petType: 'dog', level: 1),
+        HomeScenePetSeed(petId: 22, petType: 'cat', level: 1),
+        HomeScenePetSeed(petId: 33, petType: 'rabbit', level: 1),
+      ]);
+      final firstAssignments = game.debugPetCandidateAssignments();
+
+      game.replacePetEntries(const <HomeScenePetSeed>[
+        HomeScenePetSeed(petId: 11, petType: 'dog', level: 4),
+        HomeScenePetSeed(petId: 22, petType: 'cat', level: 2),
+        HomeScenePetSeed(petId: 33, petType: 'rabbit', level: 3),
+      ]);
+      final secondAssignments = game.debugPetCandidateAssignments();
+
+      expect(secondAssignments, firstAssignments);
+    });
     test('uses growth-stage homepage pet assets', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
       game.replacePetEntries(const <HomeScenePetSeed>[

@@ -103,6 +103,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
   int? _selectingPetMemberId;
   bool _didAutoPromptCurrentUserPet = false;
   bool _paywallDialogVisible = false;
+  bool _didPrecacheAddMemberFlowAssets = false;
   OverlayEntry? _topNoticeEntry;
 
   late final AnimationController _entryController;
@@ -126,6 +127,21 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen>
         );
 
     Future<void>.microtask(_loadFamily);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didPrecacheAddMemberFlowAssets) {
+      return;
+    }
+    _didPrecacheAddMemberFlowAssets = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      unawaited(precacheAddMemberFlowAssets(context));
+    });
   }
 
   @override
@@ -1102,7 +1118,7 @@ class _FamilyStatPill extends StatelessWidget {
   }
 }
 
-class _HeroAddButton extends StatelessWidget {
+class _HeroAddButton extends StatefulWidget {
   const _HeroAddButton({
     required this.compact,
     required this.busy,
@@ -1114,54 +1130,109 @@ class _HeroAddButton extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
+  State<_HeroAddButton> createState() => _HeroAddButtonState();
+}
+
+class _HeroAddButtonState extends State<_HeroAddButton> {
+  static const Duration _feedbackHoldDuration = Duration(milliseconds: 45);
+
+  bool _pressed = false;
+  bool _tapPending = false;
+
+  bool get _enabled => widget.onTap != null && !widget.busy && !_tapPending;
+
+  void _setPressed(bool pressed) {
+    if (!_enabled || _pressed == pressed) {
+      return;
+    }
+    setState(() => _pressed = pressed);
+  }
+
+  void _handleTap() {
+    if (!_enabled) {
+      return;
+    }
+    Feedback.forTap(context);
+    setState(() {
+      _pressed = true;
+      _tapPending = true;
+    });
+    Future<void>.delayed(_feedbackHoldDuration, () {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _pressed = false;
+        _tapPending = false;
+      });
+      widget.onTap?.call();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap,
+        onTap: _enabled ? _handleTap : null,
+        onTapDown: (_) => _setPressed(true),
+        onTapCancel: () {
+          if (!_tapPending) {
+            _setPressed(false);
+          }
+        },
         borderRadius: BorderRadius.circular(999),
-        child: SizedBox(
-          width: compact ? 50 : 58,
-          height: compact ? 50 : 58,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Image.asset(
-                FamilyPopupAssets.addButton,
-                fit: BoxFit.contain,
-                filterQuality: FilterQuality.medium,
-                isAntiAlias: true,
-              ),
-              Positioned(
-                left: compact ? 7 : 8,
-                right: compact ? 7 : 8,
-                bottom: compact ? 4 : 5,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    '添加',
-                    maxLines: 1,
-                    style: TextStyle(
-                      color: const Color(0xFF3F230D),
-                      fontSize: compact ? 14 : 16,
-                      height: 1,
-                      fontWeight: FontWeight.w900,
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 90),
+          curve: Curves.easeOutCubic,
+          scale: _pressed ? 0.86 : 1,
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 90),
+            opacity: _pressed ? 0.76 : 1,
+            child: SizedBox(
+              width: widget.compact ? 50 : 58,
+              height: widget.compact ? 50 : 58,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.asset(
+                    FamilyPopupAssets.addButton,
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.medium,
+                    isAntiAlias: true,
+                  ),
+                  Positioned(
+                    left: widget.compact ? 7 : 8,
+                    right: widget.compact ? 7 : 8,
+                    bottom: widget.compact ? 4 : 5,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        '\u6dfb\u52a0',
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: const Color(0xFF3F230D),
+                          fontSize: widget.compact ? 14 : 16,
+                          height: 1,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-              if (busy)
-                Center(
-                  child: SizedBox(
-                    width: compact ? 15 : 18,
-                    height: compact ? 15 : 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: compact ? 1.7 : 1.9,
-                      color: _FamilyPalette.accentDark,
+                  if (widget.busy)
+                    Center(
+                      child: SizedBox(
+                        width: widget.compact ? 15 : 18,
+                        height: widget.compact ? 15 : 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: widget.compact ? 1.7 : 1.9,
+                          color: _FamilyPalette.accentDark,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

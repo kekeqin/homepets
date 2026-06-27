@@ -34,6 +34,28 @@ Future<AddMemberFlowResult?> showAddMemberFlowDialog(BuildContext context) {
   );
 }
 
+Future<void> precacheAddMemberFlowAssets(BuildContext context) async {
+  await Future.wait(
+    _addMemberFlowAssetPaths.map(
+      (assetPath) => precacheImage(AssetImage(assetPath), context),
+    ),
+  );
+}
+
+List<String> get _addMemberFlowAssetPaths {
+  return <String>[
+    FamilyPopupAssets.mainPanel,
+    FamilyPopupAssets.mainPanelOutline,
+    FamilyPopupAssets.closeButton,
+    'assets/images/ui/sprites/edit_task_sheet_clean_alpha.png',
+    for (final petType in selectablePetTypes)
+      petAvatarAssetPath(
+        petType,
+        deterministicPetPoseIndex(petType, petType.hashCode),
+      ),
+  ];
+}
+
 Future<SelectPetFlowResult?> showSelectPetFlowDialog(
   BuildContext context, {
   required String memberName,
@@ -56,6 +78,7 @@ class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
   final TextEditingController _nicknameController = TextEditingController();
   final TextEditingController _petNameController = TextEditingController();
   final ScrollController _contentScrollController = ScrollController();
+  final FocusNode _nicknameFocusNode = FocusNode();
 
   String? _selectedPetType = selectablePetTypes.first;
   String? _nicknameError;
@@ -65,8 +88,20 @@ class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
   bool _keyboardWasOpen = false;
 
   @override
+  void initState() {
+    super.initState();
+    Future<void>.delayed(const Duration(milliseconds: 240), () {
+      if (!mounted) {
+        return;
+      }
+      _nicknameFocusNode.requestFocus();
+    });
+  }
+
+  @override
   void dispose() {
     _nicknameController.dispose();
+    _nicknameFocusNode.dispose();
     _petNameController.dispose();
     _contentScrollController.dispose();
     super.dispose();
@@ -209,7 +244,8 @@ class _AddMemberFlowDialogState extends State<AddMemberFlowDialog> {
                                   ),
                                   controller: _nicknameController,
                                   maxLength: 20,
-                                  autofocus: true,
+                                  focusNode: _nicknameFocusNode,
+                                  autofocus: false,
                                   textInputAction: TextInputAction.next,
                                   style: _addMemberInputTextStyle,
                                   onChanged: (_) {

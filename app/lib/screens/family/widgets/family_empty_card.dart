@@ -55,10 +55,75 @@ class FamilyEmptyCard extends StatelessWidget {
 
     return Tooltip(
       message: '邀请成员',
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onAddTap,
-        child: card,
+      child: _InviteCardTapTarget(onTap: onAddTap, child: card),
+    );
+  }
+}
+
+class _InviteCardTapTarget extends StatefulWidget {
+  const _InviteCardTapTarget({required this.onTap, required this.child});
+
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  State<_InviteCardTapTarget> createState() => _InviteCardTapTargetState();
+}
+
+class _InviteCardTapTargetState extends State<_InviteCardTapTarget> {
+  static const Duration _feedbackHoldDuration = Duration(milliseconds: 45);
+
+  bool _pressed = false;
+  bool _tapPending = false;
+
+  void _setPressed(bool pressed) {
+    if (_pressed == pressed) {
+      return;
+    }
+    setState(() => _pressed = pressed);
+  }
+
+  void _handleTap() {
+    if (_tapPending) {
+      return;
+    }
+    Feedback.forTap(context);
+    setState(() {
+      _pressed = true;
+      _tapPending = true;
+    });
+    Future<void>.delayed(_feedbackHoldDuration, () {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _pressed = false;
+        _tapPending = false;
+      });
+      widget.onTap();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _handleTap,
+      onTapDown: (_) => _setPressed(true),
+      onTapCancel: () {
+        if (!_tapPending) {
+          _setPressed(false);
+        }
+      },
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 90),
+        curve: Curves.easeOutCubic,
+        scale: _pressed ? 0.92 : 1,
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 90),
+          opacity: _pressed ? 0.78 : 1,
+          child: widget.child,
+        ),
       ),
     );
   }

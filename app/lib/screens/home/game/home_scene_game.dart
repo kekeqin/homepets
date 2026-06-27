@@ -8,6 +8,7 @@ import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flame_riverpod/flame_riverpod.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/ui/sprite_atlas_flame.dart';
 import '../../../models/pet_artwork.dart';
@@ -4351,6 +4352,9 @@ abstract class _AnimatedSceneComponent extends PositionComponent
     if (_exitStarted) {
       return;
     }
+    if (onTap != null) {
+      unawaited(HapticFeedback.selectionClick());
+    }
     _pressed = true;
     _targetScale = pressedScale;
     super.onTapDown(event);
@@ -4625,6 +4629,8 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
              behavior == _SceneSpriteBehavior.taskNote ||
                  behavior == _SceneSpriteBehavior.wallBadge
              ? 0.94
+             : behavior == _SceneSpriteBehavior.staticOverlay
+             ? 0.90
              : 1,
        ) {
     if (behavior == _SceneSpriteBehavior.wallBadge) {
@@ -4800,7 +4806,10 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
             : 0.078 * (1 - Curves.easeIn.transform((progress - 0.5) / 0.5)),
       _SceneSpriteBehavior.wallBadge =>
         math.sin(progress * math.pi * 2.0) * 0.040 * (1 - (progress * 0.3)),
-      _SceneSpriteBehavior.staticOverlay => 0,
+      _SceneSpriteBehavior.staticOverlay =>
+        progress < 0.5
+            ? 0.078 * Curves.easeOut.transform(progress / 0.5)
+            : 0.078 * (1 - Curves.easeIn.transform((progress - 0.5) / 0.5)),
     };
   }
 
@@ -4810,7 +4819,7 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
       _SceneSpriteBehavior.shopBasket => 0.22,
       _SceneSpriteBehavior.familyPhoto => 0.24,
       _SceneSpriteBehavior.wallBadge => 0.20,
-      _SceneSpriteBehavior.staticOverlay => 0,
+      _SceneSpriteBehavior.staticOverlay => 0.24,
     };
   }
 
@@ -4820,7 +4829,7 @@ class _SceneSpriteComponent extends _AnimatedSceneComponent
       _SceneSpriteBehavior.shopBasket => 0.20,
       _SceneSpriteBehavior.familyPhoto => 0.21,
       _SceneSpriteBehavior.wallBadge => 0.12,
-      _SceneSpriteBehavior.staticOverlay => 0,
+      _SceneSpriteBehavior.staticOverlay => 0.21,
     };
   }
 
@@ -6878,7 +6887,10 @@ class _TaskPanelActionButton extends PositionComponent
   final String label;
   final VoidCallback? onTap;
   final bool showPlusPrefix;
+  late final PositionComponent _pressRoot;
   bool _pressed = false;
+  double _targetScale = 1;
+  double? _tapActionCountdown;
 
   @override
   Future<void> onLoad() async {
@@ -6888,7 +6900,14 @@ class _TaskPanelActionButton extends PositionComponent
       await game.images.load(_TaskPanelOverlay._taskStickerAsset),
     );
 
-    add(
+    _pressRoot = PositionComponent(
+      position: size / 2,
+      size: Vector2(size.x, size.y),
+      anchor: Anchor.center,
+    );
+    add(_pressRoot);
+
+    _pressRoot.add(
       SpriteComponent(
         sprite: stickerSprite,
         position: size / 2,
@@ -6896,7 +6915,7 @@ class _TaskPanelActionButton extends PositionComponent
         anchor: Anchor.center,
       )..paint.filterQuality = ui.FilterQuality.high,
     );
-    add(
+    _pressRoot.add(
       TextComponent(
         text: showPlusPrefix ? '+ $label' : label,
         position: Vector2(size.x * 0.5, size.y * 0.52),
@@ -6922,23 +6941,56 @@ class _TaskPanelActionButton extends PositionComponent
   }
 
   @override
+  void update(double dt) {
+    super.update(dt);
+    final nextScale =
+        _pressRoot.scale.x +
+        ((_targetScale - _pressRoot.scale.x) * math.min(1, dt * 18));
+    _pressRoot.scale.setValues(nextScale, nextScale);
+
+    final countdown = _tapActionCountdown;
+    if (countdown == null) {
+      return;
+    }
+
+    final nextCountdown = countdown - dt;
+    if (nextCountdown > 0) {
+      _tapActionCountdown = nextCountdown;
+      return;
+    }
+
+    _tapActionCountdown = null;
+    _setPressed(false);
+    onTap?.call();
+  }
+
+  void _setPressed(bool pressed) {
+    if (_pressed == pressed) {
+      return;
+    }
+    _pressed = pressed;
+    _targetScale = pressed ? 0.88 : 1;
+  }
+
+  @override
   void onTapDown(TapDownEvent event) {
-    _pressed = true;
+    _setPressed(true);
+    unawaited(HapticFeedback.selectionClick());
     super.onTapDown(event);
   }
 
   @override
   void onTapUp(TapUpEvent event) {
-    if (_pressed) {
-      onTap?.call();
+    if (_pressed && _tapActionCountdown == null) {
+      _tapActionCountdown = 0.11;
     }
-    _pressed = false;
     super.onTapUp(event);
   }
 
   @override
   void onTapCancel(TapCancelEvent event) {
-    _pressed = false;
+    _tapActionCountdown = null;
+    _setPressed(false);
     super.onTapCancel(event);
   }
 }

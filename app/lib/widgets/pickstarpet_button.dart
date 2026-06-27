@@ -36,7 +36,10 @@ class PickStarPetButton extends StatefulWidget {
 }
 
 class _PickStarPetButtonState extends State<PickStarPetButton> {
+  static const Duration _feedbackHoldDuration = Duration(milliseconds: 90);
+
   bool _pressed = false;
+  bool _tapPending = false;
 
   String get _backgroundFrameName {
     switch (widget.variant) {
@@ -48,12 +51,34 @@ class _PickStarPetButtonState extends State<PickStarPetButton> {
   }
 
   bool get _enabled => widget.onPressed != null;
+  bool get _canTap => _enabled && !_tapPending;
 
   void _setPressed(bool pressed) {
     if (!_enabled || _pressed == pressed) {
       return;
     }
     setState(() => _pressed = pressed);
+  }
+
+  void _handleTap() {
+    if (!_canTap) {
+      return;
+    }
+    Feedback.forTap(context);
+    setState(() {
+      _pressed = true;
+      _tapPending = true;
+    });
+    Future<void>.delayed(_feedbackHoldDuration, () {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _pressed = false;
+        _tapPending = false;
+      });
+      widget.onPressed?.call();
+    });
   }
 
   @override
@@ -70,11 +95,11 @@ class _PickStarPetButtonState extends State<PickStarPetButton> {
       height: widget.height,
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 120),
-        opacity: _enabled ? 1 : 0.52,
+        opacity: _enabled ? (_pressed ? 0.80 : 1) : 0.52,
         child: AnimatedScale(
           duration: const Duration(milliseconds: 90),
           curve: Curves.easeOutCubic,
-          scale: _pressed ? 0.975 : 1,
+          scale: _pressed ? 0.92 : 1,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -112,10 +137,13 @@ class _PickStarPetButtonState extends State<PickStarPetButton> {
 
     button = GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: widget.onPressed,
+      onTap: _canTap ? _handleTap : null,
       onTapDown: (_) => _setPressed(true),
-      onTapCancel: () => _setPressed(false),
-      onTapUp: (_) => _setPressed(false),
+      onTapCancel: () {
+        if (!_tapPending) {
+          _setPressed(false);
+        }
+      },
       child: button,
     );
 
