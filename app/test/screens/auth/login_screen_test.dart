@@ -269,7 +269,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(LoginScreen.submitButtonKey));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(
         find.byWidgetPredicate(
