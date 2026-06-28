@@ -149,6 +149,8 @@ class PickStarPetDialogTheme {
   static const shadow = Color(0x28604429);
   static const barrierTint = Color(0x32674A30);
   static const borderRadius = BorderRadius.all(Radius.circular(28));
+  static const outerBorderColor = Color(0xFF8F623F);
+  static const outerBorderWidth = 2.4;
   static const closeIconAsset = 'assets/images/ui/close_icon_simple.png';
 
   static const shellGradient = LinearGradient(

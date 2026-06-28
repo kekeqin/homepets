@@ -998,29 +998,26 @@ class _PaywallPanelBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final radius = constraints.maxWidth * 54 / _PaywallSprite.design.width;
-
-        return DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(radius),
-            border: Border.all(color: const Color(0xFF6D4A2D), width: 2.8),
-            gradient: const LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFFFCE8C1), Color(0xFFFEEDC9)],
-            ),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x28604429),
-                blurRadius: 22,
-                offset: Offset(0, 10),
-              ),
-            ],
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: PickStarPetDialogTheme.borderRadius,
+        border: Border.all(
+          color: PickStarPetDialogTheme.outerBorderColor,
+          width: PickStarPetDialogTheme.outerBorderWidth,
+        ),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFFCE8C1), Color(0xFFFEEDC9)],
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x28604429),
+            blurRadius: 22,
+            offset: Offset(0, 10),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }

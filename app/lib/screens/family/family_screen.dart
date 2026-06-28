@@ -11,6 +11,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/family_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../widgets/app_modal_shell.dart';
+import '../../widgets/source_scaled_rrect_border.dart';
 import '../member/widgets/member_avatar_picker_sheet.dart';
 import '../paywall/paywall_screen.dart';
 import '../pet/pet_detail_screen.dart';
@@ -41,6 +42,9 @@ const AppModalVisibleFrame _familyDialogVisibleFrame = AppModalVisibleFrame(
   leftInset: 48,
   rightInset: 51,
 );
+const Size _familyPanelSourceSize = Size(1149, 1369);
+const Rect _familyPanelOuterBorderRect = Rect.fromLTRB(48, 43, 1098, 1315);
+const Radius _familyPanelOuterBorderRadius = Radius.elliptical(58, 64);
 
 Future<void> showFamilyDialog(
   BuildContext context, {
@@ -885,11 +889,27 @@ class _FamilyOuterPanelBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      FamilyPopupAssets.mainPanel,
-      fit: BoxFit.fill,
-      filterQuality: FilterQuality.medium,
-      isAntiAlias: true,
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.asset(
+          FamilyPopupAssets.mainPanel,
+          fit: BoxFit.fill,
+          filterQuality: FilterQuality.medium,
+          isAntiAlias: true,
+        ),
+        const Positioned.fill(
+          child: IgnorePointer(
+            child: SourceScaledRRectBorder(
+              sourceSize: _familyPanelSourceSize,
+              sourceRect: _familyPanelOuterBorderRect,
+              sourceRadius: _familyPanelOuterBorderRadius,
+              color: PickStarPetDialogTheme.outerBorderColor,
+              strokeWidth: PickStarPetDialogTheme.outerBorderWidth,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

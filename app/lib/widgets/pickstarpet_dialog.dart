@@ -16,7 +16,6 @@ const AppModalLayout _defaultPickStarPetDialogLayout = AppModalLayout(
 typedef PickStarPetDialogActionsBuilder =
     List<Widget> Function(BuildContext dialogContext);
 
-const Color _homePetsDialogOuterBorder = Color(0xFF8F623F);
 const Color _homePetsDialogInnerBorder = Color(0xFFFFF8E8);
 const BorderRadius _homePetsDialogInnerBorderRadius = BorderRadius.all(
   Radius.circular(23),
@@ -89,7 +88,10 @@ class PickStarPetDialog extends StatelessWidget {
           ? PickStarPetDialogTheme.shellGradient
           : null,
       border: background == null
-          ? Border.all(color: _homePetsDialogOuterBorder, width: 2.4)
+          ? Border.all(
+              color: PickStarPetDialogTheme.outerBorderColor,
+              width: PickStarPetDialogTheme.outerBorderWidth,
+            )
           : null,
       boxShadow: PickStarPetDialogTheme.shellShadow,
       child: Stack(
