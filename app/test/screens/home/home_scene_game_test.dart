@@ -346,6 +346,29 @@ void main() {
       expect(game.camera.viewport.virtualSize.y, 2732);
     });
 
+    test('covers narrow mobile viewport without side gutters', () {
+      final backgroundRect = HomeSceneGame.debugBackgroundLayoutRect(
+        device: HomeSceneDevice.mobile,
+        sceneSize: const Size(945, 2048),
+      );
+
+      expect(backgroundRect.left, lessThanOrEqualTo(0));
+      expect(backgroundRect.right, greaterThanOrEqualTo(945));
+      expect(backgroundRect.top, lessThanOrEqualTo(0));
+      expect(backgroundRect.bottom, greaterThanOrEqualTo(2048));
+    });
+
+    test('covers tablet viewport without letterboxing', () {
+      final backgroundRect = HomeSceneGame.debugBackgroundLayoutRect(
+        device: HomeSceneDevice.tablet,
+        sceneSize: const Size(2048, 2732),
+      );
+
+      expect(backgroundRect.left, lessThanOrEqualTo(0));
+      expect(backgroundRect.right, greaterThanOrEqualTo(2048));
+      expect(backgroundRect.top, lessThanOrEqualTo(0));
+      expect(backgroundRect.bottom, greaterThanOrEqualTo(2732));
+    });
     test('limits tasks to twelve entries', () {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
 
@@ -386,14 +409,14 @@ void main() {
 
       expect(taskRect, isNotNull);
       expect(familyRect, isNotNull);
-      expect(taskRect!.left, closeTo(83, 2));
-      expect(taskRect.top, closeTo(111, 2));
-      expect(taskRect.width, closeTo(69, 2));
-      expect(taskRect.height, closeTo(76, 2));
-      expect(familyRect!.left, closeTo(316, 2));
-      expect(familyRect.top, closeTo(280, 2));
-      expect(familyRect.width, closeTo(47, 2));
-      expect(familyRect.height, closeTo(55, 2));
+      expect(taskRect!.left, closeTo(80, 2));
+      expect(taskRect.top, closeTo(102, 2));
+      expect(taskRect.width, closeTo(71, 2));
+      expect(taskRect.height, closeTo(78, 2));
+      expect(familyRect!.left, closeTo(320, 2));
+      expect(familyRect.top, closeTo(276, 2));
+      expect(familyRect.width, closeTo(48, 2));
+      expect(familyRect.height, closeTo(56, 2));
     });
 
     test(

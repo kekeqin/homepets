@@ -1605,7 +1605,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   }) {
     return _SceneProfile(
       backgroundAsset: _homeSceneBackgroundAsset,
-      backgroundFit: _SceneBackgroundFit.contain,
+      backgroundFit: _SceneBackgroundFit.cover,
       backgroundFillColor: const Color(0xFFF4E3CF),
       specs: <_UiSpec>[
         _SceneSpriteSpec(
@@ -1778,7 +1778,7 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
   }) {
     return _SceneProfile(
       backgroundAsset: _homeSceneBackgroundAsset,
-      backgroundFit: _SceneBackgroundFit.contain,
+      backgroundFit: _SceneBackgroundFit.cover,
       backgroundFillColor: const Color(0xFFF4E3CF),
       specs: <_UiSpec>[
         _SceneSpriteSpec(
@@ -2181,6 +2181,21 @@ class HomeSceneGame extends FlameGame<World> with RiverpodGameMixin<World> {
 
   static bool debugSceneComponentCanReceiveTap({required bool hasTapCallback}) {
     return _sceneComponentCanReceiveTap(hasTapCallback ? () {} : null);
+  }
+
+  static Rect debugBackgroundLayoutRect({
+    required HomeSceneDevice device,
+    required Size sceneSize,
+  }) {
+    final profile = switch (device) {
+      HomeSceneDevice.mobile => _mobileProfile(onTaskTap: () {}),
+      HomeSceneDevice.tablet => _tabletProfile(onTaskTap: () {}),
+    };
+    return _homeSceneBackgroundLayoutRect(
+      sourceSize: _homeSceneBackgroundSize,
+      sceneSize: Vector2(sceneSize.width, sceneSize.height),
+      fit: profile.backgroundFit,
+    );
   }
 
   static int get debugSeatOccluderRenderPriority =>
