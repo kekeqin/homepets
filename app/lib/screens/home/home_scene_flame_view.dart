@@ -1163,10 +1163,10 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       barrierLabel: 'shop_coming_soon',
       minimumSafeArea: PickStarPetDialogGutter.smallInsets,
       showInnerBorder: false,
-      title: '商店完善中',
+      title: '星愿屋完善中',
       contentBuilder: (dialogContext) {
         return const Text(
-          '商店页面还在完善中，我们会尽快上线。',
+          '星愿屋还在完善中，我们会尽快上线。',
           style: TextStyle(
             color: Color(0xFF6F563D),
             fontSize: 16,
