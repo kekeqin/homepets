@@ -1178,7 +1178,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       },
       actionsBuilder: (dialogContext) {
         return <Widget>[
-          PickStarPetButton(
+          _ShopConfirmActionButton(
             label: '知道了',
             onPressed: () => Navigator.of(dialogContext).pop(),
           ),
@@ -5459,6 +5459,103 @@ class _TaskEditorCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ShopConfirmActionButton extends StatefulWidget {
+  const _ShopConfirmActionButton({
+    required this.label,
+    required this.onPressed,
+  });
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  State<_ShopConfirmActionButton> createState() =>
+      _ShopConfirmActionButtonState();
+}
+
+class _ShopConfirmActionButtonState extends State<_ShopConfirmActionButton> {
+  static const double _buttonHeight = 58;
+  static const double _buttonWidth = 196;
+
+  bool _pressed = false;
+
+  void _setPressed(bool pressed) {
+    if (_pressed == pressed) {
+      return;
+    }
+    setState(() => _pressed = pressed);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.hasBoundedWidth
+            ? constraints.maxWidth
+            : _buttonWidth;
+        final buttonWidth = math.min(_buttonWidth, availableWidth);
+
+        return SizedBox(
+          width: availableWidth,
+          child: Center(
+            child: SizedBox(
+              width: buttonWidth,
+              height: _buttonHeight,
+              child: Semantics(
+                button: true,
+                label: widget.label,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: widget.onPressed,
+                  onTapDown: (_) => _setPressed(true),
+                  onTapCancel: () => _setPressed(false),
+                  onTapUp: (_) => _setPressed(false),
+                  child: AnimatedScale(
+                    duration: const Duration(milliseconds: 90),
+                    curve: Curves.easeOutCubic,
+                    scale: _pressed ? 0.985 : 1,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFB65A),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(
+                          color: const Color(0xFFA8642E),
+                          width: 2.2,
+                        ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x33604429),
+                            blurRadius: 13,
+                            offset: Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          widget.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF4D3623),
+                            fontSize: 23,
+                            fontWeight: FontWeight.w900,
+                            height: 1,
+                            letterSpacing: 0,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
