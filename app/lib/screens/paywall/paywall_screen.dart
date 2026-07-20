@@ -175,7 +175,7 @@ class _PaywallContentState extends ConsumerState<PaywallContent> {
   Widget build(BuildContext context) {
     final state = ref.watch(revenueCatProvider);
     final authState = ref.watch(authProvider);
-    final slotPackages = _packagesBySlot(state.packages);
+    final slotPackages = _packagesBySlot(state.purchasablePackages);
     final selectedSlot = _hasManualSelection
         ? _selectedSlot
         : _slotForSelectedPackage(slotPackages, state.selectedPackage) ??
@@ -246,16 +246,6 @@ class _PaywallContentState extends ConsumerState<PaywallContent> {
                             selected: selectedSlot == 1,
                             package: slotPackages[1],
                             onTap: () => _selectPlan(1, slotPackages[1]),
-                          ),
-                          _PaywallPlanCard(
-                            target: _PaywallSprite.lifetimeCardTarget,
-                            fallbackTitle: '永久会员',
-                            fallbackPrice: '¥99.99',
-                            fallbackPeriod: '一次购买',
-                            accentColor: const Color(0xFFE09A28),
-                            selected: selectedSlot == 2,
-                            package: slotPackages[2],
-                            onTap: () => _selectPlan(2, slotPackages[2]),
                           ),
                           if (statusMessage != null)
                             _PaywallStatusMessage(
@@ -1056,7 +1046,7 @@ Widget _sprite(Rect source, Rect target, {BoxFit fit = BoxFit.contain}) {
 }
 
 List<Package?> _packagesBySlot(List<Package> packages) {
-  final slots = List<Package?>.filled(3, null);
+  final slots = List<Package?>.filled(2, null);
   final usedIdentifiers = <String>{};
 
   void assignType(PackageType type, int slot) {
@@ -1069,12 +1059,17 @@ List<Package?> _packagesBySlot(List<Package> packages) {
     }
   }
 
+  // Paywall only offers recurring subscriptions (monthly / annual).
   assignType(PackageType.monthly, 0);
   assignType(PackageType.annual, 1);
-  assignType(PackageType.lifetime, 2);
 
   for (final package in packages) {
     if (usedIdentifiers.contains(package.identifier)) {
+      continue;
+    }
+    // Never surface lifetime / one-time purchases on the paywall.
+    if (package.packageType == PackageType.lifetime ||
+        _isLifetimePackage(package)) {
       continue;
     }
     final slot = slots.indexWhere((value) => value == null);
@@ -1086,6 +1081,19 @@ List<Package?> _packagesBySlot(List<Package> packages) {
   }
 
   return slots;
+}
+
+bool _isLifetimePackage(Package package) {
+  if (package.packageType == PackageType.lifetime) {
+    return true;
+  }
+  final signature =
+      '${package.identifier} ${package.storeProduct.identifier} ${package.storeProduct.title}'
+          .toLowerCase();
+  return signature.contains('lifetime') ||
+      signature.contains('forever') ||
+      signature.contains('permanent') ||
+      signature.contains('永久');
 }
 
 int? _slotForSelectedPackage(List<Package?> slotPackages, Package? selected) {
@@ -1321,9 +1329,9 @@ class _PaywallSprite {
   static const subtitleTarget = Rect.fromLTWH(142, 526, 476, 66);
   static const benefitFamilyTarget = Rect.fromLTWH(54, 624, 205, 168);
   static const benefitTasksTarget = Rect.fromLTWH(502, 624, 204, 168);
-  static const monthlyCardTarget = Rect.fromLTWH(43, 880, 216, 130);
-  static const annualCardTarget = Rect.fromLTWH(274, 880, 216, 130);
-  static const lifetimeCardTarget = Rect.fromLTWH(505, 880, 216, 130);
+  // Two plan cards centered in the 760-wide design canvas.
+  static const monthlyCardTarget = Rect.fromLTWH(118, 880, 248, 130);
+  static const annualCardTarget = Rect.fromLTWH(394, 880, 248, 130);
   static const unlockButtonTarget = Rect.fromLTWH(151, 1074, 458, 96);
   static const closeTarget = Rect.fromLTWH(662, 0, 96, 96);
   static const statusTarget = Rect.fromLTWH(120, 1024, 520, 46);

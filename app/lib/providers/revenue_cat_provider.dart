@@ -68,23 +68,28 @@ class RevenueCatState {
   List<Package> get packages =>
       currentOffering?.availablePackages ?? const <Package>[];
 
+  /// Packages offered on the paywall (recurring only; lifetime is not sold).
+  List<Package> get purchasablePackages => packages
+      .where((package) => package.packageType != PackageType.lifetime)
+      .toList(growable: false);
+
   Package? get selectedPackage {
-    if (packages.isEmpty) {
+    final candidates = purchasablePackages;
+    if (candidates.isEmpty) {
       return null;
     }
     final selectedIdentifier = selectedPackageIdentifier;
-    if (selectedIdentifier == null) {
-      return packages.first;
-    }
-    for (final package in packages) {
-      if (package.identifier == selectedIdentifier) {
-        return package;
+    if (selectedIdentifier != null) {
+      for (final package in candidates) {
+        if (package.identifier == selectedIdentifier) {
+          return package;
+        }
       }
     }
-    return packages.first;
+    return candidates.first;
   }
 
-  bool get hasPackages => packages.isNotEmpty;
+  bool get hasPackages => purchasablePackages.isNotEmpty;
 
   bool get canPurchase =>
       isAvailable &&
@@ -585,7 +590,9 @@ class RevenueCatNotifier extends StateNotifier<RevenueCatState> {
     Offerings offerings,
     String? currentIdentifier,
   ) {
-    final packages = offerings.current?.availablePackages ?? const <Package>[];
+    final packages = (offerings.current?.availablePackages ?? const <Package>[])
+        .where((package) => package.packageType != PackageType.lifetime)
+        .toList(growable: false);
     if (packages.isEmpty) {
       return null;
     }
