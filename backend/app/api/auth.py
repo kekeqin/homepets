@@ -105,11 +105,13 @@ def login_with_apple(
     try:
         identity = apple_verifier.verify(body.identity_token, body.nonce)
     except AppleIdentityConfigurationError as exc:
+        logger.error("Apple Sign In is not configured: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="\u82f9\u679c\u767b\u5f55\u670d\u52a1\u5c1a\u672a\u914d\u7f6e",
         ) from exc
     except AppleIdentityVerificationError as exc:
+        logger.warning("Apple Sign In identity verification failed: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="\u82f9\u679c\u767b\u5f55\u51ed\u8bc1\u65e0\u6548",

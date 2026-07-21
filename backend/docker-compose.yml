@@ -16,6 +16,10 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql://pickstarpet:pickstarpet@db:5432/pickstarpet
+      APPLE_SIGN_IN_CLIENT_IDS: ${APPLE_SIGN_IN_CLIENT_IDS:-com.kkqin.pickstarpet}
+      APPLE_SIGN_IN_KEYS_URL: ${APPLE_SIGN_IN_KEYS_URL:-https://appleid.apple.com/auth/keys}
+      APPLE_SIGN_IN_TIMEOUT_SECONDS: ${APPLE_SIGN_IN_TIMEOUT_SECONDS:-5}
+      APPLE_SIGN_IN_KEYS_CACHE_SECONDS: ${APPLE_SIGN_IN_KEYS_CACHE_SECONDS:-3600}
     depends_on:
       - db
 

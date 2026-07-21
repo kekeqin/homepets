@@ -72,13 +72,24 @@ class AppleSignInService {
   }
 
   String? _fullName(AuthorizationCredentialAppleID credential) {
-    final parts = [
-      credential.givenName?.trim(),
-      credential.familyName?.trim(),
-    ].where((part) => part != null && part.isNotEmpty).cast<String>().toList();
-    if (parts.isEmpty) {
+    final givenName = credential.givenName?.trim();
+    final familyName = credential.familyName?.trim();
+    final hasGiven = givenName != null && givenName.isNotEmpty;
+    final hasFamily = familyName != null && familyName.isNotEmpty;
+
+    if (!hasGiven && !hasFamily) {
       return null;
     }
-    return parts.join(' ');
+    if (hasGiven && hasFamily) {
+      // Prefer Chinese-style 姓名 when either part contains CJK characters.
+      final looksChinese =
+          _containsCjk(givenName) || _containsCjk(familyName);
+      return looksChinese ? '$familyName$givenName' : '$givenName $familyName';
+    }
+    return hasGiven ? givenName : familyName;
+  }
+
+  bool _containsCjk(String value) {
+    return RegExp(r'[\u3400-\u9FFF]').hasMatch(value);
   }
 }

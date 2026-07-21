@@ -198,6 +198,18 @@ def test_login_with_apple_rejects_invalid_identity(client: TestClient) -> None:
     assert response.status_code == 401
 
 
+def test_login_with_apple_unconfigured_returns_503(client: TestClient) -> None:
+    app.dependency_overrides[get_apple_identity_verifier] = lambda: _UnconfiguredAppleVerifier()
+
+    response = client.post(
+        "/api/auth/apple",
+        json={"identity_token": "any-token", "authorization_code": "auth-code"},
+    )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "苹果登录服务尚未配置"
+
+
 def test_login_rejects_wrong_sms_code(client: TestClient, db: Session) -> None:
     _create_admin(db, phone="13800000001")
 
@@ -292,3 +304,10 @@ class _FakeAppleVerifier:
 class _RejectingAppleVerifier:
     def verify(self, identity_token: str, nonce: str | None = None) -> AppleIdentity:
         raise AppleIdentityVerificationError("invalid identity token")
+
+
+class _UnconfiguredAppleVerifier:
+    def verify(self, identity_token: str, nonce: str | None = None) -> AppleIdentity:
+        from app.services.apple_identity import AppleIdentityConfigurationError
+
+        raise AppleIdentityConfigurationError("Apple Sign in client ids are not configured")

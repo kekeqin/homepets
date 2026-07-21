@@ -1,4 +1,10 @@
-from pydantic_settings import BaseSettings
+from pathlib import Path
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Resolve backend/.env even when the process is started from the monorepo root.
+_BACKEND_DIR = Path(__file__).resolve().parents[2]
+_ENV_FILE = _BACKEND_DIR / ".env"
 
 
 class Settings(BaseSettings):
@@ -34,12 +40,17 @@ class Settings(BaseSettings):
     SMS_VERIFY_FAILURE_LIMIT_PER_IP: int = 30
     SMS_VERIFY_FAILURE_WINDOW_SECONDS: int = 600
 
-    APPLE_SIGN_IN_CLIENT_IDS: str = ""
+    # Native iOS/macOS audience is the bundle id. Add Services IDs for Android/Web.
+    APPLE_SIGN_IN_CLIENT_IDS: str = "com.kkqin.pickstarpet"
     APPLE_SIGN_IN_KEYS_URL: str = "https://appleid.apple.com/auth/keys"
     APPLE_SIGN_IN_TIMEOUT_SECONDS: float = 5.0
     APPLE_SIGN_IN_KEYS_CACHE_SECONDS: int = 3600
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = SettingsConfigDict(
+        env_file=str(_ENV_FILE) if _ENV_FILE.is_file() else ".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
     @property
     def database_url(self) -> str:

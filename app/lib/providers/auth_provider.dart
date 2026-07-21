@@ -266,6 +266,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
         error: null,
       );
       return false;
+    } on AppleSignInFailure catch (error) {
+      if (requestVersion != _authRequestVersion) {
+        return false;
+      }
+      state = state.copyWith(
+        isAuthenticated: false,
+        isLoading: false,
+        isInitialized: true,
+        user: null,
+        error: _appleSignInFailureMessage(error),
+      );
+      return false;
     } catch (error) {
       if (requestVersion != _authRequestVersion) {
         return false;
@@ -294,6 +306,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       return false;
     }
+  }
+
+  String _appleSignInFailureMessage(AppleSignInFailure error) {
+    final message = error.message.trim();
+    if (message.isEmpty) {
+      return '\u82f9\u679c\u767b\u5f55\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5';
+    }
+    final lower = message.toLowerCase();
+    if (lower.contains('not available') || lower.contains('not supported')) {
+      return '\u5f53\u524d\u8bbe\u5907\u4e0d\u652f\u6301\u82f9\u679c\u767b\u5f55';
+    }
+    if (lower.contains('network') || lower.contains('internet')) {
+      return '\u7f51\u7edc\u5f02\u5e38\uff0c\u8bf7\u68c0\u67e5\u7f51\u7edc\u540e\u91cd\u8bd5';
+    }
+    if (lower.contains('missing apple identity token')) {
+      return '\u82f9\u679c\u767b\u5f55\u8fd4\u56de\u7684\u4fe1\u606f\u4e0d\u5b8c\u6574';
+    }
+    return '\u82f9\u679c\u767b\u5f55\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5';
   }
 
   Future<void> logout() async {
