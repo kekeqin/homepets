@@ -383,6 +383,7 @@ class _FakeAuthService extends AuthService {
   Future<User> getMe() async {
     return User(
       id: 1,
+      publicId: 'A3K9M2',
       phone: lastPhone,
       nickname: '\u7238\u7238',
       role: 'admin',

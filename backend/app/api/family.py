@@ -18,6 +18,7 @@ from app.schemas.family import (
     MemberResponse,
 )
 from app.services.pet_service import VALID_SELECTABLE_PET_TYPES, create_member_pet
+from app.services.user_public_id import allocate_public_id
 
 router = APIRouter(prefix="/api/families", tags=["families"])
 
@@ -151,7 +152,12 @@ def add_member(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权操作此家庭")
 
     pet_selection = _validate_member_pet_selection(body)
-    member = User(nickname=body.nickname, role="child", family_id=family_id)
+    member = User(
+        nickname=body.nickname,
+        role="child",
+        family_id=family_id,
+        public_id=allocate_public_id(db),
+    )
     db.add(member)
     db.flush()
 

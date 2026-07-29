@@ -21,6 +21,7 @@ import '../../core/ui/sprite_atlas.dart';
 
 import '../../models/pet.dart';
 import '../../models/pet_artwork.dart';
+import '../../models/user.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/family_provider.dart';
@@ -30,6 +31,7 @@ import '../../widgets/pickstarpet_button.dart';
 import '../../widgets/pickstarpet_dialog.dart';
 import '../../widgets/pickstarpet_select_field.dart';
 import '../../widgets/membership_top_notice.dart';
+import '../../widgets/public_id_row.dart';
 import '../../widgets/source_scaled_rrect_border.dart';
 
 import '../family/family_screen.dart';
@@ -836,10 +838,9 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   }
 
   Future<void> _showEditProfileDialog() async {
-    final authState = ref.read(authProvider);
-    final user = authState.user;
+    User? loadedUser = ref.read(authProvider).user;
 
-    if (user == null) {
+    if (loadedUser == null) {
       _showTopSnackBar(
         '\u8bf7\u5148\u767b\u5f55\u540e\u518d\u7f16\u8f91\u8d44\u6599',
       );
@@ -848,6 +849,22 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
     if (_isReadOnlyAfterTrial) {
       _showReadOnlyPaywall();
+      return;
+    }
+
+    // Refresh so public_id is available after backend upgrades.
+    try {
+      await ref.read(authProvider.notifier).refreshUser();
+      if (!mounted) {
+        return;
+      }
+      loadedUser = ref.read(authProvider).user ?? loadedUser;
+    } catch (_) {
+      // Keep the existing in-memory user if refresh fails.
+    }
+
+    final user = loadedUser;
+    if (user == null) {
       return;
     }
 
@@ -877,6 +894,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     final familyNameController = TextEditingController(
       text: canEditFamilyName ? familyState.familyName : '',
     );
+    final publicId = user.publicId;
 
     try {
       if (!mounted) {
@@ -901,7 +919,20 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         contentBuilder: (dialogContext) {
           return Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              PublicIdRow(
+                publicId: publicId,
+                labelColor: const Color(0xFF7C634C),
+                valueColor: const Color(0xFF4D3623),
+                onCopied: () {
+                  if (!mounted) {
+                    return;
+                  }
+                  _showTopSnackBar('\u4e13\u5c5e ID \u5df2\u590d\u5236');
+                },
+              ),
+              const SizedBox(height: 16),
               _buildEditProfileField(
                 controller: nicknameController,
                 labelText: '\u6635\u79f0',
@@ -1007,6 +1038,8 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         );
       }
     } finally {
+      // Wait for dialog exit animation so fields no longer hold controllers.
+      await Future<void>.delayed(const Duration(milliseconds: 300));
       nicknameController.dispose();
       familyNameController.dispose();
     }

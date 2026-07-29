@@ -263,6 +263,7 @@ def test_migrate_sqlite_legacy_tables_drops_removed_user_password_hash(tmp_path)
         columns = {row[1] for row in connection.execute(text("PRAGMA table_info(users)")).all()}
         assert columns == {
             "id",
+            "public_id",
             "phone",
             "apple_sub",
             "email",
@@ -281,20 +282,25 @@ def test_migrate_sqlite_legacy_tables_drops_removed_user_password_hash(tmp_path)
         assert row["role"] == "admin"
         assert row["points"] == 8
         assert row["family_id"] == 7
+        assert row["public_id"] is not None
+        assert len(str(row["public_id"])) == 6
 
         connection.execute(
             text(
                 """
-                INSERT INTO users (phone, nickname, role, points, created_at)
-                VALUES ('13800000002', 'Parent', 'admin', 0, '2026-05-18 11:00:00')
+                INSERT INTO users (public_id, phone, nickname, role, points, created_at)
+                VALUES ('ABC234', '13800000002', 'Parent', 'admin', 0, '2026-05-18 11:00:00')
                 """
             )
         )
         created = (
             connection.execute(
-                text("SELECT phone, nickname FROM users WHERE phone = '13800000002'")
+                text(
+                    "SELECT phone, nickname, public_id FROM users WHERE phone = '13800000002'"
+                )
             )
             .mappings()
             .one()
         )
         assert created["nickname"] == "Parent"
+        assert created["public_id"] == "ABC234"

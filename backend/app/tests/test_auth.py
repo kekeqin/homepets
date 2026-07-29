@@ -127,10 +127,17 @@ def test_login_with_sms_code_auto_registers_new_phone(
     assert created is not None
     assert created.nickname == "我"
     assert created.role == "admin"
+    assert created.public_id is not None
+    assert len(created.public_id) == 6
+    assert created.public_id.isalnum()
     assert "password_hash" not in User.model_fields
     family = db.get(Family, created.family_id)
     assert family is not None
     assert family.owner_id == created.id
+
+    token = response.json()["access_token"]
+    me = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"}).json()
+    assert me["public_id"] == created.public_id
 
 
 def test_login_with_apple_auto_registers_new_user(
@@ -157,6 +164,9 @@ def test_login_with_apple_auto_registers_new_user(
     created = db.exec(select(User).where(User.apple_sub == "apple-sub-1")).first()
     assert created is not None
     assert me["id"] == created.id
+    assert me["public_id"] == created.public_id
+    assert created.public_id is not None
+    assert len(created.public_id) == 6
     assert created.email == "parent@example.com"
     assert created.nickname == "Apple Parent"
     assert created.role == "admin"

@@ -31,6 +31,7 @@ from app.services.sms_verification import (
     get_sms_verification_client,
 )
 from app.services.subscription_service import ensure_subscription_for_user
+from app.services.user_public_id import allocate_public_id, ensure_user_public_id
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 logger = logging.getLogger(__name__)
@@ -124,15 +125,18 @@ def login_with_apple(
             email=identity.email,
             nickname=_apple_display_name(body.full_name),
             role="admin",
+            public_id=allocate_public_id(db),
         )
         db.add(user)
         db.commit()
         db.refresh(user)
-    elif identity.email and user.email != identity.email:
-        user.email = identity.email
-        db.add(user)
-        db.commit()
-        db.refresh(user)
+    else:
+        ensure_user_public_id(db, user)
+        if identity.email and user.email != identity.email:
+            user.email = identity.email
+            db.add(user)
+            db.commit()
+            db.refresh(user)
 
     return _create_session_token(db, user)
 
@@ -230,10 +234,17 @@ def login(
         sms_rate_limiter.clear_verify_failures(body.phone, ip_address)
     user = db.exec(select(User).where(User.phone == body.phone)).first()
     if user is None:
-        user = User(phone=body.phone, nickname="我", role="admin")
+        user = User(
+            phone=body.phone,
+            nickname="我",
+            role="admin",
+            public_id=allocate_public_id(db),
+        )
         db.add(user)
         db.commit()
         db.refresh(user)
+    else:
+        ensure_user_public_id(db, user)
 
     _ensure_admin_family(db, user)
     ensure_subscription_for_user(db, user)
@@ -242,7 +253,11 @@ def login(
 
 
 @router.get("/me", response_model=UserResponse)
-def get_me(current_user: User = Depends(get_current_user)) -> User:
+def get_me(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> User:
+    ensure_user_public_id(db, current_user)
     return current_user
 
 

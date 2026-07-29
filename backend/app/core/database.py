@@ -1,6 +1,6 @@
 from collections.abc import Generator
 
-from sqlalchemy import Engine, text
+from sqlalchemy import Engine, inspect, text
 from sqlmodel import Session, SQLModel, create_engine
 
 import app.models  # noqa: F401
@@ -16,6 +16,7 @@ engine = create_engine(settings.database_url, echo=settings.DEBUG, **engine_opti
 def create_db_and_tables() -> None:
     SQLModel.metadata.create_all(engine)
     migrate_sqlite_legacy_tables(engine)
+    ensure_users_public_id_column(engine)
 
 
 def migrate_sqlite_legacy_tables(db_engine: Engine) -> None:
@@ -54,6 +55,7 @@ def _migrate_sqlite_legacy_user_table(db_engine: Engine) -> None:
                 """
                 CREATE TABLE users_schema_migration_new (
                     id INTEGER NOT NULL,
+                    public_id VARCHAR(6) NOT NULL,
                     phone VARCHAR,
                     apple_sub VARCHAR,
                     email VARCHAR,
@@ -70,6 +72,11 @@ def _migrate_sqlite_legacy_user_table(db_engine: Engine) -> None:
             )
 
             id_expr = "id" if "id" in actual_columns else "NULL"
+            public_id_expr = (
+                "public_id"
+                if "public_id" in actual_columns
+                else "upper(hex(randomblob(3)))"
+            )
             phone_expr = "phone" if "phone" in actual_columns else "NULL"
             apple_sub_expr = "apple_sub" if "apple_sub" in actual_columns else "NULL"
             email_expr = "email" if "email" in actual_columns else "NULL"
@@ -88,6 +95,7 @@ def _migrate_sqlite_legacy_user_table(db_engine: Engine) -> None:
                 f"""
                 INSERT INTO users_schema_migration_new (
                     id,
+                    public_id,
                     phone,
                     apple_sub,
                     email,
@@ -100,6 +108,7 @@ def _migrate_sqlite_legacy_user_table(db_engine: Engine) -> None:
                 )
                 SELECT
                     {id_expr},
+                    {public_id_expr},
                     {phone_expr},
                     {apple_sub_expr},
                     {email_expr},
@@ -114,6 +123,9 @@ def _migrate_sqlite_legacy_user_table(db_engine: Engine) -> None:
             )
             connection.exec_driver_sql("DROP TABLE users")
             connection.exec_driver_sql("ALTER TABLE users_schema_migration_new RENAME TO users")
+            connection.exec_driver_sql(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_public_id ON users (public_id)"
+            )
             connection.exec_driver_sql(
                 "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_phone ON users (phone)"
             )
@@ -305,6 +317,32 @@ def _migrate_sqlite_legacy_pet_table(db_engine: Engine) -> None:
 
         connection.exec_driver_sql("PRAGMA foreign_keys=ON")
         connection.commit()
+
+
+def ensure_users_public_id_column(db_engine: Engine) -> None:
+    """Add and backfill users.public_id for existing databases."""
+    inspector = inspect(db_engine)
+    if "users" not in inspector.get_table_names():
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("users")}
+    if "public_id" not in columns:
+        with db_engine.begin() as connection:
+            connection.execute(text("ALTER TABLE users ADD COLUMN public_id VARCHAR(6)"))
+
+    from app.services.user_public_id import backfill_missing_public_ids
+
+    with Session(db_engine) as session:
+        backfill_missing_public_ids(session)
+
+    # Re-inspect after possible ALTER; create unique index once values are filled.
+    inspector = inspect(db_engine)
+    index_names = {index["name"] for index in inspector.get_indexes("users")}
+    if "ix_users_public_id" not in index_names:
+        with db_engine.begin() as connection:
+            connection.execute(
+                text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_public_id ON users (public_id)")
+            )
 
 
 def get_session() -> Generator[Session, None, None]:

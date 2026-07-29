@@ -14,6 +14,7 @@ import '../../widgets/app_modal_shell.dart';
 import '../../widgets/pickstarpet_button.dart';
 import '../../widgets/pickstarpet_dialog.dart';
 import '../../widgets/pickstarpet_text_field.dart';
+import '../../widgets/public_id_row.dart';
 import '../member/member_home_screen.dart';
 import '../paywall/paywall_screen.dart';
 
@@ -296,66 +297,91 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _editProfile(WidgetRef ref) async {
-    final authState = ref.read(authProvider);
     if (ref.read(coreMutationBlockedProvider)) {
       _showMembershipRequiredPaywall();
       return;
     }
 
-    final user = authState.user;
+    User? loadedUser = ref.read(authProvider).user;
+    if (loadedUser == null) {
+      return;
+    }
+
+    try {
+      await ref.read(authProvider.notifier).refreshUser();
+      if (!mounted) {
+        return;
+      }
+      loadedUser = ref.read(authProvider).user ?? loadedUser;
+    } catch (_) {
+      // Keep the existing in-memory user if refresh fails.
+    }
+
+    final user = loadedUser;
     if (user == null) {
       return;
     }
 
     final nicknameController = TextEditingController(text: user.nickname);
-    final nickname = await showPickStarPetDialog<String>(
-      context: context,
-      barrierLabel: 'profile_edit_dialog',
-      title: '编辑资料',
-      contentBuilder: (dialogContext) {
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '这个名字会显示在家庭成员和任务记录里。',
-              style: TextStyle(
-                color: _ProfilePalette.mutedInk,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                height: 1.4,
-                letterSpacing: 0,
+    final publicId = user.publicId;
+    String? nickname;
+    try {
+      nickname = await showPickStarPetDialog<String>(
+        context: context,
+        barrierLabel: 'profile_edit_dialog',
+        title: '编辑资料',
+        contentBuilder: (dialogContext) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              PublicIdRow(
+                publicId: publicId,
+                onCopied: () => _showProfileSnackBar('专属 ID 已复制'),
               ),
+              const SizedBox(height: 14),
+              const Text(
+                '这个名字会显示在家庭成员和任务记录里。',
+                style: TextStyle(
+                  color: _ProfilePalette.mutedInk,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  height: 1.4,
+                  letterSpacing: 0,
+                ),
+              ),
+              const SizedBox(height: 14),
+              PickStarPetTextField(
+                controller: nicknameController,
+                hintText: '请输入昵称',
+                icon: Icons.person_outline_rounded,
+                maxLength: 20,
+                textInputAction: TextInputAction.done,
+                onFieldSubmitted: (_) =>
+                    _submitNicknameDialog(dialogContext, nicknameController),
+              ),
+            ],
+          );
+        },
+        actionsBuilder: (dialogContext) {
+          return <Widget>[
+            PickStarPetButton(
+              label: '取消',
+              variant: PickStarPetButtonVariant.secondary,
+              onPressed: () => Navigator.of(dialogContext).pop(),
             ),
-            const SizedBox(height: 14),
-            PickStarPetTextField(
-              controller: nicknameController,
-              hintText: '请输入昵称',
-              icon: Icons.person_outline_rounded,
-              maxLength: 20,
-              textInputAction: TextInputAction.done,
-              onFieldSubmitted: (_) =>
+            PickStarPetButton(
+              label: '保存',
+              onPressed: () =>
                   _submitNicknameDialog(dialogContext, nicknameController),
             ),
-          ],
-        );
-      },
-      actionsBuilder: (dialogContext) {
-        return <Widget>[
-          PickStarPetButton(
-            label: '取消',
-            variant: PickStarPetButtonVariant.secondary,
-            onPressed: () => Navigator.of(dialogContext).pop(),
-          ),
-          PickStarPetButton(
-            label: '保存',
-            onPressed: () =>
-                _submitNicknameDialog(dialogContext, nicknameController),
-          ),
-        ];
-      },
-    );
-    nicknameController.dispose();
+          ];
+        },
+      );
+    } finally {
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      nicknameController.dispose();
+    }
 
     if (!mounted || nickname == null || nickname == user.nickname.trim()) {
       return;

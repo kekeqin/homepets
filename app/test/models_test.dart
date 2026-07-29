@@ -9,6 +9,7 @@ void main() {
   test('User model parses JSON correctly', () {
     final user = User.fromJson({
       'id': 1,
+      'public_id': 'A3K9M2',
       'phone': '13800000001',
       'nickname': '爸爸',
       'role': 'admin',
@@ -17,6 +18,7 @@ void main() {
     });
 
     expect(user.id, 1);
+    expect(user.publicId, 'A3K9M2');
     expect(user.phone, '13800000001');
     expect(user.nickname, '爸爸');
     expect(user.role, 'admin');
@@ -27,6 +29,7 @@ void main() {
   test('User model child role', () {
     final user = User.fromJson({
       'id': 2,
+      'public_id': 'B7N4P8',
       'phone': null,
       'nickname': '小明',
       'role': 'child',
@@ -36,6 +39,7 @@ void main() {
 
     expect(user.isAdmin, false);
     expect(user.phone, isNull);
+    expect(user.publicId, 'B7N4P8');
   });
 
   test('SubscriptionStatus parses backend entitlement response', () {

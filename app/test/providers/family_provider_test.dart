@@ -212,6 +212,7 @@ family_provider.FamilyNotifier _notifier(
             isInitialized: true,
             user: User(
               id: 1,
+              publicId: 'A3K9M2',
               phone: '13800000001',
               nickname: '家长',
               role: 'admin',
@@ -297,6 +298,7 @@ class _FakeAuthService extends AuthService {
 
   static final _user = User(
     id: 1,
+    publicId: 'A3K9M2',
     phone: '13800000001',
     nickname: '家长',
     role: 'admin',

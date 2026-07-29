@@ -1,5 +1,6 @@
 class User {
   final int id;
+  final String publicId;
   final String? phone;
   final String nickname;
   final String role;
@@ -9,6 +10,7 @@ class User {
 
   User({
     required this.id,
+    required this.publicId,
     this.phone,
     required this.nickname,
     required this.role,
@@ -20,6 +22,7 @@ class User {
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'] as int,
+      publicId: json['public_id']?.toString() ?? '',
       phone: json['phone'] as String?,
       nickname: json['nickname'] as String,
       role: json['role'] as String,

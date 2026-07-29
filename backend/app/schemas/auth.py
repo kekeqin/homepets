@@ -29,6 +29,7 @@ class TokenResponse(BaseModel):
 
 class UserResponse(BaseModel):
     id: int
+    public_id: str
     phone: str | None
     nickname: str
     role: str
