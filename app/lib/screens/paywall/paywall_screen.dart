@@ -3,9 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
-
 import '../../core/constants.dart';
+import '../../core/support_links.dart';
 import '../../core/ui/adaptive_design_layout.dart';
 import '../../core/ui/sprite_atlas.dart';
 import '../../models/subscription_status.dart';
@@ -782,30 +781,20 @@ class _PaywallComplianceLinks extends StatelessWidget {
             onTap: () => _showInfo(
               context,
               '管理订阅',
-              '请在 App Store 或 Google Play 的订阅管理页面查看、变更或取消订阅。',
+              '请在 App Store 的订阅管理页面查看、变更或取消订阅。',
             ),
           ),
           _ComplianceLink(
             label: '联系客服',
-            onTap: () => _showInfo(
-              context,
-              '联系客服',
-              '请通过 support@kkqin.com 联系我们处理订阅、账号或数据问题。',
-            ),
+            onTap: () => SupportLinks.openSupportPage(context),
           ),
           _ComplianceLink(
             label: '隐私政策',
-            onTap: () => _openLegalPage(
-              context,
-              Uri.parse('https://pickstarpet.kkqin.com/privacy.html'),
-            ),
+            onTap: () => SupportLinks.openPrivacy(context),
           ),
           _ComplianceLink(
             label: '用户协议',
-            onTap: () => _openLegalPage(
-              context,
-              Uri.parse('https://pickstarpet.kkqin.com/terms.html'),
-            ),
+            onTap: () => SupportLinks.openTerms(context),
           ),
         ],
       ),
@@ -832,15 +821,6 @@ class _PaywallComplianceLinks extends StatelessWidget {
         );
       },
     );
-  }
-
-  static Future<void> _openLegalPage(BuildContext context, Uri uri) async {
-    final opened = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
-    if (!opened && context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('暂时无法打开页面，请稍后重试')));
-    }
   }
 }
 

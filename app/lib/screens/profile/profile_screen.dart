@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/api_error_helper.dart';
+import '../../core/support_links.dart';
 import '../../models/pet.dart';
 import '../../models/user.dart';
 import '../../providers/auth_provider.dart';
@@ -212,7 +213,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             toneSoft: _ProfilePalette.sageSoft,
             title: '隐私政策',
             subtitle: '了解数据收集和使用方式',
-            onTap: () => context.go('/profile/legal/privacy'),
+            onTap: () => SupportLinks.openPrivacy(context),
           ),
           const SizedBox(height: 10),
           _ProfileActionTile(
@@ -221,7 +222,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             toneSoft: _ProfilePalette.honeySoft,
             title: '用户协议',
             subtitle: '查看服务使用条款',
-            onTap: () => context.go('/profile/legal/terms'),
+            onTap: () => SupportLinks.openTerms(context),
           ),
           const SizedBox(height: 10),
           _ProfileActionTile(
@@ -229,8 +230,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             tone: _ProfilePalette.sky,
             toneSoft: _ProfilePalette.skySoft,
             title: '联系客服',
-            subtitle: '反馈问题或获取帮助',
-            onTap: () => context.go('/support'),
+            subtitle: '帮助页 FAQ 或发邮件',
+            onTap: () => SupportLinks.openSupportPage(context),
           ),
           const SizedBox(height: 24),
           const _ProfileSectionTitle('账号'),
