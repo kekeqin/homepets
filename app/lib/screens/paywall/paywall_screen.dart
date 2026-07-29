@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants.dart';
 import '../../core/ui/adaptive_design_layout.dart';
@@ -764,11 +765,11 @@ class _PaywallUnlockHitTarget extends StatelessWidget {
   }
 }
 
-class _PaywallComplianceLinks extends ConsumerWidget {
+class _PaywallComplianceLinks extends StatelessWidget {
   const _PaywallComplianceLinks();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Positioned.fromRect(
       rect: _PaywallSprite.complianceTarget,
       child: Wrap(
@@ -776,10 +777,6 @@ class _PaywallComplianceLinks extends ConsumerWidget {
         spacing: 14,
         runSpacing: 8,
         children: [
-          _ComplianceLink(
-            label: '刷新状态',
-            onTap: () => ref.read(subscriptionProvider.notifier).refresh(),
-          ),
           _ComplianceLink(
             label: '管理订阅',
             onTap: () => _showInfo(
@@ -798,19 +795,17 @@ class _PaywallComplianceLinks extends ConsumerWidget {
           ),
           _ComplianceLink(
             label: '隐私政策',
-            onTap: () => context.go('/profile/legal/privacy'),
+            onTap: () => _openLegalPage(
+              context,
+              Uri.parse('https://pickstarpet.kkqin.com/privacy.html'),
+            ),
           ),
           _ComplianceLink(
             label: '用户协议',
-            onTap: () => context.go('/profile/legal/terms'),
-          ),
-          _ComplianceLink(
-            label: '删除账号/数据',
-            onTap: () => context.go('/account/delete'),
-          ),
-          _ComplianceLink(
-            label: '版本信息',
-            onTap: () => _showInfo(context, '版本信息', '拾星小宠版本：1.0.0'),
+            onTap: () => _openLegalPage(
+              context,
+              Uri.parse('https://pickstarpet.kkqin.com/terms.html'),
+            ),
           ),
         ],
       ),
@@ -837,6 +832,15 @@ class _PaywallComplianceLinks extends ConsumerWidget {
         );
       },
     );
+  }
+
+  static Future<void> _openLegalPage(BuildContext context, Uri uri) async {
+    final opened = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('暂时无法打开页面，请稍后重试')));
+    }
   }
 }
 

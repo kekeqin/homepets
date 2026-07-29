@@ -1,3 +1,5 @@
+# Build from monorepo root:
+#   docker build -f backend/Dockerfile -t pickstarpet:latest .
 FROM python:3.12-slim AS builder
 
 ENV UV_COMPILE_BYTECODE=1 \
@@ -7,7 +9,7 @@ WORKDIR /app
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-COPY pyproject.toml uv.lock ./
+COPY backend/pyproject.toml backend/uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
 FROM python:3.12-slim AS runtime
@@ -22,7 +24,8 @@ RUN groupadd --system pickstarpet \
     && useradd --system --gid pickstarpet --home-dir /app pickstarpet
 
 COPY --from=builder /app/.venv /app/.venv
-COPY app ./app
+COPY backend/app ./app
+COPY website ./website
 
 USER pickstarpet
 
