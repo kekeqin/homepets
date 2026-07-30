@@ -17,6 +17,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/api_error_helper.dart';
+import '../../core/constants.dart';
 import '../../core/ui/sprite_atlas.dart';
 
 import '../../models/pet.dart';
@@ -3516,7 +3517,10 @@ class _TrialStatusBanner extends ConsumerWidget {
       );
     }
 
-    if (status == null || !status.isTrialActive) {
+    // 推广阶段不展示「7 天免费体验」提示。
+    if (ApiConstants.hideHomeFreeTrialBanner ||
+        status == null ||
+        !status.isTrialActive) {
       return const SizedBox.shrink();
     }
     final text = status.isTrialExpiring

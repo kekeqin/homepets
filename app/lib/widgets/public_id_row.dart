@@ -47,11 +47,13 @@ class PublicIdRow extends StatelessWidget {
               const SizedBox(width: 10),
               Flexible(
                 child: Text(
-                  publicId.isEmpty ? '加载中…' : publicId,
+                  publicId.isEmpty ? '暂未生成' : publicId,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: valueColor,
+                    color: valueColor.withValues(
+                      alpha: publicId.isEmpty ? 0.55 : 1,
+                    ),
                     fontSize: 16,
                     fontWeight: FontWeight.w900,
                     letterSpacing: publicId.isEmpty ? 0 : 1.2,
