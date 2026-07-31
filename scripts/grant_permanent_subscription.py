@@ -17,8 +17,43 @@ Usage (inside container):
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from datetime import UTC, datetime
+from pathlib import Path
+
+
+def _bootstrap_backend_import_path() -> None:
+    """Make `app` importable when this file lives outside backend/ (local monorepo).
+
+    In production Docker the working directory is already /app, so this is a no-op.
+    When the script is piped via `python -`, __file__ is unavailable; fall back to cwd.
+    """
+    candidates: list[Path] = []
+    file_name = globals().get("__file__")
+    if isinstance(file_name, str) and file_name not in {"", "-", "<stdin>"}:
+        script_path = Path(file_name).resolve()
+        # monorepo: scripts/grant_permanent_subscription.py -> backend/
+        candidates.append(script_path.parent.parent / "backend")
+        candidates.append(script_path.parent)
+    cwd = Path.cwd()
+    candidates.extend([cwd, cwd / "backend", Path("/app")])
+
+    for candidate in candidates:
+        if not (candidate / "app").is_dir():
+            continue
+        path_str = str(candidate.resolve())
+        if path_str not in sys.path:
+            sys.path.insert(0, path_str)
+        # Relative SQLite URLs (sqlite:///./pickstarpet.db) resolve against cwd.
+        try:
+            os.chdir(candidate)
+        except OSError:
+            pass
+        return
+
+
+_bootstrap_backend_import_path()
 
 from sqlmodel import Session, select
 
