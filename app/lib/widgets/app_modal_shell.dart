@@ -133,6 +133,20 @@ class AppModalLayouts {
     tabletMaxHeight: 820,
     contentAspectRatio: 760 / 1320,
   );
+
+  /// Compact paywall when permanent membership is already active
+  /// (no plan cards / restore purchase row).
+  static const paywallPermanent = AppModalLayout(
+    mobileWidthFactor: 1.0,
+    mobileMaxWidth: 540,
+    mobileHeightFactor: 0.78,
+    mobileMaxHeight: 640,
+    tabletWidthFactor: 0.46,
+    tabletMaxWidth: 560,
+    tabletHeightFactor: 0.74,
+    tabletMaxHeight: 680,
+    contentAspectRatio: 760 / 1080,
+  );
 }
 
 class PickStarPetDialogTheme {

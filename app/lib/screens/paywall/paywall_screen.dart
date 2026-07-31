@@ -32,17 +32,38 @@ Future<void> showPaywallDialog(
     beginScale: 0.92,
     beginYOffset: 22,
     pageBuilder: (dialogContext) {
-      return AppModalShell(
-        layout: AppModalLayouts.paywall,
-        minimumSafeArea: PickStarPetDialogGutter.largeInsets,
-        clipChild: false,
-        child: PaywallContent(
-          mode: mode,
-          onClose: () => Navigator.of(dialogContext).pop(),
-        ),
+      return _PaywallShell(
+        mode: mode,
+        onClose: () => Navigator.of(dialogContext).pop(),
       );
     },
   );
+}
+
+class _PaywallShell extends ConsumerWidget {
+  const _PaywallShell({
+    required this.mode,
+    required this.onClose,
+    this.reason,
+  });
+
+  final PaywallMode mode;
+  final VoidCallback onClose;
+  final String? reason;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isPermanent =
+        ref.watch(subscriptionProvider).status?.isPermanentPremium == true;
+    return AppModalShell(
+      layout: isPermanent
+          ? AppModalLayouts.paywallPermanent
+          : AppModalLayouts.paywall,
+      minimumSafeArea: PickStarPetDialogGutter.largeInsets,
+      clipChild: false,
+      child: PaywallContent(mode: mode, reason: reason, onClose: onClose),
+    );
+  }
 }
 
 class PaywallScreen extends ConsumerWidget {
@@ -91,15 +112,10 @@ class PaywallScreen extends ConsumerWidget {
               ),
             ),
             SafeArea(
-              child: AppModalShell(
-                layout: AppModalLayouts.paywall,
-                minimumSafeArea: PickStarPetDialogGutter.largeInsets,
-                clipChild: false,
-                child: PaywallContent(
-                  mode: mode,
-                  reason: reason,
-                  onClose: () => _closePaywall(context, ref),
-                ),
+              child: _PaywallShell(
+                mode: mode,
+                reason: reason,
+                onClose: () => _closePaywall(context, ref),
               ),
             ),
           ],
@@ -181,10 +197,17 @@ class _PaywallContentState extends ConsumerState<PaywallContent> {
         : _slotForSelectedPackage(slotPackages, state.selectedPackage) ??
               _selectedSlot;
     final subscriptionState = ref.watch(subscriptionProvider);
-    final statusMessage = _inlineStatusMessageFor(state, subscriptionState);
+    final isPermanent =
+        subscriptionState.status?.isPermanentPremium == true;
+    final designSize = isPermanent
+        ? _PaywallSprite.permanentDesign
+        : _PaywallSprite.design;
+    final statusMessage = isPermanent
+        ? null
+        : _inlineStatusMessageFor(state, subscriptionState);
 
     return AdaptiveDesignLayout(
-      designSize: _PaywallSprite.design,
+      designSize: designSize,
       useViewPadding: false,
       builder: (context, geometry) {
         return Center(
@@ -199,8 +222,8 @@ class _PaywallContentState extends ConsumerState<PaywallContent> {
                   child: FittedBox(
                     fit: BoxFit.fill,
                     child: SizedBox(
-                      width: _PaywallSprite.design.width,
-                      height: _PaywallSprite.design.height,
+                      width: designSize.width,
+                      height: designSize.height,
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
@@ -227,26 +250,28 @@ class _PaywallContentState extends ConsumerState<PaywallContent> {
                             revenueCatState: state,
                             subscriptionState: subscriptionState,
                           ),
-                          _PaywallPlanCard(
-                            target: _PaywallSprite.monthlyCardTarget,
-                            fallbackTitle: '月度订阅',
-                            fallbackPrice: '¥9.99',
-                            fallbackPeriod: '每月 · 自动续订',
-                            accentColor: const Color(0xFFD15F52),
-                            selected: selectedSlot == 0,
-                            package: slotPackages[0],
-                            onTap: () => _selectPlan(0, slotPackages[0]),
-                          ),
-                          _PaywallPlanCard(
-                            target: _PaywallSprite.annualCardTarget,
-                            fallbackTitle: '年度订阅',
-                            fallbackPrice: '¥79.98',
-                            fallbackPeriod: '每年 · 自动续订',
-                            accentColor: const Color(0xFF6F9A4A),
-                            selected: selectedSlot == 1,
-                            package: slotPackages[1],
-                            onTap: () => _selectPlan(1, slotPackages[1]),
-                          ),
+                          if (!isPermanent) ...[
+                            _PaywallPlanCard(
+                              target: _PaywallSprite.monthlyCardTarget,
+                              fallbackTitle: '月度订阅',
+                              fallbackPrice: '¥9.99',
+                              fallbackPeriod: '每月 · 自动续订',
+                              accentColor: const Color(0xFFD15F52),
+                              selected: selectedSlot == 0,
+                              package: slotPackages[0],
+                              onTap: () => _selectPlan(0, slotPackages[0]),
+                            ),
+                            _PaywallPlanCard(
+                              target: _PaywallSprite.annualCardTarget,
+                              fallbackTitle: '年度订阅',
+                              fallbackPrice: '¥79.98',
+                              fallbackPeriod: '每年 · 自动续订',
+                              accentColor: const Color(0xFF6F9A4A),
+                              selected: selectedSlot == 1,
+                              package: slotPackages[1],
+                              onTap: () => _selectPlan(1, slotPackages[1]),
+                            ),
+                          ],
                           if (statusMessage != null)
                             _PaywallStatusMessage(
                               message: statusMessage,
@@ -254,7 +279,13 @@ class _PaywallContentState extends ConsumerState<PaywallContent> {
                             ),
                           _PaywallUnlockHitTarget(
                             state: state,
-                            canStartPurchase: authState.user?.isAdmin == true,
+                            isPermanentPremium: isPermanent,
+                            canStartPurchase:
+                                !isPermanent &&
+                                authState.user?.isAdmin == true,
+                            unlockButtonTarget: isPermanent
+                                ? _PaywallSprite.permanentUnlockButtonTarget
+                                : _PaywallSprite.unlockButtonTarget,
                             onPressed: () async {
                               final unlocked = await ref
                                   .read(revenueCatProvider.notifier)
@@ -283,37 +314,43 @@ class _PaywallContentState extends ConsumerState<PaywallContent> {
                               }
                             },
                           ),
-                          _PaywallRestoreHitTarget(
-                            state: state,
-                            onRestore: () async {
-                              final restored = await ref
-                                  .read(revenueCatProvider.notifier)
-                                  .restorePurchases();
-                              if (!context.mounted) {
-                                return;
-                              }
-                              if (restored) {
-                                final user = ref.read(authProvider).user;
-                                final entitlement = ref
+                          if (!isPermanent)
+                            _PaywallRestoreHitTarget(
+                              state: state,
+                              onRestore: () async {
+                                final restored = await ref
                                     .read(revenueCatProvider.notifier)
-                                    .currentClientEntitlement();
-                                final backendUnlocked = await ref
-                                    .read(subscriptionProvider.notifier)
-                                    .syncAfterStorePurchase(
-                                      revenueCatAppUserId: user == null
-                                          ? null
-                                          : revenueCatAppUserIdFor(user),
-                                      entitlement: entitlement,
-                                    );
-                                if (!context.mounted || !backendUnlocked) {
+                                    .restorePurchases();
+                                if (!context.mounted) {
                                   return;
                                 }
-                                widget.onClose();
-                                return;
-                              }
-                            },
+                                if (restored) {
+                                  final user = ref.read(authProvider).user;
+                                  final entitlement = ref
+                                      .read(revenueCatProvider.notifier)
+                                      .currentClientEntitlement();
+                                  final backendUnlocked = await ref
+                                      .read(subscriptionProvider.notifier)
+                                      .syncAfterStorePurchase(
+                                        revenueCatAppUserId: user == null
+                                            ? null
+                                            : revenueCatAppUserIdFor(user),
+                                        entitlement: entitlement,
+                                      );
+                                  if (!context.mounted || !backendUnlocked) {
+                                    return;
+                                  }
+                                  widget.onClose();
+                                  return;
+                                }
+                              },
+                            ),
+                          _PaywallComplianceLinks(
+                            showManageSubscription: !isPermanent,
+                            complianceTarget: isPermanent
+                                ? _PaywallSprite.permanentComplianceTarget
+                                : _PaywallSprite.complianceTarget,
                           ),
-                          const _PaywallComplianceLinks(),
                           _CloseButton(onPressed: widget.onClose),
                         ],
                       ),
@@ -482,8 +519,15 @@ class _PaywallHeaderCopy extends StatelessWidget {
         ?.entitlements
         .active[RevenueCatConstants.entitlementId];
     final status = subscriptionState.status;
-    final title = isBlocking ? '试用期已结束' : '拾星小宠家庭会员';
-    final subtitle = entitlement?.isActive == true
+    final isPermanent = status?.isPermanentPremium == true;
+    final title = isPermanent
+        ? '永久会员'
+        : isBlocking
+        ? '试用期已结束'
+        : '拾星小宠家庭会员';
+    final subtitle = isPermanent
+        ? '永久会员权益已生效，可长期使用全部家庭功能。'
+        : entitlement?.isActive == true
         ? '会员权益已生效，可继续体验全部家庭功能。'
         : status?.status == 'trial_expiring'
         ? '试用期即将结束。订阅后可继续管理家庭任务和宠物成长。'
@@ -693,24 +737,31 @@ class _PaywallUnlockHitTarget extends StatelessWidget {
     required this.state,
     required this.canStartPurchase,
     required this.onPressed,
+    this.isPermanentPremium = false,
+    this.unlockButtonTarget = _PaywallSprite.unlockButtonTarget,
   });
 
   final RevenueCatState state;
   final bool canStartPurchase;
+  final bool isPermanentPremium;
+  final Rect unlockButtonTarget;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     final busy = state.isPurchasing || state.isRestoring;
-    final isActive = state.isPremiumActive;
-    final enabled = !isActive && state.canPurchase && canStartPurchase;
-    final label = isActive
+    final isActive = isPermanentPremium || state.isPremiumActive;
+    final enabled =
+        !isActive && state.canPurchase && canStartPurchase;
+    final label = isPermanentPremium
+        ? '永久会员已开通'
+        : isActive
         ? '家庭会员已开通'
         : canStartPurchase
         ? '订阅'
         : '请家长订阅后继续使用';
     return Positioned.fromRect(
-      rect: _PaywallSprite.unlockButtonTarget,
+      rect: unlockButtonTarget,
       child: Semantics(
         button: true,
         enabled: enabled,
@@ -723,9 +774,16 @@ class _PaywallUnlockHitTarget extends StatelessWidget {
             opacity: enabled || isActive ? 1 : 0.52,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: const Color(0xFFFFB65A),
+                color: isPermanentPremium
+                    ? const Color(0xFFBFD98A)
+                    : const Color(0xFFFFB65A),
                 borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: const Color(0xFFA8642E), width: 3),
+                border: Border.all(
+                  color: isPermanentPremium
+                      ? const Color(0xFF6F8A3E)
+                      : const Color(0xFFA8642E),
+                  width: 3,
+                ),
                 boxShadow: const [
                   BoxShadow(
                     color: Color(0x33604429),
@@ -748,9 +806,11 @@ class _PaywallUnlockHitTarget extends StatelessWidget {
                         label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF4D3623),
-                          fontSize: 25,
+                        style: TextStyle(
+                          color: isPermanentPremium
+                              ? const Color(0xFF3F4F1C)
+                              : const Color(0xFF4D3623),
+                          fontSize: isPermanentPremium ? 23 : 25,
                           fontWeight: FontWeight.w900,
                           height: 1,
                         ),
@@ -765,25 +825,32 @@ class _PaywallUnlockHitTarget extends StatelessWidget {
 }
 
 class _PaywallComplianceLinks extends StatelessWidget {
-  const _PaywallComplianceLinks();
+  const _PaywallComplianceLinks({
+    this.showManageSubscription = true,
+    this.complianceTarget = _PaywallSprite.complianceTarget,
+  });
+
+  final bool showManageSubscription;
+  final Rect complianceTarget;
 
   @override
   Widget build(BuildContext context) {
     return Positioned.fromRect(
-      rect: _PaywallSprite.complianceTarget,
+      rect: complianceTarget,
       child: Wrap(
         alignment: WrapAlignment.center,
         spacing: 14,
         runSpacing: 8,
         children: [
-          _ComplianceLink(
-            label: '管理订阅',
-            onTap: () => _showInfo(
-              context,
-              '管理订阅',
-              '请在 App Store 的订阅管理页面查看、变更或取消订阅。',
+          if (showManageSubscription)
+            _ComplianceLink(
+              label: '管理订阅',
+              onTap: () => _showInfo(
+                context,
+                '管理订阅',
+                '请在 App Store 的订阅管理页面查看、变更或取消订阅。',
+              ),
             ),
-          ),
           _ComplianceLink(
             label: '联系客服',
             onTap: () => SupportLinks.openSupportPage(context),
@@ -1263,6 +1330,9 @@ String? _membershipChipText(
   EntitlementInfo? entitlement,
   SubscriptionStatus? status,
 ) {
+  if (status?.isPermanentPremium == true) {
+    return '永久会员已开通';
+  }
   if (status?.isPremiumActive == true) {
     final expirationDate = status?.subscriptionExpiresAt?.toLocal();
     if (expirationDate == null) {
@@ -1299,6 +1369,8 @@ class _PaywallSprite {
   static const asset = 'assets/images/ui/paywall/paywall_cutouts.png';
   static const sheetSize = Size(1122, 1402);
   static const design = Size(760, 1320);
+  /// Compact canvas when permanent membership hides plan cards + restore.
+  static const permanentDesign = Size(760, 1080);
 
   static const cat = Rect.fromLTWH(608, 48, 235, 273);
   static const gift = Rect.fromLTWH(876, 92, 150, 169);
@@ -1322,4 +1394,8 @@ class _PaywallSprite {
   static const trialChipTarget = Rect.fromLTWH(118, 805, 524, 46);
   static const restoreTarget = Rect.fromLTWH(282, 1180, 196, 48);
   static const complianceTarget = Rect.fromLTWH(82, 1236, 596, 72);
+
+  // Permanent-membership layout: button sits where plan cards were.
+  static const permanentUnlockButtonTarget = Rect.fromLTWH(151, 880, 458, 96);
+  static const permanentComplianceTarget = Rect.fromLTWH(82, 1000, 596, 60);
 }

@@ -802,11 +802,8 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
       switch (action) {
         case HomeSettingsAction.editProfile:
-          if (_isReadOnlyAfterTrial) {
-            keepSettingsOpen = false;
-            _showReadOnlyPaywall();
-            return;
-          }
+          // Always allow opening edit profile so expired-trial users can still
+          // view/copy their public_id. Paywall is enforced only when saving.
           await _showEditProfileDialog();
           break;
         case HomeSettingsAction.about:
@@ -848,11 +845,6 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       return;
     }
 
-    if (_isReadOnlyAfterTrial) {
-      _showReadOnlyPaywall();
-      return;
-    }
-
     // Refresh so public_id is available after backend upgrades.
     try {
       await ref.read(authProvider.notifier).refreshUser();
@@ -869,8 +861,9 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       return;
     }
 
-    final canManageFamilyName =
-        user.isAdmin && !_isReadOnlyAfterTrial && user.familyId != null;
+    // Admins can still view family name after trial expiry; mutating it is gated
+    // at save time so public_id remains visible in read-only mode.
+    final canManageFamilyName = user.isAdmin && user.familyId != null;
 
     if (canManageFamilyName) {
       try {
@@ -1000,6 +993,13 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
           nextFamilyName != familyState.familyName.trim();
 
       if (!nicknameChanged && !familyNameChanged) {
+        return;
+      }
+
+      // Trial expired / subscription blocked: allow viewing public_id above,
+      // but require paywall before mutating nickname or family name.
+      if (_isReadOnlyAfterTrial) {
+        _showReadOnlyPaywall();
         return;
       }
 

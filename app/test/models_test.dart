@@ -87,6 +87,40 @@ void main() {
     expect(status.reason, 'trial_expired');
   });
 
+  test('SubscriptionStatus detects permanent premium without expiry', () {
+    final permanent = SubscriptionStatus.fromJson({
+      'status': 'subscribed_active',
+      'access_allowed': true,
+      'paywall_required': false,
+      'scope': 'family',
+      'family_id': 12,
+      'trial_days_remaining': 0,
+      'is_premium_active': true,
+      'entitlement_id': 'premium',
+      'product_id': 'admin_lifetime',
+      'subscription_expires_at': null,
+      'will_renew': false,
+      'revenuecat_app_user_id': 'family_12',
+    });
+    final renewable = SubscriptionStatus.fromJson({
+      'status': 'subscribed_active',
+      'access_allowed': true,
+      'paywall_required': false,
+      'scope': 'family',
+      'family_id': 12,
+      'trial_days_remaining': 0,
+      'is_premium_active': true,
+      'entitlement_id': 'premium',
+      'product_id': 'monthly',
+      'subscription_expires_at': '2027-05-16T00:00:00Z',
+      'will_renew': true,
+      'revenuecat_app_user_id': 'family_12',
+    });
+
+    expect(permanent.isPermanentPremium, isTrue);
+    expect(renewable.isPermanentPremium, isFalse);
+  });
+
   test('home guide is blocked in entitlement read-only mode', () {
     expect(homeGuideBlockedByEntitlement(const AuthState()), isFalse);
 

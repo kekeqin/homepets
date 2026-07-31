@@ -297,11 +297,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _editProfile(WidgetRef ref) async {
-    if (ref.read(coreMutationBlockedProvider)) {
-      _showMembershipRequiredPaywall();
-      return;
-    }
-
+    // Always allow opening edit profile so expired-trial users can still
+    // view/copy their public_id. Paywall is enforced only when saving changes.
     User? loadedUser = ref.read(authProvider).user;
     if (loadedUser == null) {
       return;
@@ -384,6 +381,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
 
     if (!mounted || nickname == null || nickname == user.nickname.trim()) {
+      return;
+    }
+
+    if (ref.read(coreMutationBlockedProvider)) {
+      _showMembershipRequiredPaywall();
       return;
     }
 

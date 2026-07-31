@@ -65,6 +65,10 @@ class SubscriptionStatus {
   bool get isTrialExpiring => status == 'trial_expiring';
 
   bool get blocksCoreAccess => paywallRequired || !accessAllowed;
+
+  /// Permanent premium: active entitlement with no end date (e.g. admin lifetime).
+  bool get isPermanentPremium =>
+      isPremiumActive && subscriptionExpiresAt == null;
 }
 
 DateTime? _dateTimeFromJson(dynamic value) {
