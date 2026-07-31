@@ -226,6 +226,9 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
   bool _familyPanelVisible = false;
   bool _shopPanelVisible = false;
   bool _settingsPanelVisible = false;
+  /// When true, the next settings dialog open will also show paywall on top so
+  /// settings stays behind the membership sheet (e.g. save profile while blocked).
+  bool _pendingPaywallOverSettings = false;
   bool _taskPanelVisible = false;
   bool _taskPanelExpanded = false;
   bool _taskPanelClosing = false;
@@ -786,7 +789,17 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       _settingsPanelVisible = true;
       HomeSettingsAction? action;
       try {
-        action = await showSettingsDialog(settingsContext);
+        final settingsFuture = showSettingsDialog(settingsContext);
+        // Re-open settings first, then stack paywall on top so settings stays
+        // behind (instead of racing unawaited paywall under a new settings sheet).
+        if (_pendingPaywallOverSettings) {
+          _pendingPaywallOverSettings = false;
+          await _waitForSettingsRoutePresented();
+          if (mounted && !_paywallDialogVisible) {
+            await _openPaywallDialog();
+          }
+        }
+        action = await settingsFuture;
       } finally {
         _settingsPanelVisible = false;
       }
@@ -804,7 +817,10 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         case HomeSettingsAction.editProfile:
           // Always allow opening edit profile so expired-trial users can still
           // view/copy their public_id. Paywall is enforced only when saving.
-          await _showEditProfileDialog();
+          final showPaywallAfter = await _showEditProfileDialog();
+          if (showPaywallAfter) {
+            _pendingPaywallOverSettings = true;
+          }
           break;
         case HomeSettingsAction.about:
           await _showAboutDialog();
@@ -830,26 +846,34 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     }
   }
 
+  Future<void> _waitForSettingsRoutePresented() async {
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    await WidgetsBinding.instance.endOfFrame;
+    await WidgetsBinding.instance.endOfFrame;
+  }
+
   Future<void> _waitForDismissedSettingsRoute() async {
     await Future<void>.delayed(const Duration(milliseconds: 260));
     await WidgetsBinding.instance.endOfFrame;
   }
 
-  Future<void> _showEditProfileDialog() async {
+  /// Returns true when membership paywall should be shown after returning to
+  /// settings (so paywall can stack on top of the reopened settings sheet).
+  Future<bool> _showEditProfileDialog() async {
     User? loadedUser = ref.read(authProvider).user;
 
     if (loadedUser == null) {
       _showTopSnackBar(
         '\u8bf7\u5148\u767b\u5f55\u540e\u518d\u7f16\u8f91\u8d44\u6599',
       );
-      return;
+      return false;
     }
 
     // Refresh so public_id is available after backend upgrades.
     try {
       await ref.read(authProvider.notifier).refreshUser();
       if (!mounted) {
-        return;
+        return false;
       }
       loadedUser = ref.read(authProvider).user ?? loadedUser;
     } catch (_) {
@@ -858,7 +882,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
     final user = loadedUser;
     if (user == null) {
-      return;
+      return false;
     }
 
     // Admins can still view family name after trial expiry; mutating it is gated
@@ -870,7 +894,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         await ref.read(familyProvider.notifier).loadFamily();
       } catch (error) {
         if (!mounted) {
-          return;
+          return false;
         }
         showFriendlyApiErrorSnackBar(
           context,
@@ -878,7 +902,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
           fallbackMessage:
               '\u52a0\u8f7d\u5bb6\u5ead\u8d44\u6599\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5',
         );
-        return;
+        return false;
       }
     }
 
@@ -892,7 +916,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
     try {
       if (!mounted) {
-        return;
+        return false;
       }
 
       final result = await showPickStarPetDialog<_ProfileEditResult>(
@@ -981,7 +1005,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       );
 
       if (!mounted || result == null) {
-        return;
+        return false;
       }
 
       final nextNickname = result.nickname.trim();
@@ -993,14 +1017,14 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
           nextFamilyName != familyState.familyName.trim();
 
       if (!nicknameChanged && !familyNameChanged) {
-        return;
+        return false;
       }
 
       // Trial expired / subscription blocked: allow viewing public_id above,
       // but require paywall before mutating nickname or family name.
+      // Defer paywall until settings is reopened so it stacks on top.
       if (_isReadOnlyAfterTrial) {
-        _showReadOnlyPaywall();
-        return;
+        return true;
       }
 
       var shouldReloadFamilyAfterNicknameChange = false;
@@ -1029,6 +1053,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       if (mounted) {
         _showTopSnackBar('\u8d44\u6599\u5df2\u66f4\u65b0');
       }
+      return false;
     } catch (error) {
       if (mounted) {
         showFriendlyApiErrorSnackBar(
@@ -1038,6 +1063,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
               '\u66f4\u65b0\u8d44\u6599\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5',
         );
       }
+      return false;
     } finally {
       // Wait for dialog exit animation so fields no longer hold controllers.
       await Future<void>.delayed(const Duration(milliseconds: 300));
@@ -1161,7 +1187,9 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       },
       actionsBuilder: (dialogContext) {
         return <Widget>[
-          PickStarPetButton(
+          // Smooth long pill like the paywall subscribe button — avoid the
+          // sprite-atlas primary button, which shows jagged edges when scaled.
+          _ShopConfirmActionButton(
             label: '知道了',
             onPressed: () => Navigator.of(dialogContext).pop(),
           ),

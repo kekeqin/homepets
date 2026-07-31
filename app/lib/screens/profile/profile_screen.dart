@@ -453,7 +453,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       },
       actionsBuilder: (dialogContext) {
         return <Widget>[
-          PickStarPetButton(
+          _AboutConfirmActionButton(
             label: '知道了',
             onPressed: () => Navigator.of(dialogContext).pop(),
           ),
@@ -1185,6 +1185,109 @@ class _AboutLine extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Long orange pill matching the paywall subscribe button (no sprite edges).
+class _AboutConfirmActionButton extends StatefulWidget {
+  const _AboutConfirmActionButton({
+    required this.label,
+    required this.onPressed,
+  });
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  State<_AboutConfirmActionButton> createState() =>
+      _AboutConfirmActionButtonState();
+}
+
+class _AboutConfirmActionButtonState extends State<_AboutConfirmActionButton> {
+  static const double _buttonHeight = 58;
+  static const double _buttonWidth = 196;
+
+  bool _pressed = false;
+
+  void _setPressed(bool pressed) {
+    if (_pressed == pressed) {
+      return;
+    }
+    setState(() => _pressed = pressed);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.hasBoundedWidth
+            ? constraints.maxWidth
+            : _buttonWidth;
+        final buttonWidth =
+            availableWidth.isFinite
+                ? (availableWidth < _buttonWidth
+                      ? availableWidth
+                      : _buttonWidth)
+                : _buttonWidth;
+
+        return SizedBox(
+          width: availableWidth.isFinite ? availableWidth : null,
+          child: Center(
+            child: SizedBox(
+              width: buttonWidth,
+              height: _buttonHeight,
+              child: Semantics(
+                button: true,
+                label: widget.label,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: widget.onPressed,
+                  onTapDown: (_) => _setPressed(true),
+                  onTapCancel: () => _setPressed(false),
+                  onTapUp: (_) => _setPressed(false),
+                  child: AnimatedScale(
+                    duration: const Duration(milliseconds: 90),
+                    curve: Curves.easeOutCubic,
+                    scale: _pressed ? 0.985 : 1,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFB65A),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(
+                          color: const Color(0xFFA8642E),
+                          width: 2.2,
+                        ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x33604429),
+                            blurRadius: 13,
+                            offset: Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          widget.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF4D3623),
+                            fontSize: 23,
+                            fontWeight: FontWeight.w900,
+                            height: 1,
+                            letterSpacing: 0,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
