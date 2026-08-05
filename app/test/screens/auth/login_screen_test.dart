@@ -343,6 +343,9 @@ class _FakeAuthService extends AuthService {
   }
 
   @override
+  Future<void> refreshAccessTokenIfNeeded({DateTime? now}) async {}
+
+  @override
   Future<SmsCodeSendResult> sendSmsCode({required String phone}) async {
     sendCodeCalls++;
     lastPhone = phone;

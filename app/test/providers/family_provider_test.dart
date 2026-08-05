@@ -310,6 +310,13 @@ class _FakeAuthService extends AuthService {
 
   @override
   Future<User> getMe() async => _user;
+
+  // Keep unit tests free of SharedPreferences / platform channels.
+  @override
+  Future<void> refreshAccessTokenIfNeeded({DateTime? now}) async {}
+
+  @override
+  Future<void> logout() async {}
 }
 
 class _FakeApiClient extends ApiClient {
