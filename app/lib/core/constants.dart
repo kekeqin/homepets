@@ -27,6 +27,9 @@ class ApiConstants {
   }
 
   static const String tokenKey = 'access_token';
+
+  /// ISO-8601 UTC timestamp when the stored access token expires.
+  static const String tokenExpiresAtKey = 'access_token_expires_at';
 }
 
 class RevenueCatConstants {

@@ -25,6 +25,7 @@ class AppleLoginRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    expires_in: int = Field(description="Access token lifetime in seconds")
 
 
 class UserResponse(BaseModel):

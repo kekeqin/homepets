@@ -3,6 +3,16 @@ import pytest
 from app.core.config import Settings
 
 
+def test_access_token_expire_minutes_defaults_to_30_days(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("ACCESS_TOKEN_EXPIRE_MINUTES", raising=False)
+
+    settings = Settings(_env_file=None)
+
+    assert settings.ACCESS_TOKEN_EXPIRE_MINUTES == 60 * 24 * 30
+
+
 def test_database_url_defaults_to_local_sqlite(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("DATABASE_URL", raising=False)
 

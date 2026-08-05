@@ -116,6 +116,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
 
     try {
+      await _authService.refreshAccessTokenIfNeeded();
+      if (requestVersion != _authRequestVersion) {
+        return;
+      }
+
       final user = await _authService.getMe();
       if (requestVersion != _authRequestVersion) {
         return;

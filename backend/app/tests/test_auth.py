@@ -107,10 +107,52 @@ def test_login_with_sms_code_existing_user(client: TestClient, db: Session) -> N
 
     assert response.status_code == 200
     assert response.json()["token_type"] == "bearer"
+    assert response.json()["expires_in"] == 60 * 24 * 30 * 60
     token = response.json()["access_token"]
     me = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"}).json()
     assert me["id"] == user.id
     assert me["phone"] == "13800000001"
+
+
+def test_refresh_access_token_issues_new_token(client: TestClient, db: Session) -> None:
+    _create_admin(db, phone="13800000001")
+    login_resp = client.post(
+        "/api/auth/login",
+        json={"phone": "13800000001", "code": "123456"},
+    )
+    old_token = login_resp.json()["access_token"]
+
+    response = client.post(
+        "/api/auth/refresh",
+        headers={"Authorization": f"Bearer {old_token}"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["token_type"] == "bearer"
+    assert body["expires_in"] == 60 * 24 * 30 * 60
+    assert body["access_token"]
+    assert body["access_token"] != old_token
+
+    me = client.get(
+        "/api/auth/me",
+        headers={"Authorization": f"Bearer {body['access_token']}"},
+    )
+    assert me.status_code == 200
+    assert me.json()["phone"] == "13800000001"
+
+
+def test_refresh_access_token_requires_auth(client: TestClient) -> None:
+    response = client.post("/api/auth/refresh")
+    assert response.status_code == 401
+
+
+def test_refresh_access_token_rejects_invalid_token(client: TestClient) -> None:
+    response = client.post(
+        "/api/auth/refresh",
+        headers={"Authorization": "Bearer invalid"},
+    )
+    assert response.status_code == 401
 
 
 def test_login_with_sms_code_auto_registers_new_phone(

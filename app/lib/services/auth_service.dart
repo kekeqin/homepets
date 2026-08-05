@@ -1,4 +1,5 @@
 import '../core/api_client.dart';
+import '../core/token_refresh_policy.dart';
 import '../models/user.dart';
 
 class SmsCodeSendResult {
@@ -37,9 +38,7 @@ class AuthService {
       '/api/auth/login',
       data: {'phone': phone, 'code': code},
     );
-    final token = response.data['access_token'] as String;
-    await _apiClient.saveToken(token);
-    return token;
+    return _persistTokenResponse(response.data);
   }
 
   Future<String> loginWithApple({
@@ -60,13 +59,51 @@ class AuthService {
     }
 
     final response = await _apiClient.dio.post('/api/auth/apple', data: data);
-    final token = response.data['access_token'] as String;
-    await _apiClient.saveToken(token);
-    return token;
+    return _persistTokenResponse(response.data);
+  }
+
+  /// Refresh the access token using the currently stored bearer token.
+  Future<String> refreshAccessToken() async {
+    final response = await _apiClient.dio.post('/api/auth/refresh');
+    return _persistTokenResponse(response.data);
+  }
+
+  /// Refresh when the token has reached the 15/25/29-day checkpoints.
+  ///
+  /// Failures are ignored so a temporary network error does not force logout;
+  /// the next app open can retry at a later checkpoint.
+  Future<void> refreshAccessTokenIfNeeded({DateTime? now}) async {
+    final token = await _apiClient.getToken();
+    if (token == null || token.isEmpty) {
+      return;
+    }
+
+    final expiresAt = await _apiClient.getTokenExpiresAt();
+    if (expiresAt == null) {
+      return;
+    }
+
+    final currentTime = (now ?? DateTime.now()).toUtc();
+    if (!TokenRefreshPolicy.shouldRefresh(
+      now: currentTime,
+      expiresAt: expiresAt.toUtc(),
+    )) {
+      return;
+    }
+
+    try {
+      await refreshAccessToken();
+    } catch (_) {
+      // Keep the existing token; retry on a later checkpoint or app open.
+    }
   }
 
   Future<String?> getSavedToken() async {
     return _apiClient.getToken();
+  }
+
+  Future<DateTime?> getTokenExpiresAt() async {
+    return _apiClient.getTokenExpiresAt();
   }
 
   Future<User> getMe() async {
@@ -76,5 +113,24 @@ class AuthService {
 
   Future<void> logout() async {
     await _apiClient.clearToken();
+  }
+
+  Future<String> _persistTokenResponse(dynamic payload) async {
+    if (payload is! Map) {
+      throw const FormatException('Invalid token response');
+    }
+    final token = payload['access_token'];
+    if (token is! String || token.isEmpty) {
+      throw const FormatException('Missing access_token');
+    }
+
+    Duration? expiresIn;
+    final rawExpiresIn = payload['expires_in'];
+    if (rawExpiresIn is num) {
+      expiresIn = Duration(seconds: rawExpiresIn.toInt());
+    }
+
+    await _apiClient.saveToken(token, expiresIn: expiresIn);
+    return token;
   }
 }

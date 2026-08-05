@@ -6,7 +6,7 @@ from sqlmodel import Session, select
 from app.core.config import settings
 from app.core.dependencies import get_current_user, get_db
 from app.core.family_names import default_family_name, default_family_names_for
-from app.core.security import create_access_token
+from app.core.security import access_token_expires_in_seconds, create_access_token
 from app.models.family import Family
 from app.models.user import User
 from app.schemas.auth import (
@@ -90,11 +90,18 @@ def _ensure_admin_family(db: Session, user: User) -> None:
     db.commit()
 
 
+def _issue_access_token(user: User) -> TokenResponse:
+    token = create_access_token(data={"sub": str(user.id)})
+    return TokenResponse(
+        access_token=token,
+        expires_in=access_token_expires_in_seconds(),
+    )
+
+
 def _create_session_token(db: Session, user: User) -> TokenResponse:
     _ensure_admin_family(db, user)
     ensure_subscription_for_user(db, user)
-    token = create_access_token(data={"sub": str(user.id)})
-    return TokenResponse(access_token=token)
+    return _issue_access_token(user)
 
 
 @router.post("/apple", response_model=TokenResponse)
@@ -246,10 +253,15 @@ def login(
     else:
         ensure_user_public_id(db, user)
 
-    _ensure_admin_family(db, user)
-    ensure_subscription_for_user(db, user)
-    token = create_access_token(data={"sub": str(user.id)})
-    return TokenResponse(access_token=token)
+    return _create_session_token(db, user)
+
+
+@router.post("/refresh", response_model=TokenResponse)
+def refresh_access_token(
+    current_user: User = Depends(get_current_user),
+) -> TokenResponse:
+    """Issue a new access token while the current one is still valid."""
+    return _issue_access_token(current_user)
 
 
 @router.get("/me", response_model=UserResponse)
