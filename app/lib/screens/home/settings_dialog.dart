@@ -5,18 +5,18 @@ import 'package:flutter/material.dart';
 import '../../widgets/app_modal_shell.dart';
 import '../../widgets/source_scaled_rrect_border.dart';
 
-const String _settingsFrameAsset = 'assets/images/ui/setup/frame.png';
-const String _settingsCloseButtonAsset = 'assets/images/ui/family/12 (2).png';
+const String _settingsFrameAsset = 'assets/images/ui/setup/frame.webp';
+const String _settingsCloseButtonAsset = 'assets/images/ui/family/12 (2).webp';
 const String _settingsEditProfileInputAsset =
-    'assets/images/ui/setup/7 (1).png';
+    'assets/images/ui/setup/7 (1).webp';
 const String _settingsEditProfileIconAsset =
-    'assets/images/ui/setup/contact_notebook_pencil_transparent.png';
+    'assets/images/ui/setup/contact_notebook_pencil_transparent.webp';
 const String _settingsInputArrowAsset =
-    'assets/images/ui/setup/5 (2)_transparent.png';
+    'assets/images/ui/setup/5 (2)_transparent.webp';
 const String _settingsAboutIconAsset =
-    'assets/images/ui/setup/question_bubble_transparent.png';
+    'assets/images/ui/setup/question_bubble_transparent.webp';
 const String _settingsLogoutIconAsset =
-    'assets/images/ui/setup/wooden_door_transparent.png';
+    'assets/images/ui/setup/wooden_door_transparent.webp';
 const double _settingsDialogDesignWidth = 441;
 const double _settingsDialogDesignHeight = 512;
 const double _settingsFrameSourceWidth = 1024;

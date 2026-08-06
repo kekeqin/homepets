@@ -286,7 +286,7 @@ class _PetDetailMetricIconFrames {
   const _PetDetailMetricIconFrames._();
 
   static const stagePlant = SpriteAtlasFrame(
-    name: 'stage_plant_icon.png',
+    name: 'stage_plant_icon.webp',
     textureRect: Rect.fromLTWH(823, 231, 68, 72),
     sourceRect: Rect.fromLTWH(0, 0, 68, 72),
     sourceSize: Size(68, 72),
@@ -295,7 +295,7 @@ class _PetDetailMetricIconFrames {
   );
 
   static const growthStar = SpriteAtlasFrame(
-    name: 'growth_star_icon.png',
+    name: 'growth_star_icon.webp',
     textureRect: Rect.fromLTWH(814, 530, 74, 78),
     sourceRect: Rect.fromLTWH(0, 0, 74, 78),
     sourceSize: Size(74, 78),
@@ -304,7 +304,7 @@ class _PetDetailMetricIconFrames {
   );
 
   static const feedBowl = SpriteAtlasFrame(
-    name: 'feed_bowl_icon.png',
+    name: 'feed_bowl_icon.webp',
     textureRect: Rect.fromLTWH(806, 740, 74, 76),
     sourceRect: Rect.fromLTWH(0, 0, 74, 76),
     sourceSize: Size(74, 76),
@@ -622,7 +622,7 @@ class _ProfileCard extends StatelessWidget {
 class _PetDetailCloseButton extends StatelessWidget {
   const _PetDetailCloseButton({required this.onPressed});
 
-  static const _assetPath = 'assets/images/ui/sprites/close.png';
+  static const _assetPath = 'assets/images/ui/sprites/close.webp';
 
   final VoidCallback onPressed;
 
@@ -647,7 +647,7 @@ class _PetDetailCloseButton extends StatelessWidget {
 class _NameBanner extends StatelessWidget {
   const _NameBanner({super.key, required this.text});
 
-  static const _assetPath = 'assets/images/ui/sprites/pet-title.png';
+  static const _assetPath = 'assets/images/ui/sprites/pet-title.webp';
 
   final String text;
 
@@ -1055,7 +1055,7 @@ class _AchievementTag extends StatelessWidget {
     required this.statusLabel,
   });
 
-  static const _assetPath = 'assets/images/ui/sprites/label_blank.png';
+  static const _assetPath = 'assets/images/ui/sprites/label_blank.webp';
   static const _aspectRatio = 266 / 368;
 
   final int level;

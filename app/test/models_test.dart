@@ -139,23 +139,23 @@ void main() {
 
     expect(
       petGrowthAvatarAssetPath('dog', 1, 0),
-      'assets/images/pets/grow/dog/baby/lying.png',
+      'assets/images/pets/grow/dog/baby/lying.webp',
     );
     expect(
       petGrowthAvatarAssetPath('dog', 2, 0),
-      'assets/images/pets/grow/dog/growing/lying.png',
+      'assets/images/pets/grow/dog/growing/lying.webp',
     );
     expect(
       petGrowthAvatarAssetPath('dog', 5, 0),
-      'assets/images/pets/grow/dog/companion/lying.png',
+      'assets/images/pets/grow/dog/companion/lying.webp',
     );
     expect(
       petAvatarAssetPath('rabbit', 0),
-      'assets/images/pets/grow/rabbit/growing/lying.png',
+      'assets/images/pets/grow/rabbit/growing/lying.webp',
     );
     expect(
       petHomeAssetPath('turtle', 0),
-      'images/pets/grow/turtle/growing/crawling.png',
+      'images/pets/grow/turtle/growing/crawling.webp',
     );
   });
 }

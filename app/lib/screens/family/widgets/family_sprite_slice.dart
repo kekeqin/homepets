@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 class FamilySpriteSheet {
   const FamilySpriteSheet._();
 
-  static const assetPath = 'assets/images/ui/sprites/family_home.png';
+  static const assetPath = 'assets/images/ui/sprites/family_home.webp';
   static const sheetSize = Size(842, 1264);
 
   static Future<ui.Image>? _imageFuture;
@@ -59,33 +59,33 @@ class FamilyHomePartAssets {
   const FamilyHomePartAssets._();
 
   static const String _base = 'assets/images/ui/sprites/family_home_parts';
-  static const String petIcon = '$_base/1.png';
-  static const String starIcon = '$_base/2.png';
-  static const String memberIcon = '$_base/3.png';
-  static const String petNameLabel = '$_base/6.png';
-  static const String statBadgeFrame = '$_base/7.png';
-  static const String familyIllustration = '$_base/8.png';
-  static const String petCircleFrame = '$_base/9.png';
-  static const String closeButton = '$_base/5.png';
+  static const String petIcon = '$_base/1.webp';
+  static const String starIcon = '$_base/2.webp';
+  static const String memberIcon = '$_base/3.webp';
+  static const String petNameLabel = '$_base/6.webp';
+  static const String statBadgeFrame = '$_base/7.webp';
+  static const String familyIllustration = '$_base/8.webp';
+  static const String petCircleFrame = '$_base/9.webp';
+  static const String closeButton = '$_base/5.webp';
 }
 
 class FamilyPopupAssets {
   const FamilyPopupAssets._();
 
   static const String _base = 'assets/images/ui/family';
-  static const String mainPanel = 'assets/images/ui/task/33.png';
+  static const String mainPanel = 'assets/images/ui/task/33.webp';
   static const String mainPanelOutline =
-      '$_base/family_popup_panel_outline.png';
-  static const String cardPanel = '$_base/3.png';
-  static const String closeButton = '$_base/12 (2).png';
-  static const String addButton = '$_base/2.png';
-  static const String pageArrow = '$_base/9 (2).png';
-  static const String namePlate = '$_base/4 (4).png';
-  static const String boyPortrait = '$_base/5-(2).png';
-  static const String girlPortrait = '$_base/6 (1).png';
-  static const String childPortrait = '$_base/7 (1).png';
+      '$_base/family_popup_panel_outline.webp';
+  static const String cardPanel = '$_base/3.webp';
+  static const String closeButton = '$_base/12 (2).webp';
+  static const String addButton = '$_base/2.webp';
+  static const String pageArrow = '$_base/9 (2).webp';
+  static const String namePlate = '$_base/4 (4).webp';
+  static const String boyPortrait = '$_base/5-(2).webp';
+  static const String girlPortrait = '$_base/6 (1).webp';
+  static const String childPortrait = '$_base/7 (1).webp';
   static const String adultFemalePortrait =
-      '$_base/avatar_adult_male_reference_style.png';
+      '$_base/avatar_adult_male_reference_style.webp';
 }
 
 class FamilySpriteSkins {

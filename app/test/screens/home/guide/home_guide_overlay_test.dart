@@ -40,7 +40,7 @@ void main() {
     expect(find.text('稍后再看'), findsNothing);
     expect(find.text('1/3'), findsNothing);
     expect(
-      find.image(const AssetImage('assets/images/ui/login/bubble.png')),
+      find.image(const AssetImage('assets/images/ui/login/bubble.webp')),
       findsOneWidget,
     );
     expect(
@@ -279,17 +279,17 @@ void main() {
     await pumpGuide(
       HomeGuideStep.taskSticker,
       const Rect.fromLTWH(40, 80, 80, 72),
-      'assets/images/ui/home/home_task_sticker_add.png',
+      'assets/images/ui/home/home_task_sticker_add.webp',
     );
     await pumpGuide(
       HomeGuideStep.familyFrame,
       const Rect.fromLTWH(280, 210, 64, 64),
-      'assets/images/ui/home/home_family_photo_frame.png',
+      'assets/images/ui/home/home_family_photo_frame.webp',
     );
     await pumpGuide(
       HomeGuideStep.petArea,
       const Rect.fromLTWH(92, 452, 110, 90),
-      'assets/images/pets/grow/turtle/baby/sleeping.png',
+      'assets/images/pets/grow/turtle/baby/sleeping.webp',
     );
 
     expect(
@@ -314,7 +314,7 @@ void main() {
               anchorRect: const Rect.fromLTWH(280, 210, 64, 64),
               screenSize: const Size(390, 720),
               targetAssetPath:
-                  'assets/images/ui/home/home_family_photo_frame.png',
+                  'assets/images/ui/home/home_family_photo_frame.webp',
               onHotspotTap: () {},
               onSkip: () {},
             ),
@@ -351,7 +351,7 @@ void main() {
                 anchorRect: familyAnchor,
                 screenSize: const Size(390, 844),
                 targetAssetPath:
-                    'assets/images/ui/home/home_family_photo_frame.png',
+                    'assets/images/ui/home/home_family_photo_frame.webp',
                 onHotspotTap: () => tapped = true,
                 onSkip: () {},
               ),
@@ -394,7 +394,7 @@ void main() {
                 anchorRect: familyAnchor,
                 screenSize: const Size(360, 780),
                 targetAssetPath:
-                    'assets/images/ui/home/home_family_photo_frame.png',
+                    'assets/images/ui/home/home_family_photo_frame.webp',
                 onHotspotTap: () {},
                 onSkip: () {},
               ),

@@ -1,83 +1,83 @@
 {
   "frames": {
-    "panel_blank.png": {
+    "panel_blank.webp": {
       "frame": { "x": 20, "y": 48, "w": 499, "h": 793 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 499, "h": 793 },
       "sourceSize": { "w": 499, "h": 793 }
     },
-    "name_banner.png": {
+    "name_banner.webp": {
       "frame": { "x": 548, "y": 50, "w": 401, "h": 130 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 401, "h": 130 },
       "sourceSize": { "w": 401, "h": 130 }
     },
-    "close_button.png": {
+    "close_button.webp": {
       "frame": { "x": 980, "y": 63, "w": 110, "h": 111 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 110, "h": 111 },
       "sourceSize": { "w": 110, "h": 111 }
     },
-    "portrait_frame_blank.png": {
+    "portrait_frame_blank.webp": {
       "frame": { "x": 531, "y": 216, "w": 262, "h": 379 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 262, "h": 379 },
       "sourceSize": { "w": 262, "h": 379 }
     },
-    "stage_card.png": {
+    "stage_card.webp": {
       "frame": { "x": 807, "y": 211, "w": 294, "h": 174 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 294, "h": 174 },
       "sourceSize": { "w": 294, "h": 174 }
     },
-    "growth_card.png": {
+    "growth_card.webp": {
       "frame": { "x": 798, "y": 502, "w": 296, "h": 145 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 296, "h": 145 },
       "sourceSize": { "w": 296, "h": 145 }
     },
-    "feed_card.png": {
+    "feed_card.webp": {
       "frame": { "x": 791, "y": 716, "w": 276, "h": 142 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 276, "h": 142 },
       "sourceSize": { "w": 276, "h": 142 }
     },
-    "recent_panel.png": {
+    "recent_panel.webp": {
       "frame": { "x": 41, "y": 875, "w": 533, "h": 396 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 533, "h": 396 },
       "sourceSize": { "w": 533, "h": 396 }
     },
-    "achievement_tag.png": {
+    "achievement_tag.webp": {
       "frame": { "x": 824, "y": 886, "w": 245, "h": 358 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 245, "h": 358 },
       "sourceSize": { "w": 245, "h": 358 }
     },
-    "book_icon.png": {
+    "book_icon.webp": {
       "frame": { "x": 640, "y": 920, "w": 102, "h": 88 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 102, "h": 88 },
       "sourceSize": { "w": 102, "h": 88 }
     },
-    "fish_icon.png": {
+    "fish_icon.webp": {
       "frame": { "x": 631, "y": 1040, "w": 101, "h": 89 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 101, "h": 89 },
       "sourceSize": { "w": 101, "h": 89 }
     },
-    "wand_icon.png": {
+    "wand_icon.webp": {
       "frame": { "x": 635, "y": 1150, "w": 105, "h": 96 },
       "rotated": false,
       "trimmed": false,
@@ -86,7 +86,7 @@
     }
   },
   "meta": {
-    "image": "pet_detail_sheet_clean_alpha.png",
+    "image": "pet_detail_sheet_clean_alpha.webp",
     "size": { "w": 1130, "h": 1392 },
     "scale": "1"
   }

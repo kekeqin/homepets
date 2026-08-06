@@ -1002,7 +1002,7 @@ class _PaywallStatusMessage extends StatelessWidget {
 class _CloseButton extends StatelessWidget {
   const _CloseButton({required this.onPressed});
 
-  static const _assetPath = 'assets/images/ui/sprites/close.png';
+  static const _assetPath = 'assets/images/ui/sprites/close.webp';
   static const _visualSize = 90.0;
 
   final VoidCallback onPressed;
@@ -1366,7 +1366,7 @@ String _statusChipText(String status) {
 class _PaywallSprite {
   const _PaywallSprite._();
 
-  static const asset = 'assets/images/ui/paywall/paywall_cutouts.png';
+  static const asset = 'assets/images/ui/paywall/paywall_cutouts.webp';
   static const sheetSize = Size(1122, 1402);
   static const design = Size(760, 1320);
   /// Compact canvas when permanent membership hides plan cards + restore.

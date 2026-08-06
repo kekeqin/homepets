@@ -47,7 +47,7 @@ List<String> get _addMemberFlowAssetPaths {
     FamilyPopupAssets.mainPanel,
     FamilyPopupAssets.mainPanelOutline,
     FamilyPopupAssets.closeButton,
-    'assets/images/ui/sprites/edit_task_sheet_clean_alpha.png',
+    'assets/images/ui/sprites/edit_task_sheet_clean_alpha.webp',
     for (final petType in selectablePetTypes)
       petAvatarAssetPath(
         petType,

@@ -8,91 +8,91 @@ import 'package:pickstarpet/screens/home/game/home_scene_game.dart';
 import 'package:pickstarpet/screens/home/game/home_scene_layout.dart';
 
 const _staticHomePetAssetPaths = <String>[
-  'images/pets/grow/cat/growing/lying.png',
-  'images/pets/grow/cat/growing/sitting.png',
-  'images/pets/grow/cat/growing/sleeping.png',
-  'images/pets/grow/dog/growing/lying.png',
-  'images/pets/grow/dog/growing/sitting.png',
-  'images/pets/grow/dog/growing/sleeping.png',
-  'images/pets/grow/hamster/growing/standing.png',
-  'images/pets/grow/hamster/growing/sitting.png',
-  'images/pets/grow/hamster/growing/sleeping.png',
-  'images/pets/grow/rabbit/growing/lying.png',
-  'images/pets/grow/rabbit/growing/sitting.png',
-  'images/pets/grow/rabbit/growing/sleeping.png',
-  'images/pets/grow/turtle/growing/crawling.png',
-  'images/pets/grow/turtle/growing/sitting.png',
-  'images/pets/grow/turtle/growing/sleeping.png',
+  'images/pets/grow/cat/growing/lying.webp',
+  'images/pets/grow/cat/growing/sitting.webp',
+  'images/pets/grow/cat/growing/sleeping.webp',
+  'images/pets/grow/dog/growing/lying.webp',
+  'images/pets/grow/dog/growing/sitting.webp',
+  'images/pets/grow/dog/growing/sleeping.webp',
+  'images/pets/grow/hamster/growing/standing.webp',
+  'images/pets/grow/hamster/growing/sitting.webp',
+  'images/pets/grow/hamster/growing/sleeping.webp',
+  'images/pets/grow/rabbit/growing/lying.webp',
+  'images/pets/grow/rabbit/growing/sitting.webp',
+  'images/pets/grow/rabbit/growing/sleeping.webp',
+  'images/pets/grow/turtle/growing/crawling.webp',
+  'images/pets/grow/turtle/growing/sitting.webp',
+  'images/pets/grow/turtle/growing/sleeping.webp',
 ];
 
 const _growthHomePetAssetPaths = <String>[
-  'images/pets/grow/cat/baby/lying.png',
-  'images/pets/grow/cat/baby/sitting.png',
-  'images/pets/grow/cat/baby/stage.png',
-  'images/pets/grow/cat/growing/lying.png',
-  'images/pets/grow/cat/growing/sitting.png',
-  'images/pets/grow/cat/growing/sleeping.png',
-  'images/pets/grow/cat/companion/sitting.png',
-  'images/pets/grow/cat/companion/stage.png',
-  'images/pets/grow/cat/companion/stretching.png',
-  'images/pets/grow/dog/baby/lying.png',
-  'images/pets/grow/dog/baby/sitting.png',
-  'images/pets/grow/dog/baby/sleeping.png',
-  'images/pets/grow/dog/growing/lying.png',
-  'images/pets/grow/dog/growing/sitting.png',
-  'images/pets/grow/dog/growing/sleeping.png',
-  'images/pets/grow/dog/companion/lying.png',
-  'images/pets/grow/dog/companion/sitting.png',
-  'images/pets/grow/dog/companion/stage.png',
-  'images/pets/grow/hamster/baby/lying.png',
-  'images/pets/grow/hamster/baby/sitting.png',
-  'images/pets/grow/hamster/baby/sleeping.png',
-  'images/pets/grow/hamster/growing/standing.png',
-  'images/pets/grow/hamster/growing/sitting.png',
-  'images/pets/grow/hamster/growing/sleeping.png',
-  'images/pets/grow/hamster/companion/lying.png',
-  'images/pets/grow/hamster/companion/sleeping.png',
-  'images/pets/grow/hamster/companion/stage.png',
-  'images/pets/grow/rabbit/baby/lying.png',
-  'images/pets/grow/rabbit/baby/sleeping.png',
-  'images/pets/grow/rabbit/baby/stage.png',
-  'images/pets/grow/rabbit/growing/lying.png',
-  'images/pets/grow/rabbit/growing/sitting.png',
-  'images/pets/grow/rabbit/growing/sleeping.png',
-  'images/pets/grow/rabbit/companion/lying.png',
-  'images/pets/grow/rabbit/companion/stage.png',
-  'images/pets/grow/rabbit/companion/stretching.png',
-  'images/pets/grow/turtle/baby/crawling.png',
-  'images/pets/grow/turtle/baby/sleeping.png',
-  'images/pets/grow/turtle/baby/stage.png',
-  'images/pets/grow/turtle/growing/crawling.png',
-  'images/pets/grow/turtle/growing/sitting.png',
-  'images/pets/grow/turtle/growing/sleeping.png',
-  'images/pets/grow/turtle/companion/crawling.png',
-  'images/pets/grow/turtle/companion/sleeping.png',
-  'images/pets/grow/turtle/companion/waving.png',
+  'images/pets/grow/cat/baby/lying.webp',
+  'images/pets/grow/cat/baby/sitting.webp',
+  'images/pets/grow/cat/baby/stage.webp',
+  'images/pets/grow/cat/growing/lying.webp',
+  'images/pets/grow/cat/growing/sitting.webp',
+  'images/pets/grow/cat/growing/sleeping.webp',
+  'images/pets/grow/cat/companion/sitting.webp',
+  'images/pets/grow/cat/companion/stage.webp',
+  'images/pets/grow/cat/companion/stretching.webp',
+  'images/pets/grow/dog/baby/lying.webp',
+  'images/pets/grow/dog/baby/sitting.webp',
+  'images/pets/grow/dog/baby/sleeping.webp',
+  'images/pets/grow/dog/growing/lying.webp',
+  'images/pets/grow/dog/growing/sitting.webp',
+  'images/pets/grow/dog/growing/sleeping.webp',
+  'images/pets/grow/dog/companion/lying.webp',
+  'images/pets/grow/dog/companion/sitting.webp',
+  'images/pets/grow/dog/companion/stage.webp',
+  'images/pets/grow/hamster/baby/lying.webp',
+  'images/pets/grow/hamster/baby/sitting.webp',
+  'images/pets/grow/hamster/baby/sleeping.webp',
+  'images/pets/grow/hamster/growing/standing.webp',
+  'images/pets/grow/hamster/growing/sitting.webp',
+  'images/pets/grow/hamster/growing/sleeping.webp',
+  'images/pets/grow/hamster/companion/lying.webp',
+  'images/pets/grow/hamster/companion/sleeping.webp',
+  'images/pets/grow/hamster/companion/stage.webp',
+  'images/pets/grow/rabbit/baby/lying.webp',
+  'images/pets/grow/rabbit/baby/sleeping.webp',
+  'images/pets/grow/rabbit/baby/stage.webp',
+  'images/pets/grow/rabbit/growing/lying.webp',
+  'images/pets/grow/rabbit/growing/sitting.webp',
+  'images/pets/grow/rabbit/growing/sleeping.webp',
+  'images/pets/grow/rabbit/companion/lying.webp',
+  'images/pets/grow/rabbit/companion/stage.webp',
+  'images/pets/grow/rabbit/companion/stretching.webp',
+  'images/pets/grow/turtle/baby/crawling.webp',
+  'images/pets/grow/turtle/baby/sleeping.webp',
+  'images/pets/grow/turtle/baby/stage.webp',
+  'images/pets/grow/turtle/growing/crawling.webp',
+  'images/pets/grow/turtle/growing/sitting.webp',
+  'images/pets/grow/turtle/growing/sleeping.webp',
+  'images/pets/grow/turtle/companion/crawling.webp',
+  'images/pets/grow/turtle/companion/sleeping.webp',
+  'images/pets/grow/turtle/companion/waving.webp',
 ];
 
 const _transparentGrowthCanvasCropRects = <String, Rect>{
-  'images/pets/grow/dog/baby/sleeping.png': Rect.fromLTWH(
+  'images/pets/grow/dog/baby/sleeping.webp': Rect.fromLTWH(
     0.1469,
     0.2585,
     0.7275,
     0.4510,
   ),
-  'images/pets/grow/hamster/companion/lying.png': Rect.fromLTWH(
+  'images/pets/grow/hamster/companion/lying.webp': Rect.fromLTWH(
     0.0760,
     0.1853,
     0.8171,
     0.6106,
   ),
-  'images/pets/grow/hamster/companion/sleeping.png': Rect.fromLTWH(
+  'images/pets/grow/hamster/companion/sleeping.webp': Rect.fromLTWH(
     0.1022,
     0.1887,
     0.8003,
     0.5985,
   ),
-  'images/pets/grow/rabbit/baby/lying.png': Rect.fromLTWH(
+  'images/pets/grow/rabbit/baby/lying.webp': Rect.fromLTWH(
     0.2217,
     0.1794,
     0.6132,
@@ -101,25 +101,25 @@ const _transparentGrowthCanvasCropRects = <String, Rect>{
 };
 
 const _rightArmchairSeatAssetPaths = <String>[
-  'images/pets/grow/cat/baby/sitting.png',
-  'images/pets/grow/cat/baby/stage.png',
-  'images/pets/grow/cat/growing/sitting.png',
-  'images/pets/grow/cat/companion/sitting.png',
-  'images/pets/grow/cat/companion/stage.png',
-  'images/pets/grow/dog/baby/sitting.png',
-  'images/pets/grow/dog/growing/sitting.png',
-  'images/pets/grow/dog/companion/sitting.png',
-  'images/pets/grow/dog/companion/stage.png',
-  'images/pets/grow/hamster/baby/sitting.png',
-  'images/pets/grow/hamster/growing/standing.png',
-  'images/pets/grow/hamster/growing/sitting.png',
-  'images/pets/grow/hamster/companion/stage.png',
-  'images/pets/grow/rabbit/baby/stage.png',
-  'images/pets/grow/rabbit/growing/sitting.png',
-  'images/pets/grow/rabbit/companion/stage.png',
-  'images/pets/grow/turtle/baby/stage.png',
-  'images/pets/grow/turtle/growing/sitting.png',
-  'images/pets/grow/turtle/companion/waving.png',
+  'images/pets/grow/cat/baby/sitting.webp',
+  'images/pets/grow/cat/baby/stage.webp',
+  'images/pets/grow/cat/growing/sitting.webp',
+  'images/pets/grow/cat/companion/sitting.webp',
+  'images/pets/grow/cat/companion/stage.webp',
+  'images/pets/grow/dog/baby/sitting.webp',
+  'images/pets/grow/dog/growing/sitting.webp',
+  'images/pets/grow/dog/companion/sitting.webp',
+  'images/pets/grow/dog/companion/stage.webp',
+  'images/pets/grow/hamster/baby/sitting.webp',
+  'images/pets/grow/hamster/growing/standing.webp',
+  'images/pets/grow/hamster/growing/sitting.webp',
+  'images/pets/grow/hamster/companion/stage.webp',
+  'images/pets/grow/rabbit/baby/stage.webp',
+  'images/pets/grow/rabbit/growing/sitting.webp',
+  'images/pets/grow/rabbit/companion/stage.webp',
+  'images/pets/grow/turtle/baby/stage.webp',
+  'images/pets/grow/turtle/growing/sitting.webp',
+  'images/pets/grow/turtle/companion/waving.webp',
 ];
 
 Future<void> _expectTransparentImageCorners(String flameAssetPath) async {
@@ -546,7 +546,7 @@ void main() {
         expect(variants, isNotEmpty);
         for (final assetPath in variants) {
           expect(assetPath, startsWith('images/pets/grow/'));
-          expect(assetPath, endsWith('.png'));
+          expect(assetPath, endsWith('.webp'));
         }
       }
     });
@@ -701,8 +701,8 @@ void main() {
         isNot(
           contains(
             anyOf(
-              'images/pets/grow/cat/companion/stage.png',
-              'images/pets/grow/dog/companion/stage.png',
+              'images/pets/grow/cat/companion/stage.webp',
+              'images/pets/grow/dog/companion/stage.webp',
             ),
           ),
         ),
@@ -711,8 +711,8 @@ void main() {
         armchairPoseVariants,
         contains(
           anyOf(
-            'images/pets/grow/cat/companion/sitting.png',
-            'images/pets/grow/dog/companion/sitting.png',
+            'images/pets/grow/cat/companion/sitting.webp',
+            'images/pets/grow/dog/companion/sitting.webp',
           ),
         ),
       );
@@ -770,21 +770,21 @@ void main() {
     test('uses a smaller home target area for hamster and turtle assets', () {
       expect(
         HomeSceneGame.debugHomePetTargetAreaForAssetPath(
-          'images/pets/grow/hamster/growing/sitting.png',
+          'images/pets/grow/hamster/growing/sitting.webp',
         ),
         lessThan(
           HomeSceneGame.debugHomePetTargetAreaForAssetPath(
-            'images/pets/grow/cat/growing/sitting.png',
+            'images/pets/grow/cat/growing/sitting.webp',
           ),
         ),
       );
       expect(
         HomeSceneGame.debugHomePetTargetAreaForAssetPath(
-          'images/pets/grow/turtle/growing/sleeping.png',
+          'images/pets/grow/turtle/growing/sleeping.webp',
         ),
         lessThan(
           HomeSceneGame.debugHomePetTargetAreaForAssetPath(
-            'images/pets/grow/rabbit/growing/sleeping.png',
+            'images/pets/grow/rabbit/growing/sleeping.webp',
           ),
         ),
       );
@@ -805,12 +805,12 @@ void main() {
         return renderSize.width * renderSize.height;
       }
 
-      final babyArea = visibleAreaFor('images/pets/grow/dog/baby/lying.png');
+      final babyArea = visibleAreaFor('images/pets/grow/dog/baby/lying.webp');
       final growingArea = visibleAreaFor(
-        'images/pets/grow/dog/growing/lying.png',
+        'images/pets/grow/dog/growing/lying.webp',
       );
       final companionArea = visibleAreaFor(
-        'images/pets/grow/dog/companion/lying.png',
+        'images/pets/grow/dog/companion/lying.webp',
       );
 
       expect(math.sqrt(babyArea / growingArea), closeTo(0.85, 0.01));
@@ -823,151 +823,151 @@ void main() {
           assetPath,
         );
         expect(frames, hasLength(35), reason: assetPath);
-        expect(frames.first, 'images/pets/act/${prefix}_frame_01.png');
-        expect(frames.last, 'images/pets/act/${prefix}_frame_35.png');
+        expect(frames.first, 'images/pets/act/${prefix}_frame_01.webp');
+        expect(frames.last, 'images/pets/act/${prefix}_frame_35.webp');
       }
 
       expectBabyActFrames(
-        'images/pets/grow/cat/baby/lying.png',
+        'images/pets/grow/cat/baby/lying.webp',
         'cat_baby_lying',
       );
       expectBabyActFrames(
-        'images/pets/grow/cat/baby/sitting.png',
+        'images/pets/grow/cat/baby/sitting.webp',
         'cat_baby_sitting',
       );
       expectBabyActFrames(
-        'images/pets/grow/cat/baby/stage.png',
+        'images/pets/grow/cat/baby/stage.webp',
         'cat_baby_stage',
       );
       expectBabyActFrames(
-        'images/pets/grow/dog/baby/lying.png',
+        'images/pets/grow/dog/baby/lying.webp',
         'dog_baby_lying',
       );
       expectBabyActFrames(
-        'images/pets/grow/dog/baby/sitting.png',
+        'images/pets/grow/dog/baby/sitting.webp',
         'dog_baby_sitting',
       );
       expectBabyActFrames(
-        'images/pets/grow/dog/baby/sleeping.png',
+        'images/pets/grow/dog/baby/sleeping.webp',
         'dog_baby_sleeping',
       );
       expectBabyActFrames(
-        'images/pets/grow/hamster/baby/lying.png',
+        'images/pets/grow/hamster/baby/lying.webp',
         'hamster_baby_lying',
       );
       expectBabyActFrames(
-        'images/pets/grow/hamster/baby/sitting.png',
+        'images/pets/grow/hamster/baby/sitting.webp',
         'hamster_baby_sitting',
       );
       expectBabyActFrames(
-        'images/pets/grow/hamster/baby/sleeping.png',
+        'images/pets/grow/hamster/baby/sleeping.webp',
         'hamster_baby_sleeping',
       );
       expectBabyActFrames(
-        'images/pets/grow/rabbit/baby/lying.png',
+        'images/pets/grow/rabbit/baby/lying.webp',
         'rabbit_baby_lying',
       );
       expectBabyActFrames(
-        'images/pets/grow/rabbit/baby/sleeping.png',
+        'images/pets/grow/rabbit/baby/sleeping.webp',
         'rabbit_baby_sleeping',
       );
       expectBabyActFrames(
-        'images/pets/grow/rabbit/baby/stage.png',
+        'images/pets/grow/rabbit/baby/stage.webp',
         'rabbit_baby_stage',
       );
       expectBabyActFrames(
-        'images/pets/grow/turtle/baby/crawling.png',
+        'images/pets/grow/turtle/baby/crawling.webp',
         'turtle_baby_crawling',
       );
       expectBabyActFrames(
-        'images/pets/grow/turtle/baby/sleeping.png',
+        'images/pets/grow/turtle/baby/sleeping.webp',
         'turtle_baby_sleeping',
       );
       expectBabyActFrames(
-        'images/pets/grow/turtle/baby/stage.png',
+        'images/pets/grow/turtle/baby/stage.webp',
         'turtle_baby_stage',
       );
 
       expect(
         HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-          'images/pets/grow/cat/growing/sitting.png',
+          'images/pets/grow/cat/growing/sitting.webp',
         ),
         hasLength(25),
       );
       expect(
         HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-          'images/pets/grow/cat/growing/sleeping.png',
+          'images/pets/grow/cat/growing/sleeping.webp',
         ).first,
-        'images/pets/act/cat_sleep_frame_01.png',
+        'images/pets/act/cat_sleep_frame_01.webp',
       );
       expect(
         HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-          'images/pets/grow/dog/growing/sitting.png',
+          'images/pets/grow/dog/growing/sitting.webp',
         ).last,
-        'images/pets/act/dog_sit_frame_25.png',
+        'images/pets/act/dog_sit_frame_25.webp',
       );
       expect(
         HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-          'images/pets/grow/dog/growing/sleeping.png',
+          'images/pets/grow/dog/growing/sleeping.webp',
         ),
         hasLength(25),
       );
       final List<String> hamsterStandFrames =
           HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-            'images/pets/grow/hamster/growing/standing.png',
+            'images/pets/grow/hamster/growing/standing.webp',
           );
       expect(hamsterStandFrames, hasLength(14));
       expect(
         hamsterStandFrames.first,
-        'images/pets/act/hamster_stand_frame_01.png',
+        'images/pets/act/hamster_stand_frame_01.webp',
       );
       expect(
         hamsterStandFrames.last,
-        'images/pets/act/hamster_stand_frame_24.png',
+        'images/pets/act/hamster_stand_frame_24.webp',
       );
       expect(
         hamsterStandFrames,
-        isNot(contains('images/pets/act/hamster_stand_frame_09.png')),
+        isNot(contains('images/pets/act/hamster_stand_frame_09.webp')),
       );
       expect(
         hamsterStandFrames,
-        isNot(contains('images/pets/act/hamster_stand_frame_25.png')),
+        isNot(contains('images/pets/act/hamster_stand_frame_25.webp')),
       );
       expect(
         HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-          'images/pets/grow/hamster/growing/sitting.png',
+          'images/pets/grow/hamster/growing/sitting.webp',
         ).last,
-        'images/pets/act/hamster_sit_frame_25.png',
+        'images/pets/act/hamster_sit_frame_25.webp',
       );
       expect(
         HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-          'images/pets/grow/rabbit/growing/lying.png',
+          'images/pets/grow/rabbit/growing/lying.webp',
         ).first,
-        'images/pets/act/rabbit_lying_frame_01.png',
+        'images/pets/act/rabbit_lying_frame_01.webp',
       );
       expect(
         HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-          'images/pets/grow/rabbit/growing/sitting.png',
+          'images/pets/grow/rabbit/growing/sitting.webp',
         ).last,
-        'images/pets/act/rabbit_sit_frame_25.png',
+        'images/pets/act/rabbit_sit_frame_25.webp',
       );
       expect(
         HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-          'images/pets/grow/rabbit/growing/sleeping.png',
+          'images/pets/grow/rabbit/growing/sleeping.webp',
         ),
         hasLength(25),
       );
       expect(
         HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-          'images/pets/grow/turtle/growing/crawling.png',
+          'images/pets/grow/turtle/growing/crawling.webp',
         ).first,
-        'images/pets/act/turtle_lying_frame_01.png',
+        'images/pets/act/turtle_lying_frame_01.webp',
       );
       expect(
         HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-          'images/pets/grow/turtle/growing/sitting.png',
+          'images/pets/grow/turtle/growing/sitting.webp',
         ).last,
-        'images/pets/act/turtle_sit_frame_25.png',
+        'images/pets/act/turtle_sit_frame_25.webp',
       );
     });
 
@@ -985,13 +985,13 @@ void main() {
 
       expect(
         HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-          'images/pets/grow/cat/growing/lying.png',
+          'images/pets/grow/cat/growing/lying.webp',
         ),
         isEmpty,
       );
       expect(
         HomeSceneGame.debugAnimationFrameAssetPathsForAsset(
-          'images/pets/grow/dog/growing/lying.png',
+          'images/pets/grow/dog/growing/lying.webp',
         ),
         isEmpty,
       );
@@ -999,21 +999,21 @@ void main() {
 
     test('keeps baby action frames isolated after JSON sprite cuts', () async {
       const babyPoseAssetPaths = <String>[
-        'images/pets/grow/cat/baby/lying.png',
-        'images/pets/grow/cat/baby/sitting.png',
-        'images/pets/grow/cat/baby/stage.png',
-        'images/pets/grow/dog/baby/lying.png',
-        'images/pets/grow/dog/baby/sitting.png',
-        'images/pets/grow/dog/baby/sleeping.png',
-        'images/pets/grow/hamster/baby/lying.png',
-        'images/pets/grow/hamster/baby/sitting.png',
-        'images/pets/grow/hamster/baby/sleeping.png',
-        'images/pets/grow/rabbit/baby/lying.png',
-        'images/pets/grow/rabbit/baby/sleeping.png',
-        'images/pets/grow/rabbit/baby/stage.png',
-        'images/pets/grow/turtle/baby/crawling.png',
-        'images/pets/grow/turtle/baby/sleeping.png',
-        'images/pets/grow/turtle/baby/stage.png',
+        'images/pets/grow/cat/baby/lying.webp',
+        'images/pets/grow/cat/baby/sitting.webp',
+        'images/pets/grow/cat/baby/stage.webp',
+        'images/pets/grow/dog/baby/lying.webp',
+        'images/pets/grow/dog/baby/sitting.webp',
+        'images/pets/grow/dog/baby/sleeping.webp',
+        'images/pets/grow/hamster/baby/lying.webp',
+        'images/pets/grow/hamster/baby/sitting.webp',
+        'images/pets/grow/hamster/baby/sleeping.webp',
+        'images/pets/grow/rabbit/baby/lying.webp',
+        'images/pets/grow/rabbit/baby/sleeping.webp',
+        'images/pets/grow/rabbit/baby/stage.webp',
+        'images/pets/grow/turtle/baby/crawling.webp',
+        'images/pets/grow/turtle/baby/sleeping.webp',
+        'images/pets/grow/turtle/baby/stage.webp',
       ];
 
       for (final poseAssetPath in babyPoseAssetPaths) {
@@ -1043,13 +1043,13 @@ void main() {
 
       expect(
         HomeSceneGame.debugHasIdleMotionActionsForAsset(
-          'images/pets/grow/cat/baby/sitting.png',
+          'images/pets/grow/cat/baby/sitting.webp',
         ),
         isFalse,
       );
       expect(
         HomeSceneGame.debugHasIdleMotionActionsForAsset(
-          'images/pets/grow/dog/companion/sitting.png',
+          'images/pets/grow/dog/companion/sitting.webp',
         ),
         isFalse,
       );
@@ -1058,7 +1058,7 @@ void main() {
     test('keeps a pause window between homepage pet act playbacks', () {
       final hamsterStandPauseRange =
           HomeSceneGame.debugAnimationPlaybackPauseRangeForAsset(
-            'images/pets/grow/hamster/growing/standing.png',
+            'images/pets/grow/hamster/growing/standing.webp',
           );
 
       expect(hamsterStandPauseRange, hasLength(2));
@@ -1095,28 +1095,28 @@ void main() {
       expect(
         HomeSceneGame.debugPlacementScaleAdjustmentForCandidateAsset(
           candidateIndex: 0,
-          assetPath: 'images/pets/grow/rabbit/growing/sitting.png',
+          assetPath: 'images/pets/grow/rabbit/growing/sitting.webp',
         ),
         0.94,
       );
       expect(
         HomeSceneGame.debugPlacementScaleAdjustmentForCandidateAsset(
           candidateIndex: 1,
-          assetPath: 'images/pets/grow/dog/baby/sitting.png',
+          assetPath: 'images/pets/grow/dog/baby/sitting.webp',
         ),
         0.94,
       );
       expect(
         HomeSceneGame.debugPlacementScaleAdjustmentForCandidateAsset(
           candidateIndex: 6,
-          assetPath: 'images/pets/grow/hamster/growing/sleeping.png',
+          assetPath: 'images/pets/grow/hamster/growing/sleeping.webp',
         ),
         1,
       );
       expect(
         HomeSceneGame.debugPlacementScaleAdjustmentForCandidateAsset(
           candidateIndex: 3,
-          assetPath: 'images/pets/grow/cat/growing/sleeping.png',
+          assetPath: 'images/pets/grow/cat/growing/sleeping.webp',
         ),
         1,
       );
@@ -1156,22 +1156,22 @@ void main() {
       const slotSize = Size(69, 100);
 
       final rabbitSitCrop = HomeSceneGame.debugPetCropRectForAssetPath(
-        'images/pets/grow/rabbit/growing/sitting.png',
+        'images/pets/grow/rabbit/growing/sitting.webp',
       );
       final catLyingCrop = HomeSceneGame.debugPetCropRectForAssetPath(
-        'images/pets/grow/cat/growing/lying.png',
+        'images/pets/grow/cat/growing/lying.webp',
       );
 
       expect(rabbitSitCrop, isNotNull);
       expect(catLyingCrop, isNotNull);
 
       final rabbitSitSize = HomeSceneGame.debugPetRenderSize(
-        assetPath: 'images/pets/grow/rabbit/growing/sitting.png',
+        assetPath: 'images/pets/grow/rabbit/growing/sitting.webp',
         slotSize: slotSize,
         sourceSize: rabbitSitCrop!.size,
       );
       final catLyingSize = HomeSceneGame.debugPetRenderSize(
-        assetPath: 'images/pets/grow/cat/growing/lying.png',
+        assetPath: 'images/pets/grow/cat/growing/lying.webp',
         slotSize: slotSize,
         sourceSize: catLyingCrop!.size,
       );
@@ -1256,7 +1256,7 @@ void main() {
       final game = HomeSceneGame(device: HomeSceneDevice.mobile);
       final rect = game.debugPetRectForCandidate(
         candidateIndex: 5,
-        assetPath: 'images/pets/grow/cat/growing/lying.png',
+        assetPath: 'images/pets/grow/cat/growing/lying.webp',
       );
 
       expect(
@@ -1526,7 +1526,7 @@ void main() {
 
       final rect = game.debugPetRectForCandidate(
         candidateIndex: 1,
-        assetPath: 'images/pets/grow/dog/growing/sitting.png',
+        assetPath: 'images/pets/grow/dog/growing/sitting.webp',
       );
 
       expect(

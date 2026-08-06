@@ -16,7 +16,7 @@
     "negative": "vector graphic, perfect geometry, perfect circle, perfect ellipse, perfect rectangle, clean vector line, geometric precision, 3D render, realistic lighting, photorealistic, complex shading, high detail rendering, sharp edges, hard mechanical shapes, SVG icon style, gradient, dramatic contrast, realistic texture, industrial design, overly detailed background, burrs, jagged edges, pixelated edges, frayed line edges, spiky artifacts, noisy outlines, cutout fringe, fuzzy halo, leftover background pixels, white outer rim, unwanted white outline, outer glow, hidden RGB fringe, chroma-key contamination"
   },
   "assets": {
-    "avatar_edit_default_avatar.png": {
+    "avatar_edit_default_avatar.webp": {
       "width": 512,
       "height": 512,
       "bbox": [
@@ -26,7 +26,7 @@
         510
       ]
     },
-    "avatar_edit_dad_avatar.png": {
+    "avatar_edit_dad_avatar.webp": {
       "width": 512,
       "height": 512,
       "bbox": [
@@ -36,7 +36,7 @@
         510
       ]
     },
-    "avatar_edit_mom_avatar.png": {
+    "avatar_edit_mom_avatar.webp": {
       "width": 512,
       "height": 512,
       "bbox": [
@@ -46,7 +46,7 @@
         489
       ]
     },
-    "avatar_edit_boy_avatar.png": {
+    "avatar_edit_boy_avatar.webp": {
       "width": 512,
       "height": 512,
       "bbox": [
@@ -56,7 +56,7 @@
         499
       ]
     },
-    "avatar_edit_girl_avatar.png": {
+    "avatar_edit_girl_avatar.webp": {
       "width": 512,
       "height": 512,
       "bbox": [
@@ -66,7 +66,7 @@
         492
       ]
     },
-    "avatar_edit_cat_avatar.png": {
+    "avatar_edit_cat_avatar.webp": {
       "width": 512,
       "height": 512,
       "bbox": [
@@ -76,7 +76,7 @@
         436
       ]
     },
-    "avatar_edit_dog_avatar.png": {
+    "avatar_edit_dog_avatar.webp": {
       "width": 512,
       "height": 512,
       "bbox": [
@@ -86,7 +86,7 @@
         423
       ]
     },
-    "avatar_edit_rabbit_avatar.png": {
+    "avatar_edit_rabbit_avatar.webp": {
       "width": 512,
       "height": 512,
       "bbox": [
@@ -96,7 +96,7 @@
         433
       ]
     },
-    "avatar_edit_label_default.png": {
+    "avatar_edit_label_default.webp": {
       "width": 88,
       "height": 45,
       "bbox": [
@@ -106,7 +106,7 @@
         43
       ]
     },
-    "avatar_edit_card_default.png": {
+    "avatar_edit_card_default.webp": {
       "width": 220,
       "height": 260,
       "bbox": [
@@ -116,7 +116,7 @@
         257
       ]
     },
-    "avatar_edit_label_dad.png": {
+    "avatar_edit_label_dad.webp": {
       "width": 88,
       "height": 43,
       "bbox": [
@@ -126,7 +126,7 @@
         41
       ]
     },
-    "avatar_edit_card_dad.png": {
+    "avatar_edit_card_dad.webp": {
       "width": 220,
       "height": 260,
       "bbox": [
@@ -136,7 +136,7 @@
         258
       ]
     },
-    "avatar_edit_label_mom.png": {
+    "avatar_edit_label_mom.webp": {
       "width": 86,
       "height": 43,
       "bbox": [
@@ -146,7 +146,7 @@
         41
       ]
     },
-    "avatar_edit_card_mom.png": {
+    "avatar_edit_card_mom.webp": {
       "width": 220,
       "height": 260,
       "bbox": [
@@ -156,7 +156,7 @@
         258
       ]
     },
-    "avatar_edit_label_boy.png": {
+    "avatar_edit_label_boy.webp": {
       "width": 88,
       "height": 45,
       "bbox": [
@@ -166,7 +166,7 @@
         43
       ]
     },
-    "avatar_edit_card_boy.png": {
+    "avatar_edit_card_boy.webp": {
       "width": 220,
       "height": 260,
       "bbox": [
@@ -176,7 +176,7 @@
         258
       ]
     },
-    "avatar_edit_label_girl.png": {
+    "avatar_edit_label_girl.webp": {
       "width": 88,
       "height": 45,
       "bbox": [
@@ -186,7 +186,7 @@
         43
       ]
     },
-    "avatar_edit_card_girl.png": {
+    "avatar_edit_card_girl.webp": {
       "width": 220,
       "height": 260,
       "bbox": [
@@ -196,7 +196,7 @@
         258
       ]
     },
-    "avatar_edit_label_cat.png": {
+    "avatar_edit_label_cat.webp": {
       "width": 88,
       "height": 44,
       "bbox": [
@@ -206,7 +206,7 @@
         42
       ]
     },
-    "avatar_edit_card_cat.png": {
+    "avatar_edit_card_cat.webp": {
       "width": 220,
       "height": 260,
       "bbox": [
@@ -216,7 +216,7 @@
         258
       ]
     },
-    "avatar_edit_label_dog.png": {
+    "avatar_edit_label_dog.webp": {
       "width": 86,
       "height": 46,
       "bbox": [
@@ -226,7 +226,7 @@
         44
       ]
     },
-    "avatar_edit_card_dog.png": {
+    "avatar_edit_card_dog.webp": {
       "width": 220,
       "height": 260,
       "bbox": [
@@ -236,7 +236,7 @@
         258
       ]
     },
-    "avatar_edit_label_rabbit.png": {
+    "avatar_edit_label_rabbit.webp": {
       "width": 88,
       "height": 43,
       "bbox": [
@@ -246,7 +246,7 @@
         41
       ]
     },
-    "avatar_edit_card_rabbit.png": {
+    "avatar_edit_card_rabbit.webp": {
       "width": 220,
       "height": 260,
       "bbox": [
@@ -256,7 +256,7 @@
         258
       ]
     },
-    "avatar_edit_profile_header_xiaobao.png": {
+    "avatar_edit_profile_header_xiaobao.webp": {
       "width": 659,
       "height": 344,
       "bbox": [
@@ -266,7 +266,7 @@
         332
       ]
     },
-    "avatar_edit_selected_avatar_large.png": {
+    "avatar_edit_selected_avatar_large.webp": {
       "width": 299,
       "height": 322,
       "bbox": [
@@ -276,7 +276,7 @@
         318
       ]
     },
-    "avatar_edit_level_badge_lv3.png": {
+    "avatar_edit_level_badge_lv3.webp": {
       "width": 146,
       "height": 54,
       "bbox": [
@@ -286,7 +286,7 @@
         51
       ]
     },
-    "avatar_edit_change_avatar_button.png": {
+    "avatar_edit_change_avatar_button.webp": {
       "width": 290,
       "height": 94,
       "bbox": [
@@ -296,7 +296,7 @@
         91
       ]
     },
-    "avatar_edit_bottom_sheet_panel.png": {
+    "avatar_edit_bottom_sheet_panel.webp": {
       "width": 941,
       "height": 1138,
       "bbox": [
@@ -306,7 +306,7 @@
         1138
       ]
     },
-    "avatar_edit_dashed_divider.png": {
+    "avatar_edit_dashed_divider.webp": {
       "width": 852,
       "height": 12,
       "bbox": [
@@ -316,7 +316,7 @@
         8
       ]
     },
-    "avatar_edit_action_cancel.png": {
+    "avatar_edit_action_cancel.webp": {
       "width": 91,
       "height": 47,
       "bbox": [
@@ -326,7 +326,7 @@
         45
       ]
     },
-    "avatar_edit_title_change_avatar.png": {
+    "avatar_edit_title_change_avatar.webp": {
       "width": 196,
       "height": 51,
       "bbox": [
@@ -336,7 +336,7 @@
         49
       ]
     },
-    "avatar_edit_action_save.png": {
+    "avatar_edit_action_save.webp": {
       "width": 92,
       "height": 47,
       "bbox": [
@@ -346,7 +346,7 @@
         45
       ]
     },
-    "avatar_edit_profile_name_xiaobao.png": {
+    "avatar_edit_profile_name_xiaobao.webp": {
       "width": 130,
       "height": 66,
       "bbox": [

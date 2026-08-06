@@ -29,7 +29,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  static const String _backgroundAsset = 'assets/images/ui/login/login-bg.png';
+  static const String _backgroundAsset = 'assets/images/ui/login/login-bg.webp';
   final _phoneController = TextEditingController();
   final _codeController = TextEditingController();
   final _formKey = GlobalKey<FormState>();

@@ -8,7 +8,7 @@ import '../../../widgets/source_scaled_rrect_border.dart';
 import '../widgets/family_sprite_slice.dart';
 
 const String _deleteMemberDialogAsset =
-    'assets/images/ui/sprites/delete_member_dialog_sprites.png';
+    'assets/images/ui/sprites/delete_member_dialog_sprites.webp';
 const Size _deleteMemberDialogSheetSize = Size(1536, 1024);
 
 const Rect _deleteMemberTrashRegion = Rect.fromLTWH(99, 698, 110, 115);
@@ -21,7 +21,7 @@ const Rect _deleteMemberConfirmButtonRegion = Rect.fromLTWH(
   102,
 );
 
-const String _deleteMemberTaskPanelAsset = 'assets/images/ui/task/33.png';
+const String _deleteMemberTaskPanelAsset = 'assets/images/ui/task/33.webp';
 const double _deleteMemberTaskPanelSourceWidth = 1149;
 const double _deleteMemberTaskPanelSourceHeight = 1369;
 const double _deleteMemberTaskPanelVisibleLeftInset = 48;

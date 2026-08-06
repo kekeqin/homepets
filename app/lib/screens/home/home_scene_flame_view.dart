@@ -72,16 +72,16 @@ String _homeGuideAuthScopeSignature(AuthState state) {
 }
 
 const String _taskContextMenuBoardAsset =
-    'assets/images/ui/task_context_menu_board_compact.png';
+    'assets/images/ui/task_context_menu_board_compact.webp';
 
 const String _taskContextMenuEditButtonAsset =
-    'assets/images/ui/task_context_menu_btn_edit.png';
+    'assets/images/ui/task_context_menu_btn_edit.webp';
 
 const String _taskContextMenuDeleteButtonAsset =
-    'assets/images/ui/task_context_menu_btn_delete.png';
+    'assets/images/ui/task_context_menu_btn_delete.webp';
 
 const String _taskContextMenuCompleteButtonAsset =
-    'assets/images/ui/task_context_menu_btn_cancel.png';
+    'assets/images/ui/task_context_menu_btn_cancel.webp';
 
 const int _taskTitleMaxLength = 200;
 
@@ -89,15 +89,15 @@ const int _taskPointsMin = 1;
 
 const int _taskPointsMax = 1000;
 
-const String _taskPanelNoteAsset = 'assets/images/ui/task_note.png';
+const String _taskPanelNoteAsset = 'assets/images/ui/task_note.webp';
 const String _membershipRequiredMessage = membershipRequiredMessage;
-const String _sharedCloseButtonAsset = 'assets/images/ui/sprites/close.png';
+const String _sharedCloseButtonAsset = 'assets/images/ui/sprites/close.webp';
 const String _taskPanelCloseButtonAsset = FamilyPopupAssets.closeButton;
-const String _taskDeleteTrashAsset = 'assets/images/ui/task_delete/trash.png';
+const String _taskDeleteTrashAsset = 'assets/images/ui/task_delete/trash.webp';
 const String _taskDeleteTitleAsset =
-    'assets/images/ui/task_delete/title_text.png';
+    'assets/images/ui/task_delete/title_text.webp';
 const String _taskDeleteMemberButtonSpriteAsset =
-    'assets/images/ui/sprites/delete_member_dialog_sprites.png';
+    'assets/images/ui/sprites/delete_member_dialog_sprites.webp';
 const Size _taskDeleteMemberButtonSpriteSheetSize = Size(1536, 1024);
 const Rect _taskDeleteMemberIllustrationRegion = Rect.fromLTWH(
   284,
@@ -136,9 +136,9 @@ const Size _completeMemberDialogDesignSize = Size(
       TaskBoardReferenceAsset.dialogPanelAspectRatio,
 );
 const String _completeMemberDropdownArrowAsset =
-    '$_completeMemberDialogAssetRoot/complete_member_chevron_down_standalone.png';
+    '$_completeMemberDialogAssetRoot/complete_member_chevron_down_standalone.webp';
 const String _completeMemberCheckmarkAsset =
-    '$_completeMemberDialogAssetRoot/complete_member_checkmark_white_right.png';
+    '$_completeMemberDialogAssetRoot/complete_member_checkmark_white_right.webp';
 const Color _completeMemberFieldFillColor = Color(0xFFFFFCF4);
 const Color _completeMemberFieldBorderColor = Color(0xFF76563E);
 const Color _completeMemberMenuFillColor = Color(0xFFFFF4E5);

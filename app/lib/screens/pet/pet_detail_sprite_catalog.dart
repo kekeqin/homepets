@@ -11,21 +11,21 @@ class PetDetailSheetSpriteCatalog {
   );
 
   static const String imageAsset =
-      'assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png';
+      'assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp';
   static const Size sheetSize = Size(1130, 1392);
 
-  static const String panelBlankFrameName = 'panel_blank.png';
-  static const String nameBannerFrameName = 'name_banner.png';
-  static const String closeButtonFrameName = 'close_button.png';
-  static const String portraitFrameBlankFrameName = 'portrait_frame_blank.png';
-  static const String stageCardFrameName = 'stage_card.png';
-  static const String growthCardFrameName = 'growth_card.png';
-  static const String feedCardFrameName = 'feed_card.png';
-  static const String recentPanelFrameName = 'recent_panel.png';
-  static const String achievementTagFrameName = 'achievement_tag.png';
-  static const String bookIconFrameName = 'book_icon.png';
-  static const String fishIconFrameName = 'fish_icon.png';
-  static const String wandIconFrameName = 'wand_icon.png';
+  static const String panelBlankFrameName = 'panel_blank.webp';
+  static const String nameBannerFrameName = 'name_banner.webp';
+  static const String closeButtonFrameName = 'close_button.webp';
+  static const String portraitFrameBlankFrameName = 'portrait_frame_blank.webp';
+  static const String stageCardFrameName = 'stage_card.webp';
+  static const String growthCardFrameName = 'growth_card.webp';
+  static const String feedCardFrameName = 'feed_card.webp';
+  static const String recentPanelFrameName = 'recent_panel.webp';
+  static const String achievementTagFrameName = 'achievement_tag.webp';
+  static const String bookIconFrameName = 'book_icon.webp';
+  static const String fishIconFrameName = 'fish_icon.webp';
+  static const String wandIconFrameName = 'wand_icon.webp';
 
   static const SpriteAtlasFrame panelBlank = SpriteAtlasFrame(
     name: panelBlankFrameName,

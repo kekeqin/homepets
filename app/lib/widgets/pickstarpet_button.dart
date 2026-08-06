@@ -5,7 +5,7 @@ import '../core/ui/sprite_atlas.dart';
 enum PickStarPetButtonVariant { primary, secondary }
 
 const SpriteAtlasAsset _homePetsButtonAtlasAsset = SpriteAtlasAsset(
-  imageAsset: 'assets/images/ui/sprites/edit_task_sheet_clean_alpha.png',
+  imageAsset: 'assets/images/ui/sprites/edit_task_sheet_clean_alpha.webp',
   metadataAsset: 'assets/images/ui/sprites/edit_task_sheet_clean_alpha.json',
 );
 
@@ -44,9 +44,9 @@ class _PickStarPetButtonState extends State<PickStarPetButton> {
   String get _backgroundFrameName {
     switch (widget.variant) {
       case PickStarPetButtonVariant.primary:
-        return 'save_button_bg.png';
+        return 'save_button_bg.webp';
       case PickStarPetButtonVariant.secondary:
-        return 'cancel_button_bg.png';
+        return 'cancel_button_bg.webp';
     }
   }
 

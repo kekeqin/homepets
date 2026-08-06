@@ -1,90 +1,90 @@
 {
   "frames": {
-    "edit_panel_blank.png": {
+    "edit_panel_blank.webp": {
       "frame": { "x": 31, "y": 54, "w": 627, "h": 632 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 627, "h": 632 },
       "sourceSize": { "w": 627, "h": 632 }
     },
-    "close_button.png": {
+    "close_button.webp": {
       "frame": { "x": 808, "y": 69, "w": 98, "h": 100 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 98, "h": 100 },
       "sourceSize": { "w": 98, "h": 100 }
     },
-    "title_edit_task.png": {
+    "title_edit_task.webp": {
       "frame": { "x": 1121, "y": 85, "w": 252, "h": 64 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 252, "h": 64 },
       "sourceSize": { "w": 252, "h": 64 }
     },
-    "label_task_name.png": {
+    "label_task_name.webp": {
       "frame": { "x": 772, "y": 295, "w": 105, "h": 37 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 105, "h": 37 },
       "sourceSize": { "w": 105, "h": 37 }
     },
-    "task_name_field.png": {
+    "task_name_field.webp": {
       "frame": { "x": 997, "y": 283, "w": 412, "h": 71 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 412, "h": 71 },
       "sourceSize": { "w": 412, "h": 71 }
     },
-    "label_reward_points.png": {
+    "label_reward_points.webp": {
       "frame": { "x": 1080, "y": 469, "w": 234, "h": 34 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 234, "h": 34 },
       "sourceSize": { "w": 234, "h": 34 }
     },
-    "points_field.png": {
+    "points_field.webp": {
       "frame": { "x": 722, "y": 618, "w": 374, "h": 70 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 374, "h": 70 },
       "sourceSize": { "w": 374, "h": 70 }
     },
-    "trash_icon.png": {
+    "trash_icon.webp": {
       "frame": { "x": 88, "y": 778, "w": 59, "h": 68 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 59, "h": 68 },
       "sourceSize": { "w": 59, "h": 68 }
     },
-    "delete_task_text.png": {
+    "delete_task_text.webp": {
       "frame": { "x": 371, "y": 798, "w": 140, "h": 35 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 140, "h": 35 },
       "sourceSize": { "w": 140, "h": 35 }
     },
-    "cancel_button_bg.png": {
+    "cancel_button_bg.webp": {
       "frame": { "x": 54, "y": 941, "w": 253, "h": 104 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 253, "h": 104 },
       "sourceSize": { "w": 253, "h": 104 }
     },
-    "cancel_button_text.png": {
+    "cancel_button_text.webp": {
       "frame": { "x": 467, "y": 969, "w": 80, "h": 43 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 43 },
       "sourceSize": { "w": 80, "h": 43 }
     },
-    "save_button_bg.png": {
+    "save_button_bg.webp": {
       "frame": { "x": 727, "y": 941, "w": 275, "h": 104 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 275, "h": 104 },
       "sourceSize": { "w": 275, "h": 104 }
     },
-    "save_button_text.png": {
+    "save_button_text.webp": {
       "frame": { "x": 1173, "y": 971, "w": 157, "h": 41 },
       "rotated": false,
       "trimmed": false,
@@ -93,7 +93,7 @@
     }
   },
   "meta": {
-    "image": "edit_task_sheet_clean_alpha.png",
+    "image": "edit_task_sheet_clean_alpha.webp",
     "size": { "w": 1448, "h": 1086 },
     "scale": "1"
   }

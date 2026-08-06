@@ -297,7 +297,7 @@ void main() {
         familyId: 99,
       );
       const homeAssetPath =
-          'assets/images/pets/grow/rabbit/growing/sleeping.png';
+          'assets/images/pets/grow/rabbit/growing/sleeping.webp';
       Pet? tappedPet;
       String? tappedAvatarAssetPath;
 

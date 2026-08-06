@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
 const String userAvatarAssetBasePath = 'assets/images/ui/family';
-const String userDefaultAvatarAssetPath = '$userAvatarAssetBasePath/8.png';
-const String userDadAvatarAssetPath = '$userAvatarAssetBasePath/9.png';
+const String userDefaultAvatarAssetPath = '$userAvatarAssetBasePath/8.webp';
+const String userDadAvatarAssetPath = '$userAvatarAssetBasePath/9.webp';
 const String userMomAvatarAssetPath =
-    '$userAvatarAssetBasePath/avatar_adult_male_reference_style.png';
-const String userBoyAvatarAssetPath = '$userAvatarAssetBasePath/12.png';
-const String userGirlAvatarAssetPath = '$userAvatarAssetBasePath/11.png';
+    '$userAvatarAssetBasePath/avatar_adult_male_reference_style.webp';
+const String userBoyAvatarAssetPath = '$userAvatarAssetBasePath/12.webp';
+const String userGirlAvatarAssetPath = '$userAvatarAssetBasePath/11.webp';
 const String userMomYellowAvatarAssetPath =
-    '$userAvatarAssetBasePath/6 (1).png';
-const String userBoyGreenAvatarAssetPath = '$userAvatarAssetBasePath/13.png';
-const String userGirlBobAvatarAssetPath = '$userAvatarAssetBasePath/7 (1).png';
+    '$userAvatarAssetBasePath/6 (1).webp';
+const String userBoyGreenAvatarAssetPath = '$userAvatarAssetBasePath/13.webp';
+const String userGirlBobAvatarAssetPath = '$userAvatarAssetBasePath/7 (1).webp';
 
 const Set<String> _presetUserAvatarAssetPaths = <String>{
   userDefaultAvatarAssetPath,
@@ -72,34 +72,34 @@ String? normalizedUserAvatarAssetValue(String? avatarValue) {
   }
 
   return switch (value) {
-    'assets/images/ui/Change profile picture/16.png' =>
+    'assets/images/ui/Change profile picture/16.webp' =>
       userDefaultAvatarAssetPath,
-    'assets/images/ui/Change profile picture/11.png' => userDadAvatarAssetPath,
-    'assets/images/ui/Change profile picture/14.png' => userMomAvatarAssetPath,
-    'assets/images/ui/Change profile picture/15.png' => userBoyAvatarAssetPath,
-    'assets/images/ui/Change profile picture/18.png' => userGirlAvatarAssetPath,
-    'assets/images/ui/Change profile picture/13 (1).png' =>
+    'assets/images/ui/Change profile picture/11.webp' => userDadAvatarAssetPath,
+    'assets/images/ui/Change profile picture/14.webp' => userMomAvatarAssetPath,
+    'assets/images/ui/Change profile picture/15.webp' => userBoyAvatarAssetPath,
+    'assets/images/ui/Change profile picture/18.webp' => userGirlAvatarAssetPath,
+    'assets/images/ui/Change profile picture/13 (1).webp' =>
       userMomYellowAvatarAssetPath,
-    'assets/images/ui/Change profile picture/12.png' =>
+    'assets/images/ui/Change profile picture/12.webp' =>
       userBoyGreenAvatarAssetPath,
-    'assets/images/ui/Change profile picture/17.png' =>
+    'assets/images/ui/Change profile picture/17.webp' =>
       userGirlBobAvatarAssetPath,
-    'assets/images/ui/family/5-(2).png' => userBoyAvatarAssetPath,
-    'assets/images/ui/sprites/avatar_edit_default_avatar.png' =>
+    'assets/images/ui/family/5-(2).webp' => userBoyAvatarAssetPath,
+    'assets/images/ui/sprites/avatar_edit_default_avatar.webp' =>
       userDefaultAvatarAssetPath,
-    'assets/images/ui/sprites/avatar_edit_dad_avatar.png' =>
+    'assets/images/ui/sprites/avatar_edit_dad_avatar.webp' =>
       userDadAvatarAssetPath,
-    'assets/images/ui/sprites/avatar_edit_mom_avatar.png' =>
+    'assets/images/ui/sprites/avatar_edit_mom_avatar.webp' =>
       userMomAvatarAssetPath,
-    'assets/images/ui/sprites/avatar_edit_boy_avatar.png' =>
+    'assets/images/ui/sprites/avatar_edit_boy_avatar.webp' =>
       userBoyAvatarAssetPath,
-    'assets/images/ui/sprites/avatar_edit_girl_avatar.png' =>
+    'assets/images/ui/sprites/avatar_edit_girl_avatar.webp' =>
       userGirlAvatarAssetPath,
-    'assets/images/ui/sprites/avatar_edit_cat_avatar.png' =>
+    'assets/images/ui/sprites/avatar_edit_cat_avatar.webp' =>
       userMomYellowAvatarAssetPath,
-    'assets/images/ui/sprites/avatar_edit_dog_avatar.png' =>
+    'assets/images/ui/sprites/avatar_edit_dog_avatar.webp' =>
       userBoyGreenAvatarAssetPath,
-    'assets/images/ui/sprites/avatar_edit_rabbit_avatar.png' =>
+    'assets/images/ui/sprites/avatar_edit_rabbit_avatar.webp' =>
       userGirlBobAvatarAssetPath,
     _ when value.startsWith('emoji:') => userDefaultAvatarAssetPath,
     _ => value,

@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 
 import 'home_guide_controller.dart';
 
-const String _guideFingerAsset = 'assets/images/ui/login/finger1.png';
-const String _guideBubbleAsset = 'assets/images/ui/login/bubble.png';
+const String _guideFingerAsset = 'assets/images/ui/login/finger1.webp';
+const String _guideBubbleAsset = 'assets/images/ui/login/bubble.webp';
 const double _guideFingerSize = 76.0;
 const double _guideBubbleMinWidth = 184.0;
 const double _guideBubbleMaxWidth = 224.0;
@@ -14,7 +14,7 @@ const double _guideBubbleWidthFactor = 0.54;
 const double _guideBubbleAspectRatio = 1024 / 1536;
 const double _guideBubbleTailYFraction = 0.70;
 const double _guideBubbleFingerGap = 12.0;
-// finger1.png is 176x169; the visible fingertip is near pixel (41, 33).
+// finger1.webp is 176x169; the visible fingertip is near pixel (41, 33).
 const Offset _guideFingerTipFraction = Offset(0.235, 0.207);
 
 typedef _GuideFingerTargetResolver = Offset Function(Rect targetRect);

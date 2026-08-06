@@ -1,6 +1,6 @@
 {
   "meta": {
-    "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp",
     "source_size": {
       "w": 1130,
       "h": 1392
@@ -10,8 +10,8 @@
     "count": 22
   },
   "frames": {
-    "achievement_tag.png": {
-      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "achievement_tag.webp": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp",
       "source_frame": {
         "x": 828,
         "y": 892,
@@ -25,8 +25,8 @@
       },
       "alpha_pixels": 62034
     },
-    "book_icon.png": {
-      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "book_icon.webp": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp",
       "source_frame": {
         "x": 640,
         "y": 922,
@@ -40,8 +40,8 @@
       },
       "alpha_pixels": 7682
     },
-    "bottom_shadow_left.png": {
-      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "bottom_shadow_left.webp": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp",
       "source_frame": {
         "x": 44,
         "y": 1326,
@@ -55,8 +55,8 @@
       },
       "alpha_pixels": 4324
     },
-    "bottom_shadow_middle.png": {
-      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "bottom_shadow_middle.webp": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp",
       "source_frame": {
         "x": 239,
         "y": 1326,
@@ -70,8 +70,8 @@
       },
       "alpha_pixels": 4028
     },
-    "bottom_shadow_right.png": {
-      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "bottom_shadow_right.webp": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp",
       "source_frame": {
         "x": 436,
         "y": 1326,
@@ -85,8 +85,8 @@
       },
       "alpha_pixels": 3860
     },
-    "cat_sit.png": {
-      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "cat_sit.webp": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp",
       "source_frame": {
         "x": 532,
         "y": 605,
@@ -100,8 +100,8 @@
       },
       "alpha_pixels": 40944
     },
-    "close_button.png": {
-      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "close_button.webp": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp",
       "source_frame": {
         "x": 990,
         "y": 73,
@@ -115,8 +115,8 @@
       },
       "alpha_pixels": 6104
     },
-    "feed_card.png": {
-      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "feed_card.webp": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp",
       "source_frame": {
         "x": 795,
         "y": 720,
@@ -130,8 +130,8 @@
       },
       "alpha_pixels": 35067
     },
-    "fish_icon.png": {
-      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "fish_icon.webp": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp",
       "source_frame": {
         "x": 632,
         "y": 1042,
@@ -145,8 +145,8 @@
       },
       "alpha_pixels": 4961
     },
-    "growth_card.png": {
-      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "growth_card.webp": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp",
       "source_frame": {
         "x": 802,
         "y": 506,
@@ -160,8 +160,8 @@
       },
       "alpha_pixels": 38229
     },
-    "growth_star_icon.png": {
-      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "growth_star_icon.webp": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp",
       "source_frame": {
         "x": 822,
         "y": 650,
@@ -175,8 +175,8 @@
       },
       "alpha_pixels": 2087
     },
-    "name_banner.png": {
-      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "name_banner.webp": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp",
       "source_frame": {
         "x": 553,
         "y": 53,
@@ -190,8 +190,8 @@
       },
       "alpha_pixels": 40129
     },
-    "panel_blank.png": {
-      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "panel_blank.webp": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp",
       "source_frame": {
         "x": 18,
         "y": 47,
@@ -205,8 +205,8 @@
       },
       "alpha_pixels": 397362
     },
-    "portrait_frame_blank.png": {
-      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "portrait_frame_blank.webp": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp",
       "source_frame": {
         "x": 535,
         "y": 218,
@@ -220,8 +220,8 @@
       },
       "alpha_pixels": 93509
     },
-    "progress_bar.png": {
-      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "progress_bar.webp": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp",
       "source_frame": {
         "x": 900,
         "y": 438,
@@ -235,8 +235,8 @@
       },
       "alpha_pixels": 5068
     },
-    "recent_panel_top3.png": {
-      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "recent_panel_top3.webp": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp",
       "source_frame": {
         "x": 43,
         "y": 877,
@@ -250,8 +250,8 @@
       },
       "alpha_pixels": 202155
     },
-    "slot_button_green.png": {
-      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "slot_button_green.webp": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp",
       "source_frame": {
         "x": 636,
         "y": 1288,
@@ -265,8 +265,8 @@
       },
       "alpha_pixels": 9350
     },
-    "slot_button_orange.png": {
-      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "slot_button_orange.webp": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp",
       "source_frame": {
         "x": 939,
         "y": 1288,
@@ -280,8 +280,8 @@
       },
       "alpha_pixels": 9380
     },
-    "slot_button_yellow.png": {
-      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "slot_button_yellow.webp": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp",
       "source_frame": {
         "x": 787,
         "y": 1288,
@@ -295,8 +295,8 @@
       },
       "alpha_pixels": 9381
     },
-    "stage_card.png": {
-      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "stage_card.webp": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp",
       "source_frame": {
         "x": 810,
         "y": 214,
@@ -310,8 +310,8 @@
       },
       "alpha_pixels": 46987
     },
-    "stage_seedling_icon.png": {
-      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "stage_seedling_icon.webp": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp",
       "source_frame": {
         "x": 816,
         "y": 398,
@@ -325,8 +325,8 @@
       },
       "alpha_pixels": 2781
     },
-    "wand_icon.png": {
-      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.png",
+    "wand_icon.webp": {
+      "source": "app/assets/images/ui/sprites/pet_detail_sheet_clean_alpha.webp",
       "source_frame": {
         "x": 636,
         "y": 1151,

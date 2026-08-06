@@ -52,7 +52,7 @@ void main() {
       );
       expect(
         TaskPanelSpriteCatalog.atlasAsset.flameImageAsset,
-        'images/ui/sprites/task.png',
+        'images/ui/sprites/task.webp',
       );
     });
 
@@ -82,7 +82,7 @@ void main() {
       );
       expect(
         TaskListSheetSpriteCatalog.atlasAsset.flameImageAsset,
-        'images/ui/sprites/task_list_sheet_clean.png',
+        'images/ui/sprites/task_list_sheet_clean.webp',
       );
     });
 
@@ -106,9 +106,9 @@ void main() {
 
     test('loads first-login guide overlay assets', () async {
       const guideAssetPaths = <String>[
-        'assets/images/ui/login/finger1.png',
-        'assets/images/ui/login/bubble.png',
-        'assets/images/pets/grow/dog/baby/sitting.png',
+        'assets/images/ui/login/finger1.webp',
+        'assets/images/ui/login/bubble.webp',
+        'assets/images/pets/grow/dog/baby/sitting.webp',
       ];
 
       for (final assetPath in guideAssetPaths) {
@@ -144,7 +144,7 @@ void main() {
       );
       expect(
         TaskEditorSheetSpriteCatalog.atlasAsset.flameImageAsset,
-        'images/ui/sprites/edit_task_sheet_clean_alpha.png',
+        'images/ui/sprites/edit_task_sheet_clean_alpha.webp',
       );
     });
 
@@ -183,7 +183,7 @@ void main() {
       );
       expect(
         PetDetailSheetSpriteCatalog.atlasAsset.flameImageAsset,
-        'images/ui/sprites/pet_detail_sheet_clean_alpha.png',
+        'images/ui/sprites/pet_detail_sheet_clean_alpha.webp',
       );
     });
   });
