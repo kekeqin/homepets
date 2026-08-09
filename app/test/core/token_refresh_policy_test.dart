@@ -49,4 +49,27 @@ void main() {
       isFalse,
     );
   });
+
+  test('isExpired is false while token is still valid', () {
+    final now = expiresAt.subtract(const Duration(seconds: 1));
+
+    expect(
+      TokenRefreshPolicy.isExpired(now: now, expiresAt: expiresAt),
+      isFalse,
+    );
+  });
+
+  test('isExpired is true at and after expiry', () {
+    expect(
+      TokenRefreshPolicy.isExpired(now: expiresAt, expiresAt: expiresAt),
+      isTrue,
+    );
+    expect(
+      TokenRefreshPolicy.isExpired(
+        now: expiresAt.add(const Duration(seconds: 1)),
+        expiresAt: expiresAt,
+      ),
+      isTrue,
+    );
+  });
 }

@@ -3,6 +3,56 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pickstarpet/core/api_error_helper.dart';
 
 void main() {
+  group('shouldForceReLoginOnSessionError', () {
+    final requestOptions = RequestOptions(path: '/api/auth/me');
+
+    test('forces re-login only on HTTP 401', () {
+      final unauthorized = DioException(
+        requestOptions: requestOptions,
+        response: Response<Map<String, dynamic>>(
+          requestOptions: requestOptions,
+          statusCode: 401,
+          data: const <String, dynamic>{'detail': '无效的认证凭据'},
+        ),
+        type: DioExceptionType.badResponse,
+      );
+
+      expect(shouldForceReLoginOnSessionError(unauthorized), isTrue);
+    });
+
+    test('keeps session on network timeout', () {
+      final timeout = DioException(
+        requestOptions: requestOptions,
+        type: DioExceptionType.connectionTimeout,
+      );
+
+      expect(shouldForceReLoginOnSessionError(timeout), isFalse);
+    });
+
+    test('keeps session on connection error', () {
+      final connectionError = DioException(
+        requestOptions: requestOptions,
+        type: DioExceptionType.connectionError,
+      );
+
+      expect(shouldForceReLoginOnSessionError(connectionError), isFalse);
+    });
+
+    test('keeps session on server 5xx', () {
+      final serverError = DioException(
+        requestOptions: requestOptions,
+        response: Response<Map<String, dynamic>>(
+          requestOptions: requestOptions,
+          statusCode: 503,
+          data: const <String, dynamic>{'detail': 'unavailable'},
+        ),
+        type: DioExceptionType.badResponse,
+      );
+
+      expect(shouldForceReLoginOnSessionError(serverError), isFalse);
+    });
+  });
+
   test('extracts message from structured API detail', () {
     final requestOptions = RequestOptions(path: '/api/tasks');
     final error = DioException(

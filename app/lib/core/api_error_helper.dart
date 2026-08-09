@@ -5,6 +5,15 @@ bool isUnauthorizedError(Object error) {
   return error is DioException && error.response?.statusCode == 401;
 }
 
+/// Whether a session bootstrap / restore failure should force re-login.
+///
+/// Only credential rejection (HTTP 401) clears the local session. Network
+/// jitter, timeouts, and other server errors keep the stored token so the user
+/// is not kicked out by temporary connectivity issues.
+bool shouldForceReLoginOnSessionError(Object error) {
+  return isUnauthorizedError(error);
+}
+
 bool isNetworkError(Object error) {
   if (error is! DioException) {
     return false;

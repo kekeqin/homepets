@@ -12,6 +12,17 @@ class TokenRefreshPolicy {
     Duration(days: 29),
   ];
 
+  /// Whether the access token is already past [expiresAt].
+  ///
+  /// Used by the client to force re-login only when the credential itself is
+  /// gone, not when a network call happens to fail.
+  static bool isExpired({
+    required DateTime now,
+    required DateTime expiresAt,
+  }) {
+    return !expiresAt.toUtc().isAfter(now.toUtc());
+  }
+
   /// Whether the stored access token should be refreshed now.
   ///
   /// Returns false when already expired (caller must re-login) or when the
@@ -22,7 +33,7 @@ class TokenRefreshPolicy {
     Duration lifetime = defaultLifetime,
     List<Duration> checkpoints = refreshAfterAges,
   }) {
-    if (!expiresAt.isAfter(now)) {
+    if (isExpired(now: now, expiresAt: expiresAt)) {
       return false;
     }
 

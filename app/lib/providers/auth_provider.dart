@@ -8,6 +8,7 @@ import '../core/api_client.dart';
 import '../core/api_error_helper.dart';
 import '../core/auth_session_bus.dart';
 import '../core/subscription_access_bus.dart';
+import '../core/token_refresh_policy.dart';
 import '../models/user.dart';
 import '../services/apple_sign_in_service.dart';
 import '../services/auth_service.dart';
@@ -115,6 +116,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return;
     }
 
+    // Local expiry means the credential itself is gone — force re-login.
+    final expiresAt = await _authService.getTokenExpiresAt();
+    if (requestVersion != _authRequestVersion) {
+      return;
+    }
+    if (expiresAt != null &&
+        TokenRefreshPolicy.isExpired(
+          now: DateTime.now().toUtc(),
+          expiresAt: expiresAt.toUtc(),
+        )) {
+      await _forceUnauthenticated();
+      return;
+    }
+
     try {
       await _authService.refreshAccessTokenIfNeeded();
       if (requestVersion != _authRequestVersion) {
@@ -134,20 +149,36 @@ class AuthNotifier extends StateNotifier<AuthState> {
         error: null,
         viewOnly: false,
       );
-    } catch (_) {
+    } catch (error) {
       if (requestVersion != _authRequestVersion) {
         return;
       }
 
-      await _authService.logout();
+      // Only clear the session when the server rejects the token.
+      // Network jitter / timeouts / 5xx must not force re-login.
+      if (shouldForceReLoginOnSessionError(error)) {
+        await _forceUnauthenticated();
+        return;
+      }
+
       state = state.copyWith(
-        isAuthenticated: false,
+        isAuthenticated: true,
         isLoading: false,
         isInitialized: true,
-        user: null,
         error: null,
       );
     }
+  }
+
+  Future<void> _forceUnauthenticated() async {
+    await _authService.logout();
+    state = state.copyWith(
+      isAuthenticated: false,
+      isLoading: false,
+      isInitialized: true,
+      user: null,
+      error: null,
+    );
   }
 
   Future<SmsCodeSendResult?> sendSmsCode(String phone) async {
