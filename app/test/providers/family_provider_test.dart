@@ -313,6 +313,10 @@ class _FakeAuthService extends AuthService {
 
   // Keep unit tests free of SharedPreferences / platform channels.
   @override
+  Future<DateTime?> getTokenExpiresAt() async =>
+      DateTime.now().toUtc().add(const Duration(days: 30));
+
+  @override
   Future<void> refreshAccessTokenIfNeeded({DateTime? now}) async {}
 
   @override

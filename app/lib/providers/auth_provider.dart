@@ -101,7 +101,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final requestVersion = ++_authRequestVersion;
     final token = await _authService.getSavedToken();
 
-    if (requestVersion != _authRequestVersion) {
+    if (!_isAuthRequestActive(requestVersion)) {
       return;
     }
 
@@ -118,7 +118,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     // Local expiry means the credential itself is gone — force re-login.
     final expiresAt = await _authService.getTokenExpiresAt();
-    if (requestVersion != _authRequestVersion) {
+    if (!_isAuthRequestActive(requestVersion)) {
       return;
     }
     if (expiresAt != null &&
@@ -132,12 +132,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     try {
       await _authService.refreshAccessTokenIfNeeded();
-      if (requestVersion != _authRequestVersion) {
+      if (!_isAuthRequestActive(requestVersion)) {
         return;
       }
 
       final user = await _authService.getMe();
-      if (requestVersion != _authRequestVersion) {
+      if (!_isAuthRequestActive(requestVersion)) {
         return;
       }
 
@@ -150,7 +150,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         viewOnly: false,
       );
     } catch (error) {
-      if (requestVersion != _authRequestVersion) {
+      if (!_isAuthRequestActive(requestVersion)) {
         return;
       }
 
@@ -170,8 +170,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  bool _isAuthRequestActive(int requestVersion) {
+    return mounted && requestVersion == _authRequestVersion;
+  }
+
   Future<void> _forceUnauthenticated() async {
     await _authService.logout();
+    if (!mounted) {
+      return;
+    }
     state = state.copyWith(
       isAuthenticated: false,
       isLoading: false,
@@ -407,6 +414,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   @override
   void dispose() {
+    // Invalidate in-flight bootstrap / login work so it cannot touch state
+    // after this notifier is disposed (e.g. unit tests tearing down early).
+    _authRequestVersion++;
     _authSessionSubscription.cancel();
     super.dispose();
   }
