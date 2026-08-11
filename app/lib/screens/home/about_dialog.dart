@@ -7,7 +7,8 @@ import '../../widgets/app_modal_shell.dart';
 import '../../widgets/source_scaled_rrect_border.dart';
 
 const String _aboutFrameAsset = 'assets/images/ui/setup/frame.webp';
-const String _aboutCloseButtonAsset = 'assets/images/ui/family/12 (2).webp';
+const String _aboutBackButtonAsset =
+    'assets/images/ui/setup/about/icon_back.webp';
 const String _aboutRowAsset = 'assets/images/ui/setup/7 (1).webp';
 const String _aboutArrowAsset = 'assets/images/ui/setup/5 (2)_transparent.webp';
 const String _aboutPrivacyIconAsset =
@@ -68,7 +69,7 @@ Future<HomeAboutAction?> showHomeAboutDialog(
     beginYOffset: 16,
     pageBuilder: (dialogContext) {
       return _AboutDialogPanel(
-        onClose: () => Navigator.of(dialogContext).pop(),
+        onBack: () => Navigator.of(dialogContext).pop(),
         onActionSelected: (action) => Navigator.of(dialogContext).pop(action),
       );
     },
@@ -77,11 +78,11 @@ Future<HomeAboutAction?> showHomeAboutDialog(
 
 class _AboutDialogPanel extends StatelessWidget {
   const _AboutDialogPanel({
-    required this.onClose,
+    required this.onBack,
     required this.onActionSelected,
   });
 
-  final VoidCallback onClose;
+  final VoidCallback onBack;
   final ValueChanged<HomeAboutAction> onActionSelected;
 
   @override
@@ -117,7 +118,7 @@ class _AboutDialogPanel extends StatelessWidget {
                       const Positioned.fill(child: _AboutPanelFrame()),
                       Positioned(
                         left: 0,
-                        top: 52,
+                        top: 44,
                         right: 0,
                         height: 36,
                         child: Center(
@@ -133,18 +134,23 @@ class _AboutDialogPanel extends StatelessWidget {
                           ),
                         ),
                       ),
+                      // Sit inside the cream content area, not on the wood rim.
                       Positioned(
-                        top: 0,
-                        right: 2,
-                        width: 48,
-                        height: 48,
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: onClose,
-                          child: Image.asset(
-                            _aboutCloseButtonAsset,
-                            fit: BoxFit.contain,
-                            filterQuality: FilterQuality.high,
+                        top: 28,
+                        left: 28,
+                        width: 42,
+                        height: 42,
+                        child: Semantics(
+                          button: true,
+                          label: '返回',
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: onBack,
+                            child: Image.asset(
+                              _aboutBackButtonAsset,
+                              fit: BoxFit.contain,
+                              filterQuality: FilterQuality.high,
+                            ),
                           ),
                         ),
                       ),

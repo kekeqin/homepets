@@ -825,9 +825,8 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
           }
           break;
         case HomeSettingsAction.about:
-          // Leave main settings closed while in the About flow. Privacy /
-          // terms / support webviews return to About, not settings or home.
-          keepSettingsOpen = false;
+          // About is nested under settings: privacy/terms/support return to
+          // About; pressing back on About reopens the main settings panel.
           await _runAboutFlow();
           break;
         case HomeSettingsAction.logout:
