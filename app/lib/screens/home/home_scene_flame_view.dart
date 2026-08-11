@@ -28,11 +28,9 @@ import '../../providers/auth_provider.dart';
 import '../../providers/family_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../widgets/app_modal_shell.dart';
-import '../../widgets/pickstarpet_button.dart';
 import '../../widgets/pickstarpet_dialog.dart';
 import '../../widgets/pickstarpet_select_field.dart';
 import '../../widgets/membership_top_notice.dart';
-import '../../widgets/public_id_row.dart';
 import '../../widgets/source_scaled_rrect_border.dart';
 
 import '../family/family_screen.dart';
@@ -47,17 +45,12 @@ import 'guide/home_guide_overlay.dart';
 import '../../core/support_links.dart';
 import 'about_dialog.dart';
 import 'delete_account_dialog.dart';
+import 'edit_profile_dialog.dart';
+import 'logout_confirm_dialog.dart';
 import 'settings_dialog.dart';
 import 'task_panel_sprite_catalog.dart';
 
 enum _TaskPanelRowAction { edit, delete, complete }
-
-class _ProfileEditResult {
-  const _ProfileEditResult({required this.nickname, required this.familyName});
-
-  final String nickname;
-  final String? familyName;
-}
 
 String _homePetBindingSignature(FamilyScreenState state) {
   final memberSignatures = List<String>.from(
@@ -913,99 +906,24 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
 
     final familyState = ref.read(familyProvider);
     final canEditFamilyName = canManageFamilyName && familyState.hasFamily;
-    final nicknameController = TextEditingController(text: user.nickname);
-    final familyNameController = TextEditingController(
-      text: canEditFamilyName ? familyState.familyName : '',
-    );
     final publicId = user.publicId;
 
-    try {
-      if (!mounted) {
-        return false;
-      }
+    if (!mounted) {
+      return false;
+    }
 
-      final result = await showPickStarPetDialog<_ProfileEditResult>(
-        context: context,
-        barrierLabel: 'edit_profile_dialog',
-        title: '\u7f16\u8f91\u8d44\u6599',
-        layout: const AppModalLayout(
-          mobileWidthFactor: 1.0,
-          mobileMaxWidth: 390,
-          mobileHeightFactor: 0.78,
-          mobileMaxHeight: 520,
-          tabletWidthFactor: 0.38,
-          tabletMaxWidth: 430,
-          tabletHeightFactor: 0.62,
-          tabletMaxHeight: 560,
-        ),
-        showInnerBorder: false,
-        contentBuilder: (dialogContext) {
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              PublicIdRow(
-                publicId: publicId,
-                labelColor: const Color(0xFF7C634C),
-                valueColor: const Color(0xFF4D3623),
-                onCopied: () {
-                  if (!mounted) {
-                    return;
-                  }
-                  _showTopSnackBar('\u4e13\u5c5e ID \u5df2\u590d\u5236');
-                },
-              ),
-              const SizedBox(height: 16),
-              _buildEditProfileField(
-                controller: nicknameController,
-                labelText: '\u6635\u79f0',
-                maxLength: 20,
-                textInputAction: canEditFamilyName
-                    ? TextInputAction.next
-                    : TextInputAction.done,
-                onSubmitted: canEditFamilyName
-                    ? () => FocusScope.of(dialogContext).nextFocus()
-                    : () => _submitEditProfileDialog(
-                        dialogContext,
-                        nickname: nicknameController.text,
-                        familyName: null,
-                      ),
-              ),
-              if (canEditFamilyName) ...[
-                const SizedBox(height: 16),
-                _buildEditProfileField(
-                  controller: familyNameController,
-                  labelText: '\u5bb6\u5ead\u540d\u79f0',
-                  maxLength: 30,
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: () => _submitEditProfileDialog(
-                    dialogContext,
-                    nickname: nicknameController.text,
-                    familyName: familyNameController.text,
-                  ),
-                ),
-              ],
-            ],
-          );
-        },
-        actionsBuilder: (dialogContext) {
-          return <Widget>[
-            PickStarPetButton(
-              label: '\u53d6\u6d88',
-              variant: PickStarPetButtonVariant.secondary,
-              onPressed: () => Navigator.of(dialogContext).pop(),
-            ),
-            PickStarPetButton(
-              label: '\u4fdd\u5b58',
-              onPressed: () => _submitEditProfileDialog(
-                dialogContext,
-                nickname: nicknameController.text,
-                familyName: canEditFamilyName
-                    ? familyNameController.text
-                    : null,
-              ),
-            ),
-          ];
+    try {
+      final result = await showEditProfileDialog(
+        context,
+        publicId: publicId,
+        initialNickname: user.nickname,
+        showFamilyNameField: canEditFamilyName,
+        initialFamilyName: canEditFamilyName ? familyState.familyName : null,
+        onPublicIdCopied: () {
+          if (!mounted) {
+            return;
+          }
+          _showTopSnackBar('专属 ID 已复制');
         },
       );
 
@@ -1056,7 +974,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
       }
 
       if (mounted) {
-        _showTopSnackBar('\u8d44\u6599\u5df2\u66f4\u65b0');
+        _showTopSnackBar('资料已更新');
       }
       return false;
     } catch (error) {
@@ -1064,109 +982,15 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         showFriendlyApiErrorSnackBar(
           context,
           error,
-          fallbackMessage:
-              '\u66f4\u65b0\u8d44\u6599\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5',
+          fallbackMessage: '更新资料失败，请稍后重试',
         );
       }
       return false;
-    } finally {
-      // Wait for dialog exit animation so fields no longer hold controllers.
-      await Future<void>.delayed(const Duration(milliseconds: 300));
-      nicknameController.dispose();
-      familyNameController.dispose();
     }
   }
 
-  Widget _buildEditProfileField({
-    required TextEditingController controller,
-    required String labelText,
-    required int maxLength,
-    required TextInputAction textInputAction,
-    VoidCallback? onSubmitted,
-  }) {
-    return TextField(
-      controller: controller,
-      maxLength: maxLength,
-      textInputAction: textInputAction,
-      decoration: InputDecoration(labelText: labelText, counterText: ''),
-      style: const TextStyle(
-        color: Color(0xFF4D3623),
-        fontSize: 17,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 0,
-      ),
-      onSubmitted: onSubmitted == null ? null : (_) => onSubmitted(),
-    );
-  }
-
-  void _submitEditProfileDialog(
-    BuildContext dialogContext, {
-    required String nickname,
-    required String? familyName,
-  }) {
-    final trimmedNickname = nickname.trim();
-    final trimmedFamilyName = familyName?.trim();
-
-    if (trimmedNickname.isEmpty) {
-      ScaffoldMessenger.of(dialogContext).showSnackBar(
-        const SnackBar(content: Text('\u8bf7\u8f93\u5165\u6635\u79f0')),
-      );
-      return;
-    }
-
-    if (familyName != null &&
-        (trimmedFamilyName == null || trimmedFamilyName.isEmpty)) {
-      ScaffoldMessenger.of(dialogContext).showSnackBar(
-        const SnackBar(
-          content: Text('\u8bf7\u8f93\u5165\u5bb6\u5ead\u540d\u79f0'),
-        ),
-      );
-      return;
-    }
-
-    Navigator.of(dialogContext).pop(
-      _ProfileEditResult(
-        nickname: trimmedNickname,
-        familyName: familyName == null ? null : trimmedFamilyName,
-      ),
-    );
-  }
-
-  Future<bool> _showLogoutConfirmDialog() async {
-    final result = await showPickStarPetDialog<bool>(
-      context: context,
-      barrierLabel: 'logout_confirm_dialog',
-      minimumSafeArea: PickStarPetDialogGutter.smallInsets,
-      title: '\u9000\u51fa\u767b\u5f55',
-      showInnerBorder: false,
-      contentBuilder: (dialogContext) {
-        return const Text(
-          '\u786e\u5b9a\u8981\u9000\u51fa\u5f53\u524d\u8d26\u53f7\u5417\uff1f',
-          style: TextStyle(
-            color: Color(0xFF6F563D),
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            height: 1.4,
-            letterSpacing: 0,
-          ),
-        );
-      },
-      actionsBuilder: (dialogContext) {
-        return <Widget>[
-          PickStarPetButton(
-            label: '\u53d6\u6d88',
-            variant: PickStarPetButtonVariant.secondary,
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-          ),
-          PickStarPetButton(
-            label: '\u786e\u8ba4\u9000\u51fa',
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-          ),
-        ];
-      },
-    );
-
-    return result == true;
+  Future<bool> _showLogoutConfirmDialog() {
+    return showLogoutConfirmDialog(context);
   }
 
   Future<void> _showDeleteAccountDialog() async {

@@ -10,13 +10,11 @@ import '../../models/pet.dart';
 import '../../models/user.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/subscription_provider.dart';
-import '../../widgets/app_modal_shell.dart';
 import '../../widgets/pickstarpet_button.dart';
-import '../../widgets/pickstarpet_dialog.dart';
-import '../../widgets/pickstarpet_text_field.dart';
-import '../../widgets/public_id_row.dart';
 import '../home/about_dialog.dart';
 import '../home/delete_account_dialog.dart';
+import '../home/edit_profile_dialog.dart';
+import '../home/logout_confirm_dialog.dart';
 import '../member/member_home_screen.dart';
 import '../paywall/paywall_screen.dart';
 
@@ -321,68 +319,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       return;
     }
 
-    final nicknameController = TextEditingController(text: user.nickname);
     final publicId = user.publicId;
-    String? nickname;
-    try {
-      nickname = await showPickStarPetDialog<String>(
-        context: context,
-        barrierLabel: 'profile_edit_dialog',
-        title: '编辑资料',
-        contentBuilder: (dialogContext) {
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              PublicIdRow(
-                publicId: publicId,
-                onCopied: () => _showProfileSnackBar('专属 ID 已复制'),
-              ),
-              const SizedBox(height: 14),
-              const Text(
-                '这个名字会显示在家庭成员和任务记录里。',
-                style: TextStyle(
-                  color: _ProfilePalette.mutedInk,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  height: 1.4,
-                  letterSpacing: 0,
-                ),
-              ),
-              const SizedBox(height: 14),
-              PickStarPetTextField(
-                controller: nicknameController,
-                hintText: '请输入昵称',
-                icon: Icons.person_outline_rounded,
-                maxLength: 20,
-                textInputAction: TextInputAction.done,
-                onFieldSubmitted: (_) =>
-                    _submitNicknameDialog(dialogContext, nicknameController),
-              ),
-            ],
-          );
-        },
-        actionsBuilder: (dialogContext) {
-          return <Widget>[
-            PickStarPetButton(
-              label: '取消',
-              variant: PickStarPetButtonVariant.secondary,
-              onPressed: () => Navigator.of(dialogContext).pop(),
-            ),
-            PickStarPetButton(
-              label: '保存',
-              onPressed: () =>
-                  _submitNicknameDialog(dialogContext, nicknameController),
-            ),
-          ];
-        },
-      );
-    } finally {
-      await Future<void>.delayed(const Duration(milliseconds: 300));
-      nicknameController.dispose();
+    final result = await showEditProfileDialog(
+      context,
+      publicId: publicId,
+      initialNickname: user.nickname,
+      onPublicIdCopied: () => _showProfileSnackBar('专属 ID 已复制'),
+    );
+
+    if (!mounted || result == null) {
+      return;
     }
 
-    if (!mounted || nickname == null || nickname == user.nickname.trim()) {
+    final nickname = result.nickname.trim();
+    if (nickname == user.nickname.trim()) {
       return;
     }
 
@@ -405,25 +355,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       }
       _showProfileErrorSnackBar(error, fallbackMessage: '资料更新失败，请稍后重试');
     }
-  }
-
-  void _submitNicknameDialog(
-    BuildContext dialogContext,
-    TextEditingController nicknameController,
-  ) {
-    final nickname = nicknameController.text.trim();
-    if (nickname.isEmpty) {
-      ScaffoldMessenger.of(dialogContext).showSnackBar(
-        const SnackBar(
-          content: Text('昵称不能为空'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: _ProfilePalette.toast,
-        ),
-      );
-      return;
-    }
-
-    Navigator.of(dialogContext).pop(nickname);
   }
 
   /// After privacy / terms / support (or delete page) closes, reopen About
@@ -468,40 +399,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     await showDeleteAccountDialog(context, expectedPublicId: publicId);
   }
 
-  Future<bool> _showLogoutConfirmDialog(BuildContext context) async {
-    final result = await showPickStarPetDialog<bool>(
-      context: context,
-      barrierLabel: 'profile_logout_confirm_dialog',
-      minimumSafeArea: PickStarPetDialogGutter.smallInsets,
-      title: '退出登录',
-      contentBuilder: (dialogContext) {
-        return const Text(
-          '确定要退出当前账号吗？退出后需要重新登录才能继续管理家庭和宠物。',
-          style: TextStyle(
-            color: _ProfilePalette.mutedInk,
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            height: 1.45,
-            letterSpacing: 0,
-          ),
-        );
-      },
-      actionsBuilder: (dialogContext) {
-        return <Widget>[
-          PickStarPetButton(
-            label: '取消',
-            variant: PickStarPetButtonVariant.secondary,
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-          ),
-          PickStarPetButton(
-            label: '确认退出',
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-          ),
-        ];
-      },
-    );
-
-    return result == true;
+  Future<bool> _showLogoutConfirmDialog(BuildContext context) {
+    return showLogoutConfirmDialog(context);
   }
 
   void _showProfileSnackBar(String message) {
