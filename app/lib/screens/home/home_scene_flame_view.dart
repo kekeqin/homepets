@@ -44,6 +44,8 @@ import '../pet/pet_detail_screen.dart';
 import 'game/home_scene_game.dart';
 import 'guide/home_guide_controller.dart';
 import 'guide/home_guide_overlay.dart';
+import '../../core/support_links.dart';
+import 'about_dialog.dart';
 import 'settings_dialog.dart';
 import 'task_panel_sprite_catalog.dart';
 
@@ -823,7 +825,10 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
           }
           break;
         case HomeSettingsAction.about:
-          await _showAboutDialog();
+          // Leave main settings closed while in the About flow. Privacy /
+          // terms / support webviews return to About, not settings or home.
+          keepSettingsOpen = false;
+          await _runAboutFlow();
           break;
         case HomeSettingsAction.logout:
           final confirmed = await _showLogoutConfirmDialog();
@@ -1164,38 +1169,42 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     return result == true;
   }
 
-  Future<void> _showAboutDialog() {
-    return showPickStarPetDialog<void>(
-      context: context,
-      barrierLabel: 'about_pickstarpet_dialog',
-      minimumSafeArea: PickStarPetDialogGutter.smallInsets,
-      showInnerBorder: false,
-      title: '关于',
-      contentBuilder: (dialogContext) {
-        return const Text(
-          '拾星小宠家庭宠物\n\n'
-          '通过任务喂养和宠物升级，把家庭日常任务变成亲子互动。\n\n'
-          '版本：1.0.0',
-          style: TextStyle(
-            color: Color(0xFF6F563D),
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            height: 1.45,
-            letterSpacing: 0,
-          ),
-        );
-      },
-      actionsBuilder: (dialogContext) {
-        return <Widget>[
-          // Smooth long pill like the paywall subscribe button — avoid the
-          // sprite-atlas primary button, which shows jagged edges when scaled.
-          _ShopConfirmActionButton(
-            label: '知道了',
-            onPressed: () => Navigator.of(dialogContext).pop(),
-          ),
-        ];
-      },
-    );
+  /// About dialog loop: after privacy / terms / support (or delete page)
+  /// closes, reopen About so the user stays on that panel instead of home.
+  Future<void> _runAboutFlow() async {
+    while (mounted) {
+      final action = await showHomeAboutDialog(context);
+      if (!mounted || action == null) {
+        return;
+      }
+
+      switch (action) {
+        case HomeAboutAction.privacy:
+          if (!mounted) {
+            return;
+          }
+          await SupportLinks.openPrivacy(context);
+        case HomeAboutAction.terms:
+          if (!mounted) {
+            return;
+          }
+          await SupportLinks.openTerms(context);
+        case HomeAboutAction.support:
+          if (!mounted) {
+            return;
+          }
+          await SupportLinks.openSupportPage(context);
+        case HomeAboutAction.deleteAccount:
+          if (!mounted) {
+            return;
+          }
+          await context.push<void>('/account/delete');
+      }
+      // Loop continues: About reopens after the destination is dismissed.
+      if (!mounted) {
+        return;
+      }
+    }
   }
 
   void _maybeOpenInitialShopPanel() {

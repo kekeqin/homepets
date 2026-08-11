@@ -93,6 +93,7 @@ flutter:
     - assets/images/pets/act/
     - assets/images/ui/
     - assets/images/ui/setup/
+    - assets/images/ui/setup/about/
     - assets/images/ui/home/
     - assets/images/ui/login/
     - assets/images/ui/paywall/

@@ -15,6 +15,7 @@ import '../../widgets/pickstarpet_button.dart';
 import '../../widgets/pickstarpet_dialog.dart';
 import '../../widgets/pickstarpet_text_field.dart';
 import '../../widgets/public_id_row.dart';
+import '../home/about_dialog.dart';
 import '../member/member_home_screen.dart';
 import '../paywall/paywall_screen.dart';
 
@@ -424,42 +425,41 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     Navigator.of(dialogContext).pop(nickname);
   }
 
-  Future<void> _showAbout(BuildContext context) {
-    return showPickStarPetDialog<void>(
-      context: context,
-      barrierLabel: 'profile_about_dialog',
-      minimumSafeArea: PickStarPetDialogGutter.smallInsets,
-      title: '关于拾星小宠',
-      contentBuilder: (dialogContext) {
-        return const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _AboutLine(label: '版本', value: '1.0.0'),
-            SizedBox(height: 10),
-            Text(
-              '拾星小宠是面向中国家庭的亲子宠物养成系统。'
-              '家长和孩子可以通过任务、奖励和宠物成长记录每天的陪伴。',
-              style: TextStyle(
-                color: _ProfilePalette.mutedInk,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                height: 1.45,
-                letterSpacing: 0,
-              ),
-            ),
-          ],
-        );
-      },
-      actionsBuilder: (dialogContext) {
-        return <Widget>[
-          _AboutConfirmActionButton(
-            label: '知道了',
-            onPressed: () => Navigator.of(dialogContext).pop(),
-          ),
-        ];
-      },
-    );
+  /// After privacy / terms / support (or delete page) closes, reopen About
+  /// so the user returns to that panel instead of the profile list.
+  Future<void> _showAbout(BuildContext context) async {
+    while (mounted) {
+      final action = await showHomeAboutDialog(this.context);
+      if (!mounted || action == null) {
+        return;
+      }
+
+      switch (action) {
+        case HomeAboutAction.privacy:
+          if (!mounted) {
+            return;
+          }
+          await SupportLinks.openPrivacy(this.context);
+        case HomeAboutAction.terms:
+          if (!mounted) {
+            return;
+          }
+          await SupportLinks.openTerms(this.context);
+        case HomeAboutAction.support:
+          if (!mounted) {
+            return;
+          }
+          await SupportLinks.openSupportPage(this.context);
+        case HomeAboutAction.deleteAccount:
+          if (!mounted) {
+            return;
+          }
+          await this.context.push<void>('/account/delete');
+      }
+      if (!mounted) {
+        return;
+      }
+    }
   }
 
   Future<bool> _showLogoutConfirmDialog(BuildContext context) async {
@@ -1156,138 +1156,3 @@ class _RoundIconButton extends StatelessWidget {
   }
 }
 
-class _AboutLine extends StatelessWidget {
-  const _AboutLine({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          '$label：',
-          style: const TextStyle(
-            color: _ProfilePalette.ink,
-            fontSize: 15,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 0,
-          ),
-        ),
-        Text(
-          value,
-          style: const TextStyle(
-            color: _ProfilePalette.mutedInk,
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Long orange pill matching the paywall subscribe button (no sprite edges).
-class _AboutConfirmActionButton extends StatefulWidget {
-  const _AboutConfirmActionButton({
-    required this.label,
-    required this.onPressed,
-  });
-
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  State<_AboutConfirmActionButton> createState() =>
-      _AboutConfirmActionButtonState();
-}
-
-class _AboutConfirmActionButtonState extends State<_AboutConfirmActionButton> {
-  static const double _buttonHeight = 58;
-  static const double _buttonWidth = 196;
-
-  bool _pressed = false;
-
-  void _setPressed(bool pressed) {
-    if (_pressed == pressed) {
-      return;
-    }
-    setState(() => _pressed = pressed);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final availableWidth = constraints.hasBoundedWidth
-            ? constraints.maxWidth
-            : _buttonWidth;
-        final buttonWidth =
-            availableWidth.isFinite
-                ? (availableWidth < _buttonWidth
-                      ? availableWidth
-                      : _buttonWidth)
-                : _buttonWidth;
-
-        return SizedBox(
-          width: availableWidth.isFinite ? availableWidth : null,
-          child: Center(
-            child: SizedBox(
-              width: buttonWidth,
-              height: _buttonHeight,
-              child: Semantics(
-                button: true,
-                label: widget.label,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: widget.onPressed,
-                  onTapDown: (_) => _setPressed(true),
-                  onTapCancel: () => _setPressed(false),
-                  onTapUp: (_) => _setPressed(false),
-                  child: AnimatedScale(
-                    duration: const Duration(milliseconds: 90),
-                    curve: Curves.easeOutCubic,
-                    scale: _pressed ? 0.985 : 1,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFB65A),
-                        borderRadius: BorderRadius.circular(28),
-                        border: Border.all(
-                          color: const Color(0xFFA8642E),
-                          width: 2.2,
-                        ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x33604429),
-                            blurRadius: 13,
-                            offset: Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Text(
-                          widget.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF4D3623),
-                            fontSize: 23,
-                            fontWeight: FontWeight.w900,
-                            height: 1,
-                            letterSpacing: 0,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
