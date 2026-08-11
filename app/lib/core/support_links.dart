@@ -31,13 +31,18 @@ class SupportLinks {
     );
   }
 
-  static Uri deleteAccountMailtoUri({String appVersion = appVersionLabel}) {
+  static Uri deleteAccountMailtoUri({
+    String appVersion = appVersionLabel,
+    String? publicId,
+  }) {
+    final normalizedPublicId = publicId?.trim().toUpperCase() ?? '';
     return mailtoUri(
       subject: '申请删除账号与数据',
       body: [
         '请协助删除我的拾星小宠账号及相关家庭数据。',
         '',
         '注册方式（手机号 / Apple）：',
+        if (normalizedPublicId.isNotEmpty) '专属 ID：$normalizedPublicId',
         '账号信息：',
         '设备：iOS',
         'App 版本：$appVersion',
@@ -71,8 +76,14 @@ class SupportLinks {
     return openMailto(context, supportMailtoUri());
   }
 
-  static Future<void> openDeleteAccountEmail(BuildContext context) {
-    return openMailto(context, deleteAccountMailtoUri());
+  static Future<void> openDeleteAccountEmail(
+    BuildContext context, {
+    String? publicId,
+  }) {
+    return openMailto(
+      context,
+      deleteAccountMailtoUri(publicId: publicId),
+    );
   }
 
   static Future<void> openWebPage(BuildContext context, Uri uri) {

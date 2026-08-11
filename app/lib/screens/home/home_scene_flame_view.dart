@@ -46,6 +46,7 @@ import 'guide/home_guide_controller.dart';
 import 'guide/home_guide_overlay.dart';
 import '../../core/support_links.dart';
 import 'about_dialog.dart';
+import 'delete_account_dialog.dart';
 import 'settings_dialog.dart';
 import 'task_panel_sprite_catalog.dart';
 
@@ -1168,7 +1169,12 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
     return result == true;
   }
 
-  /// About dialog loop: after privacy / terms / support (or delete page)
+  Future<void> _showDeleteAccountDialog() async {
+    final publicId = ref.read(authProvider).user?.publicId ?? '';
+    await showDeleteAccountDialog(context, expectedPublicId: publicId);
+  }
+
+  /// About dialog loop: after privacy / terms / support (or delete dialog)
   /// closes, reopen About so the user stays on that panel instead of home.
   Future<void> _runAboutFlow() async {
     while (mounted) {
@@ -1197,7 +1203,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
           if (!mounted) {
             return;
           }
-          await context.push<void>('/account/delete');
+          await _showDeleteAccountDialog();
       }
       // Loop continues: About reopens after the destination is dismissed.
       if (!mounted) {

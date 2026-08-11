@@ -16,6 +16,7 @@ import '../../widgets/pickstarpet_dialog.dart';
 import '../../widgets/pickstarpet_text_field.dart';
 import '../../widgets/public_id_row.dart';
 import '../home/about_dialog.dart';
+import '../home/delete_account_dialog.dart';
 import '../member/member_home_screen.dart';
 import '../paywall/paywall_screen.dart';
 
@@ -244,7 +245,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             toneSoft: _ProfilePalette.berrySoft,
             title: '删除账号/数据',
             subtitle: '申请删除账号和家庭数据',
-            onTap: () => context.go('/account/delete'),
+            onTap: _showDeleteAccountDialog,
           ),
           const SizedBox(height: 10),
           _ProfileActionTile(
@@ -454,12 +455,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           if (!mounted) {
             return;
           }
-          await this.context.push<void>('/account/delete');
+          await _showDeleteAccountDialog();
       }
       if (!mounted) {
         return;
       }
     }
+  }
+
+  Future<void> _showDeleteAccountDialog() async {
+    final publicId = ref.read(authProvider).user?.publicId ?? '';
+    await showDeleteAccountDialog(context, expectedPublicId: publicId);
   }
 
   Future<bool> _showLogoutConfirmDialog(BuildContext context) async {

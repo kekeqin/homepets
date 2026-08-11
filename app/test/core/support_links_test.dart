@@ -22,12 +22,16 @@ void main() {
     });
 
     test('builds delete-account mailto with encoded subject and body', () {
-      final uri = SupportLinks.deleteAccountMailtoUri(appVersion: '1.2.3');
+      final uri = SupportLinks.deleteAccountMailtoUri(
+        appVersion: '1.2.3',
+        publicId: 'abc234',
+      );
 
       expect(uri.scheme, 'mailto');
       expect(uri.path, 'support@kkqin.com');
       expect(uri.query, contains(Uri.encodeComponent('申请删除账号与数据')));
       expect(uri.query, contains(Uri.encodeComponent('App 版本：1.2.3')));
+      expect(uri.query, contains(Uri.encodeComponent('专属 ID：ABC234')));
       expect(
         uri.query,
         contains(Uri.encodeComponent('我已知悉删除后数据通常无法恢复。')),
