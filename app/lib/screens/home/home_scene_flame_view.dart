@@ -2689,7 +2689,7 @@ class _HomeSceneFlameViewState extends ConsumerState<HomeSceneFlameView>
         return null;
       }
 
-      return _showCompletionMemberDialog(members);
+      return await _showCompletionMemberDialog(members);
     } catch (error) {
       if (mounted) {
         showFriendlyApiErrorSnackBar(
